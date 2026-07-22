@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Lint, Typecheck, Unit-Tests, Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Generierte Artefakte (setup/functions, setup-complete.sql) müssen
+      # zu ihren Quellen passen — sonst deployt das Dashboard alten Code.
+      - run: npm run generate:check
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+
+  database:
+    name: Migrationen + RLS-Tests (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Startet den lokalen Stack, fährt alle Migrationen + Seed,
+      # führt danach die pgTAP-Tests aus. Ein roter RLS-Test
+      # blockiert den Merge (ADR-014).
+      - run: supabase db start
+      - run: supabase test db
+      # [A-1] Typen-Drift-Schutz: generierte Typen müssen dem Commit
+      # entsprechen. Einmalig lokal `npm run db:types` ausführen und
+      # committen — ab dann erzwingt dieser Schritt die Konsistenz.
+      - name: Check generated database types
+        run: |
+          supabase gen types typescript --local > /tmp/database.types.ts
+          diff -u src/shared/types/database.types.ts /tmp/database.types.ts \
+            || (echo '::error::database.types.ts weicht vom Schema ab. Lokal `npm run db:types` ausführen und committen.' && exit 1)
+
+  secrets:
+    name: Secret-Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

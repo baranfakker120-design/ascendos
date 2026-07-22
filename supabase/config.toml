@@ -1,0 +1,34 @@
+project_id = "ascendos"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_signup = true
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Lokal ohne Mail-Bestätigung: Registrierung ist sofort nutzbar.
+# Staging/Production: Bestätigung AN (wird dort im Dashboard/Config gesetzt).
+enable_confirmations = false
+
+[analytics]
+enabled = false

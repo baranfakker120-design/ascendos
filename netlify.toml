@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA-Routing: alle Pfade auf index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Branch-Previews laufen gegen Staging-Supabase:
+# VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY werden im Netlify-UI
+# pro Kontext (Deploy Previews vs. Production) gesetzt — nie hier.

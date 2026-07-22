@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design-Tokens als CSS-Variablen (RGB-Tripel für Tailwind-Alpha).
+ * organizations.branding überschreibt diese später zur Laufzeit
+ * (White-Label, ADR-012) — die Klassen im Code bleiben identisch.
+ */
+:root {
+  /* Brand Foundation v1 (docs/design-system.md):
+     Monochrom + Champagner. Kein Blau. */
+  --color-bg: 247 246 243;
+  --color-surface: 255 255 255;
+  --color-ink: 17 18 20;
+  --color-muted: 110 112 117;
+  --color-line: 230 228 223;
+  --color-primary: 26 27 30;        /* Graphit-CTAs */
+  --color-primary-ink: 255 255 255;
+  --color-accent: 184 147 90;       /* Champagner: nur Akzente */
+  --color-accent-deep: 138 108 60;  /* Champagner als Text (>=4.5:1) */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg font-sans text-ink antialiased;
+}

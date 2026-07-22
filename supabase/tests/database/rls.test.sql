@@ -1,0 +1,181 @@
+-- ============================================================
+-- RLS-Tests (pgTAP) — Priorität 1 der Teststrategie (ADR-014).
+-- Ausführen mit: npm run db:test  (supabase test db)
+--
+-- Simuliert zwei Berater (A, B) in derselben Org und prüft, dass
+-- jede Grenze hält. Ein roter Test hier blockiert jeden Merge.
+-- ============================================================
+
+begin;
+
+create extension if not exists pgtap with schema extensions;
+
+select plan(13);
+
+-- ---------- Testdaten (als postgres, an RLS vorbei) ----------
+
+insert into public.organizations (id, name)
+values ('a0000000-0000-0000-0000-000000000001', 'TestOrg');
+
+insert into public.organizations (id, name)
+values ('a0000000-0000-0000-0000-000000000002', 'FremdeOrg');
+
+insert into public.teams (id, org_id, name)
+values ('b0000000-0000-0000-0000-000000000001',
+        'a0000000-0000-0000-0000-000000000001', 'TestTeam');
+
+insert into public.teams (id, org_id, name)
+values ('b0000000-0000-0000-0000-000000000002',
+        'a0000000-0000-0000-0000-000000000002', 'FremdesTeam');
+
+-- Auth-User direkt anlegen (Trigger handle_new_user feuert nur bei
+-- Metadata mit invite_code — hier legen wir Profile kontrolliert
+-- selbst an, um gezielt Konstellationen zu testen).
+insert into auth.users (id, email)
+values
+  ('c0000000-0000-0000-0000-00000000000a', 'a@test.local'),
+  ('c0000000-0000-0000-0000-00000000000b', 'b@test.local'),
+  ('c0000000-0000-0000-0000-00000000000f', 'fremd@test.local');
+
+insert into public.profiles (id, org_id, team_id, sponsor_id, role, first_name, last_name, username)
+values
+  ('c0000000-0000-0000-0000-00000000000a',
+   'a0000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000001',
+   null, 'berater', 'Anna', 'A', 'anna_a'),
+  ('c0000000-0000-0000-0000-00000000000b',
+   'a0000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000001',
+   'c0000000-0000-0000-0000-00000000000a', 'berater', 'Ben', 'B', 'ben_b'),
+  ('c0000000-0000-0000-0000-00000000000f',
+   'a0000000-0000-0000-0000-000000000002',
+   'b0000000-0000-0000-0000-000000000002',
+   null, 'berater', 'Frida', 'F', 'frida_f');
+
+-- Kontakt von Anna inkl. automatischem contact_created-Event (Trigger).
+insert into public.contacts (id, owner_id, org_id, name)
+values ('d0000000-0000-0000-0000-000000000001',
+        'c0000000-0000-0000-0000-00000000000a',
+        'a0000000-0000-0000-0000-000000000001', 'Mehmet Test');
+
+-- ---------- Hilfsfunktion: als Nutzer agieren ----------
+
+create schema if not exists tests;
+
+create or replace function tests.authenticate_as(user_id uuid)
+returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', user_id, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;
+
+-- ============================================================
+-- Tests als Anna (Owner)
+-- ============================================================
+select tests.authenticate_as('c0000000-0000-0000-0000-00000000000a');
+
+select is(
+  (select count(*)::int from public.contacts),
+  1,
+  'Anna sieht ihren eigenen Kontakt'
+);
+
+select is(
+  (select count(*)::int from public.pipeline_events),
+  1,
+  'Anna sieht das automatische contact_created-Event ihres Kontakts'
+);
+
+select is(
+  (select phase from public.contact_phases
+   where contact_id = 'd0000000-0000-0000-0000-000000000001'),
+  'lead',
+  'Phase wird korrekt aus Events abgeleitet (lead bei nur contact_created)'
+);
+
+select is(
+  (select count(*)::int from public.profiles),
+  1,
+  'Anna sieht auf der Tabelle NUR ihr eigenes Profil (Datenminimierung)'
+);
+
+select is(
+  (select count(*)::int from public.profiles_public),
+  2,
+  'profiles_public zeigt Basisdaten der eigenen Org (2 von 3)'
+);
+
+select is(
+  (select count(*)::int from public.organizations),
+  1,
+  'Anna sieht nur die eigene Organisation'
+);
+
+select throws_like(
+  $$ update public.profiles
+     set role = 'super_admin'
+     where id = 'c0000000-0000-0000-0000-00000000000a' $$,
+  '%können nicht selbst geändert werden%',
+  'Anna kann ihre eigene Rolle nicht eskalieren'
+);
+
+-- ============================================================
+-- Tests als Ben (gleiche Org, NICHT Owner)
+-- ============================================================
+select tests.authenticate_as('c0000000-0000-0000-0000-00000000000b');
+
+select is(
+  (select count(*)::int from public.contacts),
+  0,
+  'Ben sieht Annas Kontakte NICHT (Owner-only, auch im selben Team)'
+);
+
+select is(
+  (select count(*)::int from public.pipeline_events),
+  0,
+  'Ben sieht Annas Pipeline-Events NICHT'
+);
+
+select throws_ok(
+  $$ insert into public.pipeline_events (contact_id, org_id, event_type, created_by)
+     values ('d0000000-0000-0000-0000-000000000001',
+             'a0000000-0000-0000-0000-000000000001',
+             'follow_up',
+             'c0000000-0000-0000-0000-00000000000b') $$,
+  '42501',
+  null,
+  'Ben kann keine Events auf fremde Kontakte schreiben'
+);
+
+select throws_ok(
+  $$ insert into public.contacts (owner_id, org_id, name)
+     values ('c0000000-0000-0000-0000-00000000000a',
+             'a0000000-0000-0000-0000-000000000001', 'Eingeschleust') $$,
+  '42501',
+  null,
+  'Ben kann keine Kontakte im Namen von Anna anlegen'
+);
+
+-- ============================================================
+-- Tests als Frida (fremde Org)
+-- ============================================================
+select tests.authenticate_as('c0000000-0000-0000-0000-00000000000f');
+
+select is(
+  (select count(*)::int from public.profiles
+   where org_id = 'a0000000-0000-0000-0000-000000000001'),
+  0,
+  'Org-Grenze dicht: Frida sieht keine Profile der TestOrg'
+);
+
+select is(
+  (select count(*)::int from public.contacts),
+  0,
+  'Org-Grenze dicht: Frida sieht keinerlei fremde Kontakte'
+);
+
+select * from finish();
+
+rollback;

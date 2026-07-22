@@ -1,0 +1,11 @@
+# Generierte Artefakte — Quelle ist supabase/functions/ bzw. supabase/migrations/
+setup/functions/
+setup/setup-complete.sql
+
+# Deno-Runtime, nicht Teil des Frontend-Formats
+supabase/
+
+# Build-Output
+dist/
+dev-dist/
+public/icons/
