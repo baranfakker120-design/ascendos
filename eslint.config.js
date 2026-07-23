@@ -20,7 +20,14 @@ export default tseslint.config(
       import: importPlugin,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // Regeln explizit statt via Preset-Spread. Grund: die Form von
+      // `configs.recommended` hat sich zwischen den Major-Versionen des
+      // Plugins geändert (in 6.x ist es ein Array). `...undefined` ist in
+      // JS kein Fehler — die Hook-Regeln wären beim nächsten Bump
+      // KLANGLOS verschwunden, ohne roten Build. Inhaltlich identisch
+      // zum Preset von 5.x.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-explicit-any': 'error',
       // Architektur-Grenze (ADR-012): Features importieren nie aus anderen
