@@ -87,9 +87,18 @@ async function extractPdf(file: File): Promise<ExtractResult> {
   }
 
   const buffer = await file.arrayBuffer();
+  // getDocument() erzeugt nur den Ladeauftrag und liest noch nichts.
+  // Fehler im Dokument treten erst beim Auflösen von .promise auf,
+  // deshalb steht nur das im try-Block.
+  //
+  // Der Auftrag wird bewusst hier gehalten: destroy() liegt auf
+  // PDFDocumentLoadingTask, nicht auf PDFDocumentProxy. Auf dem Proxy
+  // war es früher ein Alias und ist entfernt. Der Proxy hat nur
+  // cleanup(), und das gibt den Worker nicht frei.
+  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
   let doc;
   try {
-    doc = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
+    doc = await loadingTask.promise;
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
     if (/password/i.test(msg)) {
@@ -108,7 +117,7 @@ async function extractPdf(file: File): Promise<ExtractResult> {
     );
   }
   const pages = doc.numPages;
-  await doc.destroy();
+  await loadingTask.destroy();
 
   const text = normalizeText(parts.join('\n\n'));
   if (text.length < 40) {
