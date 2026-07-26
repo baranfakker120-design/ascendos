@@ -378,3 +378,95 @@ Jede neue wesentliche Entscheidung erhält einen neuen ADR (fortlaufende Nummer)
 
 **Akzeptierte Nachteile:** Reasoning-Modelle sind teurer und langsamer pro Antwort als `gpt-4.1`; das Eval-Set (docs/coach-eval-set.md) MUSS nach dem Wechsel einmal vollständig durchlaufen — Ton- und Guardrail-Verhalten sind modellabhängig. Der Fallback-Pfad kann stillschweigend auf ein schwächeres Modell wechseln; er wird deshalb per `console.warn` protokolliert.
 
+
+---
+
+## ADR-026: Gemini für die Textgenerierung, Embeddings bleiben bei OpenAI
+
+**Kontext:** Der Coach sollte vollständig auf die Google Gemini API umgestellt werden, bei ausdrücklich unveränderter Datenbank, unverändertem Frontend und unveränderten Prompts.
+
+**Der Zielkonflikt:** `coach-chat` nutzt den Anbieter an zwei Stellen — Textgenerierung und Query-Embedding für das Retrieval. `knowledge_chunks.embedding` ist `extensions.vector(1536)`, `match_knowledge()` verlangt in der Signatur ebenfalls `vector(1536)`, und der HNSW-Index ist auf diesen Raum gebaut. Gemini-Embeddings haben eine andere Dimension und — entscheidend — einen anderen Vektorraum. Selbst bei passender Dimension wäre die Ähnlichkeitssuche zwischen Gemini-Query und OpenAI-Chunks semantisch bedeutungslos. Der Coach würde nicht abstürzen, sondern falsche Dokumente zitieren und sie als „oberste Wahrheit" behandeln. Das ist der schlechteste Fehlermodus: kein roter Build, keine Exception, nur stillschweigend falsche Antworten.
+
+**Entscheidung:** Der Anbieterwechsel erfolgt ausschließlich in der Generierung. Embeddings bleiben unverändert bei `text-embedding-3-small`.
+
+1. **Neue Datei `_shared/gemini.ts`** statt Umbau von `llm.ts`. `llm.ts` wird auch von `ingest-knowledge` importiert; ein Umbau dort hätte die Ingestion mitgeändert und damit den Vektorraum in der Datenbank. `gemini.ts` importiert nichts aus `llm.ts` — beide Provider stehen unabhängig nebeneinander. Belegt: die Bundles von `ingest-knowledge` und `validate-invite` sind nach der Umstellung byte-identisch.
+2. **`gemini-2.5-flash` / `gemini-2.5-flash-lite`.** Free-Tier-fähig und die einzige aktuelle Flash-Reihe, bei der sich Thinking über `thinkingBudget: 0` VOLLSTÄNDIG abschalten lässt. Die Gemini-3-Flash-Modelle unterstützen kein echtes Thinking-Off — für den Router mit 16 Token Ausgabebudget ist das ein Ausschlusskriterium.
+3. **Thinking-Budget wird aufgeschlagen, nicht geteilt.** Gemini zählt Thinking-Token gegen `maxOutputTokens`. Derselbe Fallstrick wie bei den OpenAI-Reasoning-Modellen (ADR-025, Punkt 3): ohne Aufschlag liefert der Router eine leere Antwort mit `finishReason: MAX_TOKENS` und ohne Fehler.
+4. **Modellnamen werden zur Laufzeit übersetzt.** In `agents.model` steht weiterhin `gpt-5.6`; `mapToGeminiModel()` bildet das auf Gemini ab. Damit bleibt die Tabelle unangetastet — keine Migration, kein Datenupdate. Overrides über `GEMINI_MODEL` / `GEMINI_FAST_MODEL`.
+5. **Safety auf `BLOCK_ONLY_HIGH`.** Die Standardschwelle blockiert im Vertriebskontext gelegentlich harmlose Formulierungen. `blockReason` und `finishReason: SAFETY` werden explizit als `refused` behandelt, statt als leere Antwort durchzurutschen.
+6. **`GeminiError` mit derselben `code`-Union wie `LlmError`.** Eigener Klassenname, weil im Dashboard-Bundle beide Module in einer Datei liegen. Das bestehende Error-Handling und alle HTTP-Statuscodes bleiben unverändert.
+7. **Kollisionsprüfung im Bundler.** Zwei Provider-Module in einem Bundle-Scope haben beim ersten Versuch sieben doppelte Top-Level-Deklarationen erzeugt (`resolveModel`, `sleep`, `extractText`, …). Der Bundler bricht jetzt mit Namensliste ab, statt ein syntaktisch defektes Bundle zu schreiben.
+
+**Nicht geändert:** Prompts (`CORE_RULES`, `ROUTER_PROMPT`, `agents.system_prompt`), JSON-Vertrag (`{ conversationId, agentKey, reply, timings }`), Fehler-Payloads, Statuscodes, Auth, RLS, Tabellen, UI, Routing, Netlify. Streaming war nicht implementiert und wurde nicht eingeführt.
+
+**Offener Punkt:** `coach-chat` braucht weiterhin `OPENAI_API_KEY` — ausschließlich für das Query-Embedding. Ohne diesen Schlüssel läuft der Coach trotzdem, aber ohne Teamdokumente: `embed()` ist bereits in try/catch gekapselt, das Retrieval fällt aus und die Frage wird als Wissenslücke erfasst. Für einen vollständig OpenAI-freien Betrieb MIT Retrieval sind eine Migration der Vektordimension und eine komplette Neu-Ingestion aller `knowledge_docs` nötig — eine Datenbankänderung, die hier ausdrücklich ausgeschlossen war.
+
+---
+
+## ADR-027: Vollständige Migration auf Gemini, OpenAI entfällt
+
+**Kontext:** Nach ADR-026 lief die Generierung über Gemini, die Embeddings noch über OpenAI. Ziel war die Beseitigung des zweiten Anbieters — ohne Schemamigration, ohne Änderung an `vector(1536)`, Tabellen, RLS, UI oder Frontend.
+
+**Grundlage der Machbarkeit:** `gemini-embedding-001` unterstützt Matryoshka Representation Learning. Mit `outputDimensionality: 1536` passt der Vektor exakt in die bestehende Spalte. Damit bleiben `knowledge_chunks.embedding`, der HNSW-Index (`vector_cosine_ops`) und die Signatur von `match_knowledge(query_embedding vector(1536), …)` unverändert. Kein DDL.
+
+**Entscheidungen:**
+
+1. **`llm.ts` gelöscht, nicht umgebaut.** Nach ADR-026 war die Hälfte des Moduls toter Code; die OpenAI-Chat-Maschinerie wurde weiterhin in beide Dashboard-Bundles einkopiert. `_shared/gemini.ts` ist jetzt die einzige Provider-Schicht. Effekt: `setup/functions/coach-chat.ts` von 1020 auf 794 Zeilen, und die Variablen `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_FAST_MODEL`, `ROUTER_MODEL` entfallen restlos.
+2. **`taskType` ist Pflichtparameter ohne Default.** Gemini-Embeddings sind asymmetrisch: `RETRIEVAL_DOCUMENT` für Chunks, `RETRIEVAL_QUERY` für Suchanfragen. Denselben Wert für beide Seiten zu verwenden kostet messbar Trefferqualität, ohne einen Fehler zu erzeugen. OpenAI kannte das Konzept nicht — es ist ein neuer Parameter, keine Übersetzung. Ein Default hätte genau den stillen Fehler erlaubt, den er verhindern soll.
+3. **`min_similarity` wird explizit übergeben.** Der DB-Default `0.25` war auf den OpenAI-Vektorraum getunt. `coach-chat` übergab den Parameter vorher nicht; jetzt kommt er aus `organizations.settings.coach_min_similarity` (Default `0.2`) — dieselbe jsonb-Mechanik wie `coach_daily_message_limit`, also ohne Schemaänderung. Der Wert ist eine begründete Startannahme, keine Messung; Abschnitt „Manuelle Schritte" verlangt die Kalibrierung.
+4. **Sequenzielle Einbettung statt Batch.** Die Vertex-Dokumentation nennt für `gemini-embedding-001` einen Eingabetext pro Request. `geminiEmbedBatch()` arbeitet deshalb sequenziell mit Backoff, `EMBED_BATCH` sank von 64 auf 16. Langsamer, aber im Free Tier (etwa 100 RPM) belastbar; der Rollback in `ingest-knowledge` löscht bei Abbruch weiterhin das halbe Dokument.
+5. **Normalisierung implementiert, obwohl mathematisch entbehrlich.** Google normalisiert bei `gemini-embedding-001` nur die volle 3072-Dimension automatisch. Für die Suche ist es irrelevant, weil pgvector mit Cosine rechnet und Cosine skaleninvariant ist — nachgewiesen per Test. Es passiert trotzdem, damit die gespeicherten Vektoren korrekt sind, falls je auf L2 gewechselt wird.
+6. **Zeichen-Cap von 8000 auf 4000 gesenkt.** `gemini-embedding-001` akzeptiert 2048 Token; 8000 Zeichen deutscher Text können darüber liegen. Chunks sind auf 1600 Zeichen begrenzt, das griff nur auf dem Query-Pfad — eine latente Fehlerquelle, keine akute.
+
+**Zwei Bundler-Fehler, die die Migration aufgedeckt hat:**
+
+- Der Import-Matcher war zeilenweise und erkannte **mehrzeilige** Imports nicht. Der neue `import { … }`-Block in `coach-chat` rutschte durch: `gemini.ts` wurde nicht eingebettet, die `import`-Zeile landete im Body. Das Bundle wäre im Dashboard sofort gescheitert, während der modulare Code fehlerfrei blieb. `splitImports()` arbeitet jetzt über die ganze Datei, plus Sicherheitsnetz gegen jeden überlebenden `_shared/`-Verweis.
+- Remote-Imports der Shared-Module blieben mitten im Bundle stehen (Zeile 43). Als Top-Level-Deklaration gültig, aber es liest sich wie ein Fehler und provoziert die verbotene Handbearbeitung. Sie werden jetzt gehoben und dedupliziert.
+
+**Nicht geändert:** Migrationen (weiterhin 11), Tabellen, RLS, `vector(1536)`, Prompts, JSON-Vertrag `{ conversationId, agentKey, reply, timings }`, Fehler-Payloads, Statuscodes, Frontend, Routing, Netlify. Streaming war nicht implementiert und wurde nicht eingeführt.
+
+**Rückweg:** `llm.ts` liegt in der Git-Historie. Ein Rollback ist eine Codeänderung plus Neu-Ingestion — kein DDL.
+
+---
+
+## ADR-028: Modell-Baseline auf Gemini 3.5 Flash, Thinking-Parameter generationsabhängig
+
+**Anlass:** Produktionsfehler. `gemini-2.5-flash` antwortete mit `404: "no longer available to new users"`. Google hat die 2.5-Flash-Reihe am 9. Juli 2026 abgeschaltet — die eigene Deprecation-Seite nannte den 16. Oktober 2026, eine Changelog-Ankündigung gab es nicht. Die Modelle erscheinen weiterhin in `ListModels`.
+
+**Entscheidungen:**
+
+1. **Baseline `gemini-3.5-flash` (Coach) / `gemini-3.1-flash-lite` (Router).** Beide GA. 3.5 Flash steht auch hinter `gemini-flash-latest`.
+2. **Thinking-Parameter generationsabhängig, genau einer pro Aufruf.** Gemini 3.x erwartet `thinkingLevel` (Enum), die 2.5-Reihe `thinkingBudget` (Tokenzahl). Beide gleichzeitig zu senden ist ein API-Fehler; der jeweils falsche Parameter wird von der anderen Generation abgelehnt oder verzerrt das Verhalten.
+3. **Die Weiche ist eine Ausschlussliste, keine Einschlussliste.** `usesThinkingLevel()` prüft auf `/^gemini-(1|2)[.-]/` und schickt alles andere über `thinkingLevel`. Ein erster Versuch mit `/^gemini-3/` hat im Test `gemini-flash-latest` falsch einsortiert — der Alias zeigt auf 3.5 Flash — und wäre bei Gemini 4 erneut falsch gewesen. Neue Modelle bekommen jetzt automatisch den neuen Parameter.
+4. **Thinking-Reserve statt Thinking-Off.** Gemini 3 Flash und Flash-Lite können Thinking nicht vollständig abschalten; `effort: 'none'` bedeutet dort `'minimal'`. Da `thinkingLevel` keine Tokenzahl nennt, die Thinking-Token aber weiter gegen `maxOutputTokens` zählen, wird pauschal reserviert (minimal 1024 bis high 8192). Ohne das liefert der Router mit 16 Token Ausgabebudget garantiert eine leere Antwort mit `finishReason: MAX_TOKENS` — anders als bei 2.5 nicht durch Abschalten umgehbar.
+5. **404-Notausgang auf `gemini-flash-latest`.** Ein gepinntes Modell allein ist gegen eine unangekündigte Abschaltung kein Schutz. Meldet die API „no longer available", wird der Aufruf einmalig über den Rolling Alias wiederholt und laut per `console.warn` protokolliert. Der Alias ist bewusst NICHT der Default: er wechselt still das Modell und würde Ton und Eval-Ergebnisse unbemerkt verschieben.
+6. **Liste abgeschalteter Modelle im Mapping.** `GEMINI_RETIRED` lenkt bekannte tote Modellnamen nach Leistungsklasse um und erspart den 404-Roundtrip, falls sie noch in Env-Variablen oder `agents.model` stehen.
+7. **`temperature`, `top_p`, `top_k` werden nicht gesetzt.** Google empfiehlt für Gemini 3 ausdrücklich die Defaults.
+
+**Embeddings unverändert.** `gemini-embedding-001` ist weiterhin GA, 1536 bleibt empfohlene MRL-Dimension, und die manuelle L2-Normalisierung bei Dimensionen unter 3072 bleibt erforderlich. `vector(1536)` und `match_knowledge()` sind nicht betroffen, es entsteht kein Re-Ingestion-Bedarf. `gemini-embedding-2` (April 2026, multimodal, auto-normalisiert) wäre eine Option, hätte aber einen anderen Vektorraum — bei leerer Wissensbasis derzeit kostenlos, aber ohne belegten Nutzen für rein deutschsprachige Textinhalte.
+
+**Offen:** Die Free-Tier-Grenzen von 3.5 Flash und 3.1 Flash-Lite habe ich nicht verifiziert. Läuft der Coach in Rate-Limits, ist `gemini-3.1-flash-lite` auch für den Coach die naheliegende Rückfallebene.
+
+---
+
+## ADR-029: Knowledge-Import über eine Admin-Seite, Extraktion im Browser
+
+**Kontext:** Die Wissensbasis war leer (`knowledge_chunks = 0`, live geprüft). Ohne sie behandelt Ascent jede Teamfrage als Wissenslücke. Bisher gab es nur `scripts/ingest-knowledge.mjs` — ein Node-Skript, das einen PC voraussetzt. AscendOS wird vom Handy aus betrieben.
+
+**Entscheidungen:**
+
+1. **Textextraktion im Browser, nicht in der Edge Function.** Die Datei wird nie hochgeladen, nur der extrahierte Text. Damit entfällt ein Storage-Bucket samt neuer RLS-Policies, und `ingest-knowledge` bleibt unverändert. PDF-Parsing ist speicherhungrig — im Browser des Admins unkritisch, in einer Function mit harter Laufzeitgrenze nicht.
+2. **Parser per dynamischem Import.** `pdfjs-dist` und `mammoth` werden erst geladen, wenn eine PDF bzw. DOCX fällt. Die App-Startzeit bleibt unberührt, und ein Parser-Fehler betrifft nur die eine Datei — TXT und Markdown funktionieren weiter.
+3. **Kategorien sind eine feste Auswahl, keine Freitexteingabe.** `knowledge_docs.category` hat keinen DB-Constraint, aber jeder Agent filtert über `agents.retrieval_categories`. Eine Kategorie außerhalb dieser neun Werte wird eingebettet, gespeichert und von KEINEM Agenten je gefunden — ein stillschweigend wirkungsloses Dokument. Die Liste in `knowledgeApi.ts` ist die Vereinigung der drei Agenten-Konfigurationen; die Dokumentliste warnt zusätzlich bei Altlasten mit unbekannter Kategorie.
+4. **Freigabe ist Teil des Features, nicht optional.** `ingest-knowledge` legt Dokumente als `draft` an. `match_knowledge` filtert nicht selbst auf den Status — die Sperre kommt aus der RLS-Policy `knowledge_docs_select_approved`, weil die Funktion `stable` und nicht `security definer` ist. Folge: Für Berater ist ein Entwurf unsichtbar, für Super-Admins sichtbar. Ohne Freigabe-Aktion hätte ein Admin Dokumente hochgeladen, sie im eigenen Coach gesehen und geglaubt, das Team habe sie auch. Die Seite weist explizit darauf hin.
+5. **Streng sequenzielle Verarbeitung.** `gemini-embedding-001` nimmt einen Text pro Request, das kostenlose Kontingent liegt bei rund 100 Anfragen pro Minute. Paralleles Hochladen würde zuverlässig in 429er laufen und halbe Dokumente hinterlassen.
+6. **Große Dokumente werden clientseitig zerlegt.** Über 120.000 Zeichen (rund 75 Chunks) entstehen mehrere Aufrufe mit Titelzusatz „(Teil n/m)", statt in die Laufzeitgrenze der Function zu laufen. Geschnitten wird an Absatzgrenzen.
+7. **Fortschritt bewusst grobkörnig.** Die Function meldet zwischendurch nichts. Angezeigt werden Phasen und ein Teil-Zähler, die echten Ereignissen entsprechen — ein flüssig laufender Balken wäre erfunden.
+8. **Leere Extraktion wird als Fehler behandelt.** Ein Scan ohne OCR-Textlayer liefert einen fast leeren String. Ohne diese Prüfung entstünde ein leeres Dokument, das der Coach später als Wissen behandelt. Unter 40 Zeichen bricht die Verarbeitung mit dem Hinweis auf fehlende Texterkennung ab.
+9. **Route-Guard `RequireSuperAdmin` als zweite Verteidigungslinie.** Die eigentliche Absicherung sind die RLS-Policy `knowledge_docs_admin_write` und der Rollencheck in `ingest-knowledge`. Der Guard verhindert nur, dass Berater auf eine Seite geraten, auf der jede Aktion scheitert.
+
+**Nebenbefund, der den Build gebrochen hätte:** `src/shared/types/database.types.ts` ist handgepflegt (siehe Dateikopf) und kannte `agents`, `knowledge_docs`, `knowledge_chunks` und `knowledge_gaps` nicht. Der typisierte Supabase-Client hätte jeden Zugriff darauf abgelehnt. Die vier Tabellen sind ergänzt, mit `Insert: never` für alles, was ausschließlich über die Edge Function entstehen darf. Sobald `npm run db:types` gegen eine laufende DB läuft, wird die Datei ohnehin generiert.
+
+**Normalisierung des extrahierten Textes.** PDF-Extraktion erzeugt Layout-Müll: Umbrüche mitten im Satz, Silbentrennung am Zeilenende, dreifache Leerzeilen. Unbehandelt landet das in den Chunks und verschlechtert die Einbettung, weil der Vektor Formatierung statt Bedeutung abbildet.
+
+**Offen:** Der Schwellwert `coach_min_similarity` (Default 0.2) ist weiterhin eine Annahme. Erst mit den ersten echten Dokumenten lässt er sich messen — vorher gab es nichts zu messen.

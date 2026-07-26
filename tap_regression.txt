@@ -1,0 +1,37 @@
+﻿1..23
+ok 1 - A1 Registrierung mit gueltigem Einladungscode funktioniert weiterhin
+ok 2 - A2 handle_new_user hat das Profil korrekt aus der Einladung erzeugt
+ok 3 - A3 Die Einladung ist danach als verbraucht markiert
+
+ok 4 - B1 create_invite erzeugt weiterhin einen Code
+ok 5 - B2 validate_invite liefert weiterhin die Organisationsdaten (unverbrauchte Einladung)
+
+ok 6 - C1 log_contact_created erzeugt weiterhin automatisch das Anlage-Ereignis
+ok 7 - C2 contact_phases leitet die Phase weiterhin korrekt ab
+not ok 8 - C3 correct_pipeline_event funktioniert weiterhin
+# Failed test 8: "C3 correct_pipeline_event funktioniert weiterhin"
+#     died: P0001: AscendOS: Dieses Ereignis kann nicht korrigiert werden.
+#         CONTEXT:
+#             PL/pgSQL function correct_pipeline_event(uuid) line 15 at RAISE
+#             SQL statement " select public.correct_pipeline_event(
+#                    (select id from public.pipeline_events
+#                     where contact_id = 'd1000000-0000-0000-0000-00000000000b' limit 1)) "
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+ok 9 - D1 generate_daily_plan erzeugt weiterhin einen Plan
+ok 10 - D2 commit_daily_plan funktioniert weiterhin
+ok 11 - D3 update_mission_status funktioniert weiterhin
+ok 12 - E1 coach_messages_today zaehlt die eigenen Nachrichten weiterhin
+ok 13 - E2 Berater sieht freigegebene Dokumente
+ok 14 - E3 Berater sieht Entwuerfe NICHT (Freigabepflicht haelt)
+ok 15 - F1 match_knowledge findet den eigenen Chunk, Vektoroperator funktioniert
+ok 16 - G1 get_downline liefert die eigene Downline (Clara aus Abschnitt A)
+ok 17 - G2 profiles_public liefert weiterhin die Teamliste der eigenen Organisation
+ok 18 - H1 Aktivitaetsereignisse koennen weiterhin fuer sich selbst geschrieben werden
+ok 19 - I1 Selbstbefoerderung bleibt blockiert, protect_profile_columns wirkt
+
+ok 20 - I2 Die Rolle leader hat weiterhin KEINEN erweiterten Zugriff (Zustand vor F2)
+
+ok 21 - J1 Fremde Organisation sieht keine Kontakte
+ok 22 - J2 Fremde Organisation sieht keine Profile der Testorganisation
+ok 23 - J3 Fremde Organisation sieht kein fremdes Wissen
+# Looks like you failed 1 test of 23

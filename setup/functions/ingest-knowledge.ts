@@ -5,6 +5,7 @@
 // Quelle: supabase/functions/ingest-knowledge/index.ts
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { GoogleGenAI, type Content } from 'npm:@google/genai@2.13.0';
 
 // ---- inline: _shared/cors.ts ----
 export const corsHeaders = {
@@ -24,58 +25,133 @@ export function json(body: unknown, status = 200): Response {
   });
 }
 
-// ---- inline: _shared/llm.ts ----
+// ---- inline: _shared/gemini.ts ----
 /**
- * Zentrale LLM-Anbindung — ausschliesslich OpenAI (ADR-024/ADR-025).
+ * Gemini-Anbindung: Textgenerierung UND Embeddings (ADR-026/ADR-027).
  *
- * Architektur-Regel (ADR-007): API-Schluessel und Provider-Details
- * existieren NUR in dieser Datei. Aufrufende Edge Functions kennen
- * weder Endpunkte noch Modellnamen-Semantik.
+ * Einzige Provider-Schicht des Projekts. API-Schlüssel, Endpunkte und
+ * Modellnamen-Semantik existieren NUR hier; die Edge Functions kennen
+ * davon nichts (ADR-007).
  *
- * Genutzte Endpunkte:
- *   - POST /v1/responses   (Chat, Responses API — der go-forward Pfad)
- *   - POST /v1/embeddings  (text-embedding-3-small, 1536 Dimensionen)
+ * Zuständig: Chat-Antworten, Router, Themen-Anonymisierung UND Embeddings.
+ * Seit ADR-027 der einzige KI-Anbieter des Projekts; `llm.ts` ist entfallen.
  *
- * Es gibt bewusst KEINEN Chat-Completions-Pfad und keinen zweiten Provider.
+ * Schlüssel: ausschließlich GEMINI_API_KEY.
  */
 
-const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
-const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
 
-/** Fix verdrahtet: Die Vektordimension in der DB (1536) haengt daran.
- *  Ein Wechsel des Embedding-Modells ist eine Migration, keine Env-Var. */
-export const EMBEDDING_MODEL = 'text-embedding-3-small';
+/** Aktuelle GA-Modelle (ADR-028). Die 2.5-Flash-Reihe wurde am 9. Juli 2026
+ *  abgeschaltet — Wochen VOR dem angekündigten Termin (16.10.2026). */
+const GEMINI_DEFAULT_CHAT_MODEL = 'gemini-3.5-flash';
+const GEMINI_DEFAULT_FAST_MODEL = 'gemini-3.1-flash-lite';
+
+/** Rolling Alias, zeigt immer auf das aktuelle Flash-Modell und kann daher
+ *  nicht abgeschaltet werden. NUR Notfall-Fallback bei 404: ein Alias
+ *  wechselt still das Modell und würde Ton und Eval-Ergebnisse unbemerkt
+ *  verschieben. */
+const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
+
+/** Nachweislich abgeschaltete Modelle. Erspart den 404-Roundtrip, falls sie
+ *  noch in Env-Variablen oder `agents.model` stehen. Künftige Fälle fängt
+ *  der generische 404-Fallback in geminiChat() ab. */
+const GEMINI_RETIRED = new Set([
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+]);
+
+const GEMINI_TIMEOUT_MS = 60_000;
+const GEMINI_EMBED_TIMEOUT_MS = 30_000;
+const GEMINI_MAX_RETRIES = 2;
+
+/** Fix verdrahtet, NICHT konfigurierbar: `knowledge_chunks.embedding` ist
+ *  `vector(1536)` und der HNSW-Index ist auf diesen Raum gebaut. Ein
+ *  anderer Wert hier bedeutet Schemamigration plus Neu-Ingestion. */
+export const EMBEDDING_MODEL = 'gemini-embedding-001';
 export const EMBEDDING_DIMENSIONS = 1536;
 
-/** Modellwahl ist Daten (agents.model) bzw. Env — diese Werte greifen
- *  nur, wenn nichts konfiguriert ist. */
-const DEFAULT_CHAT_MODEL = 'gpt-5.6';
-const DEFAULT_FAST_MODEL = 'gpt-5.6-luna';
-/** Breit verfuegbares Vorgaenger-Modell. Wird NUR benutzt, wenn OpenAI
- *  meldet, dass das gewuenschte Modell nicht existiert bzw. fuer den
- *  Account nicht freigegeben ist (neue Accounts, gestaffelte Rollouts). */
-const FALLBACK_CHAT_MODEL = 'gpt-4.1';
+/** gemini-embedding-001 akzeptiert 2048 Token Eingabe. 4000 Zeichen sind
+ *  auch für deutsche Texte (~3 Zeichen/Token) sicher darunter. Chunks sind
+ *  ohnehin auf 1600 Zeichen begrenzt — das greift nur auf dem Query-Pfad. */
+const EMBED_MAX_CHARS = 4000;
 
-const CHAT_TIMEOUT_MS = 60_000;
-const EMBED_TIMEOUT_MS = 30_000;
-const MAX_RETRIES = 2;
+/**
+ * Gemini-Embeddings sind ASYMMETRISCH: Dokument und Frage werden
+ * unterschiedlich kodiert. Denselben Task-Type für beides zu verwenden
+ * kostet messbar Trefferqualität — deshalb ist der Parameter Pflicht und
+ * hat bewusst KEINEN Default. OpenAI kannte dieses Konzept nicht.
+ */
+export type EmbedTask = 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY';
 
-/** Reasoning-Modelle verbrauchen unsichtbare Denk-Token aus demselben
- *  max_output_tokens-Budget. Wer hier zu knapp budgetiert, bekommt eine
- *  formal erfolgreiche, aber leere Antwort. */
-const REASONING_MODEL_RE = /^(gpt-5|o1|o3|o4)/i;
-const REASONING_BUDGET_TOKENS = 2048;
+/**
+ * Thinking-Steuerung ist GENERATIONSABHÄNGIG — die Hauptfalle beim Wechsel:
+ *
+ *   Gemini 3.x : `thinkingLevel` (Enum). `thinkingBudget` wird nur aus
+ *                Kompatibilität akzeptiert und kann das Verhalten
+ *                verzerren. BEIDE gleichzeitig = API-Fehler.
+ *   Gemini 2.5 : `thinkingBudget` (Tokenzahl). `thinkingLevel` erzeugt
+ *                hier einen Fehler.
+ *
+ * Zusätzlich: Gemini 3 Flash und Flash-Lite können Thinking NICHT
+ * vollständig abschalten. `effort: 'none'` heißt dort 'minimal', nicht aus.
+ */
+function usesThinkingLevel(model: string): boolean {
+  // Bewusst als Ausschlussliste, nicht als Einschlussliste: nur die
+  // 1.x/2.x-Reihe kennt `thinkingBudget`. Alles andere — 3.x, die
+  // `-latest`-Aliasse und kuenftige Generationen — bekommt
+  // `thinkingLevel`. Eine Einschlussliste auf /^gemini-3/ haette
+  // `gemini-flash-latest` (zeigt auf 3.5 Flash) falsch einsortiert und
+  // waere bei Gemini 4 wieder falsch.
+  return !/^gemini-(1|2)[.-]/i.test(model);
+}
 
-export interface ChatMessage {
+const GEMINI_THINKING_LEVEL: Record<GeminiEffort, string> = {
+  none: 'minimal', // echtes Off existiert bei 3 Flash nicht
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+};
+
+/** Legacy-Pfad für die 2.5-Reihe. */
+const GEMINI_THINKING_BUDGET: Record<GeminiEffort, number> = {
+  none: 0,
+  minimal: 0,
+  low: 1024,
+  medium: 4096,
+  high: 8192,
+};
+
+/**
+ * Aufschlag auf `maxOutputTokens` bei Gemini 3.
+ *
+ * `thinkingLevel` nennt keine Tokenzahl, die Thinking-Token zählen aber
+ * weiterhin gegen `maxOutputTokens`. Ohne Reserve bekommt der Router mit
+ * 16 Token Budget garantiert eine LEERE Antwort mit
+ * `finishReason: MAX_TOKENS`. Anders als bei 2.5 lässt sich das nicht
+ * durch Abschalten umgehen.
+ */
+const GEMINI_THINKING_RESERVE: Record<GeminiEffort, number> = {
+  none: 1024,
+  minimal: 1024,
+  low: 2048,
+  medium: 4096,
+  high: 8192,
+};
+
+export type GeminiEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high';
+
+export interface GeminiChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
 
-export type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high';
-
-/** Fehler mit maschinenlesbarem Grund — Aufrufer entscheiden damit, ob
- *  sie degradieren (RAG) oder abbrechen (Antwort). */
-export class LlmError extends Error {
+/** Fehler mit maschinenlesbarem Grund: die Aufrufer entscheiden damit, ob
+ *  sie degradieren (Retrieval) oder abbrechen (Antwort). */
+export class GeminiError extends Error {
   constructor(
     message: string,
     readonly code:
@@ -88,294 +164,392 @@ export class LlmError extends Error {
     readonly status?: number
   ) {
     super(message);
-    this.name = 'LlmError';
+    this.name = 'GeminiError';
   }
 }
 
 // ============================================================
-// Modell-Aufloesung
+// Modell-Auflösung — ohne Datenbankänderung
 // ============================================================
 
 /**
- * Mappt Anthropic-/Claude-Modellnamen auf das passende OpenAI-Aequivalent.
+ * Mappt die in `agents.model` GESPEICHERTEN Werte auf Gemini-Modelle.
  *
- * Hintergrund: `agents.model` ist DATEN. Alt-Installationen und importierte
- * Seeds koennen weiterhin Claude-Namen enthalten. Statt einer 400er-Antwort
- * von OpenAI wird nach Leistungsklasse gemappt.
+ * Kritisch für die Vorgabe "Datenbank nicht ändern": In der Tabelle stehen
+ * weiterhin `gpt-5.6` bzw. `gpt-5.6-luna` (und in Alt-Installationen
+ * Claude-Namen). Diese Werte werden zur LAUFZEIT übersetzt, statt sie per
+ * Migration zu überschreiben. `agents` bleibt damit unangetastet.
  *
- * Reine Funktion, absichtlich ohne Deno.env — dadurch testbar.
- * Rueckgabe `null` = kein Claude-Modell, Wert unveraendert uebernehmen.
+ * Reine Funktion ohne Deno.env — testbar.
  */
-export function mapClaudeModel(
+export function mapToGeminiModel(
   model: string,
   defaults: { chat: string; fast: string }
-): string | null {
+): string {
   const m = (model ?? '').trim().toLowerCase();
   if (!m) return defaults.chat;
-  // Erfasst auch Praefix-Schreibweisen wie "anthropic/claude-..." oder
-  // "anthropic.claude-..." (OpenRouter-/Bedrock-Stil).
-  if (!m.includes('claude') && !m.includes('anthropic')) return null;
+  // Abgeschaltetes Modell: nach Leistungsklasse auf ein aktuelles umlenken,
+  // statt in den 404 zu laufen.
+  if (GEMINI_RETIRED.has(m)) {
+    return /(lite|flash-8b)/.test(m) ? defaults.fast : defaults.chat;
+  }
+  // Bereits ein aktuelles Gemini-Modell? Unverändert übernehmen.
+  if (m.startsWith('gemini')) return m;
 
-  if (m.includes('haiku')) return defaults.fast; // schnell/guenstig
-  if (m.includes('opus')) return defaults.chat; // Spitzenklasse
-  if (m.includes('sonnet')) return defaults.chat; // ausgewogen
-  return defaults.chat; // unbekannte Claude-Variante
+  // Kleine/schnelle Klasse eines Fremdanbieters -> Flash-Lite.
+  if (/(mini|nano|luna|lite|haiku|small)/.test(m)) return defaults.fast;
+  // Alles andere (gpt-*, o1/o3/o4-*, claude-*, unbekannt) -> Flash.
+  return defaults.chat;
 }
 
-/** Aufloesung inkl. Env-Overrides. */
-export function resolveModel(model: string): string {
-  const defaults = {
-    chat: Deno.env.get('OPENAI_MODEL') ?? DEFAULT_CHAT_MODEL,
-    fast: Deno.env.get('OPENAI_FAST_MODEL') ?? DEFAULT_FAST_MODEL,
-  };
-  return mapClaudeModel(model, defaults) ?? model.trim();
+function resolveGeminiModel(model: string): string {
+  return mapToGeminiModel(model, {
+    chat: Deno.env.get('GEMINI_MODEL') ?? GEMINI_DEFAULT_CHAT_MODEL,
+    fast: Deno.env.get('GEMINI_FAST_MODEL') ?? GEMINI_DEFAULT_FAST_MODEL,
+  });
 }
 
-/** Modell fuer billige Hilfs-Calls (Router, Anonymisierung).
- *  ROUTER_MODEL bleibt als expliziter Override erhalten. */
-export function fastModel(): string {
-  return Deno.env.get('ROUTER_MODEL') ?? Deno.env.get('OPENAI_FAST_MODEL') ?? DEFAULT_FAST_MODEL;
-}
-
-function isReasoningModel(model: string): boolean {
-  return REASONING_MODEL_RE.test(model);
+/** Modell für billige Hilfs-Calls (Router, Anonymisierung). */
+export function geminiFastModel(): string {
+  return Deno.env.get('GEMINI_FAST_MODEL') ?? GEMINI_DEFAULT_FAST_MODEL;
 }
 
 // ============================================================
-// HTTP-Basis: Key-Guard, Timeout, Retry
+// Client
 // ============================================================
 
-function apiKey(): string {
-  const key = Deno.env.get('OPENAI_API_KEY');
+let client: GoogleGenAI | null = null;
+
+function ai(): GoogleGenAI {
+  if (client) return client;
+  const key = Deno.env.get('GEMINI_API_KEY');
   if (!key || key.trim().length === 0) {
-    // Klare Ursache statt eines kryptischen 401 aus dem Upstream.
-    throw new LlmError(
-      'OPENAI_API_KEY ist nicht gesetzt (Supabase -> Edge Functions -> Secrets).',
+    // Klare Ursache statt eines kryptischen 401/403 aus dem Upstream.
+    throw new GeminiError(
+      'GEMINI_API_KEY ist nicht gesetzt (Supabase -> Edge Functions -> Secrets).',
       'missing_api_key'
     );
   }
-  return key.trim();
+  client = new GoogleGenAI({ apiKey: key.trim() });
+  return client;
 }
 
-const RETRYABLE_STATUS = new Set([408, 409, 429, 500, 502, 503, 504]);
+// ============================================================
+// Fehler-Klassifikation und Retry
+// ============================================================
 
-function sleep(ms: number): Promise<void> {
+function geminiSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Ein POST inkl. Timeout, Backoff-Retry und Retry-After-Respekt. */
-async function postJson(
-  url: string,
-  payload: unknown,
-  timeoutMs: number
-): Promise<Record<string, unknown>> {
-  const key = apiKey();
-  let lastStatus = 0;
-  let lastBody = '';
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${key}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch (e) {
-      // Netzwerk-/Timeout-Fehler sind wiederholbar.
-      if (attempt < MAX_RETRIES) {
-        await sleep(500 * 2 ** attempt + Math.random() * 250);
-        continue;
-      }
-      const aborted = e instanceof DOMException && e.name === 'TimeoutError';
-      throw new LlmError(
-        aborted ? `Zeitüberschreitung nach ${timeoutMs} ms.` : 'Netzwerkfehler zur OpenAI-API.',
-        aborted ? 'timeout' : 'upstream'
-      );
-    }
-
-    if (res.ok) return (await res.json()) as Record<string, unknown>;
-
-    lastStatus = res.status;
-    lastBody = (await res.text()).slice(0, 500);
-
-    if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
-      const retryAfter = Number(res.headers.get('retry-after'));
-      const waitMs =
-        Number.isFinite(retryAfter) && retryAfter > 0
-          ? Math.min(retryAfter * 1000, 10_000)
-          : 500 * 2 ** attempt + Math.random() * 250;
-      await sleep(waitMs);
-      continue;
-    }
-    break;
+/** Das SDK wirft keine typisierten Fehler — Status muss aus dem Objekt
+ *  bzw. der Meldung gelesen werden. */
+function geminiStatusOf(err: unknown): number | undefined {
+  const e = err as { status?: unknown; code?: unknown; message?: unknown };
+  for (const candidate of [e?.status, e?.code]) {
+    const n = Number(candidate);
+    if (Number.isFinite(n) && n >= 400) return n;
   }
-
-  throw new LlmError(
-    `OpenAI-Fehler ${lastStatus}: ${lastBody}`,
-    lastStatus === 429 ? 'rate_limited' : 'upstream',
-    lastStatus
-  );
+  const m = typeof e?.message === 'string' ? e.message : '';
+  const match = m.match(/\b(4\d{2}|5\d{2})\b/);
+  return match ? Number(match[1]) : undefined;
 }
 
-/** Erkennt "Modell existiert nicht / nicht freigegeben". */
-function isModelUnavailable(err: unknown): boolean {
-  if (!(err instanceof LlmError)) return false;
-  if (err.status !== 400 && err.status !== 403 && err.status !== 404) return false;
+const GEMINI_RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
+
+/**
+ * Erkennt "Modell existiert nicht mehr / kein Zugriff".
+ *
+ * Anlass: `gemini-2.5-flash` lieferte am 9. Juli 2026 ohne Vorwarnung 404,
+ * Wochen vor dem angekündigten Abschalttermin. Ein gepinntes Modell allein
+ * ist deshalb kein ausreichender Schutz — es braucht einen Notausgang.
+ */
+function isGeminiModelUnavailable(err: unknown): boolean {
+  if (!(err instanceof GeminiError)) return false;
+  if (err.status !== 404 && err.status !== 403 && err.status !== 400) return false;
   const m = err.message.toLowerCase();
   return (
-    m.includes('model_not_found') ||
-    m.includes('does not exist') ||
+    m.includes('no longer available') ||
+    m.includes('not found') ||
+    m.includes('is not supported') ||
     m.includes('do not have access') ||
     m.includes('does not have access')
   );
 }
 
+/** Free Tier liegt bei wenigen Requests pro Minute — 429 ist hier der
+ *  Normalfall, nicht die Ausnahme. Deshalb Backoff statt Sofortabbruch. */
+async function geminiWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let last: unknown;
+  for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      const status = geminiStatusOf(e);
+      const retryable = status === undefined || GEMINI_RETRYABLE.has(status);
+      if (!retryable || attempt === GEMINI_MAX_RETRIES) break;
+      await geminiSleep(600 * 2 ** attempt + Math.random() * 300);
+    }
+  }
+  const status = geminiStatusOf(last);
+  const message = last instanceof Error ? last.message : String(last);
+  throw new GeminiError(
+    `Gemini-Fehler${status ? ` ${status}` : ''}: ${message.slice(0, 400)}`,
+    status === 429 ? 'rate_limited' : 'upstream',
+    status
+  );
+}
+
 // ============================================================
-// Antwort-Extraktion (Responses API)
+// Antwort-Extraktion
 // ============================================================
 
-interface ResponsesPayload {
-  status?: string;
-  incomplete_details?: { reason?: string };
-  output_text?: unknown;
-  output?: Array<{
-    type?: string;
-    content?: Array<{ type?: string; text?: string; refusal?: string }>;
+interface GeminiResponseLike {
+  text?: string;
+  promptFeedback?: { blockReason?: string };
+  candidates?: Array<{
+    finishReason?: string;
+    content?: { parts?: Array<{ text?: string; thought?: boolean }> };
   }>;
 }
 
-/** Sammelt den Text aus der Responses-Struktur. `reasoning`-Items werden
- *  uebersprungen, `refusal`-Items getrennt zurueckgegeben. */
-function extractText(data: ResponsesPayload): { text: string; refusal: string | null } {
-  if (typeof data.output_text === 'string' && data.output_text.length > 0) {
-    return { text: data.output_text, refusal: null };
+/**
+ * Holt den sichtbaren Text heraus. `response.text` allein genügt nicht:
+ * bei Safety-Blocks und bei abgeschnittenen Antworten ist es `undefined`,
+ * und Thinking-Parts (`thought: true`) dürfen nicht in die Antwort geraten.
+ */
+function extractGeminiText(res: GeminiResponseLike): string {
+  if (typeof res.text === 'string' && res.text.trim().length > 0) {
+    return res.text.trim();
   }
-  const parts: string[] = [];
-  let refusal: string | null = null;
-  for (const item of data.output ?? []) {
-    if (item?.type !== 'message') continue; // z. B. reasoning-Items
-    for (const c of item.content ?? []) {
-      if (c?.type === 'output_text' && typeof c.text === 'string') parts.push(c.text);
-      else if (c?.type === 'refusal' && typeof c.refusal === 'string') refusal = c.refusal;
-    }
-  }
-  return { text: parts.join('\n').trim(), refusal };
+  const parts = res.candidates?.[0]?.content?.parts ?? [];
+  return parts
+    .filter((p) => p?.thought !== true && typeof p?.text === 'string')
+    .map((p) => p.text as string)
+    .join('')
+    .trim();
 }
 
 // ============================================================
 // Öffentliche API
 // ============================================================
 
-export interface ChatInput {
+export interface GeminiChatInput {
+  /** Wird als `systemInstruction` übergeben — 1:1 die Rolle, die bei
+   *  OpenAI `instructions` hatte. Prompts bleiben unverändert. */
   system: string;
-  messages: ChatMessage[];
+  messages: GeminiChatMessage[];
   model: string;
-  /** Budget fuer den SICHTBAREN Text. Reasoning-Token werden separat
-   *  aufgeschlagen — Aufrufer muessen das nicht wissen. */
+  /** Budget für den SICHTBAREN Text. Thinking wird separat aufgeschlagen. */
   maxTokens?: number;
-  /** Nur fuer Reasoning-Modelle relevant; sonst ignoriert. */
-  effort?: ReasoningEffort;
+  effort?: GeminiEffort;
 }
 
-export async function chatCompletion(input: ChatInput): Promise<string> {
-  const model = resolveModel(input.model);
+/**
+ * Erzeugt eine Antwort. Signatur und Rückgabe (ein `string`) sind
+ * identisch zu `chatCompletion()` aus `llm.ts`, damit die Aufrufstellen
+ * in coach-chat unverändert bleiben können.
+ */
+export async function geminiChat(input: GeminiChatInput): Promise<string> {
+  const model = resolveGeminiModel(input.model);
+  const effort = input.effort ?? 'low';
   const answerTokens = Math.max(16, input.maxTokens ?? 1024);
 
-  const build = (m: string) => {
-    const reasoning = isReasoningModel(m);
-    const payload: Record<string, unknown> = {
-      model: m,
-      instructions: input.system,
-      input: input.messages
-        .filter((msg) => msg && typeof msg.content === 'string' && msg.content.trim().length > 0)
-        .map((msg) => ({ role: msg.role, content: msg.content })),
-      // Reasoning-Token zaehlen mit — sonst kommt eine leere Antwort zurueck.
-      max_output_tokens: reasoning ? answerTokens + REASONING_BUDGET_TOKENS : answerTokens,
-      // Datenschutz: Coach-Prompts enthalten personenbezogene Kontaktdaten
-      // und werden nicht beim Anbieter gespeichert (ADR-025).
-      store: false,
+  // Rollen-Mapping: Gemini kennt 'user' und 'model', nicht 'assistant'.
+  // Leere Inhalte werden verworfen — Gemini lehnt leere Parts ab.
+  const contents: Content[] = input.messages
+    .filter((m) => m && typeof m.content === 'string' && m.content.trim().length > 0)
+    .map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+  if (contents.length === 0) {
+    throw new GeminiError('Keine Nachricht zum Senden.', 'empty_response');
+  }
+
+  const buildConfig = (m: string) => {
+    // Genau EINE der beiden Thinking-Optionen setzen: zusammen sind sie
+    // ein API-Fehler, und die falsche Generation lehnt die andere ab.
+    const gen3 = usesThinkingLevel(m);
+    const reserve = gen3
+      ? GEMINI_THINKING_RESERVE[effort]
+      : GEMINI_THINKING_BUDGET[effort];
+    return {
+      systemInstruction: input.system,
+      maxOutputTokens: answerTokens + reserve,
+      thinkingConfig: gen3
+        ? { thinkingLevel: GEMINI_THINKING_LEVEL[effort] }
+        : { thinkingBudget: GEMINI_THINKING_BUDGET[effort] },
+      // Die Standardschwelle blockiert im Vertriebskontext gelegentlich
+      // harmlose Formulierungen (Einwandbehandlung, Geld, Gesundheit).
+      // BLOCK_ONLY_HIGH ist die lockerste Stufe, die ohne Sonderfreigabe
+      // universell akzeptiert wird.
+      safetySettings: [
+        'HARM_CATEGORY_HARASSMENT',
+        'HARM_CATEGORY_HATE_SPEECH',
+        'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        'HARM_CATEGORY_DANGEROUS_CONTENT',
+      ].map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
+      // temperature/top_p/top_k werden bewusst NICHT gesetzt: Google
+      // empfiehlt für Gemini 3 ausdrücklich die Defaults.
     };
-    // `reasoning` an ein Nicht-Reasoning-Modell zu schicken, ist ein 400er.
-    if (reasoning) payload.reasoning = { effort: input.effort ?? 'low' };
-    return payload;
   };
 
-  let data: ResponsesPayload;
+  const send = (m: string) =>
+    ai().models.generateContent({ model: m, contents, config: buildConfig(m) });
+
+  // Timeout über Promise.race statt über SDK-Optionen: funktioniert
+  // unabhängig davon, welche httpOptions die SDK-Version unterstützt.
+  const withTimeout = (m: string) =>
+    geminiWithRetry(() =>
+      Promise.race([
+        send(m),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(new GeminiError(`Zeitüberschreitung nach ${GEMINI_TIMEOUT_MS} ms.`, 'timeout')),
+            GEMINI_TIMEOUT_MS
+          )
+        ),
+      ])
+    );
+
+  let res: GeminiResponseLike;
   try {
-    data = (await postJson(OPENAI_RESPONSES_URL, build(model), CHAT_TIMEOUT_MS)) as ResponsesPayload;
+    res = (await withTimeout(model)) as GeminiResponseLike;
   } catch (e) {
-    if (isModelUnavailable(e) && model !== FALLBACK_CHAT_MODEL) {
-      console.warn(`Modell "${model}" nicht verfügbar — Fallback auf ${FALLBACK_CHAT_MODEL}.`);
-      data = (await postJson(
-        OPENAI_RESPONSES_URL,
-        build(FALLBACK_CHAT_MODEL),
-        CHAT_TIMEOUT_MS
-      )) as ResponsesPayload;
+    // Abgeschaltetes Modell: einmalig auf den Rolling Alias ausweichen,
+    // damit eine Abschaltung den Coach nicht komplett lahmlegt. Laut
+    // protokolliert — ein stiller Modellwechsel wäre schlimmer als der
+    // Ausfall, weil niemand die Qualitätsänderung bemerkt.
+    if (isGeminiModelUnavailable(e) && model !== GEMINI_FALLBACK_MODEL) {
+      console.warn(
+        `Modell "${model}" nicht verfügbar — Fallback auf ${GEMINI_FALLBACK_MODEL}. ` +
+          'GEMINI_MODEL bitte auf ein aktuelles Modell setzen.'
+      );
+      res = (await withTimeout(GEMINI_FALLBACK_MODEL)) as GeminiResponseLike;
     } else {
       throw e;
     }
   }
 
-  const { text, refusal } = extractText(data);
-  if (refusal && !text) {
-    throw new LlmError(`Modell hat die Antwort verweigert: ${refusal}`, 'refused');
+  // Prompt komplett abgewiesen (Safety-Filter vor der Generierung).
+  const blocked = res.promptFeedback?.blockReason;
+  if (blocked) {
+    throw new GeminiError(`Anfrage wurde blockiert (${blocked}).`, 'refused');
   }
-  if (!text) {
-    const reason = data.incomplete_details?.reason ?? data.status ?? 'unbekannt';
-    throw new LlmError(`Leere Antwort vom Modell (Grund: ${reason}).`, 'empty_response');
+
+  const text = extractGeminiText(res);
+  if (text) return text;
+
+  const finish = res.candidates?.[0]?.finishReason;
+  if (finish === 'SAFETY' || finish === 'PROHIBITED_CONTENT' || finish === 'RECITATION') {
+    throw new GeminiError(`Antwort wurde blockiert (${finish}).`, 'refused');
   }
-  return text;
+  throw new GeminiError(
+    `Leere Antwort vom Modell (finishReason: ${finish ?? 'unbekannt'}).`,
+    'empty_response'
+  );
 }
 
-/** Embedding fuer einen einzelnen Text. */
-export async function embed(text: string): Promise<number[]> {
-  const [vector] = await embedBatch([text]);
-  if (!vector) throw new LlmError('Kein Embedding erhalten.', 'empty_response');
-  return vector;
+// ============================================================
+// Embeddings
+// ============================================================
+
+interface EmbedResponseLike {
+  embeddings?: Array<{ values?: number[] }>;
 }
 
 /**
- * Embeddings fuer mehrere Texte in EINEM Call.
- * Wichtig fuer die Ingestion: 40 Chunks = 1 Roundtrip statt 40, damit
- * die Function nicht in die Laufzeitgrenze laeuft.
- * Die Reihenfolge der Ausgabe entspricht der Eingabe.
+ * L2-Normalisierung. Google normalisiert bei `gemini-embedding-001` nur die
+ * volle 3072-Dimension automatisch; bei 1536 muss es der Aufrufer tun.
+ *
+ * Für die Suche in AscendOS ist das mathematisch irrelevant — pgvector
+ * rechnet mit `<=>` (Cosine) und Cosine ist skaleninvariant. Es passiert
+ * trotzdem, damit die gespeicherten Vektoren korrekt sind, falls je auf
+ * L2-Distanz oder Inneres Produkt gewechselt wird.
  */
-export async function embedBatch(texts: string[]): Promise<number[][]> {
-  const inputs = texts.map((t) => (t ?? '').slice(0, 8000)).filter((t) => t.length > 0);
-  if (inputs.length === 0) return [];
+function normalize(vec: number[]): number[] {
+  let sum = 0;
+  for (const v of vec) sum += v * v;
+  const norm = Math.sqrt(sum);
+  // Nullvektor kann nicht normalisiert werden — unverändert zurückgeben.
+  if (!Number.isFinite(norm) || norm === 0) return vec;
+  return vec.map((v) => v / norm);
+}
 
-  const data = (await postJson(
-    OPENAI_EMBEDDINGS_URL,
-    { model: EMBEDDING_MODEL, input: inputs },
-    EMBED_TIMEOUT_MS
-  )) as { data?: Array<{ index?: number; embedding?: number[] }> };
-
-  const rows = data.data ?? [];
-  if (rows.length !== inputs.length) {
-    throw new LlmError(
-      `Embedding-Anzahl stimmt nicht (${rows.length} statt ${inputs.length}).`,
+function assertDimensions(vec: unknown): number[] {
+  if (!Array.isArray(vec) || vec.length !== EMBEDDING_DIMENSIONS) {
+    throw new GeminiError(
+      `Unerwartete Embedding-Dimension (${
+        Array.isArray(vec) ? vec.length : 0
+      } statt ${EMBEDDING_DIMENSIONS}).`,
       'upstream'
     );
   }
-  // Die Reihenfolge ist nicht zugesichert — deshalb ueber `index` einsortieren.
-  const out: number[][] = new Array(inputs.length);
-  rows.forEach((row, i) => {
-    const target = typeof row.index === 'number' ? row.index : i;
-    const vec = row.embedding;
-    if (!Array.isArray(vec) || vec.length !== EMBEDDING_DIMENSIONS) {
-      throw new LlmError(
-        `Unerwartete Embedding-Dimension (${vec?.length ?? 0} statt ${EMBEDDING_DIMENSIONS}).`,
-        'upstream'
-      );
-    }
-    out[target] = vec;
-  });
+  return vec as number[];
+}
+
+/**
+ * Embeddings für mehrere Texte. Die Reihenfolge der Ausgabe entspricht der
+ * Eingabe. Leere Texte werden verworfen — Gemini lehnt leere Parts ab.
+ *
+ * Bewusst EIN Request pro Text: die Vertex-Dokumentation nennt für
+ * `gemini-embedding-001` genau einen Eingabetext pro Aufruf. Sequenziell
+ * mit Backoff ist hier korrekt statt schnell; die Free-Tier-Grenze liegt
+ * bei etwa 100 Requests/Minute und `ingest-knowledge` ist der einzige
+ * Aufrufer mit größeren Mengen.
+ */
+export async function geminiEmbedBatch(
+  texts: string[],
+  task: EmbedTask
+): Promise<number[][]> {
+  const inputs = texts
+    .map((t) => (t ?? '').slice(0, EMBED_MAX_CHARS))
+    .filter((t) => t.trim().length > 0);
+  if (inputs.length === 0) return [];
+
+  const out: number[][] = [];
+  for (const text of inputs) {
+    const res = (await geminiWithRetry(() =>
+      Promise.race([
+        ai().models.embedContent({
+          model: EMBEDDING_MODEL,
+          contents: text,
+          config: {
+            taskType: task,
+            // Muss exakt zur Spalte vector(1536) passen.
+            outputDimensionality: EMBEDDING_DIMENSIONS,
+          },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new GeminiError(
+                  `Embedding-Zeitüberschreitung nach ${GEMINI_EMBED_TIMEOUT_MS} ms.`,
+                  'timeout'
+                )
+              ),
+            GEMINI_EMBED_TIMEOUT_MS
+          )
+        ),
+      ])
+    )) as EmbedResponseLike;
+
+    const values = res.embeddings?.[0]?.values;
+    out.push(normalize(assertDimensions(values)));
+  }
   return out;
+}
+
+/** Embedding für einen einzelnen Text. */
+export async function geminiEmbed(text: string, task: EmbedTask): Promise<number[]> {
+  const [vector] = await geminiEmbedBatch([text], task);
+  if (!vector) throw new GeminiError('Kein Embedding erhalten.', 'empty_response');
+  return vector;
 }
 
 // ============================================================
@@ -388,9 +562,11 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
 
 const CHUNK_SIZE = 1600; // Zeichen (~400 Token), mit Überlappung
 const CHUNK_OVERLAP = 200;
-/** Embeddings gebündelt anfragen: 1 Roundtrip statt 1 pro Chunk. Ohne das
- *  läuft ein großes Dokument in die Laufzeitgrenze der Function. */
-const EMBED_BATCH = 64;
+/** Chunks pro Verarbeitungsschritt. gemini-embedding-001 nimmt einen Text
+ *  pro Request, `geminiEmbedBatch` arbeitet also sequenziell mit Backoff.
+ *  Kleinere Schritte heißen: häufigere DB-Inserts, aber bei einem Abbruch
+ *  weniger verlorene Arbeit und weniger Druck auf das Free-Tier-Limit. */
+const EMBED_BATCH = 16;
 /** Schutz vor versehentlichen Riesen-Uploads (Kosten + Laufzeit). */
 const MAX_CONTENT_CHARS = 400_000;
 
@@ -470,7 +646,8 @@ Deno.serve(async (req) => {
     try {
       for (let start = 0; start < chunks.length; start += EMBED_BATCH) {
         const slice = chunks.slice(start, start + EMBED_BATCH);
-        const vectors = await embedBatch(slice);
+        // RETRIEVAL_DOCUMENT: Gegenstück zu RETRIEVAL_QUERY in coach-chat.
+        const vectors = await geminiEmbedBatch(slice, 'RETRIEVAL_DOCUMENT');
         const rows = slice.map((text, i) => ({
           doc_id: doc.id,
           org_id: profile.org_id,
@@ -495,7 +672,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     // super_admin-only: hier hilft die konkrete Ursache mehr als eine
     // generische Meldung.
-    if (e instanceof LlmError) {
+    if (e instanceof GeminiError) {
       console.error(`ingest-knowledge llm error [${e.code}]`, e.message);
       return json({ error: `Einbettung fehlgeschlagen (${e.code}).` },
         e.code === 'missing_api_key' ? 503 : 502);

@@ -98,24 +98,32 @@ Secrets setzen (nie im Repo, ADR-018):
 
 ```bash
 # Lokal: supabase/functions/.env anlegen (ist gitignored):
-#   OPENAI_API_KEY=sk-...        # einziger KI-Key (Chat + Embeddings)
+#   GEMINI_API_KEY=...           # einziger KI-Key (Chat + Embeddings)
 supabase functions serve --env-file supabase/functions/.env
 # Staging/Production:
-supabase secrets set OPENAI_API_KEY=...
+supabase secrets set GEMINI_API_KEY=...
 ```
 
-**Modelle (ADR-025).** Default ist `gpt-5.6` für den Coach und `gpt-5.6-luna`
-für Router/Anonymisierung. Beides ist überschreibbar, ohne Code anzufassen:
+**Modelle (ADR-027).** Einziger Anbieter ist Google Gemini. Default ist
+`gemini-3.5-flash` für den Coach und `gemini-3.1-flash-lite` für
+Router/Anonymisierung, überschreibbar ohne Codeänderung:
 
 ```bash
-supabase secrets set OPENAI_MODEL=gpt-4.1          # Coach-Modell
-supabase secrets set OPENAI_FAST_MODEL=gpt-4.1-mini # Router-Modell
+supabase secrets set GEMINI_MODEL=gemini-3.5-flash
+supabase secrets set GEMINI_FAST_MODEL=gemini-3.1-flash-lite
 ```
 
-Meldet OpenAI für dein Konto „kein Zugriff" auf das gewählte Modell, fällt
-`_shared/llm.ts` automatisch einmalig auf `gpt-4.1` zurück (sichtbar im
-Function-Log). Einbettungen sind fest auf `text-embedding-3-small` verdrahtet —
-die Vektordimension 1536 hängt am Schema, ein Wechsel ist eine Migration.
+In `agents.model` stehen weiterhin die alten Werte (`gpt-5.6`); `gemini.ts`
+übersetzt sie zur Laufzeit, damit die Tabelle unangetastet bleibt.
+
+Embeddings laufen über `gemini-embedding-001` mit
+`outputDimensionality: 1536` — der Wert MUSS zur Spalte `vector(1536)`
+passen und ist deshalb nicht konfigurierbar. Dokumente werden mit
+`RETRIEVAL_DOCUMENT`, Suchanfragen mit `RETRIEVAL_QUERY` eingebettet;
+Gemini kodiert beide Seiten unterschiedlich.
+
+Schwellwert der Wissenssuche (`coach_min_similarity`, Default 0.2) liegt in
+`organizations.settings` — justierbar per UPDATE, ohne Schemaänderung.
 
 **Generierte Artefakte.** `setup/functions/*.ts` und `setup/setup-complete.sql`
 werden NICHT von Hand gepflegt:

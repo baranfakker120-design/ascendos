@@ -225,6 +225,86 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      agents: {
+        Row: {
+          id: string;
+          org_id: string;
+          key: string;
+          name: string;
+          system_prompt: string;
+          retrieval_categories: string[];
+          model: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: never;
+        Update: {
+          name?: string;
+          system_prompt?: string;
+          retrieval_categories?: string[];
+          model?: string;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      knowledge_docs: {
+        Row: {
+          id: string;
+          org_id: string;
+          team_id: string | null;
+          title: string;
+          category: string;
+          language: string;
+          version: number;
+          author_id: string | null;
+          status: 'draft' | 'approved' | 'archived';
+          source_type: 'document' | 'transcript' | 'faq' | 'guideline' | 'best_practice';
+          valid_from: string;
+          valid_until: string | null;
+          tags: string[];
+          supersedes_doc_id: string | null;
+          created_at: string;
+        };
+        /** Anlegen läuft ausschließlich über die Edge Function
+         *  `ingest-knowledge` (Chunking + Einbettung gehören dazu). */
+        Insert: never;
+        Update: {
+          title?: string;
+          category?: string;
+          status?: 'draft' | 'approved' | 'archived';
+          valid_until?: string | null;
+          tags?: string[];
+        };
+        Relationships: [];
+      };
+      knowledge_chunks: {
+        Row: {
+          id: string;
+          doc_id: string;
+          org_id: string;
+          chunk_index: number;
+          content: string;
+          /** vector(1536); im Client nie als Zahlenfeld benötigt. */
+          embedding: unknown | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      knowledge_gaps: {
+        Row: {
+          id: string;
+          org_id: string;
+          user_id: string | null;
+          agent_key: string;
+          question: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       usage_events: {
         Row: {
           id: string;

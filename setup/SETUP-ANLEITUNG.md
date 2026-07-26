@@ -6,7 +6,7 @@ ihren Einladungscode ein. Alles hier läuft im Safari/Chrome-Browser
 deines iPhones im Supabase- bzw. Netlify-Dashboard.
 
 Dauer: ca. 20–30 Minuten. Halte bereit: dein Supabase-Projekt
-„AscendOS" und einen OpenAI-API-Key (platform.openai.com).
+„AscendOS" und einen Gemini-API-Key (aistudio.google.com).
 
 ────────────────────────────────────
 
@@ -52,15 +52,15 @@ sein); bei den anderen beiden eingeschaltet lassen.
 ## Schritt 4 — KI-Schlüssel als Secrets hinterlegen
 
 Supabase → Edge Functions → **Secrets** (Manage secrets):
-- `OPENAI_API_KEY` = dein Key von platform.openai.com
+- `GEMINI_API_KEY` = dein Key von aistudio.google.com
   (der EINZIGE KI-Schlüssel: Ascent-Antworten und Wissenssuche)
 
 Optional, nur falls du ein anderes Modell willst:
-- `OPENAI_MODEL` — Coach-Modell (Standard: `gpt-5.6`)
-- `OPENAI_FAST_MODEL` — Router/Anonymisierung (Standard: `gpt-5.6-luna`)
+- `GEMINI_MODEL` — Coach-Modell (Standard: `gemini-3.5-flash`)
+- `GEMINI_FAST_MODEL` — Router/Anonymisierung (Standard: `gemini-3.1-flash-lite`)
 
-Hat dein OpenAI-Konto die neue Generation noch nicht freigeschaltet, wechselt
-AscendOS automatisch einmalig auf `gpt-5.6` → `gpt-4.1`. Du musst nichts tun.
+Beide Modelle und die Einbettungen sind im kostenlosen Kontingent von
+Google enthalten. Ein zweites Konto mit Guthaben brauchst du nicht.
 
 Ohne diese läuft die App trotzdem — nur Ascent meldet sich als
 „gerade nicht erreichbar".

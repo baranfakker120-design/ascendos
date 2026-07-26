@@ -1,0 +1,17 @@
+﻿1..9
+
+ok 1 - Tag 2 ist gesperrt, solange Tag 1 offen ist
+ok 2 - Tag-1-Schritt l├ñsst sich abschlie├ƒen
+ok 3 - Evaluator schaltet nichts frei, solange die Reise unvollst├ñndig ist
+ok 4 - Zweiter Tag-1-Schritt laesst sich abschliessen
+ok 5 - Nach Tag 1 ist Tag 2 freigeschaltet
+ok 6 - Vollst├ñndige Reise schaltet das journey_completed-Achievement frei
+ok 7 - Evaluator ist idempotent (keine Doppel-Freischaltung)
+
+not ok 8 - Sponsor sieht den Fortschritt seiner Firstline (3 von 3 Schritten)
+# Failed test 8: "Sponsor sieht den Fortschritt seiner Firstline (3 von 3 Schritten)"
+#         have: 0
+#         want: 3
+
+ok 9 - Nicht-Sponsoren sehen fremden Fortschritt NICHT (RLS-Grenze)
+# Looks like you failed 1 test of 9

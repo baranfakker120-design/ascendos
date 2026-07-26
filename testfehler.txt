@@ -1,0 +1,55 @@
+﻿AscendOS fehlgeschlagene Zusicherungen  2026-07-26 15:52
+
+=================== daily_plan ===================
+
+> not ok 7 - Mission auf erledigt setzen bricht nicht ab
+  # Failed test 7: "Mission auf erledigt setzen bricht nicht ab"
+  #     died: P0001: AscendOS: Mission nicht gefunden.
+  #         CONTEXT:
+  #             PL/pgSQL function update_mission_status(uuid,text,text) line 16 at RAISE
+  #             SQL statement " select public.update_mission_status(
+  #                    (select i.id from public.daily_plan_items i
+> not ok 8 - Erledigte Follow-up-Mission dokumentiert das Event automatisch
+  # Failed test 8: "Erledigte Follow-up-Mission dokumentiert das Event automatisch"
+  #         have: 0
+  #         want: 1
+> not ok 9 - Commit und erledigte Mission werden serverseitig getrackt (ADR-016)
+  # Failed test 9: "Commit und erledigte Mission werden serverseitig getrackt (ADR-016)"
+  #         have: 1
+  #         want: 2
+> not ok 10 - Missions-Status wird persistiert
+  # Failed test 10: "Missions-Status wird persistiert"
+  #         have: NULL
+  #         want: done
+  
+  ok 11 - Omar sieht keine Missionen von Emma (RLS)
+  ok 12 - Plan nach Statuswechsel neu erzeugen bricht nicht ab
+
+
+not-ok insgesamt: 4
+
+=================== journey ===================
+
+> not ok 8 - Sponsor sieht den Fortschritt seiner Firstline (3 von 3 Schritten)
+  # Failed test 8: "Sponsor sieht den Fortschritt seiner Firstline (3 von 3 Schritten)"
+  #         have: 0
+  #         want: 3
+  
+  ok 9 - Nicht-Sponsoren sehen fremden Fortschritt NICHT (RLS-Grenze)
+  # Looks like you failed 1 test of 9
+
+
+not-ok insgesamt: 1
+
+=================== regression ===================
+
+> not ok 8 - C3 correct_pipeline_event funktioniert weiterhin
+  # Failed test 8: "C3 correct_pipeline_event funktioniert weiterhin"
+  #     died: P0001: AscendOS: Dieses Ereignis kann nicht korrigiert werden.
+  #         CONTEXT:
+  #             PL/pgSQL function correct_pipeline_event(uuid) line 15 at RAISE
+  #             SQL statement " select public.correct_pipeline_event(
+  #                    (select id from public.pipeline_events
+
+
+not-ok insgesamt: 1

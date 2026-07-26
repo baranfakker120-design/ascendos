@@ -5,6 +5,7 @@ import { CoachPage } from '@features/coach/CoachPage';
 import { ContactDetailPage } from '@features/contacts/ContactDetailPage';
 import { ContactFormPage } from '@features/contacts/ContactFormPage';
 import { ContactsPage } from '@features/contacts/ContactsPage';
+import { KnowledgePage } from '@features/knowledge/KnowledgePage';
 import { TodayPage } from '@features/daily-plan/TodayPage';
 import { MorePage } from '@features/more/MorePage';
 import { JourneyToday } from '@features/onboarding/JourneyToday';
@@ -43,6 +44,22 @@ function RequireAuth() {
   return <Outlet />;
 }
 
+/**
+ * Nur für Super-Admins. Zweite Verteidigungslinie, nicht die erste: die
+ * eigentliche Absicherung sind die RLS-Policy `knowledge_docs_admin_write`
+ * und der Rollencheck in `ingest-knowledge`. Diese Weiche verhindert nur,
+ * dass Berater auf eine Seite geraten, auf der jede Aktion scheitert.
+ */
+function RequireSuperAdmin() {
+  const { session, profile } = useAuth();
+  if (session === undefined) return <FullScreenSpinner />;
+  if (session === null) return <Navigate to="/login" replace />;
+  // profile lädt asynchron nach der Session nach.
+  if (profile === null) return <FullScreenSpinner />;
+  if (profile.role !== 'super_admin') return <Navigate to="/mehr" replace />;
+  return <Outlet />;
+}
+
 /** Nur ohne Session erreichbar; eingeloggte Nutzer -> App. */
 function RequireGuest() {
   const { session } = useAuth();
@@ -78,6 +95,10 @@ export const router = createBrowserRouter([
           { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
           { path: '/coach', element: <CoachPage /> },
           { path: '/mehr', element: <MorePage /> },
+          {
+            element: <RequireSuperAdmin />,
+            children: [{ path: '/wissen', element: <KnowledgePage /> }],
+          },
         ],
       },
     ],

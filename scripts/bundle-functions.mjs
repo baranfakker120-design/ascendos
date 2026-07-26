@@ -24,31 +24,85 @@ const OUT_DIR = join(ROOT, 'setup', 'functions');
 
 const FUNCTIONS = ['validate-invite', 'coach-chat', 'ingest-knowledge'];
 
-const IMPORT_RE = /^import\s+(?:type\s+)?\{?[^}]*\}?\s*from\s+'([^']+)';?\s*$/;
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
 
+/**
+ * Zerlegt eine Datei in Import-Specifier und Rest-Body.
+ *
+ * Arbeitet über die gesamte Datei statt Zeile für Zeile, weil
+ * MEHRZEILIGE Imports sonst unentdeckt durchrutschen: ein zeilenweiser
+ * Matcher hätte den Specifier nicht erkannt, das Shared-Modul nicht
+ * eingebettet und die `import`-Zeile als Body übernommen — ein Bundle,
+ * das im Dashboard sofort scheitert, aber lokal fehlerfrei aussieht.
+ */
+function splitImports(source) {
+  const IMPORT_STATEMENT =
+    /^import\s+(?:[\s\S]*?\s+from\s+)?'([^']+)';?[ \t]*$/gm;
+  const specifiers = [];
+  const body = source.replace(IMPORT_STATEMENT, (match, spec) => {
+    specifiers.push({ spec, statement: match });
+    return '\u0000'; // Platzhalter, wird unten entfernt
+  });
+  return {
+    specifiers,
+    body: body
+      .split('\n')
+      .filter((l) => l !== '\u0000')
+      .join('\n'),
+  };
+}
+
 /** Reihenfolge der eingebetteten Module: stabil, damit Diffs klein bleiben. */
-const SHARED_ORDER = ['cors.ts', 'llm.ts', 'prompts.ts'];
+const SHARED_ORDER = ['cors.ts', 'gemini.ts', 'prompts.ts'];
+
+const DECL_RE =
+  /^(?:export\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+([A-Za-z_$][\w$]*)/gm;
+
+/** Sammelt Top-Level-Namen (Spalte 0, also nicht eingerückt) und meldet
+ *  Doppelte über alle eingebetteten Teile hinweg. */
+function assertNoCollisions(name, inlinedParts, functionBody) {
+  const seen = new Map();
+  const dupes = [];
+  const parts = [...inlinedParts, functionBody];
+  for (const part of parts) {
+    const local = new Set();
+    for (const m of part.matchAll(DECL_RE)) {
+      const ident = m[1];
+      if (local.has(ident)) continue; // Overloads o. Ä. innerhalb einer Datei
+      local.add(ident);
+      if (seen.has(ident)) dupes.push(ident);
+      else seen.set(ident, true);
+    }
+  }
+  if (dupes.length > 0) {
+    throw new Error(
+      `${name}: doppelte Top-Level-Deklaration(en) im Bundle: ${[...new Set(dupes)].join(', ')}\n` +
+        '  Shared-Module teilen im Bundle einen Scope — Namen eindeutig machen.'
+    );
+  }
+}
 
 function bundle(name) {
   const path = join(FUNCTIONS_DIR, name, 'index.ts');
   if (!existsSync(path)) throw new Error(`Function fehlt: ${path}`);
-  const lines = readFileSync(path, 'utf8').split('\n');
+  const { specifiers, body: bodyText } = splitImports(readFileSync(path, 'utf8'));
 
   const shared = new Set();
   const remoteImports = [];
-  const body = [];
 
-  for (const line of lines) {
-    const match = line.match(IMPORT_RE);
-    if (!match) {
-      body.push(line);
-      continue;
-    }
-    const sharedMatch = match[1].match(SHARED_RE);
+  for (const { spec, statement } of specifiers) {
+    const sharedMatch = spec.match(SHARED_RE);
     if (sharedMatch) shared.add(sharedMatch[1]);
-    else remoteImports.push(line); // jsr:/npm:/https: bleibt echter Import
+    else remoteImports.push(statement); // jsr:/npm:/https: bleibt echter Import
   }
+
+  // Sicherheitsnetz: kein `_shared`-Import darf den Filter überleben.
+  if (bodyText.includes('_shared/')) {
+    throw new Error(
+      `${name}: nicht erkannter _shared-Import im Body — splitImports() prüfen.`
+    );
+  }
+  const body = [bodyText];
 
   const unknown = [...shared].filter((f) => !SHARED_ORDER.includes(f));
   if (unknown.length > 0) {
@@ -57,12 +111,22 @@ function bundle(name) {
 
   const inlined = SHARED_ORDER.filter((f) => shared.has(f)).map((file) => {
     const raw = readFileSync(join(FUNCTIONS_DIR, '_shared', file), 'utf8');
-    const nested = raw
-      .split('\n')
-      .some((l) => SHARED_RE.test(l.match(IMPORT_RE)?.[1] ?? ''));
-    if (nested) throw new Error(`${file} importiert ein anderes Shared-Modul — Bundler erweitern.`);
-    return `// ---- inline: _shared/${file} ----\n${raw.trim()}\n`;
+    const parsed = splitImports(raw);
+    if (parsed.specifiers.some((i) => SHARED_RE.test(i.spec))) {
+      throw new Error(`${file} importiert ein anderes Shared-Modul — Bundler erweitern.`);
+    }
+    // Remote-Imports der Shared-Module nach oben ziehen. Sie wären als
+    // Top-Level-Deklaration auch mitten in der Datei gültig (ES-Module
+    // hoisten), aber ein Bundle mit Imports in Zeile 43 liest sich wie ein
+    // Fehler und provoziert genau die Handbearbeitung, die verboten ist.
+    for (const { statement } of parsed.specifiers) remoteImports.push(statement);
+    return `// ---- inline: _shared/${file} ----\n${parsed.body.trim()}\n`;
   });
+
+  // Im Bundle landen alle Shared-Module im SELBEN Scope. Gleichnamige
+  // Top-Level-Deklarationen sind dort ein Syntaxfehler — der im modularen
+  // Code niemals auffällt. Deshalb hier hart prüfen.
+  assertNoCollisions(name, inlined, body.join('\n'));
 
   const header =
     `// AscendOS Edge Function: ${name} (Dashboard-Version, alles in einer Datei)\n` +
@@ -73,7 +137,7 @@ function bundle(name) {
 
   return [
     header,
-    ...remoteImports,
+    ...[...new Set(remoteImports)],
     remoteImports.length > 0 ? '' : null,
     ...inlined,
     body.join('\n').replace(/^\n+/, '').trimEnd(),

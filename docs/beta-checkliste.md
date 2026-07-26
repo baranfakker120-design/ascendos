@@ -21,7 +21,7 @@
 
 ## Recht (vor echten Nutzern, ADR-020)
 ☐ Datenschutzerklärung + Impressum verlinkt (anwaltlich geprüft)
-☐ AV-Verträge: Supabase, Netlify, Sentry, OpenAI
+☐ AV-Verträge: Supabase, Netlify, Sentry, Google (Gemini API)
 ☐ Registrierung: Einwilligungs-Checkbox mit Link auf die Erklärung
 ☐ Hinweis für Berater zur Verantwortung für ihre Kontaktdaten
 

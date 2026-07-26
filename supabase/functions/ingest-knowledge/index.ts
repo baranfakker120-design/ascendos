@@ -7,13 +7,15 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
-import { embedBatch, LlmError } from '../_shared/llm.ts';
+import { geminiEmbedBatch, GeminiError } from '../_shared/gemini.ts';
 
 const CHUNK_SIZE = 1600; // Zeichen (~400 Token), mit Überlappung
 const CHUNK_OVERLAP = 200;
-/** Embeddings gebündelt anfragen: 1 Roundtrip statt 1 pro Chunk. Ohne das
- *  läuft ein großes Dokument in die Laufzeitgrenze der Function. */
-const EMBED_BATCH = 64;
+/** Chunks pro Verarbeitungsschritt. gemini-embedding-001 nimmt einen Text
+ *  pro Request, `geminiEmbedBatch` arbeitet also sequenziell mit Backoff.
+ *  Kleinere Schritte heißen: häufigere DB-Inserts, aber bei einem Abbruch
+ *  weniger verlorene Arbeit und weniger Druck auf das Free-Tier-Limit. */
+const EMBED_BATCH = 16;
 /** Schutz vor versehentlichen Riesen-Uploads (Kosten + Laufzeit). */
 const MAX_CONTENT_CHARS = 400_000;
 
@@ -93,7 +95,8 @@ Deno.serve(async (req) => {
     try {
       for (let start = 0; start < chunks.length; start += EMBED_BATCH) {
         const slice = chunks.slice(start, start + EMBED_BATCH);
-        const vectors = await embedBatch(slice);
+        // RETRIEVAL_DOCUMENT: Gegenstück zu RETRIEVAL_QUERY in coach-chat.
+        const vectors = await geminiEmbedBatch(slice, 'RETRIEVAL_DOCUMENT');
         const rows = slice.map((text, i) => ({
           doc_id: doc.id,
           org_id: profile.org_id,
@@ -118,7 +121,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     // super_admin-only: hier hilft die konkrete Ursache mehr als eine
     // generische Meldung.
-    if (e instanceof LlmError) {
+    if (e instanceof GeminiError) {
       console.error(`ingest-knowledge llm error [${e.code}]`, e.message);
       return json({ error: `Einbettung fehlgeschlagen (${e.code}).` },
         e.code === 'missing_api_key' ? 503 : 502);

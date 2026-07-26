@@ -19,8 +19,32 @@ insert into public.teams (id, org_id, name)
 values ('b1000000-0000-0000-0000-000000000001',
         'a1000000-0000-0000-0000-000000000001', 'PhasenTeam');
 
+
+-- ---------- Testumgebung: Trigger fuer den Auth-Insert umgehen ----------
+-- on_auth_user_created ist ein AFTER-INSERT-Trigger auf auth.users und
+-- ruft handle_new_user auf. Diese Funktion WIRFT eine Ausnahme, wenn
+-- raw_user_meta_data keinen invite_code enthaelt. Ohne Umgehung laeuft
+-- keine Testdatei durch.
+--
+-- WICHTIG, warum nicht ALTER TABLE ... DISABLE TRIGGER:
+-- Das verlangt Eigentum an auth.users. Eigentuemer ist
+-- supabase_auth_admin. Die Verbindungsrolle postgres ist dort NICHT
+-- Mitglied und ist kein Superuser (geprueft: rolsuper = false). Auf
+-- einer gehosteten Supabase-Datenbank scheitert der Befehl deshalb,
+-- lokal wuerde er funktionieren. Das ergibt genau den Fall
+-- "laeuft bei mir", der spaeter teuer wird.
+--
+-- session_replication_role wirkt fuer postgres, ist transaktionslokal
+-- und funktioniert in beiden Umgebungen identisch.
+-- Es wird unmittelbar nach dem Auth-Insert zurueckgeschaltet, damit
+-- Fremdschluesselpruefungen und die Trigger contacts_log_created und
+-- set_updated_at fuer alle weiteren Anweisungen wieder greifen.
+set local session_replication_role = replica;
 insert into auth.users (id, email)
 values ('c1000000-0000-0000-0000-000000000001', 'phasen@test.local');
+
+-- Ab hier wieder vollstaendige Trigger- und Fremdschluesselpruefung.
+set local session_replication_role = origin;
 
 insert into public.profiles (id, org_id, team_id, role, first_name, last_name, username)
 values ('c1000000-0000-0000-0000-000000000001',
@@ -32,6 +56,7 @@ insert into public.contacts (id, owner_id, org_id, name)
 values ('d1000000-0000-0000-0000-000000000001',
         'c1000000-0000-0000-0000-000000000001',
         'a1000000-0000-0000-0000-000000000001', 'Leiter Test');
+
 
 create or replace function tests.phase_of(cid uuid)
 returns text language sql as $$

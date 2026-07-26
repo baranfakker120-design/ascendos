@@ -28,14 +28,39 @@ insert into public.teams (id, org_id, name)
 values ('b0000000-0000-0000-0000-000000000002',
         'a0000000-0000-0000-0000-000000000002', 'FremdesTeam');
 
--- Auth-User direkt anlegen (Trigger handle_new_user feuert nur bei
--- Metadata mit invite_code — hier legen wir Profile kontrolliert
--- selbst an, um gezielt Konstellationen zu testen).
+-- Auth-User direkt anlegen. Der Trigger ist oben stillgelegt, weil
+-- handle_new_user OHNE invite_code eine Ausnahme wirft. Der fruehere
+-- Kommentar an dieser Stelle war sachlich falsch und hat genau dieses
+-- Problem verdeckt.
+
+-- ---------- Testumgebung: Trigger fuer den Auth-Insert umgehen ----------
+-- on_auth_user_created ist ein AFTER-INSERT-Trigger auf auth.users und
+-- ruft handle_new_user auf. Diese Funktion WIRFT eine Ausnahme, wenn
+-- raw_user_meta_data keinen invite_code enthaelt. Ohne Umgehung laeuft
+-- keine Testdatei durch.
+--
+-- WICHTIG, warum nicht ALTER TABLE ... DISABLE TRIGGER:
+-- Das verlangt Eigentum an auth.users. Eigentuemer ist
+-- supabase_auth_admin. Die Verbindungsrolle postgres ist dort NICHT
+-- Mitglied und ist kein Superuser (geprueft: rolsuper = false). Auf
+-- einer gehosteten Supabase-Datenbank scheitert der Befehl deshalb,
+-- lokal wuerde er funktionieren. Das ergibt genau den Fall
+-- "laeuft bei mir", der spaeter teuer wird.
+--
+-- session_replication_role wirkt fuer postgres, ist transaktionslokal
+-- und funktioniert in beiden Umgebungen identisch.
+-- Es wird unmittelbar nach dem Auth-Insert zurueckgeschaltet, damit
+-- Fremdschluesselpruefungen und die Trigger contacts_log_created und
+-- set_updated_at fuer alle weiteren Anweisungen wieder greifen.
+set local session_replication_role = replica;
 insert into auth.users (id, email)
 values
   ('c0000000-0000-0000-0000-00000000000a', 'a@test.local'),
   ('c0000000-0000-0000-0000-00000000000b', 'b@test.local'),
   ('c0000000-0000-0000-0000-00000000000f', 'fremd@test.local');
+
+-- Ab hier wieder vollstaendige Trigger- und Fremdschluesselpruefung.
+set local session_replication_role = origin;
 
 insert into public.profiles (id, org_id, team_id, sponsor_id, role, first_name, last_name, username)
 values
@@ -58,9 +83,19 @@ values ('d0000000-0000-0000-0000-000000000001',
         'c0000000-0000-0000-0000-00000000000a',
         'a0000000-0000-0000-0000-000000000001', 'Mehmet Test');
 
+
 -- ---------- Hilfsfunktion: als Nutzer agieren ----------
 
 create schema if not exists tests;
+
+-- URSACHE A, behoben. Das Schema wird hier als postgres angelegt.
+-- tests.authenticate_as schaltet die Rolle danach auf authenticated.
+-- Der ERSTE Aufruf laeuft noch als postgres, jeder WEITERE als
+-- authenticated, und die hat ohne diese Zeile kein USAGE auf einem
+-- Schema, das postgres gerade erzeugt und nie freigegeben hat.
+-- Ohne den Grant scheitert jeder zweite Rollenwechsel mit
+--   permission denied for schema tests
+grant usage on schema tests to authenticated;
 
 create or replace function tests.authenticate_as(user_id uuid)
 returns void language plpgsql as $$

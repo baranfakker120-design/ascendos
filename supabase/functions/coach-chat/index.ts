@@ -8,7 +8,14 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, handleOptions, json } from '../_shared/cors.ts';
-import { chatCompletion, embed, fastModel, LlmError, type ChatMessage } from '../_shared/llm.ts';
+// Einziger KI-Anbieter (ADR-027).
+import {
+  geminiChat,
+  geminiEmbed,
+  geminiFastModel,
+  GeminiError,
+  type GeminiChatMessage,
+} from '../_shared/gemini.ts';
 import { CORE_RULES, ROUTER_PROMPT } from '../_shared/prompts.ts';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -69,6 +76,12 @@ Deno.serve(async (req) => {
       .eq('id', profile.org_id)
       .single();
     const dailyLimit = Number(org?.settings?.coach_daily_message_limit ?? 50);
+    // Schwellwert für die Wissenssuche. Default bewusst niedriger als der
+    // alte OpenAI-Wert (0.25): Gemini-Cosine-Werte liegen im Schnitt
+    // niedriger, ein zu hoher Wert liefert schlicht keine Dokumente.
+    const rawMinSim = Number(org?.settings?.coach_min_similarity);
+    const minSimilarity =
+      Number.isFinite(rawMinSim) && rawMinSim >= 0 && rawMinSim <= 1 ? rawMinSim : 0.2;
     const { data: usedToday } = await db.rpc('coach_messages_today', { p_user: userId });
     if ((usedToday ?? 0) >= dailyLimit) {
       return json({
@@ -123,7 +136,7 @@ Deno.serve(async (req) => {
     mark('context_ms', tContext);
 
     // ---------- Konversation laden/anlegen ----------
-    let history: ChatMessage[] = [];
+    let history: GeminiChatMessage[] = [];
     let agentKey: string | null = null;
     if (convoId) {
       const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
@@ -132,7 +145,7 @@ Deno.serve(async (req) => {
       const { data: msgs } = await db.from('coach_messages')
         .select('role, content').eq('convo_id', convoId)
         .order('created_at').limit(20);
-      history = (msgs ?? []) as ChatMessage[];
+      history = (msgs ?? []) as GeminiChatMessage[];
     } else {
       const { data: convo, error } = await db.from('coach_convos')
         .insert({ user_id: userId, org_id: profile.org_id, contact_id: contactId })
@@ -149,10 +162,10 @@ Deno.serve(async (req) => {
       let routed = '';
       try {
         routed = (
-          await chatCompletion({
+          await geminiChat({
             system: ROUTER_PROMPT,
             messages: [{ role: 'user', content: message }],
-            model: fastModel(),
+            model: geminiFastModel(),
             maxTokens: 16,
             effort: 'none',
           })
@@ -177,13 +190,22 @@ Deno.serve(async (req) => {
     let knowledgeBlock = '';
     let hadKnowledge = false;
     try {
-      const queryEmbedding = await embed(message);
+      // RETRIEVAL_QUERY, nicht RETRIEVAL_DOCUMENT: Gemini kodiert Fragen
+      // anders als Dokumente. Verwechslung kostet Trefferqualität, ohne
+      // einen Fehler zu erzeugen.
+      const queryEmbedding = await geminiEmbed(message, 'RETRIEVAL_QUERY');
       const { data: matches } = await db.rpc('match_knowledge', {
         query_embedding: queryEmbedding,
         p_org_id: profile.org_id,
         match_categories: agent.retrieval_categories?.length
           ? agent.retrieval_categories : null,
         match_count: 5,
+        // Wird jetzt EXPLIZIT übergeben statt den DB-Default (0.25) zu
+        // nutzen: der Wert war auf den OpenAI-Vektorraum getunt und muss
+        // für Gemini neu vermessen werden. Über organizations.settings
+        // justierbar — dieselbe Mechanik wie coach_daily_message_limit,
+        // also ohne Schemaänderung.
+        min_similarity: minSimilarity,
       });
       if (matches && matches.length > 0) {
         hadKnowledge = true;
@@ -202,14 +224,14 @@ Deno.serve(async (req) => {
       // Frage wird erst zu einem anonymen Wissensthema generalisiert;
       // schlägt das fehl, wird NICHT geloggt (Privacy vor Metrik).
       try {
-        const topic = (await chatCompletion({
+        const topic = (await geminiChat({
           system:
             'Fasse die Nutzerfrage als allgemeines Wissensthema zusammen: max. 12 Wörter, ' +
             'Deutsch, OHNE Namen, Zahlen zu Personen oder persönliche Details. ' +
             'Beispiel: "Wie überzeuge ich Mehmet mit 200€ Schulden?" -> ' +
             '"Einwandbehandlung bei finanziellen Bedenken". Antworte NUR mit dem Thema.',
           messages: [{ role: 'user', content: message.slice(0, 500) }],
-          model: fastModel(),
+          model: geminiFastModel(),
           maxTokens: 60,
           effort: 'none',
         })).trim().slice(0, 200);
@@ -237,9 +259,11 @@ Deno.serve(async (req) => {
 
     const tLlm = Date.now();
     const reply = (
-      await chatCompletion({
+      await geminiChat({
         system,
         messages: [...history, { role: 'user', content: message }],
+        // Unveränderter Wert aus der DB ('gpt-5.6'); die Übersetzung auf
+        // ein Gemini-Modell passiert zur Laufzeit in gemini.ts.
         model: agent.model,
         maxTokens: 1024,
         effort: 'low',
@@ -267,10 +291,10 @@ Deno.serve(async (req) => {
     console.log(JSON.stringify({ metric: 'coach_chat', agentKey, hadKnowledge, ...timings }));
     return json({ conversationId: convoId, agentKey, reply, timings });
   } catch (e) {
-    // LlmError traegt den Grund maschinenlesbar — im Log steht damit sofort,
-    // ob es am fehlenden Secret, am Rate-Limit oder am Modell lag.
-    if (e instanceof LlmError) {
-      console.error(`coach-chat llm error [${e.code}]`, e.message);
+    // GeminiError traegt den Grund maschinenlesbar — im Log steht damit
+    // sofort, ob es am fehlenden Secret, am Rate-Limit oder am Modell lag.
+    if (e instanceof GeminiError) {
+      console.error(`coach-chat gemini error [${e.code}]`, e.message);
     } else {
       console.error('coach-chat error', e instanceof Error ? e.message : e);
     }

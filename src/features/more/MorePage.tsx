@@ -179,6 +179,25 @@ export function MorePage() {
         )}
       </Card>
 
+      {/* Admin-Bereich. Die Sichtbarkeit ist Komfort, keine Sicherheit —
+          Route-Guard, RLS und der Rollencheck in ingest-knowledge halten
+          die Grenze. */}
+      {profile?.role === 'super_admin' && (
+        <Card>
+          <p className="font-semibold">Wissensdatenbank</p>
+          <p className="mt-1 text-sm text-muted">
+            Teamdokumente hochladen und freigeben. Was hier fehlt, behandelt Ascent als
+            Wissenslücke.
+          </p>
+          <Link
+            to="/wissen"
+            className="mt-3 flex h-12 items-center justify-center rounded-xl border border-line bg-surface px-4 text-base font-semibold text-ink hover:bg-bg"
+          >
+            Dokumente verwalten
+          </Link>
+        </Card>
+      )}
+
       <Button variant="secondary" onClick={signOut}>
         Abmelden
       </Button>

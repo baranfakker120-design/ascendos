@@ -1,0 +1,37 @@
+﻿1..13
+
+ok 1 - Plan-Generierung l├ñuft als eingeloggter Nutzer
+ok 2 - Drei echte Kandidaten ergeben drei Missionen (kein k├╝nstliches Auff├╝llen)
+ok 3 - H├Âchste Priorit├ñt: Fit Check ohne 3-Way-Call
+ok 4 - Zweiter Aufruf von generate_daily_plan bricht nicht ab
+ok 5 - generate_daily_plan ist idempotent (ein Plan pro Tag)
+ok 6 - Plan l├ñsst sich committen
+not ok 7 - Mission auf erledigt setzen bricht nicht ab
+# Failed test 7: "Mission auf erledigt setzen bricht nicht ab"
+#     died: P0001: AscendOS: Mission nicht gefunden.
+#         CONTEXT:
+#             PL/pgSQL function update_mission_status(uuid,text,text) line 16 at RAISE
+#             SQL statement " select public.update_mission_status(
+#                    (select i.id from public.daily_plan_items i
+#                     join public.daily_plans p on p.id = i.plan_id
+#                     where p.user_id = 'c2000000-0000-0000-0000-000000000001'
+#                       and i.mission_type = 'follow_up_overdue'),
+#                    'done') "
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+not ok 8 - Erledigte Follow-up-Mission dokumentiert das Event automatisch
+# Failed test 8: "Erledigte Follow-up-Mission dokumentiert das Event automatisch"
+#         have: 0
+#         want: 1
+not ok 9 - Commit und erledigte Mission werden serverseitig getrackt (ADR-016)
+# Failed test 9: "Commit und erledigte Mission werden serverseitig getrackt (ADR-016)"
+#         have: 1
+#         want: 2
+not ok 10 - Missions-Status wird persistiert
+# Failed test 10: "Missions-Status wird persistiert"
+#         have: NULL
+#         want: done
+
+ok 11 - Omar sieht keine Missionen von Emma (RLS)
+ok 12 - Plan nach Statuswechsel neu erzeugen bricht nicht ab
+ok 13 - Leere Pipeline: genau eine ehrliche Aufbau-Mission, kein Fake-Plan
+# Looks like you failed 4 tests of 13
