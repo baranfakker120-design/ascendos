@@ -302,6 +302,17 @@ GRENZEN (nicht verhandelbar):
   die seriöse Alternative an.
 - Du versendest niemals selbst Nachrichten und führst keine Aktionen aus.
   Du bereitest vor - der Mensch entscheidet und handelt.
+
+FORMAT (nicht verhandelbar, Sprint 3.1):
+- AscendOS ist eine Business-App, kein Chat-Werkzeug für Entwickler.
+  Schreibe reinen Fließtext ohne Markdown.
+- Erlaubt: . , : ; ? ! ( ) " ' sowie nummerierte Listen (1. 2. 3.) und
+  Aufzählungspunkte (• Punkt).
+- Verboten: **fett**, __fett__, *kursiv*, # Überschriften, Backticks,
+  Codeblöcke, Tabellen mit |, Zitatzeichen >, Trennlinien ---, eckige
+  Klammern für Links, HTML.
+- Der Nutzer darf nie erkennen, dass intern Wissensdokumente oder
+  Formatierungssyntax verwendet werden.
 `.trim();
 
 export const ROUTER_PROMPT = `
@@ -771,6 +782,398 @@ export async function chat(input: ChatInput): Promise<ChatResult> {
   return chatWithFallback(input, CHAT_PROVIDER_CHAIN);
 }
 
+// ---- inline: _shared/intent-router/types.ts ----
+/**
+ * Intent-Router: erkennt PRO NACHRICHT, welche Wissenskategorie
+ * durchsucht werden soll. Sprint 3.1, 30. Juli 2026.
+ *
+ * ABGRENZUNG zum bestehenden Router (prompts.ts, ROUTER_PROMPT):
+ * Jener laeuft EINMAL pro Konversation und waehlt einen von drei
+ * Spezialisten (recruiting/sales/knowledge) fuer die TONALITAET der
+ * ganzen Unterhaltung. Dieser Router hier laeuft bei JEDER Nachricht
+ * neu und bestimmt nur, WELCHE Kategorien fuer DIESEN einen Turn
+ * durchsucht werden. Eine Unterhaltung kann mit einer
+ * Recruiting-Frage beginnen und mitten drin nach einer Duftnummer
+ * fragen -- der alte Router wuerde das nicht bemerken, weil er nur
+ * beim ersten Turn entscheidet. Beide Mechanismen bestehen
+ * nebeneinander, keiner ersetzt den anderen.
+ *
+ * BEWUSST REGELBASIERT, kein weiterer KI-Aufruf: Der Auftrag verlangt
+ * "keine Vermutungen, keine Halluzinationen". Ein deterministischer
+ * Klassifikator kann per Konstruktion nicht halluzinieren, kostet
+ * keine zusaetzliche Anbieteranfrage (kein weiterer Punkt, an dem
+ * Groq/OpenRouter/Cerebras ausfallen koennten) und ist mit
+ * gewoehnlichen Tests beweisbar, nicht nur behauptbar.
+ */
+
+export type IntentId =
+  | 'duft_nummer'
+  | 'duft_name'
+  | 'produkte'
+  | 'business'
+  | 'recruiting'
+  | 'duftparty'
+  | 'kontakte'
+  | 'aufgaben';
+
+export interface IntentMatch {
+  /** null, falls dieser Intent nicht zutrifft. */
+  confidence: number;
+}
+
+export interface IntentDefinition {
+  id: IntentId;
+  /** Kurze Bezeichnung fuers Log, nicht fuer den Nutzer bestimmt. */
+  label: string;
+  /**
+   * Prueft die Nachricht. Gibt eine Konfidenz zwischen 0 und 1 zurueck,
+   * oder null, wenn der Intent nicht zutrifft. Rein, ohne Seiteneffekt
+   * -- deshalb ohne Weiteres einzeln testbar.
+   */
+  test(message: string): number | null;
+  /**
+   * Wissenskategorien fuer match_knowledge. Leeres Array bedeutet:
+   * dieser Intent hat KEINE Wissenskategorie (siehe skipRag).
+   * Namen decken sich bewusst mit den bereits vorhandenen Werten in
+   * agents.retrieval_categories, keine neue Kategorie erfunden.
+   */
+  categories: string[];
+  /**
+   * true bei Intents, die keine Wissensfrage sind, sondern
+   * strukturierte Nutzerdaten betreffen (Kontakte, Aufgaben). Diese
+   * Daten liegen NICHT in knowledge_docs, sondern in eigenen Tabellen.
+   * match_knowledge dafuer aufzurufen wuerde in der falschen Quelle
+   * suchen und koennte eine falsche Antwort erzeugen. Stattdessen wird
+   * RAG uebersprungen und dem Modell ein kurzer Hinweis mitgegeben,
+   * ehrlich zu sagen, dass es diese Daten nicht direkt einsehen kann.
+   */
+  skipRag?: boolean;
+  /**
+   * Optionale Umschreibung der Suchanfrage vor dem Einbetten. Ein
+   * bloßes "129" liefert als Einbettung kaum brauchbare Naehe zu
+   * einem Dokument, das "Duftnummer 129: ..." sagt. Mit Kontext
+   * angereichert trifft die Vektorsuche deutlich zuverlaessiger.
+   */
+  rewriteQuery?: (message: string) => string;
+}
+
+export interface IntentResult {
+  intent: IntentId | 'unbekannt';
+  confidence: number;
+  categories: string[];
+  skipRag: boolean;
+  searchQuery: string;
+  /** true, wenn kein Intent mit ausreichender Konfidenz traf und auf
+   *  die bestehende, agentengebundene Kategorie zurueckgefallen wurde. */
+  fallbackToAgent: boolean;
+}
+
+// ---- inline: _shared/intent-router/intents.ts ----
+/**
+ * Ein Eintrag je Intent. Ein neuer Intent bedeutet: ein neues Objekt
+ * an dieses Array anhaengen. Kein Eingriff in index.ts oder in andere
+ * Intents noetig -- das ist die geforderte Erweiterbarkeit.
+ *
+ * Kategorienamen sind bewusst identisch mit den bereits vorhandenen
+ * Werten in agents.retrieval_categories (produkte, verguetung,
+ * recruiting, einwaende, duftparty, prozess, schulung, faq, verkauf).
+ * Es wird keine neue Kategorie erfunden, keine Migration noetig.
+ */
+
+const wordBoundary = (words: string[]) =>
+  new RegExp(`\\b(${words.join('|')})\\b`, 'i');
+
+// ------------------------------------------------------------
+// 1. Duftnummer -- reiner Zahlenmuster-Treffer, hoechste Praezision.
+// ------------------------------------------------------------
+const NUR_ZAHL = /^\s*#?\s*(\d{1,4})\s*[.?!]?\s*$/;
+const ZAHL_MIT_KONTEXT = /\b(duft|parfum|nummer|nr\.?)\b[^\d]{0,20}(\d{1,4})\b|\b(\d{1,4})\b[^\d]{0,20}\b(duft|parfum|nummer)\b/i;
+
+export const duftNummer: IntentDefinition = {
+  id: 'duft_nummer',
+  label: 'Duftnummer',
+  categories: ['produkte'],
+  test(message) {
+    if (NUR_ZAHL.test(message)) return 0.95;
+    if (ZAHL_MIT_KONTEXT.test(message)) return 0.9;
+    return null;
+  },
+  rewriteQuery(message) {
+    const num = message.match(/\d{1,4}/)?.[0] ?? message;
+    return `Chogan Parfum Duftnummer ${num}`;
+  },
+};
+
+// ------------------------------------------------------------
+// 2. Duftname -- bekannte Referenzduefte aus dem Auftrag.
+//
+//    WICHTIG, ehrlich benannt: Diese Liste ist eine Startliste aus
+//    den vier vom Betreiber genannten Beispielen, KEINE vollstaendige
+//    Duftdatenbank. Sie waechst durch Ergaenzen der Liste unten, ohne
+//    Codeaenderung an der Logik.
+//
+//    KEINE Kurznachrichten-Heuristik ("kurze Nachricht = wahrscheinlich
+//    ein Duftname"): eine erste Fassung hatte das versucht und dabei
+//    per Testlauf nachgewiesen bekommen, dass sie einen blossen
+//    Vornamen wie "Sarah" faelschlich als Duftname einordnete --
+//    genau die Art Vermutung, die der Auftrag ausdruecklich
+//    ausschliesst ("keine Vermutungen"). Ohne verlaessliches Merkmal,
+//    das einen Duftnamen von jedem anderen kurzen Wort unterscheidet,
+//    ist der einzige tragfaehige Weg die explizite Liste.
+// ------------------------------------------------------------
+const BEKANNTE_DUEFTE = ['hypnose', 'libre', 'erba pura', 'alien'];
+const DUFT_KEYWORD = wordBoundary(BEKANNTE_DUEFTE.map((d) => d.replace(' ', '\\s+')));
+
+export const duftName: IntentDefinition = {
+  id: 'duft_name',
+  label: 'Duftname',
+  categories: ['produkte'],
+  test(message) {
+    return DUFT_KEYWORD.test(message) ? 0.85 : null;
+  },
+  rewriteQuery(message) {
+    return `Chogan Parfum Duft ${message.trim()}`;
+  },
+};
+
+// ------------------------------------------------------------
+// 3. Produkte -- konkrete Produktlinien-Namen aus dem Auftrag.
+// ------------------------------------------------------------
+const PRODUKTLINIEN = ['aurodhea', 'peptilux', 'brilhome', 'lolüm', 'lolum', 'kleyes'];
+const PRODUKT_KEYWORD = wordBoundary(PRODUKTLINIEN);
+
+export const produkte: IntentDefinition = {
+  id: 'produkte',
+  label: 'Produkte',
+  categories: ['produkte'],
+  test(message) {
+    return PRODUKT_KEYWORD.test(message) ? 0.9 : null;
+  },
+};
+
+// ------------------------------------------------------------
+// 4. Business -- Verguetungsplan und Kennzahlen.
+// ------------------------------------------------------------
+const BUSINESS_KEYWORD = wordBoundary([
+  'vergütungsplan', 'verguetungsplan', 'ap', 'icp', 'provision', 'aktivpunkte', 'aktivpunkt',
+]);
+
+export const business: IntentDefinition = {
+  id: 'business',
+  label: 'Business',
+  categories: ['verguetung', 'faq'],
+  test(message) {
+    return BUSINESS_KEYWORD.test(message) ? 0.85 : null;
+  },
+};
+
+// ------------------------------------------------------------
+// 5. Recruiting -- deckt sich mit den Kategorien des bestehenden
+//    recruiting-Agenten (agents.retrieval_categories).
+// ------------------------------------------------------------
+const RECRUITING_KEYWORD = wordBoundary([
+  'einwand', 'einwände', 'einwaende', 'preis', 'nachfassen', 'einladung', 'kein interesse',
+]);
+
+export const recruiting: IntentDefinition = {
+  id: 'recruiting',
+  label: 'Recruiting',
+  categories: ['recruiting', 'einwaende', 'prozess'],
+  test(message) {
+    return RECRUITING_KEYWORD.test(message) ? 0.85 : null;
+  },
+};
+
+// ------------------------------------------------------------
+// 6. Duftparty.
+// ------------------------------------------------------------
+const DUFTPARTY_KEYWORD = wordBoundary([
+  'duftparty', 'gastgeber', 'gastgeberin', 'bestellformular', 'vorbereitung',
+]);
+
+export const duftparty: IntentDefinition = {
+  id: 'duftparty',
+  label: 'Duftparty',
+  categories: ['duftparty'],
+  test(message) {
+    return DUFTPARTY_KEYWORD.test(message) ? 0.85 : null;
+  },
+};
+
+// ------------------------------------------------------------
+// 7. Kontakte -- KEINE Wissenskategorie. Kontaktdaten liegen in
+//    public.contacts, nicht in knowledge_docs. Erkennung beschraenkt
+//    sich auf die vom Auftrag genannten CRM-Begriffe; beliebige
+//    Vornamen (Beispiel "Sarah") lassen sich ohne Namensdatenbank oder
+//    einen weiteren KI-Aufruf nicht zuverlaessig erkennen und werden
+//    hier bewusst NICHT geraten. Ist ein Kontakt bereits ueber
+//    contactId ausgewaehlt, liefert der bestehende Mechanismus
+//    (KONTAKT-KONTEXT) ohnehin unabhaengig von diesem Intent die
+//    Kontaktdaten.
+// ------------------------------------------------------------
+const KONTAKTE_KEYWORD = wordBoundary(['whatsapp', 'kunde', 'kundin', 'follow-up', 'followup']);
+
+export const kontakte: IntentDefinition = {
+  id: 'kontakte',
+  label: 'Kontakte',
+  categories: [],
+  skipRag: true,
+  test(message) {
+    return KONTAKTE_KEYWORD.test(message) ? 0.7 : null;
+  },
+};
+
+// ------------------------------------------------------------
+// 8. Aufgaben -- KEINE Wissenskategorie. Der Tagesplan liegt in
+//    daily_plan_items, nicht in knowledge_docs. Diese Tabelle wird
+//    hier bewusst NICHT gelesen (Auftrag: "Heute" nicht aendern).
+//    Stattdessen RAG ueberspringen und das Modell ehrlich sagen
+//    lassen, dass es den Tagesplan nicht direkt einsehen kann, statt
+//    einen zu erfinden.
+// ------------------------------------------------------------
+const AUFGABEN_KEYWORD = wordBoundary([
+  'heute', 'meine aufgaben', 'was soll ich heute', 'was soll ich tun', 'tagesplan',
+]);
+
+export const aufgaben: IntentDefinition = {
+  id: 'aufgaben',
+  label: 'Aufgaben',
+  categories: [],
+  skipRag: true,
+  test(message) {
+    return AUFGABEN_KEYWORD.test(message) ? 0.75 : null;
+  },
+};
+
+/**
+ * Reihenfolge hier ist nur die Fallback-Reihenfolge bei exakten
+ * Konfidenz-Gleichstaenden. Die eigentliche Auswahl in classify()
+ * nimmt immer den hoechsten Konfidenzwert ueber ALLE Definitionen,
+ * nicht die erste Übereinstimmung -- ein neuer Intent unten anhaengen
+ * aendert daher nie das Verhalten bestehender Intents.
+ */
+export const INTENTS: IntentDefinition[] = [
+  duftNummer,
+  produkte,
+  business,
+  recruiting,
+  duftparty,
+  kontakte,
+  aufgaben,
+  duftName, // zuletzt: enthaelt die unspezifischste Fallback-Heuristik
+];
+
+// ---- inline: _shared/intent-router/index.ts ----
+/**
+ * Ab dieser Konfidenz wird die agentengebundene Kategorie
+ * (agent.retrieval_categories) fuer DIESEN Turn ueberschrieben. Darunter
+ * bleibt das bestehende Verhalten unangetastet (fallbackToAgent=true) --
+ * das ist die Absicherung gegen Regression: ein unsicherer Treffer
+ * darf niemals schlechter sein als der bisherige, ungeaenderte Weg.
+ */
+const MIN_CONFIDENCE = 0.5;
+
+export function classifyIntent(message: string): IntentResult {
+  const trimmed = message.trim();
+  let best: { id: (typeof INTENTS)[number]['id']; confidence: number; def: (typeof INTENTS)[number] } | null = null;
+
+  for (const def of INTENTS) {
+    const confidence = def.test(trimmed);
+    if (confidence === null) continue;
+    if (!best || confidence > best.confidence) {
+      best = { id: def.id, confidence, def };
+    }
+  }
+
+  if (!best || best.confidence < MIN_CONFIDENCE) {
+    return {
+      intent: 'unbekannt',
+      confidence: best?.confidence ?? 0,
+      categories: [],
+      skipRag: false,
+      searchQuery: trimmed,
+      fallbackToAgent: true,
+    };
+  }
+
+  return {
+    intent: best.id,
+    confidence: best.confidence,
+    categories: best.def.categories,
+    skipRag: best.def.skipRag ?? false,
+    searchQuery: best.def.rewriteQuery ? best.def.rewriteQuery(trimmed) : trimmed,
+    fallbackToAgent: false,
+  };
+}
+
+// ---- inline: _shared/format/strip-markdown.ts ----
+/**
+ * Entfernt Markdown und normalisiert die Ausgabe auf das im Auftrag
+ * erlaubte Zeichenrepertoire. Sprint 3.1, 30. Juli 2026.
+ *
+ * WARUM MECHANISCH statt nur eine Promptanweisung: Sprachmodelle folgen
+ * Formatierungsanweisungen zuverlaessig, aber nicht garantiert -- und
+ * die eingebetteten Wissensausschnitte (aus echten Dokumenten) koennen
+ * selbst Markdown enthalten, das wortwoertlich in die Antwort
+ * uebernommen wird. Eine Anweisung allein wuerde das nicht sicher
+ * verhindern. Diese Funktion laeuft NACH der Antwortgenerierung, auf
+ * dem tatsaechlichen Text, unabhaengig davon, ob das Modell sich an die
+ * Anweisung gehalten hat.
+ *
+ * Erlaubt bleiben, wie im Auftrag festgelegt: . , : ; ? ! ( ) " ' sowie
+ * nummerierte Listen (1. 2. 3.) und Aufzaehlungspunkte (• Punkt).
+ */
+export function stripMarkdown(text: string): string {
+  let s = text;
+
+  // Codebloecke zuerst, bevor einzelne Backticks behandelt werden.
+  s = s.replace(/```[\s\S]*?```/g, (block) => block.replace(/```/g, '').trim());
+  // Einzelne Inline-Backticks: Zeichen entfernen, Inhalt behalten.
+  s = s.replace(/`([^`]+)`/g, '$1');
+
+  // Ueberschriften: fuehrende Rauten entfernen, Text behalten.
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+
+  // Fett/kursiv: **text**, __text__, *text*, _text_ -> text.
+  // Reihenfolge wichtig: doppelte Marker vor einfachen behandeln, sonst
+  // bleiben einzelne Sternchen uebrig.
+  s = s.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
+  s = s.replace(/___([^_]+)___/g, '$1');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
+  s = s.replace(/__([^_]+)__/g, '$1');
+  s = s.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '$1');
+  s = s.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, '$1');
+
+  // Markdown-Links: [Text](url) -> Text. Bilder: ![Alt](url) -> Alt.
+  s = s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
+
+  // Zitatzeichen am Zeilenanfang.
+  s = s.replace(/^\s{0,3}>\s?/gm, '');
+
+  // Horizontale Trenner: eine Zeile aus nur -, * oder _ (mind. 3).
+  s = s.replace(/^\s*([-*_])\1{2,}\s*$/gm, '');
+
+  // Tabellen-Pipes: durch ein Leerzeichen ersetzen, kein Zeichen aus
+  // der Verbotsliste beibehalten.
+  s = s.replace(/\|/g, ' ');
+
+  // Aufzaehlungszeichen -, * am Zeilenanfang auf den erlaubten
+  // Aufzaehlungspunkt "•" vereinheitlichen. Numerierte Listen ("1. ")
+  // bleiben unveraendert, sie sind bereits im erlaubten Format.
+  s = s.replace(/^\s*[-*]\s+/gm, '• ');
+
+  // Rohes HTML entfernen.
+  s = s.replace(/<\/?[a-zA-Z][^>]*>/g, '');
+
+  // Ueberzaehlige Leerzeichen und Leerzeilen, die durch das Entfernen
+  // entstanden sind, wieder einsammeln.
+  s = s.replace(/[ \t]{2,}/g, ' ');
+  s = s.replace(/\n{3,}/g, '\n\n');
+  s = s.split('\n').map((line) => line.trimEnd()).join('\n');
+
+  return s.trim();
+}
+
 // ============================================================
 // coach-chat: Der eine Coach mit Spezialisten dahinter (ADR-011).
 // Ablauf: Auth -> Limit -> Kontext laden (unter RLS des Nutzers!)
@@ -784,6 +1187,10 @@ export async function chat(input: ChatInput): Promise<ChatResult> {
 // Chat: Provider-Abstraktion vom 30. Juli 2026. Reihenfolge Groq ->
 // OpenRouter -> Cerebras mit automatischem Fallback, siehe die
 // Provider-Abstraktion unter _shared (Ordner ai-providers).
+// Intent-Router, Sprint 3.1: pro-Nachricht-Klassifikation der
+// Wissenskategorie, unabhaengig vom bestehenden Einmal-pro-Konversation-
+// Router oben (ROUTER_PROMPT). Siehe intent-router/types.ts fuer die
+// Abgrenzung der beiden Mechanismen.
 
 const PHASE_LABELS: Record<string, string> = {
   lead: 'Lead',
@@ -950,20 +1357,53 @@ Deno.serve(async (req) => {
       .select('*').eq('org_id', profile.org_id).eq('key', agentKey).single();
     if (!agent) return json({ error: 'Kein Coach konfiguriert.' }, 500);
 
+    // ---------- Intent-Router (Sprint 3.1): pro Nachricht neu ----------
+    // Bestimmt NUR die Wissenskategorie fuer DIESEN Turn. Bei niedriger
+    // Konfidenz (fallbackToAgent=true) bleibt das bestehende Verhalten
+    // ueber agent.retrieval_categories unveraendert -- keine Regression.
+    const tIntent = Date.now();
+    const intentResult = classifyIntent(message);
+    mark('intent_ms', tIntent);
+
     // ---------- Retrieval: Teamdokumente (unter RLS des Nutzers) ----------
     const tRag = Date.now();
     let knowledgeBlock = '';
     let hadKnowledge = false;
+    let ragSkipped = false;
+    if (intentResult.skipRag) {
+      // Intent betrifft strukturierte Nutzerdaten (Kontakte, Aufgaben),
+      // nicht die Wissensdatenbank. match_knowledge wuerde in der
+      // falschen Quelle suchen. Stattdessen ein kurzer, ehrlicher
+      // Hinweis: das Modell soll NICHT so tun, als saehe es Kontakt-
+      // oder Tagesplandaten, die es hier nicht bekommen hat.
+      ragSkipped = true;
+      knowledgeBlock =
+        'HINWEIS: Diese Frage betrifft vermutlich eigene Kontakte oder den ' +
+        'Tagesplan des Nutzers. Du hast dazu KEINEN direkten Datenzugriff ' +
+        'in dieser Antwort, außer der KONTAKT-KONTEXT ist unten angegeben. ' +
+        'Erfinde keine Kontakt- oder Aufgabendaten. Verweise bei Bedarf auf ' +
+        'die Bereiche Kontakte bzw. Heute in der App.';
+    } else {
     try {
       // RETRIEVAL_QUERY, nicht RETRIEVAL_DOCUMENT: Gemini kodiert Fragen
       // anders als Dokumente. Verwechslung kostet Trefferqualität, ohne
       // einen Fehler zu erzeugen.
-      const queryEmbedding = await geminiEmbed(message, 'RETRIEVAL_QUERY');
+      //
+      // intentResult.searchQuery statt der rohen Nachricht: bei Intent
+      // "Duftnummer" waere die Einbettung von blossem "129" kaum nah an
+      // einem Dokument, das "Duftnummer 129: ..." sagt. Ohne erkannten
+      // Intent (fallbackToAgent) ist searchQuery identisch zur rohen
+      // Nachricht, unveraendertes Verhalten.
+      const queryEmbedding = await geminiEmbed(intentResult.searchQuery, 'RETRIEVAL_QUERY');
       const { data: matches } = await db.rpc('match_knowledge', {
         query_embedding: queryEmbedding,
         p_org_id: profile.org_id,
-        match_categories: agent.retrieval_categories?.length
-          ? agent.retrieval_categories : null,
+        // Erkannter Intent ueberschreibt NUR fuer diesen Aufruf die
+        // Kategorien des Agenten -- agents.retrieval_categories selbst
+        // bleibt unangetastet (Auftrag: Datenbank nicht aendern).
+        match_categories: !intentResult.fallbackToAgent && intentResult.categories.length
+          ? intentResult.categories
+          : (agent.retrieval_categories?.length ? agent.retrieval_categories : null),
         match_count: 5,
         // Wird jetzt EXPLIZIT übergeben statt den DB-Default (0.25) zu
         // nutzen: der Wert war auf den OpenAI-Vektorraum getunt und muss
@@ -983,11 +1423,17 @@ Deno.serve(async (req) => {
       // Embedding-Ausfall darf den Coach nicht stoppen: er antwortet
       // dann ohne Dokumente und behandelt Teamfragen als Wissenslücke.
     }
-    if (!hadKnowledge) {
+    }
+    if (!hadKnowledge && !ragSkipped) {
       // [K-1] Datenschutz: NIE die Rohfrage loggen — sie kann private
       // Kontaktdaten enthalten, und Admins lesen diese Tabelle. Die
       // Frage wird erst zu einem anonymen Wissensthema generalisiert;
       // schlägt das fehl, wird NICHT geloggt (Privacy vor Metrik).
+      //
+      // Nicht ausgeloest bei ragSkipped: das ist keine Wissensluecke,
+      // sondern ein Intent (Kontakte/Aufgaben), der bewusst keine
+      // Wissenssuche durchlaeuft. Ihn hier zu loggen wuerde die
+      // Luecken-Auswertung mit Faellen verwaessern, die gar keine sind.
       try {
         const topic = (await chat({
           system:
@@ -1034,7 +1480,11 @@ Deno.serve(async (req) => {
       messages: [...history, { role: 'user', content: message }],
       maxTokens: 1024,
     });
-    const reply = chatResult.text.trim();
+    // Sprint 3.1: mechanische Bereinigung NACH der Generierung, siehe
+    // Kopfkommentar in strip-markdown.ts. Laeuft immer, unabhaengig
+    // davon, ob das Modell der Formatanweisung in CORE_RULES gefolgt
+    // ist -- die Wissensausschnitte selbst koennen Markdown enthalten.
+    const reply = stripMarkdown(chatResult.text.trim());
     mark('llm_ms', tLlm);
 
     // Nie eine leere Assistant-Nachricht persistieren: sie wuerde bei jedem
@@ -1053,10 +1503,21 @@ Deno.serve(async (req) => {
     }).then(() => {}, () => {}); // Tracking bricht nie den Coach
 
     mark('total_ms', t0);
-    // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019):
+    // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019).
+    // Sprint 3.1 ergaenzt: intent, confidence, durchsuchte Kategorien,
+    // Treffer und ob auf die agentengebundene Kategorie zurueckgefallen
+    // wurde -- exakt die im Auftrag verlangten Logfelder.
     console.log(JSON.stringify({
       metric: 'coach_chat', agentKey, hadKnowledge,
       provider: chatResult.provider, providerModel: chatResult.model,
+      intent: intentResult.intent,
+      intentConfidence: intentResult.confidence,
+      knowledgeCategories: intentResult.skipRag ? [] :
+        (!intentResult.fallbackToAgent && intentResult.categories.length
+          ? intentResult.categories
+          : (agent.retrieval_categories ?? [])),
+      intentFallbackToAgent: intentResult.fallbackToAgent,
+      ragSkipped,
       ...timings,
     }));
     return json({ conversationId: convoId, agentKey, reply, timings });

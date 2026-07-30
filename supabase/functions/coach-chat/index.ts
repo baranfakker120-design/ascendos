@@ -20,6 +20,12 @@ import {
   type ChatMessage,
 } from '../_shared/ai-providers/index.ts';
 import { CORE_RULES, ROUTER_PROMPT } from '../_shared/prompts.ts';
+// Intent-Router, Sprint 3.1: pro-Nachricht-Klassifikation der
+// Wissenskategorie, unabhaengig vom bestehenden Einmal-pro-Konversation-
+// Router oben (ROUTER_PROMPT). Siehe intent-router/types.ts fuer die
+// Abgrenzung der beiden Mechanismen.
+import { classifyIntent } from '../_shared/intent-router/index.ts';
+import { stripMarkdown } from '../_shared/format/strip-markdown.ts';
 
 const PHASE_LABELS: Record<string, string> = {
   lead: 'Lead',
@@ -186,20 +192,53 @@ Deno.serve(async (req) => {
       .select('*').eq('org_id', profile.org_id).eq('key', agentKey).single();
     if (!agent) return json({ error: 'Kein Coach konfiguriert.' }, 500);
 
+    // ---------- Intent-Router (Sprint 3.1): pro Nachricht neu ----------
+    // Bestimmt NUR die Wissenskategorie fuer DIESEN Turn. Bei niedriger
+    // Konfidenz (fallbackToAgent=true) bleibt das bestehende Verhalten
+    // ueber agent.retrieval_categories unveraendert -- keine Regression.
+    const tIntent = Date.now();
+    const intentResult = classifyIntent(message);
+    mark('intent_ms', tIntent);
+
     // ---------- Retrieval: Teamdokumente (unter RLS des Nutzers) ----------
     const tRag = Date.now();
     let knowledgeBlock = '';
     let hadKnowledge = false;
+    let ragSkipped = false;
+    if (intentResult.skipRag) {
+      // Intent betrifft strukturierte Nutzerdaten (Kontakte, Aufgaben),
+      // nicht die Wissensdatenbank. match_knowledge wuerde in der
+      // falschen Quelle suchen. Stattdessen ein kurzer, ehrlicher
+      // Hinweis: das Modell soll NICHT so tun, als saehe es Kontakt-
+      // oder Tagesplandaten, die es hier nicht bekommen hat.
+      ragSkipped = true;
+      knowledgeBlock =
+        'HINWEIS: Diese Frage betrifft vermutlich eigene Kontakte oder den ' +
+        'Tagesplan des Nutzers. Du hast dazu KEINEN direkten Datenzugriff ' +
+        'in dieser Antwort, außer der KONTAKT-KONTEXT ist unten angegeben. ' +
+        'Erfinde keine Kontakt- oder Aufgabendaten. Verweise bei Bedarf auf ' +
+        'die Bereiche Kontakte bzw. Heute in der App.';
+    } else {
     try {
       // RETRIEVAL_QUERY, nicht RETRIEVAL_DOCUMENT: Gemini kodiert Fragen
       // anders als Dokumente. Verwechslung kostet Trefferqualität, ohne
       // einen Fehler zu erzeugen.
-      const queryEmbedding = await geminiEmbed(message, 'RETRIEVAL_QUERY');
+      //
+      // intentResult.searchQuery statt der rohen Nachricht: bei Intent
+      // "Duftnummer" waere die Einbettung von blossem "129" kaum nah an
+      // einem Dokument, das "Duftnummer 129: ..." sagt. Ohne erkannten
+      // Intent (fallbackToAgent) ist searchQuery identisch zur rohen
+      // Nachricht, unveraendertes Verhalten.
+      const queryEmbedding = await geminiEmbed(intentResult.searchQuery, 'RETRIEVAL_QUERY');
       const { data: matches } = await db.rpc('match_knowledge', {
         query_embedding: queryEmbedding,
         p_org_id: profile.org_id,
-        match_categories: agent.retrieval_categories?.length
-          ? agent.retrieval_categories : null,
+        // Erkannter Intent ueberschreibt NUR fuer diesen Aufruf die
+        // Kategorien des Agenten -- agents.retrieval_categories selbst
+        // bleibt unangetastet (Auftrag: Datenbank nicht aendern).
+        match_categories: !intentResult.fallbackToAgent && intentResult.categories.length
+          ? intentResult.categories
+          : (agent.retrieval_categories?.length ? agent.retrieval_categories : null),
         match_count: 5,
         // Wird jetzt EXPLIZIT übergeben statt den DB-Default (0.25) zu
         // nutzen: der Wert war auf den OpenAI-Vektorraum getunt und muss
@@ -219,11 +258,17 @@ Deno.serve(async (req) => {
       // Embedding-Ausfall darf den Coach nicht stoppen: er antwortet
       // dann ohne Dokumente und behandelt Teamfragen als Wissenslücke.
     }
-    if (!hadKnowledge) {
+    }
+    if (!hadKnowledge && !ragSkipped) {
       // [K-1] Datenschutz: NIE die Rohfrage loggen — sie kann private
       // Kontaktdaten enthalten, und Admins lesen diese Tabelle. Die
       // Frage wird erst zu einem anonymen Wissensthema generalisiert;
       // schlägt das fehl, wird NICHT geloggt (Privacy vor Metrik).
+      //
+      // Nicht ausgeloest bei ragSkipped: das ist keine Wissensluecke,
+      // sondern ein Intent (Kontakte/Aufgaben), der bewusst keine
+      // Wissenssuche durchlaeuft. Ihn hier zu loggen wuerde die
+      // Luecken-Auswertung mit Faellen verwaessern, die gar keine sind.
       try {
         const topic = (await chat({
           system:
@@ -270,7 +315,11 @@ Deno.serve(async (req) => {
       messages: [...history, { role: 'user', content: message }],
       maxTokens: 1024,
     });
-    const reply = chatResult.text.trim();
+    // Sprint 3.1: mechanische Bereinigung NACH der Generierung, siehe
+    // Kopfkommentar in strip-markdown.ts. Laeuft immer, unabhaengig
+    // davon, ob das Modell der Formatanweisung in CORE_RULES gefolgt
+    // ist -- die Wissensausschnitte selbst koennen Markdown enthalten.
+    const reply = stripMarkdown(chatResult.text.trim());
     mark('llm_ms', tLlm);
 
     // Nie eine leere Assistant-Nachricht persistieren: sie wuerde bei jedem
@@ -289,10 +338,21 @@ Deno.serve(async (req) => {
     }).then(() => {}, () => {}); // Tracking bricht nie den Coach
 
     mark('total_ms', t0);
-    // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019):
+    // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019).
+    // Sprint 3.1 ergaenzt: intent, confidence, durchsuchte Kategorien,
+    // Treffer und ob auf die agentengebundene Kategorie zurueckgefallen
+    // wurde -- exakt die im Auftrag verlangten Logfelder.
     console.log(JSON.stringify({
       metric: 'coach_chat', agentKey, hadKnowledge,
       provider: chatResult.provider, providerModel: chatResult.model,
+      intent: intentResult.intent,
+      intentConfidence: intentResult.confidence,
+      knowledgeCategories: intentResult.skipRag ? [] :
+        (!intentResult.fallbackToAgent && intentResult.categories.length
+          ? intentResult.categories
+          : (agent.retrieval_categories ?? [])),
+      intentFallbackToAgent: intentResult.fallbackToAgent,
+      ragSkipped,
       ...timings,
     }));
     return json({ conversationId: convoId, agentKey, reply, timings });
