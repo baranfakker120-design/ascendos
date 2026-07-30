@@ -470,3 +470,29 @@ Jede neue wesentliche Entscheidung erhält einen neuen ADR (fortlaufende Nummer)
 **Normalisierung des extrahierten Textes.** PDF-Extraktion erzeugt Layout-Müll: Umbrüche mitten im Satz, Silbentrennung am Zeilenende, dreifache Leerzeilen. Unbehandelt landet das in den Chunks und verschlechtert die Einbettung, weil der Vektor Formatierung statt Bedeutung abbildet.
 
 **Offen:** Der Schwellwert `coach_min_similarity` (Default 0.2) ist weiterhin eine Annahme. Erst mit den ersten echten Dokumenten lässt er sich messen — vorher gab es nichts zu messen.
+
+---
+
+## ADR-030: Identität und Mitgliedschaft getrennt (Sprint 2)
+
+**Kontext.** F2 verlangt, dass eine Person mehreren Organisationen angehören kann. Rollen, Berechtigungen, Team und Genealogie hängen an der Mitgliedschaft, nicht an der Identität. Umgesetzt in den Migrationen 15 bis 17.
+
+**Warum die Umstellung bezahlbar war.** Erhoben am 29. Juli 2026: Nur **drei** Policies lesen `profiles` direkt. Die übrigen 28 gehen über `current_org_id()`, `current_user_role()` und `is_super_admin()`, und diese drei Funktionen sind je ein Einzeiler. Sie umzuschreiben lenkt alle Policies um, ohne eine davon anzufassen. Diese Vorarbeit aus Sprint 1 des Projekts ist der Grund, warum aus einem Neubau ein Umbau wurde.
+
+**Entscheidungen.**
+
+1. **`profiles` wird nicht umbenannt.** Die Tabelle ist ab jetzt die Identität. 13 Fremdschlüssel zeigen darauf.
+2. **Weg 1 statt Weg 2.** Die operativen Tabellen tragen bereits `user_id` **und** `org_id`, und die Policies prüfen schon heute beides. Das Paar ist die Mitgliedschaft, über den natürlichen Schlüssel adressiert. Die 13 Fremdschlüssel bleiben auf `profiles`. Ein zusammengesetzter Fremdschlüssel auf `(identity_id, org_id)` ist **nicht möglich**, weil F2 FD-2 Wiedereintritt erlaubt und die Eindeutigkeit daher nur partiell sein kann. Preis: keine Durchsetzung auf Datenbankebene, dass ein Kontakteigentümer Mitglied der Organisation ist. Durchgesetzt wird es in den Policies.
+3. **Die drei Helferfunktionen behalten ihre Namen.** Nur ihre Bedeutung wechselt von „Angabe am Profil" auf „Angabe der aktiven Mitgliedschaft".
+4. **Abweisen bei Mehrdeutigkeit.** Zwei aktive Mitgliedschaften ohne Selektor ergeben NULL, nicht „die erste". Ein System, das rät, erzeugt ein Leck, das nur bei bestimmten Sortierungen auftritt.
+5. **Der Selektor kommt vom Client, der Server validiert ihn.** Kopf `x-ascendos-org`, geprüft gegen die aktiven Mitgliedschaften. Zulässig, weil er eine Sichtweise wählt und keine Berechtigung behauptet.
+6. **Der Spiegel in `profiles` bleibt, driftfrei durch Trigger.** `org_id`, `team_id`, `sponsor_id` und `role` werden von `memberships` aus synchronisiert. Grund gegen ein Entfernen: sieben Leser in drei Auslieferungseinheiten, darunter die Adminwache in `router.tsx`. F2 verlangt eine Wahrheitsquelle ohne Drift, nicht das Verschwinden der Spalte. Bedingung für die spätere Entfernung ist in Migration 17 festgehalten.
+7. **Kein kaskadierendes Löschen** von der Identität zur Mitgliedschaft, F2 Ä6. Sonst reißt eine Löschung aufbewahrungspflichtige Geschäftsunterlagen mit.
+
+**Drei eigene Fehler, durch Nachprüfen gefunden und behoben.**
+
+- Migration 15 gab Beratern kein Schreibrecht auf die eigene Mitgliedschaft. Sie hätten ihre eigenen Ziele nicht setzen können, obwohl F2 8.1 das verlangt.
+- BEFORE-Trigger feuern alphabetisch. `protect_columns` läuft vor `sponsor_same_org`, weshalb zwei Tests die falsche Fehlermeldung erhalten hätten.
+- Die Nachbildung von `firstline_journey_progress` aus dem Gedächtnis hatte sechs statt neun Spalten. Es fehlten `journey_title`, `current_day` und `total_days` — genau die Träger der Fortschrittsanzeige.
+
+**Verbindliche Auslieferungsregel.** Migration 15 darf niemals ohne 16 auf Produktion. Ohne 16 erzeugt eine Registrierung kein Mitgliedschaftsdatensatz, `current_org_id()` wäre NULL, und das Konto wäre funktionslos.

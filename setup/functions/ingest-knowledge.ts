@@ -5,7 +5,7 @@
 // Quelle: supabase/functions/ingest-knowledge/index.ts
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { GoogleGenAI, type Content } from 'npm:@google/genai@2.13.0';
+import { GoogleGenAI } from 'npm:@google/genai@2.13.0';
 
 // ---- inline: _shared/cors.ts ----
 export const corsHeaders = {
@@ -27,43 +27,26 @@ export function json(body: unknown, status = 200): Response {
 
 // ---- inline: _shared/gemini.ts ----
 /**
- * Gemini-Anbindung: Textgenerierung UND Embeddings (ADR-026/ADR-027).
+ * Gemini-Anbindung: AUSSCHLIESSLICH Embeddings.
  *
- * Einzige Provider-Schicht des Projekts. API-Schlüssel, Endpunkte und
- * Modellnamen-Semantik existieren NUR hier; die Edge Functions kennen
- * davon nichts (ADR-007).
+ * Aenderung vom 30. Juli 2026: Chat-Antworten laufen ab jetzt ueber die
+ * Provider-Abstraktion in _shared/ai-providers/ (Groq -> OpenRouter ->
+ * Cerebras mit automatischem Fallback). Gemini bleibt gezielt fuer
+ * Embeddings bestehen, weil `knowledge_chunks.embedding` fest auf
+ * `vector(1536)` mit `gemini-embedding-001` gebaut ist. Ein Wechsel des
+ * Embedding-Modells wuerde eine andere Dimension bedeuten und damit eine
+ * Neuberechnung des gesamten Wissenskorpus erzwingen — das war
+ * ausdruecklich NICHT Teil dieses Auftrags.
  *
- * Zuständig: Chat-Antworten, Router, Themen-Anonymisierung UND Embeddings.
- * Seit ADR-027 der einzige KI-Anbieter des Projekts; `llm.ts` ist entfallen.
+ * `geminiChat`, `mapToGeminiModel` und `geminiFastModel` sind entfallen.
+ * `GeminiError` und `ai()` bleiben: `geminiWithRetry` wird von den
+ * Embedding-Funktionen mitgenutzt, und `ingest-knowledge.ts` faengt
+ * `GeminiError` direkt ab.
  *
  * Schlüssel: ausschließlich GEMINI_API_KEY.
  */
 
 
-/** Aktuelle GA-Modelle (ADR-028). Die 2.5-Flash-Reihe wurde am 9. Juli 2026
- *  abgeschaltet — Wochen VOR dem angekündigten Termin (16.10.2026). */
-const GEMINI_DEFAULT_CHAT_MODEL = 'gemini-3.5-flash';
-const GEMINI_DEFAULT_FAST_MODEL = 'gemini-3.1-flash-lite';
-
-/** Rolling Alias, zeigt immer auf das aktuelle Flash-Modell und kann daher
- *  nicht abgeschaltet werden. NUR Notfall-Fallback bei 404: ein Alias
- *  wechselt still das Modell und würde Ton und Eval-Ergebnisse unbemerkt
- *  verschieben. */
-const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
-
-/** Nachweislich abgeschaltete Modelle. Erspart den 404-Roundtrip, falls sie
- *  noch in Env-Variablen oder `agents.model` stehen. Künftige Fälle fängt
- *  der generische 404-Fallback in geminiChat() ab. */
-const GEMINI_RETIRED = new Set([
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-]);
-
-const GEMINI_TIMEOUT_MS = 60_000;
 const GEMINI_EMBED_TIMEOUT_MS = 30_000;
 const GEMINI_MAX_RETRIES = 2;
 
@@ -86,69 +69,6 @@ const EMBED_MAX_CHARS = 4000;
  */
 export type EmbedTask = 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY';
 
-/**
- * Thinking-Steuerung ist GENERATIONSABHÄNGIG — die Hauptfalle beim Wechsel:
- *
- *   Gemini 3.x : `thinkingLevel` (Enum). `thinkingBudget` wird nur aus
- *                Kompatibilität akzeptiert und kann das Verhalten
- *                verzerren. BEIDE gleichzeitig = API-Fehler.
- *   Gemini 2.5 : `thinkingBudget` (Tokenzahl). `thinkingLevel` erzeugt
- *                hier einen Fehler.
- *
- * Zusätzlich: Gemini 3 Flash und Flash-Lite können Thinking NICHT
- * vollständig abschalten. `effort: 'none'` heißt dort 'minimal', nicht aus.
- */
-function usesThinkingLevel(model: string): boolean {
-  // Bewusst als Ausschlussliste, nicht als Einschlussliste: nur die
-  // 1.x/2.x-Reihe kennt `thinkingBudget`. Alles andere — 3.x, die
-  // `-latest`-Aliasse und kuenftige Generationen — bekommt
-  // `thinkingLevel`. Eine Einschlussliste auf /^gemini-3/ haette
-  // `gemini-flash-latest` (zeigt auf 3.5 Flash) falsch einsortiert und
-  // waere bei Gemini 4 wieder falsch.
-  return !/^gemini-(1|2)[.-]/i.test(model);
-}
-
-const GEMINI_THINKING_LEVEL: Record<GeminiEffort, string> = {
-  none: 'minimal', // echtes Off existiert bei 3 Flash nicht
-  minimal: 'minimal',
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-};
-
-/** Legacy-Pfad für die 2.5-Reihe. */
-const GEMINI_THINKING_BUDGET: Record<GeminiEffort, number> = {
-  none: 0,
-  minimal: 0,
-  low: 1024,
-  medium: 4096,
-  high: 8192,
-};
-
-/**
- * Aufschlag auf `maxOutputTokens` bei Gemini 3.
- *
- * `thinkingLevel` nennt keine Tokenzahl, die Thinking-Token zählen aber
- * weiterhin gegen `maxOutputTokens`. Ohne Reserve bekommt der Router mit
- * 16 Token Budget garantiert eine LEERE Antwort mit
- * `finishReason: MAX_TOKENS`. Anders als bei 2.5 lässt sich das nicht
- * durch Abschalten umgehen.
- */
-const GEMINI_THINKING_RESERVE: Record<GeminiEffort, number> = {
-  none: 1024,
-  minimal: 1024,
-  low: 2048,
-  medium: 4096,
-  high: 8192,
-};
-
-export type GeminiEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high';
-
-export interface GeminiChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 /** Fehler mit maschinenlesbarem Grund: die Aufrufer entscheiden damit, ob
  *  sie degradieren (Retrieval) oder abbrechen (Antwort). */
 export class GeminiError extends Error {
@@ -166,52 +86,6 @@ export class GeminiError extends Error {
     super(message);
     this.name = 'GeminiError';
   }
-}
-
-// ============================================================
-// Modell-Auflösung — ohne Datenbankänderung
-// ============================================================
-
-/**
- * Mappt die in `agents.model` GESPEICHERTEN Werte auf Gemini-Modelle.
- *
- * Kritisch für die Vorgabe "Datenbank nicht ändern": In der Tabelle stehen
- * weiterhin `gpt-5.6` bzw. `gpt-5.6-luna` (und in Alt-Installationen
- * Claude-Namen). Diese Werte werden zur LAUFZEIT übersetzt, statt sie per
- * Migration zu überschreiben. `agents` bleibt damit unangetastet.
- *
- * Reine Funktion ohne Deno.env — testbar.
- */
-export function mapToGeminiModel(
-  model: string,
-  defaults: { chat: string; fast: string }
-): string {
-  const m = (model ?? '').trim().toLowerCase();
-  if (!m) return defaults.chat;
-  // Abgeschaltetes Modell: nach Leistungsklasse auf ein aktuelles umlenken,
-  // statt in den 404 zu laufen.
-  if (GEMINI_RETIRED.has(m)) {
-    return /(lite|flash-8b)/.test(m) ? defaults.fast : defaults.chat;
-  }
-  // Bereits ein aktuelles Gemini-Modell? Unverändert übernehmen.
-  if (m.startsWith('gemini')) return m;
-
-  // Kleine/schnelle Klasse eines Fremdanbieters -> Flash-Lite.
-  if (/(mini|nano|luna|lite|haiku|small)/.test(m)) return defaults.fast;
-  // Alles andere (gpt-*, o1/o3/o4-*, claude-*, unbekannt) -> Flash.
-  return defaults.chat;
-}
-
-function resolveGeminiModel(model: string): string {
-  return mapToGeminiModel(model, {
-    chat: Deno.env.get('GEMINI_MODEL') ?? GEMINI_DEFAULT_CHAT_MODEL,
-    fast: Deno.env.get('GEMINI_FAST_MODEL') ?? GEMINI_DEFAULT_FAST_MODEL,
-  });
-}
-
-/** Modell für billige Hilfs-Calls (Router, Anonymisierung). */
-export function geminiFastModel(): string {
-  return Deno.env.get('GEMINI_FAST_MODEL') ?? GEMINI_DEFAULT_FAST_MODEL;
 }
 
 // ============================================================
@@ -257,28 +131,15 @@ function geminiStatusOf(err: unknown): number | undefined {
 
 const GEMINI_RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 
-/**
- * Erkennt "Modell existiert nicht mehr / kein Zugriff".
- *
- * Anlass: `gemini-2.5-flash` lieferte am 9. Juli 2026 ohne Vorwarnung 404,
- * Wochen vor dem angekündigten Abschalttermin. Ein gepinntes Modell allein
- * ist deshalb kein ausreichender Schutz — es braucht einen Notausgang.
- */
-function isGeminiModelUnavailable(err: unknown): boolean {
-  if (!(err instanceof GeminiError)) return false;
-  if (err.status !== 404 && err.status !== 403 && err.status !== 400) return false;
-  const m = err.message.toLowerCase();
-  return (
-    m.includes('no longer available') ||
-    m.includes('not found') ||
-    m.includes('is not supported') ||
-    m.includes('do not have access') ||
-    m.includes('does not have access')
-  );
-}
-
 /** Free Tier liegt bei wenigen Requests pro Minute — 429 ist hier der
- *  Normalfall, nicht die Ausnahme. Deshalb Backoff statt Sofortabbruch. */
+ *  Normalfall, nicht die Ausnahme. Deshalb Backoff statt Sofortabbruch.
+ *
+ *  WIEDERHERGESTELLT beim Trennen von Chat und Embeddings am 30. Juli
+ *  2026: diese Funktion wurde beim ersten Schnitt versehentlich mit
+ *  entfernt, obwohl geminiEmbedBatch sie braucht. Der anschliessende
+ *  TypeScript-Check hat die Luecke sofort gezeigt (unbekannter Bezeichner
+ *  geminiWithRetry), deshalb wortgetreu aus der Originaldatei
+ *  wiederhergestellt, keine Verhaltensaenderung. */
 async function geminiWithRetry<T>(fn: () => Promise<T>): Promise<T> {
   let last: unknown;
   for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt++) {
@@ -298,159 +159,6 @@ async function geminiWithRetry<T>(fn: () => Promise<T>): Promise<T> {
     `Gemini-Fehler${status ? ` ${status}` : ''}: ${message.slice(0, 400)}`,
     status === 429 ? 'rate_limited' : 'upstream',
     status
-  );
-}
-
-// ============================================================
-// Antwort-Extraktion
-// ============================================================
-
-interface GeminiResponseLike {
-  text?: string;
-  promptFeedback?: { blockReason?: string };
-  candidates?: Array<{
-    finishReason?: string;
-    content?: { parts?: Array<{ text?: string; thought?: boolean }> };
-  }>;
-}
-
-/**
- * Holt den sichtbaren Text heraus. `response.text` allein genügt nicht:
- * bei Safety-Blocks und bei abgeschnittenen Antworten ist es `undefined`,
- * und Thinking-Parts (`thought: true`) dürfen nicht in die Antwort geraten.
- */
-function extractGeminiText(res: GeminiResponseLike): string {
-  if (typeof res.text === 'string' && res.text.trim().length > 0) {
-    return res.text.trim();
-  }
-  const parts = res.candidates?.[0]?.content?.parts ?? [];
-  return parts
-    .filter((p) => p?.thought !== true && typeof p?.text === 'string')
-    .map((p) => p.text as string)
-    .join('')
-    .trim();
-}
-
-// ============================================================
-// Öffentliche API
-// ============================================================
-
-export interface GeminiChatInput {
-  /** Wird als `systemInstruction` übergeben — 1:1 die Rolle, die bei
-   *  OpenAI `instructions` hatte. Prompts bleiben unverändert. */
-  system: string;
-  messages: GeminiChatMessage[];
-  model: string;
-  /** Budget für den SICHTBAREN Text. Thinking wird separat aufgeschlagen. */
-  maxTokens?: number;
-  effort?: GeminiEffort;
-}
-
-/**
- * Erzeugt eine Antwort. Signatur und Rückgabe (ein `string`) sind
- * identisch zu `chatCompletion()` aus `llm.ts`, damit die Aufrufstellen
- * in coach-chat unverändert bleiben können.
- */
-export async function geminiChat(input: GeminiChatInput): Promise<string> {
-  const model = resolveGeminiModel(input.model);
-  const effort = input.effort ?? 'low';
-  const answerTokens = Math.max(16, input.maxTokens ?? 1024);
-
-  // Rollen-Mapping: Gemini kennt 'user' und 'model', nicht 'assistant'.
-  // Leere Inhalte werden verworfen — Gemini lehnt leere Parts ab.
-  const contents: Content[] = input.messages
-    .filter((m) => m && typeof m.content === 'string' && m.content.trim().length > 0)
-    .map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-
-  if (contents.length === 0) {
-    throw new GeminiError('Keine Nachricht zum Senden.', 'empty_response');
-  }
-
-  const buildConfig = (m: string) => {
-    // Genau EINE der beiden Thinking-Optionen setzen: zusammen sind sie
-    // ein API-Fehler, und die falsche Generation lehnt die andere ab.
-    const gen3 = usesThinkingLevel(m);
-    const reserve = gen3
-      ? GEMINI_THINKING_RESERVE[effort]
-      : GEMINI_THINKING_BUDGET[effort];
-    return {
-      systemInstruction: input.system,
-      maxOutputTokens: answerTokens + reserve,
-      thinkingConfig: gen3
-        ? { thinkingLevel: GEMINI_THINKING_LEVEL[effort] }
-        : { thinkingBudget: GEMINI_THINKING_BUDGET[effort] },
-      // Die Standardschwelle blockiert im Vertriebskontext gelegentlich
-      // harmlose Formulierungen (Einwandbehandlung, Geld, Gesundheit).
-      // BLOCK_ONLY_HIGH ist die lockerste Stufe, die ohne Sonderfreigabe
-      // universell akzeptiert wird.
-      safetySettings: [
-        'HARM_CATEGORY_HARASSMENT',
-        'HARM_CATEGORY_HATE_SPEECH',
-        'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        'HARM_CATEGORY_DANGEROUS_CONTENT',
-      ].map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
-      // temperature/top_p/top_k werden bewusst NICHT gesetzt: Google
-      // empfiehlt für Gemini 3 ausdrücklich die Defaults.
-    };
-  };
-
-  const send = (m: string) =>
-    ai().models.generateContent({ model: m, contents, config: buildConfig(m) });
-
-  // Timeout über Promise.race statt über SDK-Optionen: funktioniert
-  // unabhängig davon, welche httpOptions die SDK-Version unterstützt.
-  const withTimeout = (m: string) =>
-    geminiWithRetry(() =>
-      Promise.race([
-        send(m),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(new GeminiError(`Zeitüberschreitung nach ${GEMINI_TIMEOUT_MS} ms.`, 'timeout')),
-            GEMINI_TIMEOUT_MS
-          )
-        ),
-      ])
-    );
-
-  let res: GeminiResponseLike;
-  try {
-    res = (await withTimeout(model)) as GeminiResponseLike;
-  } catch (e) {
-    // Abgeschaltetes Modell: einmalig auf den Rolling Alias ausweichen,
-    // damit eine Abschaltung den Coach nicht komplett lahmlegt. Laut
-    // protokolliert — ein stiller Modellwechsel wäre schlimmer als der
-    // Ausfall, weil niemand die Qualitätsänderung bemerkt.
-    if (isGeminiModelUnavailable(e) && model !== GEMINI_FALLBACK_MODEL) {
-      console.warn(
-        `Modell "${model}" nicht verfügbar — Fallback auf ${GEMINI_FALLBACK_MODEL}. ` +
-          'GEMINI_MODEL bitte auf ein aktuelles Modell setzen.'
-      );
-      res = (await withTimeout(GEMINI_FALLBACK_MODEL)) as GeminiResponseLike;
-    } else {
-      throw e;
-    }
-  }
-
-  // Prompt komplett abgewiesen (Safety-Filter vor der Generierung).
-  const blocked = res.promptFeedback?.blockReason;
-  if (blocked) {
-    throw new GeminiError(`Anfrage wurde blockiert (${blocked}).`, 'refused');
-  }
-
-  const text = extractGeminiText(res);
-  if (text) return text;
-
-  const finish = res.candidates?.[0]?.finishReason;
-  if (finish === 'SAFETY' || finish === 'PROHIBITED_CONTENT' || finish === 'RECITATION') {
-    throw new GeminiError(`Antwort wurde blockiert (${finish}).`, 'refused');
-  }
-  throw new GeminiError(
-    `Leere Antwort vom Modell (finishReason: ${finish ?? 'unbekannt'}).`,
-    'empty_response'
   );
 }
 

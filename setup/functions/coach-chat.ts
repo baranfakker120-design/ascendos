@@ -5,7 +5,7 @@
 // Quelle: supabase/functions/coach-chat/index.ts
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { GoogleGenAI, type Content } from 'npm:@google/genai@2.13.0';
+import { GoogleGenAI } from 'npm:@google/genai@2.13.0';
 
 // ---- inline: _shared/cors.ts ----
 export const corsHeaders = {
@@ -27,43 +27,26 @@ export function json(body: unknown, status = 200): Response {
 
 // ---- inline: _shared/gemini.ts ----
 /**
- * Gemini-Anbindung: Textgenerierung UND Embeddings (ADR-026/ADR-027).
+ * Gemini-Anbindung: AUSSCHLIESSLICH Embeddings.
  *
- * Einzige Provider-Schicht des Projekts. API-Schlüssel, Endpunkte und
- * Modellnamen-Semantik existieren NUR hier; die Edge Functions kennen
- * davon nichts (ADR-007).
+ * Aenderung vom 30. Juli 2026: Chat-Antworten laufen ab jetzt ueber die
+ * Provider-Abstraktion in _shared/ai-providers/ (Groq -> OpenRouter ->
+ * Cerebras mit automatischem Fallback). Gemini bleibt gezielt fuer
+ * Embeddings bestehen, weil `knowledge_chunks.embedding` fest auf
+ * `vector(1536)` mit `gemini-embedding-001` gebaut ist. Ein Wechsel des
+ * Embedding-Modells wuerde eine andere Dimension bedeuten und damit eine
+ * Neuberechnung des gesamten Wissenskorpus erzwingen — das war
+ * ausdruecklich NICHT Teil dieses Auftrags.
  *
- * Zuständig: Chat-Antworten, Router, Themen-Anonymisierung UND Embeddings.
- * Seit ADR-027 der einzige KI-Anbieter des Projekts; `llm.ts` ist entfallen.
+ * `geminiChat`, `mapToGeminiModel` und `geminiFastModel` sind entfallen.
+ * `GeminiError` und `ai()` bleiben: `geminiWithRetry` wird von den
+ * Embedding-Funktionen mitgenutzt, und `ingest-knowledge.ts` faengt
+ * `GeminiError` direkt ab.
  *
  * Schlüssel: ausschließlich GEMINI_API_KEY.
  */
 
 
-/** Aktuelle GA-Modelle (ADR-028). Die 2.5-Flash-Reihe wurde am 9. Juli 2026
- *  abgeschaltet — Wochen VOR dem angekündigten Termin (16.10.2026). */
-const GEMINI_DEFAULT_CHAT_MODEL = 'gemini-3.5-flash';
-const GEMINI_DEFAULT_FAST_MODEL = 'gemini-3.1-flash-lite';
-
-/** Rolling Alias, zeigt immer auf das aktuelle Flash-Modell und kann daher
- *  nicht abgeschaltet werden. NUR Notfall-Fallback bei 404: ein Alias
- *  wechselt still das Modell und würde Ton und Eval-Ergebnisse unbemerkt
- *  verschieben. */
-const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
-
-/** Nachweislich abgeschaltete Modelle. Erspart den 404-Roundtrip, falls sie
- *  noch in Env-Variablen oder `agents.model` stehen. Künftige Fälle fängt
- *  der generische 404-Fallback in geminiChat() ab. */
-const GEMINI_RETIRED = new Set([
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-]);
-
-const GEMINI_TIMEOUT_MS = 60_000;
 const GEMINI_EMBED_TIMEOUT_MS = 30_000;
 const GEMINI_MAX_RETRIES = 2;
 
@@ -86,69 +69,6 @@ const EMBED_MAX_CHARS = 4000;
  */
 export type EmbedTask = 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY';
 
-/**
- * Thinking-Steuerung ist GENERATIONSABHÄNGIG — die Hauptfalle beim Wechsel:
- *
- *   Gemini 3.x : `thinkingLevel` (Enum). `thinkingBudget` wird nur aus
- *                Kompatibilität akzeptiert und kann das Verhalten
- *                verzerren. BEIDE gleichzeitig = API-Fehler.
- *   Gemini 2.5 : `thinkingBudget` (Tokenzahl). `thinkingLevel` erzeugt
- *                hier einen Fehler.
- *
- * Zusätzlich: Gemini 3 Flash und Flash-Lite können Thinking NICHT
- * vollständig abschalten. `effort: 'none'` heißt dort 'minimal', nicht aus.
- */
-function usesThinkingLevel(model: string): boolean {
-  // Bewusst als Ausschlussliste, nicht als Einschlussliste: nur die
-  // 1.x/2.x-Reihe kennt `thinkingBudget`. Alles andere — 3.x, die
-  // `-latest`-Aliasse und kuenftige Generationen — bekommt
-  // `thinkingLevel`. Eine Einschlussliste auf /^gemini-3/ haette
-  // `gemini-flash-latest` (zeigt auf 3.5 Flash) falsch einsortiert und
-  // waere bei Gemini 4 wieder falsch.
-  return !/^gemini-(1|2)[.-]/i.test(model);
-}
-
-const GEMINI_THINKING_LEVEL: Record<GeminiEffort, string> = {
-  none: 'minimal', // echtes Off existiert bei 3 Flash nicht
-  minimal: 'minimal',
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-};
-
-/** Legacy-Pfad für die 2.5-Reihe. */
-const GEMINI_THINKING_BUDGET: Record<GeminiEffort, number> = {
-  none: 0,
-  minimal: 0,
-  low: 1024,
-  medium: 4096,
-  high: 8192,
-};
-
-/**
- * Aufschlag auf `maxOutputTokens` bei Gemini 3.
- *
- * `thinkingLevel` nennt keine Tokenzahl, die Thinking-Token zählen aber
- * weiterhin gegen `maxOutputTokens`. Ohne Reserve bekommt der Router mit
- * 16 Token Budget garantiert eine LEERE Antwort mit
- * `finishReason: MAX_TOKENS`. Anders als bei 2.5 lässt sich das nicht
- * durch Abschalten umgehen.
- */
-const GEMINI_THINKING_RESERVE: Record<GeminiEffort, number> = {
-  none: 1024,
-  minimal: 1024,
-  low: 2048,
-  medium: 4096,
-  high: 8192,
-};
-
-export type GeminiEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high';
-
-export interface GeminiChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 /** Fehler mit maschinenlesbarem Grund: die Aufrufer entscheiden damit, ob
  *  sie degradieren (Retrieval) oder abbrechen (Antwort). */
 export class GeminiError extends Error {
@@ -166,52 +86,6 @@ export class GeminiError extends Error {
     super(message);
     this.name = 'GeminiError';
   }
-}
-
-// ============================================================
-// Modell-Auflösung — ohne Datenbankänderung
-// ============================================================
-
-/**
- * Mappt die in `agents.model` GESPEICHERTEN Werte auf Gemini-Modelle.
- *
- * Kritisch für die Vorgabe "Datenbank nicht ändern": In der Tabelle stehen
- * weiterhin `gpt-5.6` bzw. `gpt-5.6-luna` (und in Alt-Installationen
- * Claude-Namen). Diese Werte werden zur LAUFZEIT übersetzt, statt sie per
- * Migration zu überschreiben. `agents` bleibt damit unangetastet.
- *
- * Reine Funktion ohne Deno.env — testbar.
- */
-export function mapToGeminiModel(
-  model: string,
-  defaults: { chat: string; fast: string }
-): string {
-  const m = (model ?? '').trim().toLowerCase();
-  if (!m) return defaults.chat;
-  // Abgeschaltetes Modell: nach Leistungsklasse auf ein aktuelles umlenken,
-  // statt in den 404 zu laufen.
-  if (GEMINI_RETIRED.has(m)) {
-    return /(lite|flash-8b)/.test(m) ? defaults.fast : defaults.chat;
-  }
-  // Bereits ein aktuelles Gemini-Modell? Unverändert übernehmen.
-  if (m.startsWith('gemini')) return m;
-
-  // Kleine/schnelle Klasse eines Fremdanbieters -> Flash-Lite.
-  if (/(mini|nano|luna|lite|haiku|small)/.test(m)) return defaults.fast;
-  // Alles andere (gpt-*, o1/o3/o4-*, claude-*, unbekannt) -> Flash.
-  return defaults.chat;
-}
-
-function resolveGeminiModel(model: string): string {
-  return mapToGeminiModel(model, {
-    chat: Deno.env.get('GEMINI_MODEL') ?? GEMINI_DEFAULT_CHAT_MODEL,
-    fast: Deno.env.get('GEMINI_FAST_MODEL') ?? GEMINI_DEFAULT_FAST_MODEL,
-  });
-}
-
-/** Modell für billige Hilfs-Calls (Router, Anonymisierung). */
-export function geminiFastModel(): string {
-  return Deno.env.get('GEMINI_FAST_MODEL') ?? GEMINI_DEFAULT_FAST_MODEL;
 }
 
 // ============================================================
@@ -257,28 +131,15 @@ function geminiStatusOf(err: unknown): number | undefined {
 
 const GEMINI_RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 
-/**
- * Erkennt "Modell existiert nicht mehr / kein Zugriff".
- *
- * Anlass: `gemini-2.5-flash` lieferte am 9. Juli 2026 ohne Vorwarnung 404,
- * Wochen vor dem angekündigten Abschalttermin. Ein gepinntes Modell allein
- * ist deshalb kein ausreichender Schutz — es braucht einen Notausgang.
- */
-function isGeminiModelUnavailable(err: unknown): boolean {
-  if (!(err instanceof GeminiError)) return false;
-  if (err.status !== 404 && err.status !== 403 && err.status !== 400) return false;
-  const m = err.message.toLowerCase();
-  return (
-    m.includes('no longer available') ||
-    m.includes('not found') ||
-    m.includes('is not supported') ||
-    m.includes('do not have access') ||
-    m.includes('does not have access')
-  );
-}
-
 /** Free Tier liegt bei wenigen Requests pro Minute — 429 ist hier der
- *  Normalfall, nicht die Ausnahme. Deshalb Backoff statt Sofortabbruch. */
+ *  Normalfall, nicht die Ausnahme. Deshalb Backoff statt Sofortabbruch.
+ *
+ *  WIEDERHERGESTELLT beim Trennen von Chat und Embeddings am 30. Juli
+ *  2026: diese Funktion wurde beim ersten Schnitt versehentlich mit
+ *  entfernt, obwohl geminiEmbedBatch sie braucht. Der anschliessende
+ *  TypeScript-Check hat die Luecke sofort gezeigt (unbekannter Bezeichner
+ *  geminiWithRetry), deshalb wortgetreu aus der Originaldatei
+ *  wiederhergestellt, keine Verhaltensaenderung. */
 async function geminiWithRetry<T>(fn: () => Promise<T>): Promise<T> {
   let last: unknown;
   for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt++) {
@@ -298,159 +159,6 @@ async function geminiWithRetry<T>(fn: () => Promise<T>): Promise<T> {
     `Gemini-Fehler${status ? ` ${status}` : ''}: ${message.slice(0, 400)}`,
     status === 429 ? 'rate_limited' : 'upstream',
     status
-  );
-}
-
-// ============================================================
-// Antwort-Extraktion
-// ============================================================
-
-interface GeminiResponseLike {
-  text?: string;
-  promptFeedback?: { blockReason?: string };
-  candidates?: Array<{
-    finishReason?: string;
-    content?: { parts?: Array<{ text?: string; thought?: boolean }> };
-  }>;
-}
-
-/**
- * Holt den sichtbaren Text heraus. `response.text` allein genügt nicht:
- * bei Safety-Blocks und bei abgeschnittenen Antworten ist es `undefined`,
- * und Thinking-Parts (`thought: true`) dürfen nicht in die Antwort geraten.
- */
-function extractGeminiText(res: GeminiResponseLike): string {
-  if (typeof res.text === 'string' && res.text.trim().length > 0) {
-    return res.text.trim();
-  }
-  const parts = res.candidates?.[0]?.content?.parts ?? [];
-  return parts
-    .filter((p) => p?.thought !== true && typeof p?.text === 'string')
-    .map((p) => p.text as string)
-    .join('')
-    .trim();
-}
-
-// ============================================================
-// Öffentliche API
-// ============================================================
-
-export interface GeminiChatInput {
-  /** Wird als `systemInstruction` übergeben — 1:1 die Rolle, die bei
-   *  OpenAI `instructions` hatte. Prompts bleiben unverändert. */
-  system: string;
-  messages: GeminiChatMessage[];
-  model: string;
-  /** Budget für den SICHTBAREN Text. Thinking wird separat aufgeschlagen. */
-  maxTokens?: number;
-  effort?: GeminiEffort;
-}
-
-/**
- * Erzeugt eine Antwort. Signatur und Rückgabe (ein `string`) sind
- * identisch zu `chatCompletion()` aus `llm.ts`, damit die Aufrufstellen
- * in coach-chat unverändert bleiben können.
- */
-export async function geminiChat(input: GeminiChatInput): Promise<string> {
-  const model = resolveGeminiModel(input.model);
-  const effort = input.effort ?? 'low';
-  const answerTokens = Math.max(16, input.maxTokens ?? 1024);
-
-  // Rollen-Mapping: Gemini kennt 'user' und 'model', nicht 'assistant'.
-  // Leere Inhalte werden verworfen — Gemini lehnt leere Parts ab.
-  const contents: Content[] = input.messages
-    .filter((m) => m && typeof m.content === 'string' && m.content.trim().length > 0)
-    .map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-
-  if (contents.length === 0) {
-    throw new GeminiError('Keine Nachricht zum Senden.', 'empty_response');
-  }
-
-  const buildConfig = (m: string) => {
-    // Genau EINE der beiden Thinking-Optionen setzen: zusammen sind sie
-    // ein API-Fehler, und die falsche Generation lehnt die andere ab.
-    const gen3 = usesThinkingLevel(m);
-    const reserve = gen3
-      ? GEMINI_THINKING_RESERVE[effort]
-      : GEMINI_THINKING_BUDGET[effort];
-    return {
-      systemInstruction: input.system,
-      maxOutputTokens: answerTokens + reserve,
-      thinkingConfig: gen3
-        ? { thinkingLevel: GEMINI_THINKING_LEVEL[effort] }
-        : { thinkingBudget: GEMINI_THINKING_BUDGET[effort] },
-      // Die Standardschwelle blockiert im Vertriebskontext gelegentlich
-      // harmlose Formulierungen (Einwandbehandlung, Geld, Gesundheit).
-      // BLOCK_ONLY_HIGH ist die lockerste Stufe, die ohne Sonderfreigabe
-      // universell akzeptiert wird.
-      safetySettings: [
-        'HARM_CATEGORY_HARASSMENT',
-        'HARM_CATEGORY_HATE_SPEECH',
-        'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        'HARM_CATEGORY_DANGEROUS_CONTENT',
-      ].map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
-      // temperature/top_p/top_k werden bewusst NICHT gesetzt: Google
-      // empfiehlt für Gemini 3 ausdrücklich die Defaults.
-    };
-  };
-
-  const send = (m: string) =>
-    ai().models.generateContent({ model: m, contents, config: buildConfig(m) });
-
-  // Timeout über Promise.race statt über SDK-Optionen: funktioniert
-  // unabhängig davon, welche httpOptions die SDK-Version unterstützt.
-  const withTimeout = (m: string) =>
-    geminiWithRetry(() =>
-      Promise.race([
-        send(m),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(new GeminiError(`Zeitüberschreitung nach ${GEMINI_TIMEOUT_MS} ms.`, 'timeout')),
-            GEMINI_TIMEOUT_MS
-          )
-        ),
-      ])
-    );
-
-  let res: GeminiResponseLike;
-  try {
-    res = (await withTimeout(model)) as GeminiResponseLike;
-  } catch (e) {
-    // Abgeschaltetes Modell: einmalig auf den Rolling Alias ausweichen,
-    // damit eine Abschaltung den Coach nicht komplett lahmlegt. Laut
-    // protokolliert — ein stiller Modellwechsel wäre schlimmer als der
-    // Ausfall, weil niemand die Qualitätsänderung bemerkt.
-    if (isGeminiModelUnavailable(e) && model !== GEMINI_FALLBACK_MODEL) {
-      console.warn(
-        `Modell "${model}" nicht verfügbar — Fallback auf ${GEMINI_FALLBACK_MODEL}. ` +
-          'GEMINI_MODEL bitte auf ein aktuelles Modell setzen.'
-      );
-      res = (await withTimeout(GEMINI_FALLBACK_MODEL)) as GeminiResponseLike;
-    } else {
-      throw e;
-    }
-  }
-
-  // Prompt komplett abgewiesen (Safety-Filter vor der Generierung).
-  const blocked = res.promptFeedback?.blockReason;
-  if (blocked) {
-    throw new GeminiError(`Anfrage wurde blockiert (${blocked}).`, 'refused');
-  }
-
-  const text = extractGeminiText(res);
-  if (text) return text;
-
-  const finish = res.candidates?.[0]?.finishReason;
-  if (finish === 'SAFETY' || finish === 'PROHIBITED_CONTENT' || finish === 'RECITATION') {
-    throw new GeminiError(`Antwort wurde blockiert (${finish}).`, 'refused');
-  }
-  throw new GeminiError(
-    `Leere Antwort vom Modell (finishReason: ${finish ?? 'unbekannt'}).`,
-    'empty_response'
   );
 }
 
@@ -605,6 +313,464 @@ Antworte NUR mit einem dieser Wörter: recruiting | sales | knowledge
 Im Zweifel: knowledge.
 `.trim();
 
+// ---- inline: _shared/ai-providers/types.ts ----
+/**
+ * Gemeinsame Schnittstelle aller Chat-Anbieter.
+ *
+ * Diese Datei ist bewusst der einzige Ort, an dem sich alles ändert,
+ * wenn ein neuer Anbieter hinzukommt (Gemini Tier 1, OpenAI, Anthropic,
+ * Cloudflare). Router und coach-chat kennen nur diese Typen, nie einen
+ * konkreten Anbieter.
+ *
+ * WICHTIGE ABGRENZUNG: Diese Datei betrifft ausschliesslich CHAT.
+ * Embeddings bleiben bei Gemini und sind in _shared/gemini.ts
+ * unveraendert. Der Betreiber hat das am 29. Juli 2026 ausdruecklich so
+ * bestaetigt: eine Aenderung der Embedding-Dimension wuerde RAG
+ * veraendern, was ausserhalb dieses Auftrags liegt.
+ */
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatInput {
+  system: string;
+  messages: ChatMessage[];
+  maxTokens: number;
+}
+
+export interface ChatUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
+export interface ChatResult {
+  text: string;
+  provider: string;
+  model: string;
+  latencyMs: number;
+  usage?: ChatUsage;
+}
+
+/**
+ * Ursachencodes, ausschliesslich fuer PROTOKOLLIERUNG. Sie steuern NICHT,
+ * ob der Router wechselt — das tut jeder Fehler, den ein Adapter wirft,
+ * weil ein Adapter per Konstruktion nur Anbieterfehler wirft. SQL-,
+ * Supabase-, Auth-, RLS- und Geschaeftslogikfehler entstehen an anderer
+ * Stelle in coach-chat und durchlaufen den Router nie. Die Trennung
+ * "wechseln oder nicht" ist damit strukturell gesichert, nicht durch
+ * eine Fallunterscheidung, die vergessen werden koennte.
+ */
+export type ProviderErrorCode =
+  | 'missing_api_key'
+  | 'rate_limited'
+  | 'timeout'
+  | 'upstream'
+  | 'invalid_response';
+
+export class ProviderError extends Error {
+  constructor(
+    readonly code: ProviderErrorCode,
+    readonly provider: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ProviderError';
+  }
+}
+
+export interface ChatProvider {
+  readonly name: string;
+  chat(input: ChatInput): Promise<ChatResult>;
+}
+
+export interface AttemptLog {
+  provider: string;
+  ok: boolean;
+  model?: string;
+  code?: ProviderErrorCode;
+  message?: string;
+  latencyMs: number;
+}
+
+/**
+ * Wird geworfen, wenn JEDER Anbieter in der Kette gescheitert ist.
+ * Traegt die vollstaendige Versuchsliste, damit coach-chat die Meldung
+ * aus dem LETZTEN Versuch ableiten kann — die relevanteste, weil sie am
+ * naechsten an "gerade jetzt" liegt.
+ */
+export class AllProvidersFailedError extends Error {
+  constructor(readonly attempts: AttemptLog[]) {
+    super(`AscendOS: Alle ${attempts.length} Anbieter sind gescheitert.`);
+    this.name = 'AllProvidersFailedError';
+  }
+
+  /** Code des letzten Versuchs, fuer die Wahl der Nutzermeldung. */
+  get lastCode(): ProviderErrorCode {
+    return this.attempts.at(-1)?.code ?? 'upstream';
+  }
+}
+
+// ---- inline: _shared/ai-providers/openai-format.ts ----
+/**
+ * Groq, OpenRouter und Cerebras sprechen alle das OpenAI-kompatible
+ * Format unter /v1/chat/completions. Diese Datei buendelt die Logik,
+ * die sonst dreimal fast identisch entstuende — und die bei einem
+ * kuenftigen Anbieter im selben Format (z.B. Fireworks, SambaNova)
+ * unveraendert wiederverwendbar ist.
+ */
+
+
+export const DEFAULT_TIMEOUT_MS = 20_000;
+
+export function buildOpenAiBody(model: string, input: ChatInput): string {
+  return JSON.stringify({
+    model,
+    messages: [
+      { role: 'system', content: input.system },
+      ...input.messages,
+    ],
+    max_tokens: input.maxTokens,
+    temperature: 0.4,
+  });
+}
+
+/**
+ * Fuehrt den HTTP-Aufruf aus und bildet Netzwerk-, DNS-, Verbindungs-
+ * und Zeitueberschreitungsfehler auf ProviderError ab.
+ *
+ * fetch() wirft Netzwerk-, DNS- und Verbindungsfehler als TypeError,
+ * nicht als HTTP-Status — sie landen deshalb alle im catch-Zweig, nicht
+ * in der Statuspruefung danach.
+ */
+export async function fetchWithTimeout(
+  provider: string,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ProviderError('timeout', provider, `Zeitüberschreitung nach ${timeoutMs}ms.`);
+    }
+    throw new ProviderError(
+      'upstream',
+      provider,
+      `Netzwerk-, DNS- oder Verbindungsfehler: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Bildet einen HTTP-Status auf ProviderError ab. Deckt die vollstaendige
+ * Liste aus dem Auftrag ab: 429, 5xx, "provider nicht erreichbar" (alles
+ * >=500 und nicht 2xx/4xx-Sonderfaelle).
+ */
+export function classifyHttpStatus(provider: string, status: number, statusText: string): ProviderError | null {
+  if (status >= 200 && status < 300) return null;
+  if (status === 429) {
+    return new ProviderError('rate_limited', provider, `Kontingent erschöpft (429 ${statusText}).`);
+  }
+  if (status >= 500) {
+    return new ProviderError('upstream', provider, `Serverfehler (${status} ${statusText}).`);
+  }
+  // 4xx ausserhalb 429: falscher Schluessel, falsches Modell, ungueltige
+  // Anfrage an DIESEN Anbieter. Kein Nutzerfehler, also trotzdem
+  // fallback-faehig — der naechste Anbieter bekommt eine neue Chance.
+  return new ProviderError('upstream', provider, `Unerwarteter Status ${status} ${statusText}.`);
+}
+
+interface OpenAiChatResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+}
+
+export async function parseOpenAiResponse(provider: string, res: Response): Promise<{ text: string; usage?: ChatUsage }> {
+  let json: OpenAiChatResponse;
+  try {
+    json = await res.json();
+  } catch {
+    throw new ProviderError('invalid_response', provider, 'Antwort ist kein gültiges JSON.');
+  }
+
+  const text = json.choices?.[0]?.message?.content?.trim();
+  if (!text) {
+    throw new ProviderError('invalid_response', provider, 'Antwort enthält keinen Text in choices[0].message.content.');
+  }
+
+  const usage: ChatUsage | undefined = json.usage
+    ? { inputTokens: json.usage.prompt_tokens, outputTokens: json.usage.completion_tokens }
+    : undefined;
+
+  return { text, usage };
+}
+
+export function missingKeyError(provider: string, envVar: string): ProviderError {
+  return new ProviderError('missing_api_key', provider, `${envVar} ist nicht gesetzt.`);
+}
+
+/** Fuer Tests: erlaubt, einen beliebigen Code direkt zu erzeugen. */
+export function errorOf(code: ProviderErrorCode, provider: string, message: string): ProviderError {
+  return new ProviderError(code, provider, message);
+}
+
+// ---- inline: _shared/ai-providers/cerebras.ts ----
+/**
+ * Letztes Glied der Kette. Cerebras dient hier auch als Mengenpuffer:
+ * das grosszuegigste Tageskontingent der drei Anbieter (siehe
+ * docs/ki-infrastruktur-analyse.md, Teil 6).
+ *
+ * KORRIGIERT am 30. Juli 2026 gegen Cerebras' eigene Dokumentation
+ * (inference-docs.cerebras.ai/api-reference/chat-completions): dort
+ * lautet das Feld durchgaengig "model": "gpt-oss-120b", OHNE
+ * "openai/"-Praefix. Die erste Fassung dieser Datei uebernahm faelschlich
+ * die Schreibweise von Groq und OpenRouter, wo das Praefix tatsaechlich
+ * verlangt wird. Cerebras ist hier die Ausnahme, nicht die Regel --
+ * genau der Punkt, der beim ersten Entwurf als zu pruefen markiert war.
+ */
+const CEREBRAS_MODEL = 'gpt-oss-120b';
+const CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
+
+export const cerebrasProvider: ChatProvider = {
+  name: 'cerebras',
+
+  async chat(input: ChatInput): Promise<ChatResult> {
+    const apiKey = Deno.env.get('CEREBRAS_API_KEY');
+    if (!apiKey) throw missingKeyError('cerebras', 'CEREBRAS_API_KEY');
+
+    const start = Date.now();
+    const res = await fetchWithTimeout('cerebras', CEREBRAS_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: buildOpenAiBody(CEREBRAS_MODEL, input),
+    });
+
+    const httpError = classifyHttpStatus('cerebras', res.status, res.statusText);
+    if (httpError) throw httpError;
+
+    const { text, usage } = await parseOpenAiResponse('cerebras', res);
+
+    return { text, provider: 'cerebras', model: CEREBRAS_MODEL, latencyMs: Date.now() - start, usage };
+  },
+};
+
+// ---- inline: _shared/ai-providers/groq.ts ----
+/**
+ * openai/gpt-oss-120b, nicht llama-3.3-70b-versatile.
+ *
+ * Groq hat llama-3.3-70b-versatile am 17. Juni 2026 als abgekuendigt
+ * markiert und empfiehlt genau dieses Modell als Ersatz. Es ist
+ * zugleich auf Cerebras verfuegbar, dort allerdings OHNE Praefix
+ * (siehe cerebras.ts) — bewusst dasselbe zugrunde liegende Modell,
+ * damit ein Wechsel zwischen den Anbietern den Charakter der
+ * Antworten nicht veraendert.
+ *
+ * BESTAETIGT am 30. Juli 2026 gegen Groqs eigene Dokumentation
+ * (console.groq.com/docs, mehrere unabhaengige Beispiele: Chat
+ * Completions, Responses API, Reasoning-Leitfaden): das Feld lautet
+ * durchgaengig "model": "openai/gpt-oss-120b", MIT Praefix.
+ */
+const GROQ_MODEL = 'openai/gpt-oss-120b';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+export const groqProvider: ChatProvider = {
+  name: 'groq',
+
+  async chat(input: ChatInput): Promise<ChatResult> {
+    const apiKey = Deno.env.get('GROQ_API_KEY');
+    if (!apiKey) throw missingKeyError('groq', 'GROQ_API_KEY');
+
+    const start = Date.now();
+    const res = await fetchWithTimeout('groq', GROQ_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: buildOpenAiBody(GROQ_MODEL, input),
+    });
+
+    const httpError = classifyHttpStatus('groq', res.status, res.statusText);
+    if (httpError) throw httpError;
+
+    const { text, usage } = await parseOpenAiResponse('groq', res);
+
+    return { text, provider: 'groq', model: GROQ_MODEL, latencyMs: Date.now() - start, usage };
+  },
+};
+
+// ---- inline: _shared/ai-providers/openrouter.ts ----
+/**
+ * Dasselbe Modell wie bei Groq und Cerebras, ueber eine DRITTE,
+ * unabhaengige Infrastruktur. OpenRouter reicht die Anfrage an einen
+ * hinterlegten Unteranbieter durch; welcher das im Einzelfall ist,
+ * entscheidet OpenRouter selbst.
+ *
+ * BESTAETIGT am 30. Juli 2026 gegen OpenRouters eigene Modelldokumentation
+ * und mehrere unabhaengige Quellen: das Feld lautet "openai/gpt-oss-120b"
+ * fuer die BEZAHLTE Variante.
+ *
+ * ENTSCHEIDUNG zur Variante, bewusst getroffen statt offengelassen:
+ * OpenRouter fuehrt "openai/gpt-oss-120b" zusaetzlich als
+ * "openai/gpt-oss-120b:free" mit nur 20 Anfragen/Minute und 200/Tag.
+ * OpenRouter ist hier das MITTLERE Glied der Kette. Bei einem laengeren
+ * Groq-Ausfall waere die kostenlose Variante binnen weniger Dutzend
+ * Anfragen selbst der Engpass, noch bevor Cerebras ueberhaupt gebraucht
+ * wird. Gewaehlt ist deshalb die bezahlte Variante ohne ":free". Das
+ * erfordert Guthaben auf dem OpenRouter-Konto -- ohne Guthaben scheitert
+ * dieser Anbieter mit einem regulaeren Fehler, und die Kette faellt
+ * korrekt auf Cerebras durch.
+ */
+const OPENROUTER_MODEL = 'openai/gpt-oss-120b';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+export const openrouterProvider: ChatProvider = {
+  name: 'openrouter',
+
+  async chat(input: ChatInput): Promise<ChatResult> {
+    const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+    if (!apiKey) throw missingKeyError('openrouter', 'OPENROUTER_API_KEY');
+
+    const start = Date.now();
+    const res = await fetchWithTimeout('openrouter', OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        // Von OpenRouter empfohlen, nicht sicherheitsrelevant: identifiziert
+        // die aufrufende Anwendung in deren eigenen Auswertungen.
+        'HTTP-Referer': 'https://ascendos.app',
+        'X-Title': 'AscendOS Ascent Coach',
+      },
+      body: buildOpenAiBody(OPENROUTER_MODEL, input),
+    });
+
+    const httpError = classifyHttpStatus('openrouter', res.status, res.statusText);
+    if (httpError) throw httpError;
+
+    const { text, usage } = await parseOpenAiResponse('openrouter', res);
+
+    return { text, provider: 'openrouter', model: OPENROUTER_MODEL, latencyMs: Date.now() - start, usage };
+  },
+};
+
+// ---- inline: _shared/ai-providers/router.ts ----
+/**
+ * Durchlaeuft die Anbieterkette in Reihenfolge und gibt das erste
+ * erfolgreiche Ergebnis zurueck. Wirft AllProvidersFailedError, wenn
+ * jeder Anbieter gescheitert ist.
+ *
+ * WARUM DAS DIE VORGABE "SQL-, Auth- und RLS-Fehler loesen NIE einen
+ * Wechsel aus" bereits strukturell erfuellt: providers[i].chat() ruft
+ * ausschliesslich fetch() gegen einen externen Anbieter auf. Es gibt in
+ * diesem Pfad keinen Zugriff auf Supabase, keine Authentifizierung,
+ * keine RLS. Ein Fehler, der hier ankommt, KANN also nur ein
+ * Anbieterfehler sein. Es braucht deshalb keine Fallunterscheidung "ist
+ * das ein Fehler, bei dem gewechselt werden darf" — jeder Fehler, den
+ * diese Funktion sieht, ist per Konstruktion einer.
+ *
+ * Der vollstaendige Gespraechskontext (system, messages) wird bei jedem
+ * Versuch UNVERAENDERT an den naechsten Anbieter weitergereicht. Aus
+ * Sicht des Beraters ist ein Wechsel dadurch nicht bemerkbar, ausser an
+ * der Antwortzeit.
+ */
+export async function chatWithFallback(
+  input: ChatInput,
+  providers: readonly ChatProvider[],
+): Promise<ChatResult> {
+  const attempts: AttemptLog[] = [];
+
+  for (const provider of providers) {
+    const attemptStart = Date.now();
+    try {
+      const result = await provider.chat(input);
+      attempts.push({
+        provider: provider.name,
+        ok: true,
+        model: result.model,
+        latencyMs: Date.now() - attemptStart,
+      });
+      logAttempts(attempts, provider.name);
+      return result;
+    } catch (err) {
+      const providerError =
+        err instanceof ProviderError
+          ? err
+          : new ProviderError('upstream', provider.name, err instanceof Error ? err.message : String(err));
+
+      attempts.push({
+        provider: provider.name,
+        ok: false,
+        code: providerError.code,
+        message: providerError.message,
+        latencyMs: Date.now() - attemptStart,
+      });
+
+      const naechster = providers[providers.indexOf(provider) + 1]?.name;
+      console.error(
+        `ASCENDOS Providerwechsel: ${provider.name} fehlgeschlagen [${providerError.code}] ` +
+          `${providerError.message}${naechster ? ` -> naechster Versuch: ${naechster}` : ' -> keine weiteren Anbieter'}`,
+      );
+      // kein return, kein throw: die Schleife faehrt mit dem naechsten
+      // Anbieter fort. Das IST der Fallback.
+    }
+  }
+
+  logAttempts(attempts, null);
+  throw new AllProvidersFailedError(attempts);
+}
+
+function logAttempts(attempts: AttemptLog[], erfolgreich: string | null): void {
+  // Strukturiert statt Fliesstext, damit es maschinell auswertbar
+  // bleibt, wie ADR-019 es fuer Coach-Metriken bereits vorschreibt.
+  // Enthaelt bewusst keine Gespraechsinhalte, nur Betriebsdaten.
+  console.log(
+    JSON.stringify({
+      metric: 'ai_provider_chain',
+      attempts,
+      successfulProvider: erfolgreich,
+      totalLatencyMs: attempts.reduce((sum, a) => sum + a.latencyMs, 0),
+    }),
+  );
+}
+
+// ---- inline: _shared/ai-providers/index.ts ----
+/**
+ * Oeffentliche Schnittstelle der Chat-Provider-Abstraktion.
+ *
+ * coach-chat kennt ausschliesslich diese Datei. Ein neuer Anbieter
+ * (Gemini Tier 1, OpenAI, Anthropic, Cloudflare) braucht:
+ *   1. eine neue Datei nach dem Muster von groq.ts,
+ *   2. einen Eintrag in CHAT_PROVIDER_CHAIN unten.
+ * Kein Eingriff im Router, kein Eingriff in coach-chat.
+ */
+
+
+
+/**
+ * Reihenfolge verbindlich aus dem Auftrag vom 30. Juli 2026:
+ * Groq vor OpenRouter vor Cerebras.
+ */
+export const CHAT_PROVIDER_CHAIN: readonly ChatProvider[] = [
+  groqProvider,
+  openrouterProvider,
+  cerebrasProvider,
+];
+
+export async function chat(input: ChatInput): Promise<ChatResult> {
+  return chatWithFallback(input, CHAT_PROVIDER_CHAIN);
+}
+
 // ============================================================
 // coach-chat: Der eine Coach mit Spezialisten dahinter (ADR-011).
 // Ablauf: Auth -> Limit -> Kontext laden (unter RLS des Nutzers!)
@@ -613,7 +779,11 @@ Im Zweifel: knowledge.
 // baut der Server selbst (Sprint-4-Prinzip: Kontext-first).
 // ============================================================
 
-// Einziger KI-Anbieter (ADR-027).
+// Embeddings: ausschliesslich Gemini, unveraendert (Betreiberentscheidung
+// vom 29. Juli 2026 -- eine andere Dimension wuerde RAG veraendern).
+// Chat: Provider-Abstraktion vom 30. Juli 2026. Reihenfolge Groq ->
+// OpenRouter -> Cerebras mit automatischem Fallback, siehe die
+// Provider-Abstraktion unter _shared (Ordner ai-providers).
 
 const PHASE_LABELS: Record<string, string> = {
   lead: 'Lead',
@@ -733,7 +903,7 @@ Deno.serve(async (req) => {
     mark('context_ms', tContext);
 
     // ---------- Konversation laden/anlegen ----------
-    let history: GeminiChatMessage[] = [];
+    let history: ChatMessage[] = [];
     let agentKey: string | null = null;
     if (convoId) {
       const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
@@ -742,7 +912,7 @@ Deno.serve(async (req) => {
       const { data: msgs } = await db.from('coach_messages')
         .select('role, content').eq('convo_id', convoId)
         .order('created_at').limit(20);
-      history = (msgs ?? []) as GeminiChatMessage[];
+      history = (msgs ?? []) as ChatMessage[];
     } else {
       const { data: convo, error } = await db.from('coach_convos')
         .insert({ user_id: userId, org_id: profile.org_id, contact_id: contactId })
@@ -759,14 +929,12 @@ Deno.serve(async (req) => {
       let routed = '';
       try {
         routed = (
-          await geminiChat({
+          await chat({
             system: ROUTER_PROMPT,
             messages: [{ role: 'user', content: message }],
-            model: geminiFastModel(),
             maxTokens: 16,
-            effort: 'none',
           })
-        )
+        ).text
           .trim()
           .toLowerCase();
       } catch (e) {
@@ -821,17 +989,15 @@ Deno.serve(async (req) => {
       // Frage wird erst zu einem anonymen Wissensthema generalisiert;
       // schlägt das fehl, wird NICHT geloggt (Privacy vor Metrik).
       try {
-        const topic = (await geminiChat({
+        const topic = (await chat({
           system:
             'Fasse die Nutzerfrage als allgemeines Wissensthema zusammen: max. 12 Wörter, ' +
             'Deutsch, OHNE Namen, Zahlen zu Personen oder persönliche Details. ' +
             'Beispiel: "Wie überzeuge ich Mehmet mit 200€ Schulden?" -> ' +
             '"Einwandbehandlung bei finanziellen Bedenken". Antworte NUR mit dem Thema.',
           messages: [{ role: 'user', content: message.slice(0, 500) }],
-          model: geminiFastModel(),
           maxTokens: 60,
-          effort: 'none',
-        })).trim().slice(0, 200);
+        })).text.trim().slice(0, 200);
         if (topic.length >= 5) {
           await db.from('knowledge_gaps').insert({
             org_id: profile.org_id, user_id: userId, agent_key: agentKey, question: topic,
@@ -855,17 +1021,20 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join('\n\n');
 
     const tLlm = Date.now();
-    const reply = (
-      await geminiChat({
-        system,
-        messages: [...history, { role: 'user', content: message }],
-        // Unveränderter Wert aus der DB ('gpt-5.6'); die Übersetzung auf
-        // ein Gemini-Modell passiert zur Laufzeit in gemini.ts.
-        model: agent.model,
-        maxTokens: 1024,
-        effort: 'low',
-      })
-    ).trim();
+    // agent.model wird hier bewusst NICHT gelesen: das Feld diente der
+    // Uebersetzung auf eine Gemini-Modellklasse (mapToGeminiModel), ein
+    // Konzept, das mit der Provider-Abstraktion entfaellt. Jeder Anbieter
+    // verwendet sein eigenes fest gewaehltes Modell, siehe die Adapter
+    // groq.ts, openrouter.ts und cerebras.ts unter _shared (Ordner
+    // ai-providers). Das Datenbankfeld bleibt unveraendert bestehen,
+    // nur ungenutzt fuer diesen Zweck -- Migration 15 verlangt, die
+    // Datenbank hier nicht anzufassen.
+    const chatResult = await chat({
+      system,
+      messages: [...history, { role: 'user', content: message }],
+      maxTokens: 1024,
+    });
+    const reply = chatResult.text.trim();
     mark('llm_ms', tLlm);
 
     // Nie eine leere Assistant-Nachricht persistieren: sie wuerde bei jedem
@@ -885,19 +1054,85 @@ Deno.serve(async (req) => {
 
     mark('total_ms', t0);
     // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019):
-    console.log(JSON.stringify({ metric: 'coach_chat', agentKey, hadKnowledge, ...timings }));
+    console.log(JSON.stringify({
+      metric: 'coach_chat', agentKey, hadKnowledge,
+      provider: chatResult.provider, providerModel: chatResult.model,
+      ...timings,
+    }));
     return json({ conversationId: convoId, agentKey, reply, timings });
   } catch (e) {
-    // GeminiError traegt den Grund maschinenlesbar — im Log steht damit
-    // sofort, ob es am fehlenden Secret, am Rate-Limit oder am Modell lag.
-    if (e instanceof GeminiError) {
-      console.error(`coach-chat gemini error [${e.code}]`, e.message);
+    // AllProvidersFailedError traegt die vollstaendige Versuchsliste --
+    // im Log steht damit, welcher Anbieter wann aus welchem Grund
+    // gescheitert ist, nicht nur der letzte. Jeder einzelne Versuch wurde
+    // bereits vom Router selbst protokolliert (ai-providers/router.ts);
+    // diese Zeile ordnet den GESAMTAUSFALL dem Coach-Aufruf zu.
+    if (e instanceof AllProvidersFailedError) {
+      console.error(
+        `coach-chat: alle Anbieter gescheitert, letzter Grund [${e.lastCode}]`,
+        JSON.stringify(e.attempts),
+      );
     } else {
       console.error('coach-chat error', e instanceof Error ? e.message : e);
     }
-    return new Response(
-      JSON.stringify({ error: 'Der Coach ist gerade nicht erreichbar. Versuche es gleich noch einmal.' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+
+    // Antwort nach Grund unterscheiden. Vorher ging JEDER Fehler als
+    // HTTP 500 mit demselben Text hinaus, auch ein Kontingentlimit.
+    // Das war doppelt falsch: 500 bedeutet Serverfehler, ein 429 der
+    // Gegenseite ist keiner, und "nicht erreichbar" stimmte nicht.
+    //
+    // Wiederholungen erfolgen bereits in gemini.ts: GEMINI_MAX_RETRIES = 2
+    // mit exponentiellem Backoff fuer 408, 429, 500, 502, 503, 504.
+    // Was hier ankommt, ist also ein Fehler NACH zwei Versuchen.
+    //
+    // Das Frontend liest das Feld `error` aus dem Rumpf (coachApi.ts)
+    // und zeigt es unveraendert an. Der Text ist damit die Meldung,
+    // die der Nutzer liest.
+    // Fuenf Ursachencodes statt vorher sechs: 'refused' und
+    // 'empty_response' waren Gemini-spezifische Sicherheitskonzepte
+    // (Prompt- bzw. Antwortblockade), die es bei den drei neuen Anbietern
+    // in dieser Form nicht gibt. Beide Faelle laufen jetzt unter
+    // 'invalid_response' zusammen, mit einer Meldung, die beide Ursachen
+    // deckt.
+    //
+    // Diese Meldung erscheint nur, wenn ALLE DREI Anbieter gescheitert
+    // sind -- kein einzelner Ausfall mehr, sondern ein gleichzeitiger
+    // Ausfall dreier unabhaengiger Anbieter. Entsprechend seltener als
+    // zuvor, und der Text spiegelt das wider.
+    const fehler: { status: number; text: string; retryAfter?: number } =
+      e instanceof AllProvidersFailedError
+        ? {
+            rate_limited: {
+              status: 429,
+              text: 'Ascent ist gerade stark ausgelastet. Bitte in etwa einer Minute ' +
+                    'noch einmal senden.',
+              retryAfter: 60,
+            },
+            timeout: {
+              status: 504,
+              text: 'Ascent hat zu lange gebraucht. Bitte die Frage noch einmal senden, ' +
+                    'gern etwas kuerzer.',
+            },
+            upstream: {
+              status: 503,
+              text: 'Ascent ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.',
+            },
+            invalid_response: {
+              status: 502,
+              text: 'Ascent konnte keine Antwort erzeugen. Bitte noch einmal senden.',
+            },
+            missing_api_key: {
+              status: 500,
+              text: 'Ascent ist nicht vollstaendig konfiguriert. Bitte den Betreiber informieren.',
+            },
+          }[e.lastCode]
+        : { status: 500, text: 'Der Coach ist gerade nicht erreichbar. Versuche es gleich noch einmal.' };
+
+    const kopf: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+    if (fehler.retryAfter) kopf['Retry-After'] = String(fehler.retryAfter);
+
+    return new Response(JSON.stringify({ error: fehler.text }), {
+      status: fehler.status,
+      headers: kopf,
+    });
   }
 });

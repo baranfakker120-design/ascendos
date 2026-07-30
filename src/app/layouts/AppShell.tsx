@@ -1,9 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
-const TABS = [
+// Nur der Ascent-Eintrag bekommt ein `image`-Feld statt eines Emoji-Zeichens
+// (Branding-Auftrag vom 30. Juli 2026, Punkt 3). Die uebrigen drei Tabs
+// sind unveraendert: das ist ein bekannter, aber ausserhalb des
+// Auftragsumfangs liegender Bestandsverstoss gegen F4 (nur Lucide-Symbole,
+// keine Emoji) und wird hier bewusst NICHT mit angefasst.
+const TABS: Array<{ to: string; label: string; icon?: string; image?: string }> = [
   { to: '/', label: 'Heute', icon: '☀️' },
   { to: '/kontakte', label: 'Kontakte', icon: '👥' },
-  { to: '/coach', label: 'Ascent', icon: '⌃' },
+  { to: '/coach', label: 'Ascent', image: '/brand/ascendos-symbol-mono-v2.png' },
   { to: '/mehr', label: 'Mehr', icon: '⋯' },
 ];
 
@@ -30,9 +35,13 @@ export function AppShell() {
                 }`
               }
             >
-              <span aria-hidden className="text-lg leading-none">
-                {tab.icon}
-              </span>
+              {tab.image ? (
+                <img src={tab.image} alt="" aria-hidden className="h-6 w-auto" />
+              ) : (
+                <span aria-hidden className="text-lg leading-none">
+                  {tab.icon}
+                </span>
+              )}
               {tab.label}
             </NavLink>
           ))}

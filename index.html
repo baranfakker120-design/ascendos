@@ -2,10 +2,28 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/icons/icon-192.png" />
+    <!-- Favicon: mehrere Aufloesungen in einer Datei, dunkler Traeger
+         mit dem Symbol (F4: Symbol steht immer auf dunklem Grund). -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32-v2.png" />
+    <!-- iOS fuellt transparente Flaechen sonst selbst auf -- dieses
+         Icon ist deshalb bewusst OPAK mit demselben dunklen Traeger. -->
+    <link rel="apple-touch-icon" href="/icons/icon-180-v2.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0F1012" />
     <title>AscendOS</title>
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:title" content="AscendOS" />
+    <meta property="og:description" content="Build a better tomorrow." />
+    <meta property="og:image" content="/brand/og-image-v2.png" />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter/X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AscendOS" />
+    <meta name="twitter:description" content="Build a better tomorrow." />
+    <meta name="twitter:image" content="/brand/og-image-v2.png" />
   </head>
   <body>
     <div id="root"></div>

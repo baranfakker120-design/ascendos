@@ -2741,6 +2741,1303 @@ create policy user_progress_select_own_or_sponsor
     )
   );
 
+-- ############ 20260802000015_identity_and_membership.sql ############
+-- ============================================================
+-- Migration 15, Sprint 2a: Identitaet und Mitgliedschaft trennen
+--
+-- Grundlage: F2 Teil 1, freigegeben am 25. Juli 2026.
+-- Freigabe der Reihenfolge durch den Betreiber am 29. Juli 2026.
+--
+-- ZIEL
+-- Eine Person kann mehreren Organisationen angehoeren. Rollen,
+-- Berechtigungen, Team und Genealogie haengen an der MITGLIEDSCHAFT,
+-- nicht an der Identitaet.
+--
+-- WARUM DAS BEZAHLBAR IST, erhoben am 29. Juli 2026:
+--   - Nur DREI Policies lesen `profiles` direkt:
+--       knowledge_docs_select_approved, journeys_select_member,
+--       user_progress_select_own_or_sponsor
+--   - Alle uebrigen 28 gehen ueber current_org_id(), current_user_role()
+--     oder is_super_admin(). Diese drei Funktionen sind je ein Einzeiler.
+--     Sie umzuschreiben lenkt alle Policies um, ohne eine anzufassen.
+--   - profiles_username_key ist bereits UNIQUE. F2 FD-3 erfuellt.
+--
+-- WAS DIESE MIGRATION NICHT TUT, bewusst:
+--   - Sie benennt `profiles` nicht um. Die Tabelle ist ab jetzt die
+--     IDENTITAET. 13 Fremdschluessel zeigen darauf; ein Umbenennen
+--     waere reine Churn ohne fachlichen Gewinn.
+--   - Sie zeigt die operativen Fremdschluessel NICHT auf memberships um.
+--     Begruendung in Abschnitt 0. Das ist Sprint 2b und braucht eine
+--     Entscheidung des Betreibers.
+-- ============================================================
+
+
+-- ============================================================
+-- 0. Entwurfsentscheidung, die dem Betreiber vorzulegen ist
+--
+-- Alle operativen Tabellen tragen BEREITS `user_id` UND `org_id`:
+--   contacts(owner_id, org_id), coach_convos(user_id, org_id),
+--   daily_plans(user_id, org_id), pipeline_events(created_by, org_id),
+--   usage_events(user_id, org_id), knowledge_gaps(user_id, org_id)
+--
+-- Und die Policies pruefen bereits beides, Beispiel contacts_owner_all:
+--   owner_id = auth.uid() AND org_id = current_org_id()
+--
+-- Das Paar (Person, Organisation) IST die Mitgliedschaft, adressiert
+-- ueber den natuerlichen Schluessel statt ueber eine Ersatzkennung.
+-- Fachlich erfuellt das F2 Teil 1.2 bereits: die Daten sind
+-- organisationsbezogen.
+--
+-- Zwei Wege ab hier:
+--
+--   Weg 1, dieser: Operative Tabellen bleiben bei (user_id, org_id).
+--     Die Mitgliedschaft ergaenzt das, was heute auf profiles liegt und
+--     dort falsch liegt: Rolle, Team, Sponsor, Status, Land, Ziele.
+--     Risiko gering, kein Datenumzug in 13 Tabellen.
+--
+--   Weg 2: 13 Fremdschluessel auf memberships(id) umlenken.
+--     Referenzielle Strenge hoeher, Aufwand und Risiko deutlich hoeher.
+--     Ein zusammengesetzter Fremdschluessel auf (identity_id, org_id)
+--     ist NICHT moeglich, weil F2 FD-2 mehrere Mitgliedschaften je
+--     Person und Organisation ueber die Zeit erlaubt und die
+--     Eindeutigkeit deshalb nur partiell sein kann.
+--
+-- Diese Migration geht Weg 1 und laesst Weg 2 offen. Der Preis von
+-- Weg 1 ist benannt: Es gibt keine Durchsetzung auf Datenbankebene,
+-- dass der Eigentuemer eines Kontakts Mitglied der Organisation ist.
+-- Durchgesetzt wird es in den Policies.
+-- ============================================================
+
+
+-- ============================================================
+-- 1. Mitgliedschaft
+-- ============================================================
+
+create table if not exists public.memberships (
+  id                    uuid primary key default gen_random_uuid(),
+
+  -- KEIN kaskadierendes Loeschen. F2 Aenderung Ae6, verbindlich:
+  -- Das Loeschen einer Identitaet darf keine Geschaeftsunterlagen
+  -- mitreissen, die aufbewahrungspflichtig sind. Eine Identitaet wird
+  -- anonymisiert, nicht entfernt.
+  identity_id           uuid not null references public.profiles(id)      on delete restrict,
+  org_id                uuid not null references public.organizations(id) on delete restrict,
+  team_id               uuid not null references public.teams(id)         on delete restrict,
+
+  -- Sponsor verweist auf eine MITGLIEDSCHAFT, nicht auf eine Identitaet.
+  -- F2 Teil 1.5: Eine Person kann in Organisation A von X und in
+  -- Organisation B von Y gesponsert sein.
+  sponsor_membership_id uuid references public.memberships(id) on delete set null,
+
+  -- 'leden' bewusst nicht: F2 Teil 2.6 fuehrt 'leader' als UEBERHOLT
+  -- weiter, damit kein Bestandswert bricht. Neu vergeben wird er nicht.
+  role                  text not null default 'berater'
+                          check (role in ('super_admin','admin','berater','leader')),
+
+  -- F2 Teil 1.4. 'suspended' ist bewusst von 'ended' getrennt: eine
+  -- Sperre darf nicht als Ausscheiden gelten, weil das Genealogie und
+  -- Provision veraendern wuerde.
+  status                text not null default 'active'
+                          check (status in ('pending','active','suspended','ended')),
+
+  -- Rechtsraum an der Mitgliedschaft, nicht an der Identitaet.
+  -- F3 Teil 8.1: Sprache folgt der Person, Zulaessigkeit folgt der
+  -- Organisation und ihrem Markt.
+  country               text,
+
+  -- Ziele sind organisationsbezogene Vorgaben, nicht persoenliche
+  -- Voreinstellungen. Faustregel F2 1.2.
+  goals                 jsonb not null default '{}'::jsonb,
+
+  joined_at             timestamptz not null default now(),
+  left_at               timestamptz,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
+);
+
+-- F2 FD-2: mehrere Mitgliedschaften je Person und Organisation ueber die
+-- Zeit sind erlaubt, damit ein Wiedereintritt die Historie nicht
+-- ueberschreibt. Hoechstens EINE davon ist aktiv.
+create unique index if not exists memberships_one_active_per_org
+  on public.memberships (identity_id, org_id)
+  where status = 'active';
+
+create index if not exists memberships_identity_idx  on public.memberships (identity_id);
+create index if not exists memberships_org_idx       on public.memberships (org_id);
+create index if not exists memberships_sponsor_idx   on public.memberships (sponsor_membership_id);
+create index if not exists memberships_team_idx      on public.memberships (team_id);
+
+comment on table public.memberships is
+  'Zugehoerigkeit einer Identitaet zu einer Organisation. Zentrale Einheit der Autorisierung (F2 Teil 1).';
+
+create trigger memberships_updated_at
+  before update on public.memberships
+  for each row execute function public.set_updated_at();
+
+
+-- ============================================================
+-- 2. Strukturregel: Sponsor nur innerhalb derselben Organisation
+--
+-- F2 Teil 1.5, wortwoertlich: Eine Beziehung ueber
+-- Organisationsgrenzen ist kein Sonderfall, sondern ein Fehler. Sie
+-- wuerde die Deckelung pro Linie und damit den Verguetungsplan
+-- unberechenbar machen.
+--
+-- Als CHECK nicht abbildbar, weil zeilenuebergreifend. Daher Trigger.
+-- ============================================================
+
+create or replace function public.memberships_check_sponsor()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_sponsor_org uuid;
+begin
+  if new.sponsor_membership_id is null then
+    return new;
+  end if;
+
+  if new.sponsor_membership_id = new.id then
+    raise exception 'AscendOS: Eine Mitgliedschaft kann nicht ihr eigener Sponsor sein.';
+  end if;
+
+  select org_id into v_sponsor_org
+  from public.memberships where id = new.sponsor_membership_id;
+
+  if v_sponsor_org is distinct from new.org_id then
+    raise exception 'AscendOS: Sponsor und Mitglied muessen zur selben Organisation gehoeren.';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger memberships_sponsor_same_org
+  before insert or update of sponsor_membership_id, org_id on public.memberships
+  for each row execute function public.memberships_check_sponsor();
+
+
+-- ============================================================
+-- 3. Datenumzug der bestehenden Profile
+--
+-- Zwei Durchlaeufe, weil der Sponsor auf eine Mitgliedschaft zeigt,
+-- die im ersten Durchlauf noch nicht existiert.
+-- Idempotent ueber `on conflict do nothing` und das partielle Unique.
+-- ============================================================
+
+insert into public.memberships
+  (identity_id, org_id, team_id, role, status, country, goals, joined_at, created_at)
+select p.id, p.org_id, p.team_id, p.role, 'active', p.country, p.goals, p.created_at, p.created_at
+from public.profiles p
+where not exists (
+  select 1 from public.memberships m
+  where m.identity_id = p.id and m.org_id = p.org_id and m.status = 'active'
+);
+
+-- Zweiter Durchlauf: Genealogie von Profil- auf Mitgliedschaftsebene.
+update public.memberships m
+set sponsor_membership_id = sp.id
+from public.profiles p
+join public.memberships sp
+  on sp.identity_id = p.sponsor_id
+ and sp.org_id      = p.org_id
+ and sp.status      = 'active'
+where m.identity_id = p.id
+  and m.org_id      = p.org_id
+  and m.status      = 'active'
+  and p.sponsor_id is not null
+  and m.sponsor_membership_id is null;
+
+
+-- ============================================================
+-- 4. Die aktive Organisation
+--
+-- F2 Teil 1.3. Kernunterscheidung: Die aktive Organisation ist ein
+-- SELEKTOR, keine Berechtigung. Sie sagt, WELCHE Mitgliedschaft
+-- betrachtet wird, nicht OB sie zusteht. Die Gueltigkeit wird immer
+-- serverseitig gegen die aktiven Mitgliedschaften geprueft.
+--
+-- Deshalb darf der Selektor vom Client kommen: der Client waehlt eine
+-- Sichtweise, der Server entscheidet, ob sie ihm zusteht.
+--
+-- Auflösungsregel, vier Faelle in dieser Reihenfolge:
+--   1. Selektor gesetzt und zeigt auf eine aktive Mitgliedschaft -> gilt
+--   2. Selektor gesetzt, zeigt aber nicht darauf              -> ABWEISEN
+--   3. Kein Selektor, genau eine aktive Mitgliedschaft        -> gilt
+--   4. Kein Selektor, mehrere aktive Mitgliedschaften         -> ABWEISEN
+--
+-- Fall 4 ist die wichtigste Regel: bei Mehrdeutigkeit wird ABGEWIESEN,
+-- nie geraten. Ein System, das "die erste" nimmt, erzeugt einen
+-- mandantenuebergreifenden Zugriff, der nur bei bestimmten Sortierungen
+-- auftritt und kaum reproduzierbar ist.
+--
+-- Abweisen heisst NULL. Jede Policy prueft `org_id = current_org_id()`,
+-- und ein Vergleich mit NULL ist nicht wahr. Damit faellt das System
+-- geschlossen aus.
+--
+-- Fall 3 stellt sicher, dass der heutige Zustand unveraendert laeuft:
+-- alle bestehenden Nutzer haben genau eine Mitgliedschaft.
+-- ============================================================
+
+create or replace function public.active_membership_id()
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid      uuid := auth.uid();
+  v_selektor uuid;
+  v_treffer  uuid;
+  v_anzahl   int;
+begin
+  if v_uid is null then
+    return null;
+  end if;
+
+  -- Selektor aus dem Anfragekopf. Fehlt er oder ist er unlesbar,
+  -- bleibt er NULL und Fall 3 oder 4 greift.
+  begin
+    v_selektor := nullif(
+      (current_setting('request.headers', true)::json ->> 'x-ascendos-org'), ''
+    )::uuid;
+  exception when others then
+    v_selektor := null;
+  end;
+
+  if v_selektor is not null then
+    -- Fall 1 und 2
+    select m.id into v_treffer
+    from public.memberships m
+    where m.identity_id = v_uid
+      and m.org_id      = v_selektor
+      and m.status      = 'active';
+    return v_treffer;   -- NULL bedeutet abgewiesen, Fall 2
+  end if;
+
+  -- Fall 3 und 4
+  select count(*) into v_anzahl
+  from public.memberships m
+  where m.identity_id = v_uid and m.status = 'active';
+
+  if v_anzahl <> 1 then
+    return null;        -- Fall 4: mehrdeutig, oder gar keine
+  end if;
+
+  select m.id into v_treffer
+  from public.memberships m
+  where m.identity_id = v_uid and m.status = 'active';
+  return v_treffer;
+end;
+$$;
+
+comment on function public.active_membership_id() is
+  'Validierte aktive Mitgliedschaft. Selektor aus dem Kopf x-ascendos-org, serverseitig geprueft. Bei Mehrdeutigkeit NULL (F2 Teil 1.3).';
+
+
+-- ============================================================
+-- 5. Die drei Helferfunktionen umschreiben
+--
+-- NAMEN BLEIBEN. Das ist der Grund, warum diese Migration bezahlbar
+-- ist: 28 der 31 Policies rufen diese Funktionen auf und bleiben
+-- dadurch unveraendert gueltig. Nur ihre Bedeutung wechselt von
+-- "Angabe am Profil" auf "Angabe der aktiven Mitgliedschaft".
+-- ============================================================
+
+create or replace function public.current_org_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.org_id from public.memberships m
+  where m.id = public.active_membership_id();
+$$;
+
+create or replace function public.current_user_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.role from public.memberships m
+  where m.id = public.active_membership_id();
+$$;
+
+create or replace function public.is_super_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select m.role = 'super_admin' from public.memberships m
+     where m.id = public.active_membership_id()),
+    false
+  );
+$$;
+
+-- Neu, fuer Policies, die die Mitgliedschaft selbst brauchen.
+create or replace function public.current_team_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.team_id from public.memberships m
+  where m.id = public.active_membership_id();
+$$;
+
+
+-- ============================================================
+-- 6. Genealogie auf Mitgliedschaften
+--
+-- Ersetzt die Fassungen aus Migration 12. Logik unveraendert,
+-- einschliesslich der CYCLE-Klausel und der Berechtigungspruefung.
+-- Geaendert ist nur die Grundlage: memberships statt profiles.
+--
+-- Die Signaturen bleiben (uuid), damit kein Aufrufer bricht. Uebergeben
+-- wird weiterhin eine IDENTITAETSkennung, aufgeloest wird sie innerhalb
+-- der aktiven Organisation. Damit bleibt check_achievements
+-- unveraendert funktionsfaehig.
+-- ============================================================
+
+create or replace function public.is_ancestor_of(p_target uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with recursive ziel as (
+    select m.id, m.org_id
+    from public.memberships m
+    where m.identity_id = p_target
+      and m.status = 'active'
+      and m.org_id = public.current_org_id()
+  ),
+  upline as (
+    select m.sponsor_membership_id as anc_id, m.org_id
+    from public.memberships m
+    join ziel z on z.id = m.id
+    where m.sponsor_membership_id is not null
+    union all
+    select m.sponsor_membership_id, m.org_id
+    from public.memberships m
+    join upline u on m.id = u.anc_id
+    where m.sponsor_membership_id is not null
+      and m.org_id = u.org_id
+  ) cycle anc_id set is_cycle using cycle_path
+  select count(*) > 0
+  from upline u
+  where not u.is_cycle
+    and u.anc_id = public.active_membership_id();
+$$;
+
+create or replace function public.get_downline(root_user_id uuid)
+returns table (user_id uuid, depth int)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_root_membership uuid;
+  v_root_org        uuid;
+begin
+  if auth.uid() is null then
+    return;
+  end if;
+
+  -- Wurzel innerhalb der aktiven Organisation aufloesen.
+  select m.id, m.org_id into v_root_membership, v_root_org
+  from public.memberships m
+  where m.identity_id = root_user_id
+    and m.status = 'active'
+    and m.org_id = public.current_org_id();
+
+  if v_root_membership is null then
+    return;   -- nicht vorhanden oder fremde Organisation
+  end if;
+
+  -- Berechtigung ZUERST, damit die Rekursion bei fehlendem Zugriff
+  -- gar nicht laeuft. Leere Menge statt Ausnahme: eine Ausnahme wuerde
+  -- bestaetigen, dass die Kennung existiert.
+  if not (
+    root_user_id = auth.uid()
+    or public.is_ancestor_of(root_user_id)
+    or (public.is_super_admin() and v_root_org = public.current_org_id())
+  ) then
+    return;
+  end if;
+
+  return query
+    with recursive downline as (
+      select m.id as mid, m.identity_id as uid, 1 as lvl
+      from public.memberships m
+      where m.sponsor_membership_id = v_root_membership
+        and m.org_id = v_root_org
+        and m.status = 'active'
+      union all
+      select m.id, m.identity_id, d.lvl + 1
+      from public.memberships m
+      join downline d on m.sponsor_membership_id = d.mid
+      where m.org_id = v_root_org
+        and m.status = 'active'
+    ) cycle mid set is_cycle using cycle_path
+    select d.uid, d.lvl from downline d where not d.is_cycle;
+end;
+$$;
+
+
+-- ============================================================
+-- 7. Schutz der Mitgliedschaftsfelder
+--
+-- protect_profile_columns schuetzte role, org_id, team_id und
+-- sponsor_id auf profiles. Diese Felder liegen jetzt auf memberships.
+-- Der bestehende Trigger bleibt fuer den Uebergang, damit kein
+-- Bestandsverhalten bricht; der neue schuetzt die Mitgliedschaft.
+--
+-- F2 Teil 2.2, Fussnote 16: Identitaetsdaten sind fuer KEINE
+-- Mitgliedschaftsrolle aenderbar. Wer Name oder E-Mail aendern kann,
+-- kann eine Identitaet uebernehmen. profiles bleibt daher auf
+-- Selbstbearbeitung beschraenkt, wie bisher.
+-- ============================================================
+
+create or replace function public.protect_membership_columns()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if public.is_super_admin() then
+    return new;
+  end if;
+
+  if new.role     is distinct from old.role
+     or new.org_id  is distinct from old.org_id
+     or new.team_id is distinct from old.team_id
+     or new.sponsor_membership_id is distinct from old.sponsor_membership_id
+     or new.status  is distinct from old.status
+     or new.identity_id is distinct from old.identity_id then
+    raise exception 'AscendOS: Rolle, Organisation, Team, Sponsor und Status koennen nicht selbst geaendert werden.';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger memberships_protect_columns
+  before update on public.memberships
+  for each row execute function public.protect_membership_columns();
+
+
+-- ============================================================
+-- 8. Zeilenrechte auf memberships
+--
+-- Sichtbarkeit: eigene Mitgliedschaften, die eigene Downline, und
+-- fuer super_admin die gesamte eigene Organisation.
+-- Schreiben: ausschliesslich super_admin. Rollen- und
+-- Rechtevergabe folgt in Sprint 3.
+-- ============================================================
+
+alter table public.memberships enable row level security;
+
+create policy memberships_select_own_or_downline
+  on public.memberships for select
+  using (
+    identity_id = auth.uid()
+    or (
+      org_id = public.current_org_id()
+      and (
+        public.is_super_admin()
+        or public.is_ancestor_of(identity_id)
+      )
+    )
+  );
+
+-- Selbstbearbeitung der EIGENEN Mitgliedschaft.
+--
+-- Notwendig, weil F2 Teil 8.1 verlangt, dass ein Berater seine eigenen
+-- Ziele setzt, und `goals` liegt auf der Mitgliedschaft. Ohne diese
+-- Policy koennte er das nicht.
+--
+-- Die Spalten, die er NICHT aendern darf, schuetzt der Trigger
+-- protect_membership_columns: role, org_id, team_id,
+-- sponsor_membership_id, status und identity_id. Dasselbe Muster wie
+-- bei profiles: die Policy laesst die ZEILE zu, der Trigger schuetzt
+-- die FELDER.
+--
+-- Ohne diese Trennung wuerde ein Selbst-Update von RLS lautlos auf null
+-- Zeilen gefiltert. Der Trigger feuerte nie, und ein Test, der die
+-- Schutzmeldung erwartet, waere rot geworden, ohne dass ein Schutz
+-- verletzt worden waere.
+create policy memberships_update_own
+  on public.memberships for update
+  using      (identity_id = auth.uid())
+  with check (identity_id = auth.uid());
+
+create policy memberships_admin_write
+  on public.memberships for all
+  using (public.is_super_admin() and org_id = public.current_org_id())
+  with check (public.is_super_admin() and org_id = public.current_org_id());
+
+
+-- ============================================================
+-- 9. Ausfuehrungsrechte, Muster aus der Security Baseline
+--
+-- PUBLIC zuerst entziehen, dann selektiv gewaehren. Ein Entzug von
+-- anon allein ist wirkungslos, solange PUBLIC das Recht haelt.
+--
+-- ZWINGEND: current_org_id, current_user_role, is_super_admin und
+-- active_membership_id werden INNERHALB von RLS-Policies aufgerufen.
+-- Eine Policy wird mit den Rechten der abfragenden Rolle ausgewertet.
+-- Ohne EXECUTE fuer anon liefert jede Abfrage dieser Rolle
+-- "permission denied for function" statt eines leeren Ergebnisses.
+-- Diese vier behalten ihr Recht.
+-- ============================================================
+
+grant execute on function public.active_membership_id() to anon, authenticated, service_role;
+grant execute on function public.current_org_id()       to anon, authenticated, service_role;
+grant execute on function public.current_user_role()    to anon, authenticated, service_role;
+grant execute on function public.is_super_admin()       to anon, authenticated, service_role;
+grant execute on function public.current_team_id()      to anon, authenticated, service_role;
+
+revoke execute on function public.is_ancestor_of(uuid) from PUBLIC, anon;
+grant  execute on function public.is_ancestor_of(uuid) to authenticated, service_role;
+
+revoke execute on function public.get_downline(uuid) from PUBLIC, anon;
+grant  execute on function public.get_downline(uuid) to authenticated, service_role;
+
+grant select on public.memberships to authenticated;
+grant all    on public.memberships to service_role;
+
+
+-- ============================================================
+-- 10. Was in Sprint 2b folgt, ausdruecklich noch offen
+--
+--   a) handle_new_user: zwei Wege bei der Einladung. Neue Identitaet
+--      plus Mitgliedschaft, oder NUR Mitgliedschaft, wenn die Person
+--      bereits eine Identitaet hat. F2 Teil 1.7. Ohne diesen Schritt
+--      entstehen Doppelidentitaeten, die nachtraeglich nur unter
+--      Datenverlust zusammenzufuehren sind.
+--   b) create_invite und validate_invite auf Mitgliedschaften.
+--   c) Die drei Policies, die profiles direkt lesen.
+--   d) profiles_public: Mitgliederliste je Organisation, Spalte role
+--      entfaellt (F2 Aenderung Ae2).
+--   e) Entscheidung zu Weg 1 gegen Weg 2 aus Abschnitt 0.
+--   f) Frontend: Kopf x-ascendos-org setzen, sobald mehr als eine
+--      Mitgliedschaft moeglich ist.
+--
+-- Bis dahin laeuft der Bestand unveraendert: jeder Nutzer hat genau
+-- eine aktive Mitgliedschaft, Fall 3 der Aufloesungsregel greift, und
+-- current_org_id() liefert denselben Wert wie zuvor.
+-- ============================================================
+
+-- ############ 20260803000016_registration_and_invites.sql ############
+-- ============================================================
+-- Migration 16, Sprint 2b: Registrierung und Einladungen auf
+-- Mitgliedschaften umstellen
+--
+-- ZWINGENDE AUSLIEFERUNGSREGEL
+--
+-- Migration 15 darf NIEMALS ohne Migration 16 auf Produktion.
+--
+-- Begruendung: handle_new_user schreibt im Bestand ausschliesslich in
+-- `profiles`. Nach Migration 15 entstuende bei einer Neuregistrierung
+-- also KEIN Mitgliedschaftsdatensatz. active_membership_id() waere
+-- NULL, current_org_id() waere NULL, und jede Policy fiele geschlossen
+-- aus. Das Konto waere angelegt und funktionslos.
+--
+-- Bei sechs offenen Einladungen ist das keine theoretische Gefahr.
+-- Beide Migrationen gehen in EINER Auslieferung raus.
+-- ============================================================
+
+
+-- ============================================================
+-- 1. invites.role um 'admin' erweitern
+--
+-- F2 Teil 2 fuehrt die Rolle `admin` ein. Der Bestand erlaubt in
+-- invites.role nur super_admin, leader und berater. Ein Admin waere
+-- damit nicht einladbar.
+--
+-- `leader` bleibt enthalten, weil F2 Teil 2.6 den Wert als UEBERHOLT
+-- weiterfuehrt, damit kein Bestandsdatensatz bricht.
+-- ============================================================
+
+alter table public.invites drop constraint if exists invites_role_check;
+
+alter table public.invites add constraint invites_role_check
+  check (role in ('super_admin','admin','berater','leader'));
+
+
+-- ============================================================
+-- 2. Registrierung: Identitaet UND Mitgliedschaft
+--
+-- F2 Teil 1.7, erster Weg: Die eingeladene Person hat noch keine
+-- Identitaet. Es entsteht eine Identitaet UND eine Mitgliedschaft.
+--
+-- Zur Vorhaltung in `profiles`: org_id, team_id, sponsor_id und role
+-- werden WEITERHIN gefuellt. Sie sind NOT NULL, und Frontend sowie
+-- coach-chat lesen `profiles.*` und verwenden profile.org_id. Diese
+-- Spalten sind ab jetzt eine SPIEGELUNG der aktiven Mitgliedschaft,
+-- nicht die Wahrheit. Die Wahrheit steht in memberships.
+--
+-- Das ist bewusst ein Uebergangszustand, nicht der Endzustand. Ihn
+-- aufzuloesen erfordert Aenderungen an coach-chat und am Frontend und
+-- gehoert deshalb in einen eigenen, testbaren Schritt (Sprint 2c).
+-- Solange die Spiegelung besteht, darf sie NUR hier und in
+-- redeem_invite geschrieben werden.
+-- ============================================================
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_invite   public.invites;
+  v_code     text;
+  v_username text;
+  v_sponsor_membership uuid;
+begin
+  v_code := upper(trim(coalesce(new.raw_user_meta_data ->> 'invite_code', '')));
+  if v_code = '' then
+    raise exception 'AscendOS: Registrierung ist nur mit Einladungscode möglich.';
+  end if;
+
+  select * into v_invite
+  from public.invites
+  where code = v_code
+  for update; -- sperrt den Invite gegen parallele Einloesung
+
+  if v_invite.id is null then
+    raise exception 'AscendOS: Dieser Einladungscode existiert nicht.';
+  end if;
+  if v_invite.used_at is not null then
+    raise exception 'AscendOS: Dieser Einladungscode wurde bereits verwendet.';
+  end if;
+  if v_invite.expires_at <= now() then
+    raise exception 'AscendOS: Dieser Einladungscode ist abgelaufen.';
+  end if;
+
+  v_username := lower(trim(coalesce(new.raw_user_meta_data ->> 'username', '')));
+  if v_username !~ '^[a-z0-9_.]{3,30}$' then
+    raise exception 'AscendOS: Benutzername muss 3-30 Zeichen lang sein (a-z, 0-9, Punkt, Unterstrich).';
+  end if;
+  -- Benutzername bleibt GLOBAL eindeutig, an der Identitaet. F2 FD-3.
+  if exists (select 1 from public.profiles where username = v_username) then
+    raise exception 'AscendOS: Dieser Benutzername ist bereits vergeben.';
+  end if;
+
+  -- Identitaet
+  insert into public.profiles
+    (id, org_id, team_id, sponsor_id, role, first_name, last_name, username, language)
+  values (
+    new.id,
+    v_invite.org_id,     -- Spiegelung, siehe Kopf
+    v_invite.team_id,    -- Spiegelung
+    v_invite.sponsor_id, -- Spiegelung
+    v_invite.role,       -- Spiegelung
+    coalesce(nullif(trim(new.raw_user_meta_data ->> 'first_name'), ''), 'Unbekannt'),
+    coalesce(nullif(trim(new.raw_user_meta_data ->> 'last_name'), ''), ''),
+    v_username,
+    coalesce(nullif(new.raw_user_meta_data ->> 'language', ''), 'de')
+  );
+
+  -- Sponsor der Einladung ist eine IDENTITAETSkennung. Sie wird auf die
+  -- aktive Mitgliedschaft derselben Person in DERSELBEN Organisation
+  -- aufgeloest. F2 Teil 1.5: Genealogie ist organisationsbezogen.
+  if v_invite.sponsor_id is not null then
+    select m.id into v_sponsor_membership
+    from public.memberships m
+    where m.identity_id = v_invite.sponsor_id
+      and m.org_id      = v_invite.org_id
+      and m.status      = 'active';
+  end if;
+
+  -- Mitgliedschaft
+  insert into public.memberships
+    (identity_id, org_id, team_id, sponsor_membership_id, role, status)
+  values (new.id, v_invite.org_id, v_invite.team_id, v_sponsor_membership,
+          v_invite.role, 'active');
+
+  update public.invites
+  set used_by = new.id, used_at = now()
+  where id = v_invite.id;
+
+  return new;
+end;
+$$;
+
+
+-- ============================================================
+-- 3. Zusaetzliche Mitgliedschaft fuer eine BESTEHENDE Identitaet
+--
+-- F2 Teil 1.7, zweiter Weg. Dieser Weg existierte bisher nicht, und er
+-- ist der Grund, warum ohne ihn Doppelidentitaeten desselben Menschen
+-- entstehen, die sich nachtraeglich nur unter Datenverlust
+-- zusammenfuehren lassen.
+--
+-- Er laeuft NICHT ueber handle_new_user: Wer bereits eine Identitaet
+-- hat, hat bereits ein Auth-Konto. Ein zweiter Auth-Insert findet nicht
+-- statt. Die Person meldet sich an und loest den Code ein.
+--
+-- SICHERHEITSHINWEIS aus F2 Teil 1.7: Dieser Weg darf niemals
+-- verraten, ob eine E-Mail bereits registriert ist. Das ist hier
+-- erfuellt, weil die Funktion eine Anmeldung VORAUSSETZT. Sie sagt
+-- nichts ueber fremde Konten.
+--
+-- Identitaetsdaten werden NICHT angetastet. F2 Teil 5, Fussnote 16.
+-- ============================================================
+
+create or replace function public.redeem_invite(invite_code text)
+returns table (org_id uuid, org_name text, membership_id uuid)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_invite public.invites;
+  v_code   text;
+  v_sponsor_membership uuid;
+  v_new_membership     uuid;
+begin
+  if v_uid is null then
+    raise exception 'AscendOS: Nicht angemeldet.';
+  end if;
+
+  if not exists (select 1 from public.profiles where id = v_uid) then
+    raise exception 'AscendOS: Kein Profil für diesen Nutzer gefunden.';
+  end if;
+
+  v_code := upper(trim(coalesce(invite_code, '')));
+  if v_code = '' then
+    raise exception 'AscendOS: Kein Einladungscode angegeben.';
+  end if;
+
+  select * into v_invite
+  from public.invites
+  where code = v_code
+  for update;
+
+  if v_invite.id is null then
+    raise exception 'AscendOS: Dieser Einladungscode existiert nicht.';
+  end if;
+  if v_invite.used_at is not null then
+    raise exception 'AscendOS: Dieser Einladungscode wurde bereits verwendet.';
+  end if;
+  if v_invite.expires_at <= now() then
+    raise exception 'AscendOS: Dieser Einladungscode ist abgelaufen.';
+  end if;
+
+  -- Hoechstens EINE aktive Mitgliedschaft je Organisation. F2 FD-2.
+  -- Das partielle Unique wuerde es ebenfalls abweisen; die ausdrueckliche
+  -- Pruefung liefert eine verstaendliche Meldung statt eines
+  -- Datenbankfehlers.
+  if exists (
+    select 1 from public.memberships m
+    where m.identity_id = v_uid and m.org_id = v_invite.org_id and m.status = 'active'
+  ) then
+    raise exception 'AscendOS: Du gehörst dieser Organisation bereits an.';
+  end if;
+
+  if v_invite.sponsor_id is not null then
+    select m.id into v_sponsor_membership
+    from public.memberships m
+    where m.identity_id = v_invite.sponsor_id
+      and m.org_id      = v_invite.org_id
+      and m.status      = 'active';
+  end if;
+
+  insert into public.memberships
+    (identity_id, org_id, team_id, sponsor_membership_id, role, status)
+  values (v_uid, v_invite.org_id, v_invite.team_id, v_sponsor_membership,
+          v_invite.role, 'active')
+  returning id into v_new_membership;
+
+  update public.invites
+  set used_by = v_uid, used_at = now()
+  where id = v_invite.id;
+
+  return query
+    select o.id, o.name, v_new_membership
+    from public.organizations o
+    where o.id = v_invite.org_id;
+end;
+$$;
+
+comment on function public.redeem_invite(text) is
+  'Bestehende Identitaet tritt einer weiteren Organisation bei. Erzeugt NUR eine Mitgliedschaft, keine Identitaet (F2 Teil 1.7).';
+
+
+-- ============================================================
+-- 4. create_invite aus der aktiven Mitgliedschaft speisen
+--
+-- Bisher las die Funktion Rolle, Organisation und Team aus `profiles`.
+-- Ab jetzt aus der aktiven Mitgliedschaft: eine Person kann in
+-- Organisation A einladen duerfen und in B nicht.
+--
+-- `sponsor_id` und `created_by` in `invites` bleiben
+-- IDENTITAETSkennungen, weil die Tabelle auf profiles verweist. Die
+-- Aufloesung auf die Mitgliedschaft geschieht beim Einloesen, in
+-- handle_new_user und redeem_invite.
+-- ============================================================
+
+create or replace function public.create_invite(invite_role text default 'berater')
+returns table (invite_code text, invite_expires_at timestamptz)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_membership public.memberships;
+  v_code text;
+begin
+  select * into v_membership
+  from public.memberships
+  where id = public.active_membership_id();
+
+  if v_membership.id is null then
+    raise exception 'AscendOS: Keine aktive Mitgliedschaft für diesen Nutzer.';
+  end if;
+
+  if invite_role <> 'berater' and v_membership.role <> 'super_admin' then
+    raise exception 'AscendOS: Nur Super-Admins können Admin- oder Leader-Einladungen erstellen.';
+  end if;
+
+  -- 10 Zeichen, gut vorlesbar (keine 0/O, 1/I)
+  v_code := upper(
+    substring(replace(replace(replace(replace(
+      encode(gen_random_bytes(8), 'base64'),
+      '/', 'A'), '+', 'B'), '0', 'C'), 'O', 'D')
+    from 1 for 10)
+  );
+
+  insert into public.invites (code, org_id, team_id, sponsor_id, role, created_by)
+  values (v_code, v_membership.org_id, v_membership.team_id,
+          v_membership.identity_id, invite_role, v_membership.identity_id);
+
+  return query
+    select i.code, i.expires_at from public.invites i where i.code = v_code;
+end;
+$$;
+
+
+-- ============================================================
+-- 5. Die zwei Policies, die profiles direkt lesen
+--
+-- Beide enthielten dieselbe Unterabfrage:
+--   team_id = (select team_id from profiles where id = auth.uid())
+--
+-- Sie liest die EIGENE Zeile und war daher nicht von dem Fehler aus
+-- Migration 14 betroffen. Sie liest aber das Profil, und das Team liegt
+-- ab jetzt an der Mitgliedschaft. Ersetzt durch current_team_id() aus
+-- Migration 15: eine Funktion statt einer Unterabfrage, und die
+-- richtige Quelle.
+--
+-- Die dritte Policy, user_progress_select_own_or_sponsor, wurde bereits
+-- in Migration 14 auf profiles_public umgestellt und bleibt unberuehrt.
+-- ============================================================
+
+drop policy if exists knowledge_docs_select_approved on public.knowledge_docs;
+
+create policy knowledge_docs_select_approved
+  on public.knowledge_docs for select
+  using (
+    org_id = public.current_org_id()
+    and (
+      (
+        status = 'approved'
+        and (valid_until is null or valid_until > now())
+        and (team_id is null or team_id = public.current_team_id())
+      )
+      or public.is_super_admin()
+    )
+  );
+
+drop policy if exists journeys_select_member on public.journeys;
+
+create policy journeys_select_member
+  on public.journeys for select
+  using (
+    org_id = public.current_org_id()
+    and (team_id is null or team_id = public.current_team_id())
+    and is_active
+  );
+
+
+-- ============================================================
+-- 6. profiles_public aus Mitgliedschaften speisen
+--
+-- Spaltenliste und Reihenfolge bleiben identisch, damit `create or
+-- replace view` moeglich ist und firstline_journey_progress
+-- unveraendert weiterlaeuft.
+--
+-- Quelle der org-bezogenen Angaben ist ab jetzt die aktive
+-- Mitgliedschaft. sponsor_id wird von der Sponsor-MITGLIEDSCHAFT auf
+-- deren Identitaetskennung zurueckgerechnet, damit die Bedeutung der
+-- Spalte gleich bleibt.
+--
+-- Kein security_invoker, bewusst und unveraendert: Der View ist die
+-- Mitgliederliste und muss die auf das eigene Profil beschraenkte
+-- Policy erweitern. Er traegt stattdessen seine eigene Grenze
+-- `org_id = current_org_id()`. Fuer anon faellt sie geschlossen aus,
+-- weil current_org_id() dann NULL ist. In Sprint 0 geprueft.
+--
+-- OFFEN, F2 Aenderung Ae2: Die Spalte `role` soll entfallen, damit ein
+-- Berater den Betreiber nicht org-weit identifizieren kann. Das
+-- erfordert DROP und CREATE statt REPLACE, und daran haengen
+-- firstline_journey_progress sowie die Policy
+-- user_progress_select_own_or_sponsor. Deshalb ein eigener Schritt in
+-- Sprint 2c, nicht hier.
+-- ============================================================
+
+create or replace view public.profiles_public as
+  select
+    p.id,
+    m.org_id,
+    m.team_id,
+    sp.identity_id as sponsor_id,
+    m.role,
+    p.first_name,
+    p.last_name,
+    p.username,
+    p.avatar_url
+  from public.profiles p
+  join public.memberships m
+    on m.identity_id = p.id
+   and m.status = 'active'
+   and m.org_id = public.current_org_id()
+  left join public.memberships sp
+    on sp.id = m.sponsor_membership_id;
+
+
+-- ============================================================
+-- 7. Ausfuehrungsrechte, Muster aus der Security Baseline
+-- ============================================================
+
+revoke execute on function public.redeem_invite(text) from PUBLIC, anon;
+grant  execute on function public.redeem_invite(text) to authenticated, service_role;
+
+-- create_invite behaelt seine bisherigen Rechte, die Signatur ist
+-- unveraendert. Zur Sicherheit ausdruecklich gesetzt.
+revoke execute on function public.create_invite(text) from PUBLIC, anon;
+grant  execute on function public.create_invite(text) to authenticated, service_role;
+
+
+-- ============================================================
+-- 8. Was in Sprint 2c folgt, ausdruecklich noch offen
+--
+--   a) Spiegelung in `profiles` aufloesen: org_id, team_id, sponsor_id
+--      und role dort entfernen. Erfordert Aenderungen an coach-chat
+--      (liest profile.org_id) und am Frontend.
+--   b) profiles_public ohne `role`, F2 Aenderung Ae2. Erfordert DROP
+--      und CREATE samt firstline_journey_progress und der Policy
+--      user_progress_select_own_or_sponsor.
+--   c) Frontend: Kopf x-ascendos-org setzen. Erst notwendig, sobald
+--      eine Identitaet mehr als eine aktive Mitgliedschaft hat.
+--      Vorher greift Fall 3 der Aufloesungsregel.
+--   d) Entwurfsentscheidung Weg 1 gegen Weg 2 aus Migration 15,
+--      Abschnitt 0: bleiben die 13 Fremdschluessel auf profiles?
+-- ============================================================
+
+-- ############ 20260804000017_mirror_sync_and_public_view.sql ############
+-- ============================================================
+-- Migration 17, Sprint 2c: Sprint 2 abschliessen
+--
+-- Zwei Punkte, beide gehoeren logisch zu Sprint 2:
+--   1. Die Spiegelung in `profiles` driftfrei machen
+--   2. profiles_public ohne `role`, F2 Aenderung Ae2
+--
+-- ARCHITEKTURENTSCHEIDUNG, hier festgeschrieben
+--
+-- `profiles.org_id`, `team_id`, `sponsor_id` und `role` BLEIBEN
+-- bestehen. Sie sind ab Migration 16 eine SPIEGELUNG der aktiven
+-- Mitgliedschaft. Die Wahrheit steht in `memberships`.
+--
+-- Begruendung gegen ein Entfernen: Der Spiegel wird an sieben Stellen
+-- gelesen, in drei Auslieferungseinheiten:
+--   Frontend  src/shared/auth/AuthProvider.tsx  (select *)
+--   Frontend  src/app/router.tsx                (profile.role, Adminwache)
+--   Frontend  src/features/more/MorePage.tsx    (org_id, team_id, sponsor_id)
+--   Edge      coach-chat                        (profile.org_id, 6 Stellen; profile.role)
+--   Edge      ingest-knowledge                  (profile.org_id, 2 Stellen)
+--
+-- Ein Entfernen erforderte einen abgestimmten Ausroll von Datenbank,
+-- zwei Edge Functions und dem Frontend. Ein uebersehener Leser sperrt
+-- alle Nutzer aus. F2 Teil 1.2 verlangt EINE Wahrheitsquelle und keine
+-- Drift; es verlangt NICHT, dass die Spalte physisch verschwindet.
+--
+-- Diese Migration erfuellt die Anforderung durch Synchronisation:
+-- memberships schreibt, profiles folgt automatisch. Drift ist damit
+-- ausgeschlossen.
+--
+-- BEDINGUNG FUER DAS SPAETERE ENTFERNEN, damit es nicht vergessen wird:
+-- Sobald alle sieben Leser auf `memberships` oder `profiles_public`
+-- umgestellt sind, entfaellt der Spiegel samt Trigger. Das ist ein
+-- eigener, testbarer Schritt und kein Sprint-2-Gegenstand.
+-- ============================================================
+
+
+-- ============================================================
+-- 1. Der Schutztrigger muss die Synchronisation zulassen
+--
+-- protect_profile_columns schuetzt genau die vier Spiegelspalten gegen
+-- Selbstaenderung. Ein Synchronisationstrigger wuerde daran scheitern.
+--
+-- Der Schutz DARF NICHT fallen: src/app/router.tsx bewacht die
+-- Adminseite ueber `profile.role`. Koennte ein Nutzer diese Spalte
+-- selbst setzen, oeffnete sich die Oberflaeche, auch wenn die Datenbank
+-- die Handlungen weiterhin abweist. Das waere eine Rechteausweitung in
+-- der Darstellung.
+--
+-- Loesung: ein transaktionslokales Kennzeichen, das ausschliesslich die
+-- Synchronisationsfunktion setzt. Ein Nutzer kann es nicht setzen: Er
+-- muesste set_config in DERSELBEN Transaktion aufrufen wie das UPDATE,
+-- und PostgREST fuehrt je Anfrage genau eine Transaktion aus, in die
+-- kein zweiter Aufruf einzuschieben ist.
+-- ============================================================
+
+create or replace function public.protect_profile_columns()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  -- Synchronisation aus memberships, siehe sync_profile_mirror.
+  if coalesce(current_setting('ascendos.mirror_sync', true), '') = 'on' then
+    return new;
+  end if;
+
+  if public.is_super_admin() then
+    return new;
+  end if;
+
+  if new.role       is distinct from old.role
+     or new.org_id     is distinct from old.org_id
+     or new.team_id    is distinct from old.team_id
+     or new.sponsor_id is distinct from old.sponsor_id then
+    raise exception 'AscendOS: Rolle, Organisation, Team und Sponsor können nicht selbst geändert werden.';
+  end if;
+
+  return new;
+end;
+$$;
+
+
+-- ============================================================
+-- 2. Synchronisation memberships -> profiles
+--
+-- Richtung ist eindeutig: memberships ist die Wahrheit, profiles folgt.
+-- Nur die AKTIVE Mitgliedschaft spiegelt. Eine beendete oder gesperrte
+-- Mitgliedschaft laesst den Spiegel unveraendert; die Spalten sind
+-- NOT NULL und muessen einen Wert behalten.
+--
+-- Bei mehreren aktiven Mitgliedschaften spiegelt die zuletzt
+-- geschriebene. Das ist bewusst und unschaedlich, weil der Spiegel
+-- ausschliesslich der Darstellung dient und die Autorisierung
+-- ueber active_membership_id() laeuft, die bei Mehrdeutigkeit abweist.
+-- ============================================================
+
+create or replace function public.sync_profile_mirror()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_sponsor_identity uuid;
+begin
+  if new.status <> 'active' then
+    return new;
+  end if;
+
+  if new.sponsor_membership_id is not null then
+    select sp.identity_id into v_sponsor_identity
+    from public.memberships sp where sp.id = new.sponsor_membership_id;
+  end if;
+
+  perform set_config('ascendos.mirror_sync', 'on', true);
+
+  update public.profiles p
+  set org_id     = new.org_id,
+      team_id    = new.team_id,
+      role       = new.role,
+      sponsor_id = v_sponsor_identity
+  where p.id = new.identity_id
+    and (p.org_id, p.team_id, p.role, p.sponsor_id)
+        is distinct from (new.org_id, new.team_id, new.role, v_sponsor_identity);
+
+  perform set_config('ascendos.mirror_sync', 'off', true);
+
+  return new;
+end;
+$$;
+
+-- AFTER, damit die Mitgliedschaft bereits geschrieben ist und ein
+-- Verweis auf new.id in einer Unterabfrage aufloesbar bleibt.
+create trigger memberships_sync_mirror
+  after insert or update of org_id, team_id, role, sponsor_membership_id, status
+  on public.memberships
+  for each row execute function public.sync_profile_mirror();
+
+
+-- ============================================================
+-- 3. Einmalige Nachfuehrung
+--
+-- Nach Migration 15 stimmt der Spiegel, weil dort AUS profiles
+-- migriert wurde. Diese Anweisung ist die Absicherung fuer den Fall,
+-- dass zwischen 15 und 17 eine Mitgliedschaft geaendert wurde.
+-- Idempotent durch die is-distinct-from-Bedingung.
+-- ============================================================
+
+do $$
+begin
+  perform set_config('ascendos.mirror_sync', 'on', true);
+
+  update public.profiles p
+  set org_id     = m.org_id,
+      team_id    = m.team_id,
+      role       = m.role,
+      sponsor_id = sp.identity_id
+  from public.memberships m
+  left join public.memberships sp on sp.id = m.sponsor_membership_id
+  where m.identity_id = p.id
+    and m.status = 'active'
+    and (p.org_id, p.team_id, p.role, p.sponsor_id)
+        is distinct from (m.org_id, m.team_id, m.role, sp.identity_id);
+
+  perform set_config('ascendos.mirror_sync', 'off', true);
+end $$;
+
+
+-- ============================================================
+-- 4. profiles_public ohne `role`, F2 Aenderung Ae2
+--
+-- Zweck: Ein Berater soll den Betreiber nicht organisationsweit
+-- identifizieren koennen. Der View liefert die Mitgliederliste an alle
+-- Angemeldeten der Organisation; die Rolle gehoert nicht dazu.
+--
+-- Geprueft, dass niemand die Spalte liest:
+--   src/features/more/MorePage.tsx liest aus profiles_public nur
+--   first_name, last_name und id. `profile.role` dort stammt aus dem
+--   AuthProvider, also aus `profiles`, nicht aus diesem View.
+--
+-- Eine Spalte laesst sich nicht per CREATE OR REPLACE entfernen. Es
+-- braucht DROP und CREATE, und daran haengen zwei Objekte:
+--   firstline_journey_progress liest profiles_public
+--   user_progress_select_own_or_sponsor (Migration 14) liest es ebenfalls
+--
+-- Reihenfolge daher: Policy, abhaengiger View, View, dann rueckwaerts.
+-- ============================================================
+
+drop policy if exists user_progress_select_own_or_sponsor on public.user_progress;
+drop view  if exists public.firstline_journey_progress;
+drop view  if exists public.profiles_public;
+
+create view public.profiles_public as
+  select
+    p.id,
+    m.org_id,
+    m.team_id,
+    sp.identity_id as sponsor_id,
+    p.first_name,
+    p.last_name,
+    p.username,
+    p.avatar_url
+  from public.profiles p
+  join public.memberships m
+    on m.identity_id = p.id
+   and m.status = 'active'
+   and m.org_id = public.current_org_id()
+  left join public.memberships sp
+    on sp.id = m.sponsor_membership_id;
+
+comment on view public.profiles_public is
+  'Mitgliederliste der aktiven Organisation. OHNE Spalte role (F2 Ae2). Bewusst kein security_invoker: der View muss die auf das eigene Profil beschraenkte Policy erweitern und traegt stattdessen seine eigene Grenze org_id = current_org_id(), die fuer anon geschlossen ausfaellt.';
+
+-- WORTGETREU aus dem Bestand wiederhergestellt, am 29. Juli 2026 aus
+-- pg_get_viewdef ausgelesen.
+--
+-- ACHTUNG, hier lag ein Fehler in meinem ersten Entwurf: Ich hatte den
+-- View aus dem Gedaechtnis mit SECHS Spalten nachgebildet und dabei
+-- journey_title, current_day und total_days weggelassen sowie username
+-- durch last_name ersetzt. Genau current_day und total_days tragen die
+-- Fortschrittsanzeige. Die Nachbildung haette sie zerstoert.
+--
+-- Geaendert gegenueber dem Bestand: NICHTS. Der View liest
+-- profiles_public und verwendet dessen Spalte `role` nicht, ist also
+-- mit der neuen Fassung ohne role unveraendert vertraeglich.
+create view public.firstline_journey_progress as
+  select
+    p.id                as user_id,
+    p.first_name,
+    p.username,
+    j.id                as journey_id,
+    j.title             as journey_title,
+    count(s.id)         as total_steps,
+    count(up.step_id)   as completed_steps,
+    coalesce(
+      min(s.day_number) filter (where up.step_id is null),
+      max(s.day_number) + 1
+    )                   as current_day,
+    max(s.day_number)   as total_days
+  from public.profiles_public p
+  join public.journeys j
+    on j.org_id = p.org_id
+   and (j.team_id is null or j.team_id = p.team_id)
+   and j.is_active
+  join public.journey_steps s on s.journey_id = j.id
+  left join public.user_progress up on up.step_id = s.id and up.user_id = p.id
+  where p.sponsor_id = auth.uid()
+  group by p.id, p.first_name, p.username, j.id, j.title;
+
+alter view public.firstline_journey_progress set (security_invoker = true);
+
+-- Unveraendert aus Migration 14 wiederhergestellt, einschliesslich der
+-- dortigen Korrektur: Die Unterabfrage liest profiles_public und nicht
+-- profiles, weil letzteres RLS-beschraenkt ist und der Sponsor-Zweig
+-- sonst toter Code waere.
+create policy user_progress_select_own_or_sponsor
+  on public.user_progress
+  for select
+  using (
+    user_id = auth.uid()
+    or exists (
+      select 1 from public.profiles_public p
+      where p.id = user_progress.user_id
+        and p.sponsor_id = auth.uid()
+    )
+  );
+
+grant select on public.profiles_public          to anon, authenticated;
+grant select on public.firstline_journey_progress to anon, authenticated;
+
+
+-- ============================================================
+-- 5. Was Sprint 2 damit abschliesst
+--
+--   Migration 15  Identitaet und Mitgliedschaft, Aufloesungsregel,
+--                 Genealogie, Schutz, Zeilenrechte
+--   Migration 16  Registrierung mit beiden Wegen, redeem_invite,
+--                 create_invite, zwei Policies, invites.role
+--   Migration 17  Spiegel driftfrei, profiles_public ohne role
+--
+-- OFFEN und ausdruecklich NICHT Sprint 2:
+--   - Spiegel entfernen, sobald alle sieben Leser umgestellt sind
+--   - Weg 2 aus Migration 15 Abschnitt 0: die 13 Fremdschluessel auf
+--     memberships(id) umlenken. Weg 1 ist umgesetzt und dokumentiert
+-- ============================================================
+
 -- ============================================================
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================

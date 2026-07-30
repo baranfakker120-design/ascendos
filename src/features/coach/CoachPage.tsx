@@ -59,7 +59,11 @@ export function CoachPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="space-y-3 pb-3">
-        <h1 className="text-2xl font-bold">Ascent</h1>
+        <img
+          src="/brand/ascendos-symbol-mono-v2.png"
+          alt="Ascent"
+          className="h-8 w-auto"
+        />
         {contact ? (
           <Card className="py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">

@@ -8,14 +8,17 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, handleOptions, json } from '../_shared/cors.ts';
-// Einziger KI-Anbieter (ADR-027).
+// Embeddings: ausschliesslich Gemini, unveraendert (Betreiberentscheidung
+// vom 29. Juli 2026 -- eine andere Dimension wuerde RAG veraendern).
+import { geminiEmbed } from '../_shared/gemini.ts';
+// Chat: Provider-Abstraktion vom 30. Juli 2026. Reihenfolge Groq ->
+// OpenRouter -> Cerebras mit automatischem Fallback, siehe die
+// Provider-Abstraktion unter _shared (Ordner ai-providers).
 import {
-  geminiChat,
-  geminiEmbed,
-  geminiFastModel,
-  GeminiError,
-  type GeminiChatMessage,
-} from '../_shared/gemini.ts';
+  AllProvidersFailedError,
+  chat,
+  type ChatMessage,
+} from '../_shared/ai-providers/index.ts';
 import { CORE_RULES, ROUTER_PROMPT } from '../_shared/prompts.ts';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -136,7 +139,7 @@ Deno.serve(async (req) => {
     mark('context_ms', tContext);
 
     // ---------- Konversation laden/anlegen ----------
-    let history: GeminiChatMessage[] = [];
+    let history: ChatMessage[] = [];
     let agentKey: string | null = null;
     if (convoId) {
       const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
@@ -145,7 +148,7 @@ Deno.serve(async (req) => {
       const { data: msgs } = await db.from('coach_messages')
         .select('role, content').eq('convo_id', convoId)
         .order('created_at').limit(20);
-      history = (msgs ?? []) as GeminiChatMessage[];
+      history = (msgs ?? []) as ChatMessage[];
     } else {
       const { data: convo, error } = await db.from('coach_convos')
         .insert({ user_id: userId, org_id: profile.org_id, contact_id: contactId })
@@ -162,14 +165,12 @@ Deno.serve(async (req) => {
       let routed = '';
       try {
         routed = (
-          await geminiChat({
+          await chat({
             system: ROUTER_PROMPT,
             messages: [{ role: 'user', content: message }],
-            model: geminiFastModel(),
             maxTokens: 16,
-            effort: 'none',
           })
-        )
+        ).text
           .trim()
           .toLowerCase();
       } catch (e) {
@@ -224,17 +225,15 @@ Deno.serve(async (req) => {
       // Frage wird erst zu einem anonymen Wissensthema generalisiert;
       // schlägt das fehl, wird NICHT geloggt (Privacy vor Metrik).
       try {
-        const topic = (await geminiChat({
+        const topic = (await chat({
           system:
             'Fasse die Nutzerfrage als allgemeines Wissensthema zusammen: max. 12 Wörter, ' +
             'Deutsch, OHNE Namen, Zahlen zu Personen oder persönliche Details. ' +
             'Beispiel: "Wie überzeuge ich Mehmet mit 200€ Schulden?" -> ' +
             '"Einwandbehandlung bei finanziellen Bedenken". Antworte NUR mit dem Thema.',
           messages: [{ role: 'user', content: message.slice(0, 500) }],
-          model: geminiFastModel(),
           maxTokens: 60,
-          effort: 'none',
-        })).trim().slice(0, 200);
+        })).text.trim().slice(0, 200);
         if (topic.length >= 5) {
           await db.from('knowledge_gaps').insert({
             org_id: profile.org_id, user_id: userId, agent_key: agentKey, question: topic,
@@ -258,17 +257,20 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join('\n\n');
 
     const tLlm = Date.now();
-    const reply = (
-      await geminiChat({
-        system,
-        messages: [...history, { role: 'user', content: message }],
-        // Unveränderter Wert aus der DB ('gpt-5.6'); die Übersetzung auf
-        // ein Gemini-Modell passiert zur Laufzeit in gemini.ts.
-        model: agent.model,
-        maxTokens: 1024,
-        effort: 'low',
-      })
-    ).trim();
+    // agent.model wird hier bewusst NICHT gelesen: das Feld diente der
+    // Uebersetzung auf eine Gemini-Modellklasse (mapToGeminiModel), ein
+    // Konzept, das mit der Provider-Abstraktion entfaellt. Jeder Anbieter
+    // verwendet sein eigenes fest gewaehltes Modell, siehe die Adapter
+    // groq.ts, openrouter.ts und cerebras.ts unter _shared (Ordner
+    // ai-providers). Das Datenbankfeld bleibt unveraendert bestehen,
+    // nur ungenutzt fuer diesen Zweck -- Migration 15 verlangt, die
+    // Datenbank hier nicht anzufassen.
+    const chatResult = await chat({
+      system,
+      messages: [...history, { role: 'user', content: message }],
+      maxTokens: 1024,
+    });
+    const reply = chatResult.text.trim();
     mark('llm_ms', tLlm);
 
     // Nie eine leere Assistant-Nachricht persistieren: sie wuerde bei jedem
@@ -288,19 +290,85 @@ Deno.serve(async (req) => {
 
     mark('total_ms', t0);
     // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019):
-    console.log(JSON.stringify({ metric: 'coach_chat', agentKey, hadKnowledge, ...timings }));
+    console.log(JSON.stringify({
+      metric: 'coach_chat', agentKey, hadKnowledge,
+      provider: chatResult.provider, providerModel: chatResult.model,
+      ...timings,
+    }));
     return json({ conversationId: convoId, agentKey, reply, timings });
   } catch (e) {
-    // GeminiError traegt den Grund maschinenlesbar — im Log steht damit
-    // sofort, ob es am fehlenden Secret, am Rate-Limit oder am Modell lag.
-    if (e instanceof GeminiError) {
-      console.error(`coach-chat gemini error [${e.code}]`, e.message);
+    // AllProvidersFailedError traegt die vollstaendige Versuchsliste --
+    // im Log steht damit, welcher Anbieter wann aus welchem Grund
+    // gescheitert ist, nicht nur der letzte. Jeder einzelne Versuch wurde
+    // bereits vom Router selbst protokolliert (ai-providers/router.ts);
+    // diese Zeile ordnet den GESAMTAUSFALL dem Coach-Aufruf zu.
+    if (e instanceof AllProvidersFailedError) {
+      console.error(
+        `coach-chat: alle Anbieter gescheitert, letzter Grund [${e.lastCode}]`,
+        JSON.stringify(e.attempts),
+      );
     } else {
       console.error('coach-chat error', e instanceof Error ? e.message : e);
     }
-    return new Response(
-      JSON.stringify({ error: 'Der Coach ist gerade nicht erreichbar. Versuche es gleich noch einmal.' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+
+    // Antwort nach Grund unterscheiden. Vorher ging JEDER Fehler als
+    // HTTP 500 mit demselben Text hinaus, auch ein Kontingentlimit.
+    // Das war doppelt falsch: 500 bedeutet Serverfehler, ein 429 der
+    // Gegenseite ist keiner, und "nicht erreichbar" stimmte nicht.
+    //
+    // Wiederholungen erfolgen bereits in gemini.ts: GEMINI_MAX_RETRIES = 2
+    // mit exponentiellem Backoff fuer 408, 429, 500, 502, 503, 504.
+    // Was hier ankommt, ist also ein Fehler NACH zwei Versuchen.
+    //
+    // Das Frontend liest das Feld `error` aus dem Rumpf (coachApi.ts)
+    // und zeigt es unveraendert an. Der Text ist damit die Meldung,
+    // die der Nutzer liest.
+    // Fuenf Ursachencodes statt vorher sechs: 'refused' und
+    // 'empty_response' waren Gemini-spezifische Sicherheitskonzepte
+    // (Prompt- bzw. Antwortblockade), die es bei den drei neuen Anbietern
+    // in dieser Form nicht gibt. Beide Faelle laufen jetzt unter
+    // 'invalid_response' zusammen, mit einer Meldung, die beide Ursachen
+    // deckt.
+    //
+    // Diese Meldung erscheint nur, wenn ALLE DREI Anbieter gescheitert
+    // sind -- kein einzelner Ausfall mehr, sondern ein gleichzeitiger
+    // Ausfall dreier unabhaengiger Anbieter. Entsprechend seltener als
+    // zuvor, und der Text spiegelt das wider.
+    const fehler: { status: number; text: string; retryAfter?: number } =
+      e instanceof AllProvidersFailedError
+        ? {
+            rate_limited: {
+              status: 429,
+              text: 'Ascent ist gerade stark ausgelastet. Bitte in etwa einer Minute ' +
+                    'noch einmal senden.',
+              retryAfter: 60,
+            },
+            timeout: {
+              status: 504,
+              text: 'Ascent hat zu lange gebraucht. Bitte die Frage noch einmal senden, ' +
+                    'gern etwas kuerzer.',
+            },
+            upstream: {
+              status: 503,
+              text: 'Ascent ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.',
+            },
+            invalid_response: {
+              status: 502,
+              text: 'Ascent konnte keine Antwort erzeugen. Bitte noch einmal senden.',
+            },
+            missing_api_key: {
+              status: 500,
+              text: 'Ascent ist nicht vollstaendig konfiguriert. Bitte den Betreiber informieren.',
+            },
+          }[e.lastCode]
+        : { status: 500, text: 'Der Coach ist gerade nicht erreichbar. Versuche es gleich noch einmal.' };
+
+    const kopf: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+    if (fehler.retryAfter) kopf['Retry-After'] = String(fehler.retryAfter);
+
+    return new Response(JSON.stringify({ error: fehler.text }), {
+      status: fehler.status,
+      headers: kopf,
+    });
   }
 });

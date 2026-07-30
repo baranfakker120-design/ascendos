@@ -25,6 +25,12 @@ const OUT_DIR = join(ROOT, 'setup', 'functions');
 const FUNCTIONS = ['validate-invite', 'coach-chat', 'ingest-knowledge'];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
+/** Import einer Schwesterdatei INNERHALB derselben Shared-Unterverzeichnis-
+ *  gruppe, z. B. `./groq.ts` in `_shared/ai-providers/index.ts`. Anders als
+ *  SHARED_RE (verlässt eine Function Richtung `_shared/`) bleibt dieser
+ *  Import INNERHALB der Gruppe — genau der Fall, den flache Shared-Module
+ *  wie `gemini.ts` nicht kennen, weil sie keine Nachbardateien haben. */
+const SIBLING_RE = /^\.\/(.+)$/;
 
 /**
  * Zerlegt eine Datei in Import-Specifier und Rest-Body.
@@ -36,8 +42,18 @@ const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
  * das im Dashboard sofort scheitert, aber lokal fehlerfrei aussieht.
  */
 function splitImports(source) {
+  // Erfasst sowohl `import ... from '...'` als auch `export ... from
+  // '...'` (Re-Export). Letzteres braucht ai-providers/index.ts, um
+  // Typen und die Fehlerklasse aus types.ts durchzureichen. Ohne diese
+  // Erweiterung würden Re-Export-Zeilen unerkannt im Body verbleiben und
+  // beim Bundling auf eine im Dashboard nicht existierende relative
+  // Datei verweisen — ein Bundle, das erst beim Deployment scheitert.
+  //
+  // Sicher additiv: eine Zeile wie `export const X = '...';` enthält
+  // kein `from`, matcht also nicht; geprüft gegen alle drei bestehenden
+  // Functions am 30. Juli 2026, keine betroffen.
   const IMPORT_STATEMENT =
-    /^import\s+(?:[\s\S]*?\s+from\s+)?'([^']+)';?[ \t]*$/gm;
+    /^(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?'([^']+)';?[ \t]*$/gm;
   const specifiers = [];
   const body = source.replace(IMPORT_STATEMENT, (match, spec) => {
     specifiers.push({ spec, statement: match });
@@ -54,6 +70,12 @@ function splitImports(source) {
 
 /** Reihenfolge der eingebetteten Module: stabil, damit Diffs klein bleiben. */
 const SHARED_ORDER = ['cors.ts', 'gemini.ts', 'prompts.ts'];
+
+/** Verzeichnisse unter `_shared/`, deren Dateien sich UNTEREINANDER über
+ *  `./relativ.ts` importieren (siehe resolveSharedGroup). Ein neuer
+ *  Provider-Ordner nach demselben Muster braucht hier nur einen Eintrag,
+ *  keinen weiteren Eingriff im Bundler. */
+const SHARED_GROUPS = ['ai-providers'];
 
 const DECL_RE =
   /^(?:export\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+([A-Za-z_$][\w$]*)/gm;
@@ -82,6 +104,53 @@ function assertNoCollisions(name, inlinedParts, functionBody) {
   }
 }
 
+/**
+ * Löst ein Shared-Modul auf, das selbst aus mehreren Dateien besteht und
+ * diese über `./relativ.ts` untereinander importiert (z. B.
+ * `_shared/ai-providers/`, bestehend aus index.ts, router.ts, types.ts
+ * und je einem Adapter). Wird generisch für JEDES künftige Verzeichnis
+ * unter `_shared/` verwendet — kein Sonderfall für ai-providers.
+ *
+ * Vorgehen: von der Einstiegsdatei (der Datei, die eine Function direkt
+ * importiert) ausgehend werden alle über SIBLING_RE erreichbaren Dateien
+ * eingesammelt, je einmal. Reihenfolge ist Auffindungsreihenfolge (Tiefe
+ * zuerst) — das genügt, weil `assertNoCollisions` ohnehin über ALLE
+ * eingebetteten Teile hinweg prüft und keine der Dateien zur Modulinit-
+ * Zeit auf eine andere zugreift, nur innerhalb später aufgerufener
+ * Funktionen. Ein Zyklus zwischen den Dateien ist unzulässig und wird
+ * über die `seen`-Menge automatisch verhindert (zweiter Besuch wird
+ * übersprungen, nicht erneut eingebettet).
+ */
+function resolveSharedGroup(groupDir, entryFile, remoteImports, seen = new Map()) {
+  if (seen.has(entryFile)) return [];
+  const raw = readFileSync(join(groupDir, entryFile), 'utf8');
+  const parsed = splitImports(raw);
+  const ownParts = [];
+
+  for (const { spec, statement } of parsed.specifiers) {
+    const siblingMatch = spec.match(SIBLING_RE);
+    if (siblingMatch) {
+      // z. B. './groq.ts' -> 'groq.ts', relativ zur GRUPPE, nicht zu
+      // _shared/ selbst. Rekursiv einsammeln, BEVOR die eigene Datei
+      // angehängt wird, damit Abhängigkeiten vor ihren Nutzern stehen
+      // (kosmetisch für Lesbarkeit, funktional durch DAG-Annahme egal).
+      ownParts.push(...resolveSharedGroup(groupDir, siblingMatch[1], remoteImports, seen));
+      continue; // wird inline verfügbar, keine import-Zeile behalten
+    }
+    if (SHARED_RE.test(spec)) {
+      throw new Error(
+        `${entryFile}: Import zurück nach _shared/ aus einer Gruppe heraus wird nicht unterstützt.`,
+      );
+    }
+    // jsr:/npm:/https: — echter externer Import, nach oben ziehen.
+    remoteImports.push(statement);
+  }
+
+  seen.set(entryFile, true);
+  ownParts.push(`// ---- inline: _shared/${groupDir.split('/').pop()}/${entryFile} ----\n${parsed.body.trim()}\n`);
+  return ownParts;
+}
+
 function bundle(name) {
   const path = join(FUNCTIONS_DIR, name, 'index.ts');
   if (!existsSync(path)) throw new Error(`Function fehlt: ${path}`);
@@ -104,12 +173,25 @@ function bundle(name) {
   }
   const body = [bodyText];
 
-  const unknown = [...shared].filter((f) => !SHARED_ORDER.includes(f));
-  if (unknown.length > 0) {
-    throw new Error(`Unbekanntes Shared-Modul ${unknown.join(', ')} — SHARED_ORDER ergänzen.`);
+  // Ein Eintrag in `shared` ist entweder eine flache Datei (`gemini.ts`,
+  // Zusage über SHARED_ORDER) oder der Einstieg in eine Verzeichnisgruppe
+  // (`ai-providers/index.ts`, Zusage über SHARED_GROUPS anhand des
+  // führenden Verzeichnisnamens). Erkennung über den Schrägstrich.
+  const flat = [...shared].filter((f) => !f.includes('/'));
+  const grouped = [...shared].filter((f) => f.includes('/'));
+
+  const unknownFlat = flat.filter((f) => !SHARED_ORDER.includes(f));
+  if (unknownFlat.length > 0) {
+    throw new Error(`Unbekanntes Shared-Modul ${unknownFlat.join(', ')} — SHARED_ORDER ergänzen.`);
+  }
+  const unknownGroups = grouped
+    .map((f) => f.split('/')[0])
+    .filter((g) => !SHARED_GROUPS.includes(g));
+  if (unknownGroups.length > 0) {
+    throw new Error(`Unbekannte Shared-Gruppe ${unknownGroups.join(', ')} — SHARED_GROUPS ergänzen.`);
   }
 
-  const inlined = SHARED_ORDER.filter((f) => shared.has(f)).map((file) => {
+  const inlinedFlat = SHARED_ORDER.filter((f) => shared.has(f)).map((file) => {
     const raw = readFileSync(join(FUNCTIONS_DIR, '_shared', file), 'utf8');
     const parsed = splitImports(raw);
     if (parsed.specifiers.some((i) => SHARED_RE.test(i.spec))) {
@@ -122,6 +204,18 @@ function bundle(name) {
     for (const { statement } of parsed.specifiers) remoteImports.push(statement);
     return `// ---- inline: _shared/${file} ----\n${parsed.body.trim()}\n`;
   });
+
+  // Gruppen: für jeden Gruppennamen genau EINMAL rekursiv auflösen,
+  // beginnend bei der konkreten Einstiegsdatei, die die Function
+  // importiert hat (z. B. 'index.ts' aus 'ai-providers/index.ts').
+  const inlinedGroups = SHARED_GROUPS.filter((g) => grouped.some((f) => f.startsWith(`${g}/`))).flatMap(
+    (groupName) => {
+      const entry = grouped.find((f) => f.startsWith(`${groupName}/`)).slice(groupName.length + 1);
+      return resolveSharedGroup(join(FUNCTIONS_DIR, '_shared', groupName), entry, remoteImports);
+    },
+  );
+
+  const inlined = [...inlinedFlat, ...inlinedGroups];
 
   // Im Bundle landen alle Shared-Module im SELBEN Scope. Gleichnamige
   // Top-Level-Deklarationen sind dort ein Syntaxfehler — der im modularen
