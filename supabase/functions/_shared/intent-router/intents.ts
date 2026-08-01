@@ -11,6 +11,25 @@ import type { IntentDefinition } from './types.ts';
  * Es wird keine neue Kategorie erfunden, keine Migration noetig.
  */
 
+/**
+ * Wortgrenzen-Matching (`\b...\b`), NICHT Teilstring-Suche.
+ *
+ * Ein Zwischenstand dieser Datei hatte versucht, das Kompositum-Problem
+ * (siehe RECRUITING_KEYWORD unten) generell durch reine Teilstring-Suche
+ * zu loesen. Der Testlauf zeigte sofort zwei neue Fehler: "WhatsApp"
+ * enthaelt zufaellig die Buchstabenfolge "ap" und waere faelschlich als
+ * "business" erkannt worden (BUSINESS_KEYWORD enthaelt die kurze
+ * Abkuerzung "ap"), und "Erba Pura" scheiterte an einem fuer
+ * Teilstring-Suche sinnlos gewordenen Regex-Escaping. Kurze
+ * Abkuerzungen wie "AP"/"ICP" sind fuer Teilstring-Matching
+ * grundsaetzlich zu riskant -- zurueckgesetzt auf Wortgrenzen.
+ *
+ * Das eigentliche Kompositum-Problem ("Preiseinwände") wird stattdessen
+ * gezielt geloest: durch explizite zusammengesetzte Formen in der
+ * jeweiligen Liste, nicht durch eine globale Aenderung der
+ * Matching-Strategie. Ein neu entdecktes Kompositum ist damit eine
+ * Zeile Ergaenzung in der Liste, kein Eingriff in diese Funktion.
+ */
 const wordBoundary = (words: string[]) =>
   new RegExp(`\\b(${words.join('|')})\\b`, 'i');
 
@@ -23,7 +42,16 @@ const ZAHL_MIT_KONTEXT = /\b(duft|parfum|nummer|nr\.?)\b[^\d]{0,20}(\d{1,4})\b|\
 export const duftNummer: IntentDefinition = {
   id: 'duft_nummer',
   label: 'Duftnummer',
-  categories: ['produkte'],
+  // KORRIGIERT, Sprint 3, 30. Juli 2026: Die erste Fassung suchte
+  // ausschliesslich 'produkte'. Verifiziert gegen den tatsaechlichen
+  // Wissensbestand: die vollstaendigen Duftnummer-Tabellen (Nr., Name,
+  // Original-Inspiration, Geschlecht, Familie, UVP) liegen im Dokument
+  // "Duftparty Coach Knowledge", Kategorie 'duftparty'. In 'produkte'
+  // existiert KEINE einzige solche Tabelle (per SQL-Abfrage gegen
+  // knowledge_chunks/knowledge_docs bestaetigt). Ohne diese Korrektur
+  // fand die Suche fuer "129" strukturell nichts, unabhaengig von der
+  // Qualitaet der Einbettung oder der Suchanfrage.
+  categories: ['duftparty', 'produkte'],
   test(message) {
     if (NUR_ZAHL.test(message)) return 0.95;
     if (ZAHL_MIT_KONTEXT.test(message)) return 0.9;
@@ -58,7 +86,9 @@ const DUFT_KEYWORD = wordBoundary(BEKANNTE_DUEFTE.map((d) => d.replace(' ', '\\s
 export const duftName: IntentDefinition = {
   id: 'duft_name',
   label: 'Duftname',
-  categories: ['produkte'],
+  // Gleiche Korrektur wie bei duft_nummer: die Tabellen mit Duftnamen
+  // liegen in 'duftparty'.
+  categories: ['duftparty', 'produkte'],
   test(message) {
     return DUFT_KEYWORD.test(message) ? 0.85 : null;
   },
@@ -101,9 +131,21 @@ export const business: IntentDefinition = {
 // ------------------------------------------------------------
 // 5. Recruiting -- deckt sich mit den Kategorien des bestehenden
 //    recruiting-Agenten (agents.retrieval_categories).
+//
+//    ENTHAELT explizite Kompositum-Formen ("preiseinwand" usw.):
+//    "Preiseinwände" ist EIN zusammengeschriebenes deutsches Wort ohne
+//    Trennzeichen. \b...\b findet weder "preis" (rechte Wortgrenze
+//    fehlt) noch "einwand" (linke Wortgrenze fehlt) darin -- bestaetigt
+//    durch einen Testlauf mit der Qualitaetspruefungsliste aus dem
+//    Auftrag. Die zusammengeschriebene Form deshalb als EIGENER
+//    Listeneintrag, statt die Matching-Strategie fuer alle Woerter zu
+//    aendern (das haette an anderer Stelle neue Fehler erzeugt, siehe
+//    Kopfkommentar zu wordBoundary). Ein weiteres entdecktes Kompositum
+//    ist damit eine Zeile Ergaenzung hier, kein Eingriff im Code.
 // ------------------------------------------------------------
 const RECRUITING_KEYWORD = wordBoundary([
   'einwand', 'einwände', 'einwaende', 'preis', 'nachfassen', 'einladung', 'kein interesse',
+  'preiseinwand', 'preiseinwände', 'preiseinwaende',
 ]);
 
 export const recruiting: IntentDefinition = {

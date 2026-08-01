@@ -198,6 +198,32 @@ Deno.serve(async (req) => {
     // ueber agent.retrieval_categories unveraendert -- keine Regression.
     const tIntent = Date.now();
     const intentResult = classifyIntent(message);
+
+    // Kontext-Kontinuitaet bei Anschlussfragen (Sprint 3, Punkt 4).
+    // Beispiel aus dem Auftrag: "129" -> "Wie riecht er?" -> "Wie lange
+    // haelt er?". Die Anschlussfrage traegt fuer sich genommen kein
+    // erkennbares Schluesselwort und wuerde auf den Agenten-Standard
+    // zurueckfallen -- das wuerde die Kategorie mitten im Thema
+    // faelschlich zuruecksetzen. Abhilfe: faellt die AKTUELLE Nachricht
+    // auf 'unbekannt' zurueck UND es gibt eine vorherige Nutzernachricht
+    // in der Historie, wird DIESE testweise klassifiziert. Traf sie mit
+    // ausreichender Konfidenz, uebernimmt der aktuelle Turn ihre
+    // KATEGORIEN. Die Suchanfrage selbst bleibt die aktuelle Frage --
+    // nur die Kategorie "erbt" sich, nicht der Suchtext. Kein Schema,
+    // keine neue Tabelle: die Historie liegt ohnehin schon im Speicher.
+    let effectiveIntent = intentResult;
+    let intentSource: 'aktuelle_nachricht' | 'vorherige_nachricht' | 'agent_default' =
+      intentResult.fallbackToAgent ? 'agent_default' : 'aktuelle_nachricht';
+    if (intentResult.fallbackToAgent) {
+      const lastUserMsg = [...history].reverse().find((m) => m.role === 'user');
+      if (lastUserMsg) {
+        const priorIntent = classifyIntent(lastUserMsg.content);
+        if (!priorIntent.fallbackToAgent) {
+          effectiveIntent = { ...priorIntent, searchQuery: message };
+          intentSource = 'vorherige_nachricht';
+        }
+      }
+    }
     mark('intent_ms', tIntent);
 
     // ---------- Retrieval: Teamdokumente (unter RLS des Nutzers) ----------
@@ -205,7 +231,11 @@ Deno.serve(async (req) => {
     let knowledgeBlock = '';
     let hadKnowledge = false;
     let ragSkipped = false;
-    if (intentResult.skipRag) {
+    // Fuer die Protokollierung (Sprint 3, Punkt 6): welche Dokumente und
+    // wie viele Treffer tatsaechlich verwendet wurden.
+    let matchedDocs: Array<{ doc_id: string; doc_title: string; similarity: number }> = [];
+    let exactMatchChunkIds: string[] = [];
+    if (effectiveIntent.skipRag) {
       // Intent betrifft strukturierte Nutzerdaten (Kontakte, Aufgaben),
       // nicht die Wissensdatenbank. match_knowledge wuerde in der
       // falschen Quelle suchen. Stattdessen ein kurzer, ehrlicher
@@ -224,20 +254,20 @@ Deno.serve(async (req) => {
       // anders als Dokumente. Verwechslung kostet Trefferqualität, ohne
       // einen Fehler zu erzeugen.
       //
-      // intentResult.searchQuery statt der rohen Nachricht: bei Intent
+      // effectiveIntent.searchQuery statt der rohen Nachricht: bei Intent
       // "Duftnummer" waere die Einbettung von blossem "129" kaum nah an
       // einem Dokument, das "Duftnummer 129: ..." sagt. Ohne erkannten
       // Intent (fallbackToAgent) ist searchQuery identisch zur rohen
       // Nachricht, unveraendertes Verhalten.
-      const queryEmbedding = await geminiEmbed(intentResult.searchQuery, 'RETRIEVAL_QUERY');
+      const queryEmbedding = await geminiEmbed(effectiveIntent.searchQuery, 'RETRIEVAL_QUERY');
       const { data: matches } = await db.rpc('match_knowledge', {
         query_embedding: queryEmbedding,
         p_org_id: profile.org_id,
         // Erkannter Intent ueberschreibt NUR fuer diesen Aufruf die
         // Kategorien des Agenten -- agents.retrieval_categories selbst
         // bleibt unangetastet (Auftrag: Datenbank nicht aendern).
-        match_categories: !intentResult.fallbackToAgent && intentResult.categories.length
-          ? intentResult.categories
+        match_categories: !effectiveIntent.fallbackToAgent && effectiveIntent.categories.length
+          ? effectiveIntent.categories
           : (agent.retrieval_categories?.length ? agent.retrieval_categories : null),
         match_count: 5,
         // Wird jetzt EXPLIZIT übergeben statt den DB-Default (0.25) zu
@@ -249,6 +279,11 @@ Deno.serve(async (req) => {
       });
       if (matches && matches.length > 0) {
         hadKnowledge = true;
+        matchedDocs = matches.map(
+          (m: { doc_id: string; doc_title: string; similarity: number }) => ({
+            doc_id: m.doc_id, doc_title: m.doc_title, similarity: m.similarity,
+          }),
+        );
         knowledgeBlock =
           'AUSZÜGE AUS DEN TEAMDOKUMENTEN (oberste Wahrheit):\n' +
           matches.map((m: { doc_title: string; content: string }) =>
@@ -257,6 +292,60 @@ Deno.serve(async (req) => {
     } catch (_e) {
       // Embedding-Ausfall darf den Coach nicht stoppen: er antwortet
       // dann ohne Dokumente und behandelt Teamfragen als Wissenslücke.
+    }
+
+    // Exakter Zahlentreffer als Ergaenzung zur Vektorsuche (Sprint 3,
+    // Bugfix Punkt 1). Verifiziert gegen den echten Wissensbestand: eine
+    // blanke Zahl wie "129" traegt fuer ein Einbettungsmodell kaum
+    // eigenes Bedeutungsgewicht, benachbarte Nummern (128/129/130) liegen
+    // im Vektorraum praktisch gleich nah beieinander. Eine exakte
+    // Textsuche nach der Ziffernfolge, mit Wortgrenze (kein Teiltreffer
+    // wie "1290"), ist fuer GENAU DIESEN Fall zuverlaessiger als
+    // semantische Naehe. Ergaenzt die Vektorsuche, ersetzt sie nicht, und
+    // nutzt ausschliesslich vorhandene Tabellen -- keine neue Funktion,
+    // keine Migration. RLS greift identisch zu match_knowledge, weil
+    // derselbe `db`-Client mit demselben Nutzer-JWT verwendet wird.
+    if (effectiveIntent.intent === 'duft_nummer') {
+      const zahl = message.match(/\d{1,4}/)?.[0];
+      if (zahl) {
+        try {
+          const { data: kategorieDocs } = await db.from('knowledge_docs')
+            .select('id, title')
+            .eq('org_id', profile.org_id)
+            .in('category', effectiveIntent.categories);
+          const docIds = (kategorieDocs ?? []).map((d: { id: string }) => d.id);
+          if (docIds.length > 0) {
+            const { data: kandidaten } = await db.from('knowledge_chunks')
+              .select('id, doc_id, content')
+              .in('doc_id', docIds)
+              .ilike('content', `%${zahl}%`)
+              .limit(5);
+            const wortgrenze = new RegExp(`\\b${zahl}\\b`);
+            const treffer = (kandidaten ?? []).filter(
+              (c: { content: string }) => wortgrenze.test(c.content),
+            );
+            if (treffer.length > 0) {
+              hadKnowledge = true;
+              exactMatchChunkIds = treffer.map((c: { id: string }) => c.id);
+              const titelNachId = new Map(
+                (kategorieDocs ?? []).map((d: { id: string; title: string }) => [d.id, d.title]),
+              );
+              const exactBlock = treffer.map(
+                (c: { doc_id: string; content: string }) =>
+                  `[${titelNachId.get(c.doc_id) ?? 'Wissensdokument'}]\n${c.content}`,
+              ).join('\n---\n');
+              // Exakter Treffer zuerst: eine konkrete Ziffer ist eine
+              // staerkere Aussage als semantische Naehe.
+              knowledgeBlock = knowledgeBlock
+                ? `EXAKTER ZAHLENTREFFER (bevorzugt verwenden):\n${exactBlock}\n\n${knowledgeBlock}`
+                : `EXAKTER ZAHLENTREFFER (bevorzugt verwenden):\n${exactBlock}`;
+            }
+          }
+        } catch (_e) {
+          // Exakte Suche darf den Coach nie stoppen; die Vektorsuche
+          // bleibt dann die alleinige Quelle.
+        }
+      }
     }
     }
     if (!hadKnowledge && !ragSkipped) {
@@ -339,20 +428,35 @@ Deno.serve(async (req) => {
 
     mark('total_ms', t0);
     // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019).
-    // Sprint 3.1 ergaenzt: intent, confidence, durchsuchte Kategorien,
-    // Treffer und ob auf die agentengebundene Kategorie zurueckgefallen
-    // wurde -- exakt die im Auftrag verlangten Logfelder.
+    // Sprint 3 ergaenzt gegenueber 3.1: Dokumenttitel und Aehnlichkeit
+    // der Vektortreffer, Chunk-IDs des exakten Zahlentreffers,
+    // Gesamttrefferzahl, und ob der verwendete Intent von der aktuellen
+    // Nachricht, der vorherigen Nachricht (Kontext-Kontinuitaet) oder
+    // dem Agenten-Standard stammt. Dient ausschliesslich der
+    // Fehlersuche, wie im Auftrag festgelegt -- keine Nutzerinhalte,
+    // nur Metadaten.
     console.log(JSON.stringify({
       metric: 'coach_chat', agentKey, hadKnowledge,
       provider: chatResult.provider, providerModel: chatResult.model,
       intent: intentResult.intent,
       intentConfidence: intentResult.confidence,
-      knowledgeCategories: intentResult.skipRag ? [] :
-        (!intentResult.fallbackToAgent && intentResult.categories.length
-          ? intentResult.categories
+      intentSource,
+      effectiveIntent: effectiveIntent.intent,
+      // KORRIGIERT gegenueber der ersten Fassung: hier stand faelschlich
+      // intentResult statt effectiveIntent. Bei einer Anschlussfrage
+      // (intentSource='vorherige_nachricht') haette die Logzeile sonst
+      // eine andere Kategorie angezeigt als die, die tatsaechlich
+      // durchsucht wurde -- irrefuehrend genau fuer die Faelle, die
+      // dieses Feld nachvollziehbar machen soll.
+      knowledgeCategories: ragSkipped ? [] :
+        (!effectiveIntent.fallbackToAgent && effectiveIntent.categories.length
+          ? effectiveIntent.categories
           : (agent.retrieval_categories ?? [])),
       intentFallbackToAgent: intentResult.fallbackToAgent,
       ragSkipped,
+      matchedDocuments: matchedDocs.map((m) => ({ doc_id: m.doc_id, title: m.doc_title, similarity: m.similarity })),
+      exactMatchChunkIds,
+      hitCount: matchedDocs.length + exactMatchChunkIds.length,
       ...timings,
     }));
     return json({ conversationId: convoId, agentKey, reply, timings });

@@ -12,6 +12,40 @@ const CHIPS = [
   { label: '🎯 Gespräch vorbereiten', text: 'Bereite mich auf das nächste Gespräch vor.' },
 ];
 
+/**
+ * Erkennt bare URLs in einer Coach-Antwort und macht sie anklickbar.
+ * Sprint 3, Punkt 7. Bewusst als lokale Funktion hier statt als eigenes
+ * Modul: eine reine Anzeigefunktion fuer genau diese eine Stelle, kein
+ * neues Modul im Sinne des Auftrags ("keine neuen Module"). Veraendert
+ * die URL selbst NICHT -- trennt nur Text- von Link-Abschnitten fuer
+ * die Darstellung, mechanisch geprueft gegen alle vier im Auftrag
+ * genannten Adressen inklusive Satzzeichen am Ende.
+ *
+ * Der letzte Zeichenklassen-Ausschluss [^\s.,;:!?)\]"'] sorgt dafuer,
+ * dass ein abschliessendes Satzzeichen ("...netlify.app.") NICHT Teil
+ * des Links wird -- ohne ihn wuerde der Punkt versehentlich mit
+ * angeklickt und die Adresse waere ungueltig.
+ */
+const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
+
+function linkifyText(text: string): Array<string | JSX.Element> {
+  return text.split(URL_PATTERN).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline underline-offset-2 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 export function CoachPage() {
 
   // [F-1] Konversation lebt in der URL (?c=...) und wird beim Öffnen
@@ -103,7 +137,7 @@ export function CoachPage() {
                 : 'border border-line bg-surface'
             }`}
           >
-            {m.content}
+            {linkifyText(m.content)}
           </div>
         ))}
 
