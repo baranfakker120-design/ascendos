@@ -1,11 +1,16 @@
 /**
  * Datenbank-Typen für den Supabase-Client.
  *
- * Sprint 1: handgepflegt, exakt am Schema der Migrationen 1–3.
- * Ab lokal laufender DB gilt: `npm run db:types` überschreibt diese
- * Datei mit dem generierten Stand — DB und Frontend können dann nie
- * auseinanderlaufen (ADR-012). Die Struktur hier entspricht 1:1 dem
- * Generator-Format, damit der Wechsel keinerlei Code-Änderung braucht.
+ * TEMPORÄR ERWEITERT (Sprint 4 Phase 2 / Migrationen 15–19):
+ * Supabase CLI war in dieser Umgebung nicht verfügbar — daher keine
+ * Regeneration via `npm run db:types`. Die Tabellen `memberships`,
+ * `ranks` und die Rank-RPCs sowie die Korrektur an `profiles_public`
+ * (ohne `role`, Migration 17) wurden von Hand nachgezogen.
+ *
+ * Sobald lokal `supabase start` läuft: `npm run db:types` ausführen und
+ * committen. Die CI erzwingt danach wieder Schema-Identität (ADR-012 / A-1).
+ *
+ * Generator-Format bleibt 1:1, damit der Wechsel keine Feature-Änderungen braucht.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -381,6 +386,50 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      // --- ab Migration 15 / 18 (handnachgezogen, siehe Dateikopf) ---
+      memberships: {
+        Row: {
+          id: string;
+          identity_id: string;
+          org_id: string;
+          team_id: string;
+          sponsor_membership_id: string | null;
+          role: UserRole | 'admin';
+          status: 'pending' | 'active' | 'suspended' | 'ended';
+          country: string | null;
+          goals: Json;
+          ap_total: number;
+          joined_at: string;
+          left_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: {
+          country?: string | null;
+          goals?: Json;
+        };
+        Relationships: [];
+      };
+      ranks: {
+        Row: {
+          id: string;
+          org_id: string;
+          key: string;
+          label: string;
+          threshold_ap: number;
+          frame_asset: string | null;
+          payout_cents: number | null;
+          payout_kind: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       firstline_journey_progress: {
@@ -398,12 +447,12 @@ export interface Database {
         Relationships: [];
       };
       profiles_public: {
+        // Migration 17 / F2 Ä2: OHNE Spalte role
         Row: {
           id: string;
           org_id: string;
           team_id: string;
           sponsor_id: string | null;
-          role: UserRole;
           first_name: string;
           last_name: string;
           username: string;
@@ -457,6 +506,28 @@ export interface Database {
       get_downline: {
         Args: { root_user_id: string };
         Returns: { user_id: string; depth: number }[];
+      };
+      rank_for_ap: {
+        Args: { p_org_id: string; p_ap: number };
+        Returns: {
+          key: string;
+          label: string;
+          threshold_ap: number;
+          frame_asset: string | null;
+          sort_order: number;
+        }[];
+      };
+      next_rank_for_ap: {
+        Args: { p_org_id: string; p_ap: number };
+        Returns: {
+          key: string;
+          label: string;
+          threshold_ap: number;
+        }[];
+      };
+      active_membership_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
       };
     };
     Enums: Record<string, never>;

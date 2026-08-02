@@ -43,6 +43,8 @@ export default tseslint.config(
             { target: './src/features/more', from: './src/features', except: ['./more'] },
             { target: './src/features/onboarding', from: './src/features', except: ['./onboarding'] },
             { target: './src/features/progress', from: './src/features', except: ['./progress'] },
+            { target: './src/features/knowledge', from: './src/features', except: ['./knowledge'] },
+            { target: './src/features/profile', from: './src/features', except: ['./profile'] },
             { target: './src/shared', from: './src/features' },
             { target: './src/shared', from: './src/app' },
           ],
