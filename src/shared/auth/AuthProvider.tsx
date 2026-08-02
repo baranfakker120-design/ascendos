@@ -1,18 +1,44 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '@shared/api/supabase';
-import type { Profile } from '@shared/types/domain';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import { setActiveOrg, supabase } from '@shared/api/supabase';
+import type { Membership, Profile } from '@shared/types/domain';
+import {
+  isSuperAdminRole,
+  pickActiveMembership,
+  readStoredActiveOrg,
+  resolveActiveOrgId,
+  writeStoredActiveOrg,
+  type AuthorityRole,
+} from './membershipAuthority';
 
 /**
- * Liegt bewusst in shared/ (nicht features/): Session-State ist
- * Querschnitts-Infrastruktur wie der Supabase-Client. Features dürfen
- * nur aus shared importieren (ESLint-Grenze, ADR-012).
+ * Session + membership-backed authorization.
+ * Canonical role: memberships.role (active membership).
+ * profiles.role is display mirror only — never used for gates.
  */
 interface AuthState {
   /** undefined = wird noch geladen, null = nicht eingeloggt */
   session: Session | null | undefined;
   profile: Profile | null;
-  /** Profil erneut laden (z. B. nach Avatar-/Namensänderung). Ohne app_opened. */
+  /** Alle aktiven Mitgliedschaften der Identität. */
+  memberships: Membership[];
+  /** Aktive Mitgliedschaft (nach Org-Selektor). */
+  membership: Membership | null;
+  /** Rolle der aktiven Mitgliedschaft — einzige Auth-Wahrheit im Client. */
+  role: AuthorityRole | null;
+  isSuperAdmin: boolean;
+  /** Mehrere Orgs → Nutzer muss wählen / gespeicherte Wahl gilt. */
+  needsOrgSelection: boolean;
+  setActiveOrganization: (orgId: string) => void;
+  /** Profil + Mitgliedschaften neu laden. */
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -25,9 +51,43 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   return data;
 }
 
+async function fetchActiveMemberships(userId: string): Promise<Membership[]> {
+  const { data, error } = await supabase
+    .from('memberships')
+    .select('*')
+    .eq('identity_id', userId)
+    .eq('status', 'active')
+    .order('joined_at', { ascending: true });
+  if (error || !data) return [];
+  return data;
+}
+
+function applyOrgSelection(
+  userId: string,
+  memberships: Membership[],
+  mirrorOrgId: string | null,
+  preferredOrgId?: string | null
+): { orgId: string | null; membership: Membership | null } {
+  const orgId = resolveActiveOrgId(memberships, {
+    storedOrgId: preferredOrgId ?? readStoredActiveOrg(userId),
+    mirrorOrgId,
+  });
+  if (orgId) {
+    setActiveOrg(orgId);
+    writeStoredActiveOrg(userId, orgId);
+  } else {
+    setActiveOrg(null);
+  }
+  const membership = pickActiveMembership(memberships, orgId);
+  return { orgId, membership };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [membership, setMembership] = useState<Membership | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -37,52 +97,118 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const loadAuth = useCallback(async (userId: string, trackOpen: boolean) => {
+    const [profileRow, membershipRows] = await Promise.all([
+      fetchProfile(userId),
+      fetchActiveMemberships(userId),
+    ]);
+    setProfile(profileRow);
+    setMemberships(membershipRows);
+
+    const { membership: active } = applyOrgSelection(
+      userId,
+      membershipRows,
+      profileRow?.org_id ?? null
+    );
+    setMembership(active);
+    setAuthReady(true);
+
+    if (trackOpen && profileRow) {
+      const orgId = active?.org_id ?? profileRow.org_id;
+      void supabase
+        .from('usage_events')
+        .insert({ user_id: profileRow.id, org_id: orgId, event_type: 'app_opened' })
+        .then(
+          () => undefined,
+          () => undefined
+        );
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     if (!session) {
       setProfile(null);
+      setMemberships([]);
+      setMembership(null);
+      setActiveOrg(null);
+      setAuthReady(session === null);
       return;
     }
-    void fetchProfile(session.user.id).then((data) => {
+    setAuthReady(false);
+    void loadAuth(session.user.id, true).then(() => {
       if (cancelled) return;
-      setProfile(data);
-      // [P-2] app_opened: einziges clientseitiges Tracking-Event;
-      // Fehler werden ignoriert — Tracking bricht nie die App.
-      // Nur beim Session-gebundenen Erstladen, nicht bei refreshProfile.
-      if (data) {
-        void supabase
-          .from('usage_events')
-          .insert({ user_id: data.id, org_id: data.org_id, event_type: 'app_opened' })
-          .then(
-            () => undefined,
-            () => undefined
-          );
-      }
     });
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [session, loadAuth]);
+
+  const setActiveOrganization = useCallback(
+    (orgId: string) => {
+      if (!session?.user.id) return;
+      if (!memberships.some((m) => m.org_id === orgId && m.status === 'active')) return;
+      const { membership: next } = applyOrgSelection(
+        session.user.id,
+        memberships,
+        profile?.org_id ?? null,
+        orgId
+      );
+      setMembership(next);
+    },
+    [session, memberships, profile?.org_id]
+  );
 
   const refreshProfile = useCallback(async () => {
     const userId = (await supabase.auth.getSession()).data.session?.user.id;
     if (!userId) {
       setProfile(null);
+      setMemberships([]);
+      setMembership(null);
+      setActiveOrg(null);
       return;
     }
-    const data = await fetchProfile(userId);
-    setProfile(data);
+    await loadAuth(userId, false);
+  }, [loadAuth]);
+
+  const signOut = useCallback(async () => {
+    setActiveOrg(null);
+    await supabase.auth.signOut();
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const role = membership?.role ?? null;
+  const isSuperAdmin = isSuperAdminRole(role);
+  const needsOrgSelection = memberships.length > 1 && !membership;
 
-  return (
-    <AuthContext.Provider value={{ session, profile, refreshProfile, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthState>(
+    () => ({
+      session: session === undefined || (session && !authReady) ? undefined : session,
+      profile,
+      memberships,
+      membership,
+      role,
+      isSuperAdmin,
+      needsOrgSelection,
+      setActiveOrganization,
+      refreshProfile,
+      signOut,
+    }),
+    [
+      session,
+      authReady,
+      profile,
+      memberships,
+      membership,
+      role,
+      isSuperAdmin,
+      needsOrgSelection,
+      setActiveOrganization,
+      refreshProfile,
+      signOut,
+    ]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthState {

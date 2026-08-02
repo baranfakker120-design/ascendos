@@ -310,9 +310,20 @@ Deno.serve(async (req) => {
     const { data: userData } = await db.auth.getUser();
     if (!userData.user) return json({ error: 'Nicht angemeldet.' }, 401);
 
-    const { data: profile } = await db.from('profiles')
-      .select('*').eq('id', userData.user.id).single();
-    if (profile?.role !== 'super_admin') {
+    // Canonical authority: memberships.role (not profiles.role mirror).
+    const { data: memberships, error: membershipError } = await db
+      .from('memberships')
+      .select('id, org_id, role, status')
+      .eq('identity_id', userData.user.id)
+      .eq('status', 'active');
+    if (membershipError) throw membershipError;
+
+    const orgHeader = req.headers.get('x-ascendos-org');
+    const active =
+      memberships?.find((m) => orgHeader && m.org_id === orgHeader) ??
+      (memberships?.length === 1 ? memberships[0] : null);
+
+    if (!active || active.role !== 'super_admin') {
       return json({ error: 'Nur Super-Admins können Wissen aufnehmen.' }, 403);
     }
 
@@ -335,11 +346,11 @@ Deno.serve(async (req) => {
 
     const { data: doc, error: docError } = await db.from('knowledge_docs')
       .insert({
-        org_id: profile.org_id,
+        org_id: active.org_id,
         team_id: teamId,
         title,
         category,
-        author_id: profile.id,
+        author_id: userData.user.id,
         source_type: body.sourceType ?? 'document',
         status: 'draft',
       })

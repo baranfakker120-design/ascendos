@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { EnergyCore } from '@shared/ui/EnergyCore';
@@ -19,6 +20,7 @@ const ROLE_LABELS: Record<string, string> = {
  * Shared UI only — keine Animation, kein ProgressRing, kein Hero.
  */
 export function ProfilePage() {
+  const { role: membershipRole } = useAuth();
   const { data, isLoading, isError } = useProfileDetail();
 
   if (isLoading) {
@@ -31,7 +33,8 @@ export function ProfilePage() {
   const { profile, context, rank } = data;
   const displayName = `${profile.first_name} ${profile.last_name}`.trim();
   const currentLabel = rank.current?.label ?? null;
-  const roleLabel = ROLE_LABELS[profile.role] ?? profile.role;
+  // Anzeige aus aktiver Mitgliedschaft — profiles.role ist nur Spiegel.
+  const roleLabel = ROLE_LABELS[membershipRole ?? ''] ?? membershipRole ?? '—';
 
   return (
     <div className="space-y-4">

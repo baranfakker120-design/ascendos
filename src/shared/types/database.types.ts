@@ -15,7 +15,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type UserRole = 'super_admin' | 'leader' | 'berater';
+export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater';
 
 export interface Database {
   public: {

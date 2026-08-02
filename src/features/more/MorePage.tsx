@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
@@ -12,8 +13,9 @@ import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
  * System preferences live on Settings.
  */
 export function MorePage() {
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin, membership, needsOrgSelection } = useAuth();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -42,10 +44,25 @@ export function MorePage() {
   const createInvite = async () => {
     setBusy(true);
     setCopied(false);
+    setInviteError(null);
+    setInviteLink(null);
+
+    if (needsOrgSelection || !membership) {
+      setBusy(false);
+      setInviteError(
+        'Keine aktive Mitgliedschaft. Bitte Organisation wählen oder Support kontaktieren.'
+      );
+      return;
+    }
+
     const { data, error } = await supabase.rpc('create_invite', {});
     setBusy(false);
-    if (error || !data?.[0]) {
-      setInviteLink(null);
+    if (error) {
+      setInviteError(error.message || 'Einladung konnte nicht erstellt werden.');
+      return;
+    }
+    if (!data?.[0]?.invite_code) {
+      setInviteError('Einladung wurde nicht zurückgegeben. Bitte erneut versuchen.');
       return;
     }
     setInviteLink(`${window.location.origin}/registrieren?code=${data[0].invite_code}`);
@@ -120,6 +137,11 @@ export function MorePage() {
           Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14 Tage
           gültig, einmal verwendbar.
         </p>
+        {inviteError ? (
+          <div className="mt-3">
+            <Alert tone="error">{inviteError}</Alert>
+          </div>
+        ) : null}
         {inviteLink ? (
           <div className="mt-3 space-y-2">
             <p className="break-all rounded-xl bg-bg px-3 py-2 font-mono text-xs">{inviteLink}</p>
@@ -129,7 +151,7 @@ export function MorePage() {
           </div>
         ) : (
           <div className="mt-3">
-            <Button onClick={createInvite} disabled={busy}>
+            <Button onClick={createInvite} disabled={busy || needsOrgSelection || !membership}>
               {busy ? 'Wird erstellt …' : 'Einladungslink erstellen'}
             </Button>
           </div>
@@ -167,7 +189,7 @@ export function MorePage() {
         <p className="mt-1 text-sm text-muted">
           Wissen, Guides und Materialien für dein Leadership.
         </p>
-        {profile.role === 'super_admin' ? (
+        {isSuperAdmin ? (
           <Link
             to="/wissen"
             className="mt-3 flex h-12 items-center justify-center rounded-xl border border-line bg-surface px-4 text-base font-semibold text-ink hover:bg-bg"

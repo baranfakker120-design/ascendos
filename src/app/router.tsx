@@ -55,12 +55,11 @@ function RequireAuth() {
  * dass Berater auf eine Seite geraten, auf der jede Aktion scheitert.
  */
 function RequireSuperAdmin() {
-  const { session, profile } = useAuth();
+  const { session, isSuperAdmin } = useAuth();
   if (session === undefined) return <FullScreenSpinner />;
   if (session === null) return <Navigate to="/login" replace />;
-  // profile lädt asynchron nach der Session nach.
-  if (profile === null) return <FullScreenSpinner />;
-  if (profile.role !== 'super_admin') return <Navigate to="/more" replace />;
+  // Rolle kommt ausschließlich aus der aktiven Mitgliedschaft.
+  if (!isSuperAdmin) return <Navigate to="/more" replace />;
   return <Outlet />;
 }
 
