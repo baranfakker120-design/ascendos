@@ -52,6 +52,8 @@ export function useProfileDetail() {
         .select('*')
         .eq('id', userId)
         .single();
+      // TEMP DEBUG — remove after identifying failing call
+      console.log('[TEMP profile-debug] profile', { data: profile, error: profileError });
       if (profileError) throw profileError;
 
       const [team, org, sponsor, membership] = await Promise.all([
@@ -73,6 +75,12 @@ export function useProfileDetail() {
           .maybeSingle(),
       ]);
 
+      // TEMP DEBUG — remove after identifying failing call
+      console.log('[TEMP profile-debug] memberships', {
+        data: membership.data,
+        error: membership.error,
+      });
+
       if (team.error) throw team.error;
       if (org.error) throw org.error;
       if (sponsor.error) throw sponsor.error;
@@ -86,6 +94,15 @@ export function useProfileDetail() {
         supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
         supabase.rpc('next_rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
       ]);
+      // TEMP DEBUG — remove after identifying failing call
+      console.log('[TEMP profile-debug] rank_for_ap', {
+        data: currentRank.data,
+        error: currentRank.error,
+      });
+      console.log('[TEMP profile-debug] next_rank_for_ap', {
+        data: nextRank.data,
+        error: nextRank.error,
+      });
       if (currentRank.error) throw currentRank.error;
       if (nextRank.error) throw nextRank.error;
 
