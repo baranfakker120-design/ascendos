@@ -28,8 +28,8 @@ export interface RankFrameProps {
  * oder schlägt das Laden fehl, bleibt ein ruhiger Champagner-Ring —
  * sonst kein Placeholder unter dem echten Rahmen.
  *
- * Premium: sehr langsamer Champagner-Lichtschweif über dem bestehenden
- * Frame (maskiert am Asset). Keine neuen Assets, keine Geometrieänderung.
+ * Premium: langsamer Champagner-Shimmer über dem bestehenden Frame
+ * (translateX + opacity, overflow clip). Keine neuen Assets.
  */
 export function RankFrame({
   frameKey = null,
@@ -76,23 +76,16 @@ export function RankFrame({
       </div>
 
       {showFrame ? (
-        <div className="pointer-events-none absolute inset-0 z-[2]">
+        <div className="rank-frame-layer">
           <img
             src={frameSrc}
             alt=""
             aria-hidden
-            className="h-full w-full object-contain"
+            className="relative z-0 h-full w-full object-contain"
             draggable={false}
             onError={() => setFrameFailed(true)}
           />
-          <span
-            className="rank-frame-sheen"
-            aria-hidden
-            style={{
-              maskImage: `url(${frameSrc})`,
-              WebkitMaskImage: `url(${frameSrc})`,
-            }}
-          />
+          <div className="rank-frame-sheen" aria-hidden />
         </div>
       ) : null}
     </div>
