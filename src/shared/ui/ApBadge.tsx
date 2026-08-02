@@ -36,12 +36,7 @@ export interface ApBadgeProps {
  * AP-Badge: lebende Zahl über optionalem Sticker.
  * Nur Präsentation — keine Features, kein Supabase.
  */
-export function ApBadge({
-  value,
-  size = 'md',
-  stickerSrc = null,
-  className = '',
-}: ApBadgeProps) {
+export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' }: ApBadgeProps) {
   const px = AP_BADGE_SIZE_PX[size];
   const hasSticker = !!stickerSrc;
   const display = formatApBadgeValue(value);
@@ -70,10 +65,7 @@ export function ApBadge({
       )}
 
       <div className="relative z-[1] flex flex-col items-center justify-center leading-none">
-        <span
-          className={`font-bold tabular-nums text-ink ${valueClass(size)}`}
-          aria-hidden
-        >
+        <span className={`font-bold tabular-nums text-ink ${valueClass(size)}`} aria-hidden>
           {display}
         </span>
         <span
