@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -17,6 +18,7 @@ import { useProfileDetail, useUpdateProfile } from './profileApi';
 export function ProfileEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { refreshProfile } = useAuth();
   const { data, isLoading, isError } = useProfileDetail();
   const updateProfile = useUpdateProfile();
 
@@ -95,6 +97,7 @@ export function ProfileEditPage() {
             void queryClient.invalidateQueries({
               queryKey: ['profile-detail', data.profile.id],
             });
+            void refreshProfile();
           }}
         />
       </Card>

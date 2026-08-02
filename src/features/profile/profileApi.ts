@@ -111,7 +111,7 @@ export function useProfileDetail() {
 
 /** Erlaubte Identitätsfelder speichern (username/role/org/team/sponsor bleiben unberührt). */
 export function useUpdateProfile() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: ProfileUpdateInput): Promise<Profile> => {
@@ -132,7 +132,10 @@ export function useUpdateProfile() {
       return data;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['profile-detail', profile?.id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['profile-detail', profile?.id] }),
+        refreshProfile(),
+      ]);
     },
   });
 }
