@@ -4,9 +4,8 @@
  * Öffnungsmaße aus docs/sprint-4-plan.md (vermessen, nicht geschätzt).
  * Bezugsrahmen der Messung: 1024 px Quellenbreite.
  *
- * Phase B liefert KEINE Bilddateien. resolveFrameSrc zeigt auf den
- * späteren öffentlichen Pfad; die UI fällt ohne Datei auf den
- * Placeholder-Ring zurück.
+ * Dateien unter public/brand/frames/ (Skript: generate-frame-assets.py).
+ * Fehlt eine Datei, fällt RankFrame auf den Placeholder-Ring zurück.
  */
 
 export interface FrameGeometry {

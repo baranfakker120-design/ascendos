@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Avatar } from './Avatar';
 import {
   FRAME_DISPLAY_PX,
@@ -23,9 +23,9 @@ export interface RankFrameProps {
 /**
  * Avatar mit optionalem Rangrahmen.
  *
- * Phase B: keine ausgelieferten Rahmen-Assets. Existiert die WebP nicht
- * (oder der Schlüssel ist unbekannt), bleibt ein ruhiger Champagner-Ring —
- * business-first Placeholder, keine Fantasy-Optik.
+ * Rahmen-Asset unter /brand/frames/{key}-{px}.webp. Fehlt der Schlüssel
+ * oder schlägt das Laden fehl, bleibt ein ruhiger Champagner-Ring —
+ * sonst kein Placeholder unter dem echten Rahmen.
  *
  * Keine Animation.
  */
@@ -48,13 +48,19 @@ export function RankFrame({
   const offsetY = layout ? Math.round(box * layout.offsetYRatio) : 0;
   const avatarPx = Math.min(openingWidth, openingHeight);
 
+  useEffect(() => {
+    setFrameFailed(false);
+  }, [frameSrc]);
+
   return (
     <div
       className={`relative inline-flex shrink-0 items-center justify-center ${className}`}
       style={{ width: box, height: box }}
     >
-      {/* Placeholder-Ring — immer unter dem optionalen Rahmen-Asset. */}
-      <div className="absolute inset-0 rounded-full border-2 border-accent/50" aria-hidden />
+      {/* Placeholder nur wenn kein Rahmen-Asset angezeigt wird. */}
+      {!showFrame ? (
+        <div className="absolute inset-0 rounded-full border-2 border-accent/50" aria-hidden />
+      ) : null}
 
       <div
         className="relative z-[1] flex items-center justify-center overflow-hidden rounded-full"
