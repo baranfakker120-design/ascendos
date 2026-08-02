@@ -1,0 +1,66 @@
+/* Premium frame champagne light sweep — transform / opacity / mask only */
+
+.rank-frame-sheen {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.rank-frame-sheen::before {
+  content: '';
+  position: absolute;
+  top: -25%;
+  left: -55%;
+  width: 38%;
+  height: 150%;
+  /* Soft brushed-metal catch — not a fill, only a traveling highlight. */
+  background: linear-gradient(
+    105deg,
+    rgb(255 255 255 / 0) 0%,
+    rgb(255 255 255 / 0) 38%,
+    rgb(255 248 235 / 0.22) 48%,
+    rgb(184 147 90 / 0.28) 52%,
+    rgb(255 255 255 / 0) 62%,
+    rgb(255 255 255 / 0) 100%
+  );
+  opacity: 0;
+  transform: translate3d(0, 0, 0) rotate(14deg);
+  will-change: transform, opacity;
+  animation: rank-frame-sheen 10s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+@keyframes rank-frame-sheen {
+  0% {
+    transform: translate3d(0%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.55;
+  }
+  42% {
+    opacity: 0.4;
+  }
+  55% {
+    transform: translate3d(320%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translate3d(320%, 0, 0) rotate(14deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-frame-sheen::before {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
