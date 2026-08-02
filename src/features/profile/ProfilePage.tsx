@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import { EnergyCore } from '@shared/ui/EnergyCore';
+import { RankChip } from '@shared/ui/RankChip';
 import { RankFrame } from '@shared/ui/RankFrame';
+import { StatCard, formatStatNumber } from '@shared/ui/StatCard';
 import { useProfileDetail } from './profileApi';
-import { RankSummary } from './RankSummary';
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super-Admin',
@@ -14,7 +16,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 /**
  * Eigenes Profil: Identität, Rang/AP, geschäftlicher Kontext.
- * Keine Animation, kein Hero, keine Sammlung.
+ * Shared UI only — keine Animation, kein ProgressRing, kein Hero.
  */
 export function ProfilePage() {
   const { data, isLoading, isError } = useProfileDetail();
@@ -28,18 +30,12 @@ export function ProfilePage() {
 
   const { profile, context, rank } = data;
   const displayName = `${profile.first_name} ${profile.last_name}`.trim();
+  const currentLabel = rank.current?.label ?? null;
+  const roleLabel = ROLE_LABELS[profile.role] ?? profile.role;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold">Profil</h1>
-        <Link
-          to="/profil/bearbeiten"
-          className="text-sm font-semibold text-accent-deep hover:underline"
-        >
-          Bearbeiten
-        </Link>
-      </div>
+      <h1 className="text-2xl font-bold">Profil</h1>
 
       <Card className="flex flex-col items-center gap-4 text-center">
         <RankFrame
@@ -52,26 +48,38 @@ export function ProfilePage() {
           <p className="text-xl font-semibold">{displayName}</p>
           <p className="text-sm text-muted">@{profile.username}</p>
         </div>
+        {currentLabel ? (
+          <RankChip
+            label={currentLabel}
+            frameKey={rank.current?.frame_asset ?? null}
+            variant="framed"
+          />
+        ) : null}
       </Card>
 
       <Card>
-        <RankSummary apTotal={rank.apTotal} current={rank.current} next={rank.next} />
+        <EnergyCore
+          ap={rank.apTotal}
+          currentThreshold={rank.current?.threshold_ap ?? 0}
+          nextThreshold={rank.next?.threshold_ap ?? null}
+          nextRankLabel={rank.next?.label ?? null}
+          size="lg"
+        />
       </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="Aktuelle AP" value={formatStatNumber(rank.apTotal)} />
+        <StatCard label="Aktueller Rang" value={currentLabel} />
+        <StatCard label="Organisation" value={context.orgName} />
+        <StatCard label="Rolle" value={roleLabel} />
+      </div>
 
       <Card>
         <p className="font-semibold">Geschäftskontext</p>
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-3">
-            <dt className="text-muted">Rolle</dt>
-            <dd className="font-medium">{ROLE_LABELS[profile.role] ?? profile.role}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
             <dt className="text-muted">Team</dt>
             <dd className="font-medium">{context.teamName}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt className="text-muted">Organisation</dt>
-            <dd className="font-medium">{context.orgName}</dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted">Sponsor</dt>
