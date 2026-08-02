@@ -93,36 +93,46 @@ export function MorePage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Mehr</h1>
 
-      <Card>
-        <p className="text-lg font-semibold">
-          {profile.first_name} {profile.last_name}
-        </p>
-        <p className="text-sm text-muted">@{profile.username}</p>
-        <dl className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-muted">Rolle</dt>
-            <dd className="font-medium">{ROLE_LABELS[profile.role] ?? profile.role}</dd>
+      <Link to="/profil" className="block">
+        <Card>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-lg font-semibold">
+                {profile.first_name} {profile.last_name}
+              </p>
+              <p className="text-sm text-muted">@{profile.username}</p>
+            </div>
+            <span className="shrink-0 text-primary" aria-hidden>
+              →
+            </span>
           </div>
-          <div className="flex justify-between">
-            <dt className="text-muted">Team</dt>
-            <dd className="font-medium">{context?.teamName ?? '…'}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted">Organisation</dt>
-            <dd className="font-medium">{context?.orgName ?? '…'}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted">Sponsor</dt>
-            <dd className="font-medium">{context?.sponsorName ?? 'Gründungsmitglied'}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted">Firstline</dt>
-            <dd className="font-medium">
-              {context ? `${context.firstlineCount} Partner` : '…'}
-            </dd>
-          </div>
-        </dl>
-      </Card>
+          <dl className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted">Rolle</dt>
+              <dd className="font-medium">{ROLE_LABELS[profile.role] ?? profile.role}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted">Team</dt>
+              <dd className="font-medium">{context?.teamName ?? '…'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted">Organisation</dt>
+              <dd className="font-medium">{context?.orgName ?? '…'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted">Sponsor</dt>
+              <dd className="font-medium">{context?.sponsorName ?? 'Gründungsmitglied'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted">Firstline</dt>
+              <dd className="font-medium">
+                {context ? `${context.firstlineCount} Partner` : '…'}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-sm font-semibold text-accent-deep">Profil öffnen</p>
+        </Card>
+      </Link>
 
       <Link to="/reise" className="block">
         <Card className="flex items-center justify-between">

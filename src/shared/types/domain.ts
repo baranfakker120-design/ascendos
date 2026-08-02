@@ -67,6 +67,16 @@ export type Achievement = Database['public']['Tables']['achievements']['Row'];
 export type UserAchievement = Database['public']['Tables']['user_achievements']['Row'];
 export type FirstlineProgress =
   Database['public']['Views']['firstline_journey_progress']['Row'];
+export type Membership = Database['public']['Tables']['memberships']['Row'];
+export type Rank = Database['public']['Tables']['ranks']['Row'];
+export type ProfilesPublic = Database['public']['Views']['profiles_public']['Row'];
+
+/** Rückgabe von public.rank_for_ap — Schwelle + Rahmen-Schlüssel. */
+export type RankForAp = Database['public']['Functions']['rank_for_ap']['Returns'][number];
+
+/** Rückgabe von public.next_rank_for_ap — nächste Schwelle oder leer. */
+export type NextRankForAp =
+  Database['public']['Functions']['next_rank_for_ap']['Returns'][number];
 
 /** Inhalt eines Journey-Schritts (content-JSONB, ADR-005). */
 export interface JourneyStepContent {

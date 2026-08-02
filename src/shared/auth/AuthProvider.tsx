@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@shared/api/supabase';
 import type { Profile } from '@shared/types/domain';
 
@@ -12,10 +12,18 @@ interface AuthState {
   /** undefined = wird noch geladen, null = nicht eingeloggt */
   session: Session | null | undefined;
   profile: Profile | null;
+  /** Profil erneut laden (z. B. nach Avatar-/Namensänderung). Ohne app_opened. */
+  refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (error) return null;
+  return data;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -35,37 +43,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       return;
     }
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setProfile(data);
-        // [P-2] app_opened: einziges clientseitiges Tracking-Event;
-        // Fehler werden ignoriert — Tracking bricht nie die App.
-        if (data) {
-          void supabase
-            .from('usage_events')
-            .insert({ user_id: data.id, org_id: data.org_id, event_type: 'app_opened' })
-            .then(
-              () => undefined,
-              () => undefined
-            );
-        }
-      });
+    void fetchProfile(session.user.id).then((data) => {
+      if (cancelled) return;
+      setProfile(data);
+      // [P-2] app_opened: einziges clientseitiges Tracking-Event;
+      // Fehler werden ignoriert — Tracking bricht nie die App.
+      // Nur beim Session-gebundenen Erstladen, nicht bei refreshProfile.
+      if (data) {
+        void supabase
+          .from('usage_events')
+          .insert({ user_id: data.id, org_id: data.org_id, event_type: 'app_opened' })
+          .then(
+            () => undefined,
+            () => undefined
+          );
+      }
+    });
     return () => {
       cancelled = true;
     };
   }, [session]);
+
+  const refreshProfile = useCallback(async () => {
+    const userId = (await supabase.auth.getSession()).data.session?.user.id;
+    if (!userId) {
+      setProfile(null);
+      return;
+    }
+    const data = await fetchProfile(userId);
+    setProfile(data);
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ session, profile, signOut }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, profile, refreshProfile, signOut }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
