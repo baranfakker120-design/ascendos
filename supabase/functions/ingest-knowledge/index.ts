@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
         const vectors = await geminiEmbedBatch(slice, 'RETRIEVAL_DOCUMENT');
         const rows = slice.map((text, i) => ({
           doc_id: doc.id,
-          org_id: profile.org_id,
+          org_id: active.org_id,
           chunk_index: start + i,
           content: text,
           embedding: vectors[i],
