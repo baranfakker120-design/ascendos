@@ -1,0 +1,178 @@
+import { useCallback, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { triggerNavHaptic } from '@shared/lib/haptics';
+import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
+import {
+  AscendLogo,
+  ContactsIcon,
+  ProfileIcon,
+  TeamSeydaIcon,
+  TodayIcon,
+} from './nav/NavIcons';
+
+export type NavTabId = 'heute' | 'kontakte' | 'coach' | 'team' | 'profil';
+
+interface NavTab {
+  id: NavTabId;
+  to: string;
+  label: string;
+  ariaLabel: string;
+  end?: boolean;
+  externalInApp?: boolean;
+}
+
+export const BOTTOM_NAV_TABS: readonly NavTab[] = [
+  { id: 'heute', to: '/', label: 'Heute', ariaLabel: 'Heute', end: true },
+  { id: 'kontakte', to: '/kontakte', label: 'Kontakte', ariaLabel: 'Kontakte' },
+  { id: 'coach', to: '/coach', label: 'Coach', ariaLabel: 'Coach — Ascend' },
+  {
+    id: 'team',
+    to: '/team-seyda',
+    label: 'Team',
+    ariaLabel: 'Team Seyda',
+    externalInApp: true,
+  },
+  { id: 'profil', to: '/profil', label: 'Profil', ariaLabel: 'Profil' },
+] as const;
+
+function isTabActive(tab: NavTab, pathname: string): boolean {
+  if (tab.end) return pathname === tab.to;
+  return pathname === tab.to || pathname.startsWith(`${tab.to}/`);
+}
+
+/**
+ * AAA cinematic bottom navigation — floating shell, custom icons,
+ * signature liquid champagne hold effect. Ascend logo unchanged.
+ */
+export function BottomNav() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [burstId, setBurstId] = useState<NavTabId | null>(null);
+  const [burstKey, setBurstKey] = useState(0);
+
+  const playBurst = useCallback((id: NavTabId) => {
+    triggerNavHaptic(150);
+    setBurstId(id);
+    setBurstKey((k) => k + 1);
+    window.setTimeout(() => {
+      setBurstId((current) => (current === id ? null : current));
+    }, 520);
+  }, []);
+
+  const renderIcon = (id: NavTabId, active: boolean) => {
+    const burst = burstId === id;
+    const key = `${id}-${burstKey}`;
+    switch (id) {
+      case 'heute':
+        return <TodayIcon key={key} active={active} burst={burst} />;
+      case 'kontakte':
+        return <ContactsIcon key={key} active={active} burst={burst} />;
+      case 'coach':
+        return <AscendLogo key={key} active={active} burst={burst} />;
+      case 'team':
+        return <TeamSeydaIcon key={key} active={active} burst={burst} />;
+      case 'profil':
+        return <ProfileIcon key={key} active={active} burst={burst} />;
+    }
+  };
+
+  return (
+    <nav
+      aria-label="Hauptnavigation"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+    >
+      <div className="pointer-events-auto relative mx-auto max-w-lg">
+        <div className="nav-shell relative grid grid-cols-5 items-end rounded-[1.75rem] border border-line bg-surface px-1.5 pb-2 pt-2 shadow-[0_10px_40px_rgb(17_18_20/0.08),0_1px_0_rgb(255_255_255/0.8)_inset]">
+          {BOTTOM_NAV_TABS.map((tab) => {
+            const active = isTabActive(tab, location.pathname);
+            const isCenter = tab.id === 'coach';
+
+            if (isCenter) {
+              return (
+                <div key={tab.id} className="relative flex justify-center">
+                  <LiquidChampagne>
+                    <NavLink
+                      to={tab.to}
+                      aria-label={tab.ariaLabel}
+                      onClick={() => playBurst(tab.id)}
+                      className={({ isActive }) =>
+                        [
+                          'nav-center-btn group relative -mt-7 flex min-h-[44px] min-w-[44px] flex-col items-center justify-end gap-0.5 outline-none',
+                          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                          isActive ? 'text-accent-deep' : 'text-muted',
+                        ].join(' ')
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <span
+                            className={[
+                              'nav-center-disc flex h-[3.6rem] w-[3.6rem] items-center justify-center rounded-full border border-line bg-surface',
+                              'shadow-[0_8px_28px_rgb(184_147_90/0.22),0_2px_8px_rgb(17_18_20/0.06)]',
+                              isActive ? 'nav-center-disc-active' : '',
+                            ].join(' ')}
+                          >
+                            {renderIcon(tab.id, isActive)}
+                          </span>
+                          <span
+                            className={[
+                              'text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
+                              isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
+                            ].join(' ')}
+                          >
+                            {tab.label}
+                          </span>
+                        </>
+                      )}
+                    </NavLink>
+                  </LiquidChampagne>
+                </div>
+              );
+            }
+
+            return (
+              <LiquidChampagne key={tab.id} className="w-full justify-center">
+                <NavLink
+                  to={tab.to}
+                  end={tab.end}
+                  aria-label={tab.ariaLabel}
+                  onClick={(e) => {
+                    playBurst(tab.id);
+                    if (tab.externalInApp) {
+                      // Stay in PWA shell — never window.open.
+                      e.preventDefault();
+                      navigate(tab.to);
+                    }
+                  }}
+                  className={({ isActive }) =>
+                    [
+                      'flex min-h-[44px] w-full flex-col items-center justify-end gap-1 px-1 py-1 outline-none',
+                      'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                      isActive ? 'text-accent-deep' : 'text-muted',
+                    ].join(' ')
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span className={isActive ? 'nav-icon-active-glow' : undefined}>
+                        {renderIcon(tab.id, isActive || active)}
+                      </span>
+                      <span
+                        className={[
+                          'text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
+                          isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
+                        ].join(' ')}
+                      >
+                        {tab.label}
+                      </span>
+                    </>
+                  )}
+                </NavLink>
+              </LiquidChampagne>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}

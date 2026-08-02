@@ -13,6 +13,7 @@ import { useJourneyState } from '@features/onboarding/journeyApi';
 import { ProgressPage } from '@features/progress/ProgressPage';
 import { ProfileEditPage } from '@features/profile/ProfileEditPage';
 import { ProfilePage } from '@features/profile/ProfilePage';
+import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { useAuth } from '@shared/auth/AuthProvider';
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
           { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
           { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
           { path: '/coach', element: <CoachPage /> },
+          { path: '/team-seyda', element: <TeamSeydaPage /> },
           { path: '/mehr', element: <MorePage /> },
           { path: '/profil', element: <ProfilePage /> },
           { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
