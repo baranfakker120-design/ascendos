@@ -1,12 +1,18 @@
 import { Outlet } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
+import { LanguageMenu } from './nav/LanguageMenu';
 import './nav/bottom-nav.css';
 
 /** Grundgerüst der eingeloggten App: Inhalt oben, cinematic Bottom-Nav unten. */
 export function AppShell() {
   return (
     <div className="mx-auto flex h-full max-w-lg flex-col">
-      <main className="flex-1 overflow-y-auto px-4 pb-32 pt-6">
+      <header className="pointer-events-none sticky top-0 z-30 flex justify-end px-4 pb-1 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="pointer-events-auto">
+          <LanguageMenu />
+        </div>
+      </header>
+      <main className="flex-1 overflow-y-auto px-4 pb-32 pt-2">
         <Outlet />
       </main>
       <BottomNav />

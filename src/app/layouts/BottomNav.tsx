@@ -5,10 +5,10 @@ import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
 import {
   AscendLogo,
   ContactsIcon,
-  ProfileIcon,
   TeamSeydaIcon,
   TodayIcon,
 } from './nav/NavIcons';
+import { ProfileStack } from './nav/ProfileStack';
 
 export type NavTabId = 'heute' | 'kontakte' | 'coach' | 'team' | 'profil';
 
@@ -36,6 +36,18 @@ export const BOTTOM_NAV_TABS: readonly NavTab[] = [
 ] as const;
 
 function isTabActive(tab: NavTab, pathname: string): boolean {
+  if (tab.id === 'profil') {
+    return (
+      pathname === '/profil' ||
+      pathname.startsWith('/profil/') ||
+      pathname === '/settings' ||
+      pathname.startsWith('/settings/') ||
+      pathname === '/more' ||
+      pathname.startsWith('/more/') ||
+      pathname === '/mehr' ||
+      pathname.startsWith('/mehr/')
+    );
+  }
   if (tab.end) return pathname === tab.to;
   return pathname === tab.to || pathname.startsWith(`${tab.to}/`);
 }
@@ -59,7 +71,7 @@ export function BottomNav() {
     }, 520);
   }, []);
 
-  const renderIcon = (id: NavTabId, active: boolean) => {
+  const renderIcon = (id: Exclude<NavTabId, 'profil'>, active: boolean) => {
     const burst = burstId === id;
     const key = `${id}-${burstKey}`;
     switch (id) {
@@ -71,8 +83,6 @@ export function BottomNav() {
         return <AscendLogo key={key} active={active} burst={burst} />;
       case 'team':
         return <TeamSeydaIcon key={key} active={active} burst={burst} />;
-      case 'profil':
-        return <ProfileIcon key={key} active={active} burst={burst} />;
     }
   };
 
@@ -86,6 +96,23 @@ export function BottomNav() {
           {BOTTOM_NAV_TABS.map((tab) => {
             const active = isTabActive(tab, location.pathname);
             const isCenter = tab.id === 'coach';
+
+            if (tab.id === 'profil') {
+              return (
+                <ProfileStack
+                  key={tab.id}
+                  burst={burstId === 'profil'}
+                  burstKey={burstKey}
+                  onBurst={() => {
+                    setBurstId('profil');
+                    setBurstKey((k) => k + 1);
+                    window.setTimeout(() => {
+                      setBurstId((current) => (current === 'profil' ? null : current));
+                    }, 520);
+                  }}
+                />
+              );
+            }
 
             if (isCenter) {
               return (
@@ -112,7 +139,7 @@ export function BottomNav() {
                               isActive ? 'nav-center-disc-active' : '',
                             ].join(' ')}
                           >
-                            {renderIcon(tab.id, isActive)}
+                            {renderIcon('coach', isActive)}
                           </span>
                           <span
                             className={[
@@ -130,6 +157,8 @@ export function BottomNav() {
               );
             }
 
+            const sideId = tab.id as 'heute' | 'kontakte' | 'team';
+
             return (
               <LiquidChampagne key={tab.id} className="w-full justify-center">
                 <NavLink
@@ -139,7 +168,6 @@ export function BottomNav() {
                   onClick={(e) => {
                     playBurst(tab.id);
                     if (tab.externalInApp) {
-                      // Stay in PWA shell — never window.open.
                       e.preventDefault();
                       navigate(tab.to);
                     }
@@ -148,19 +176,21 @@ export function BottomNav() {
                     [
                       'flex min-h-[44px] w-full flex-col items-center justify-end gap-1 px-1 py-1 outline-none',
                       'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                      isActive ? 'text-accent-deep' : 'text-muted',
+                      isActive || active ? 'text-accent-deep' : 'text-muted',
                     ].join(' ')
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <span className={isActive ? 'nav-icon-active-glow' : undefined}>
-                        {renderIcon(tab.id, isActive || active)}
+                      <span className={isActive || active ? 'nav-icon-active-glow' : undefined}>
+                        {renderIcon(sideId, isActive || active)}
                       </span>
                       <span
                         className={[
                           'text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
-                          isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
+                          isActive || active
+                            ? 'font-bold text-accent-deep'
+                            : 'font-medium text-muted',
                         ].join(' ')}
                       >
                         {tab.label}

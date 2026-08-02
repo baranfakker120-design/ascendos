@@ -199,3 +199,42 @@ export function AscendLogo({ active, burst, className = '' }: NavIconProps) {
     />
   );
 }
+
+/** Mehr — ellipsis dial. */
+export function MoreIcon({ active, className = '' }: NavIconProps) {
+  return (
+    <svg
+      className={`${base} ${active ? 'text-accent-deep' : 'text-muted'} ${className}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.45" />
+      <path d="M12 20.25v1.35" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" />
+      <circle cx="8.2" cy="12" r="1.05" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.05" fill="currentColor" />
+      <circle cx="15.8" cy="12" r="1.05" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Einstellungen — gear. */
+export function SettingsIcon({ active, className = '' }: NavIconProps) {
+  return (
+    <svg
+      className={`${base} ${active ? 'text-accent-deep' : 'text-muted'} ${className}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M12 4.2v1.5M12 18.3v1.5M4.2 12h1.5M18.3 12h1.5M6.5 6.5l1.1 1.1M16.4 16.4l1.1 1.1M17.5 6.5l-1.1 1.1M7.6 16.4l-1.1 1.1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="12" r="6.4" stroke="currentColor" strokeWidth="1.35" strokeDasharray="2.2 2.4" />
+    </svg>
+  );
+}

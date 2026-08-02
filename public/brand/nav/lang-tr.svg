@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+  <defs><clipPath id="trClip"><circle cx="16" cy="16" r="13"/></clipPath></defs>
+  <circle cx="16" cy="16" r="14.25" stroke="#B8935A" stroke-width="1.5" fill="#F7F6F3"/>
+  <g clip-path="url(#trClip)">
+    <rect x="3" y="3" width="26" height="26" fill="#C0392B"/>
+    <circle cx="14.2" cy="16" r="5.2" fill="#fff"/>
+    <circle cx="15.4" cy="16" r="4.1" fill="#C0392B"/>
+    <path d="M18.6 16l2.4-.8-.4 2.5 1.7 1.9-2.6.1L18.6 22l-1.1-2.3-2.6-.1 1.7-1.9-.4-2.5 2.4.8Z" fill="#fff"/>
+  </g>
+  <circle cx="16" cy="16" r="14.25" stroke="#B8935A" stroke-width="1.5" fill="none"/>
+</svg>

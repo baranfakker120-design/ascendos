@@ -13,6 +13,7 @@ import { useJourneyState } from '@features/onboarding/journeyApi';
 import { ProgressPage } from '@features/progress/ProgressPage';
 import { ProfileEditPage } from '@features/profile/ProfileEditPage';
 import { ProfilePage } from '@features/profile/ProfilePage';
+import { SettingsPage } from '@features/settings/SettingsPage';
 import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
@@ -59,7 +60,7 @@ function RequireSuperAdmin() {
   if (session === null) return <Navigate to="/login" replace />;
   // profile lädt asynchron nach der Session nach.
   if (profile === null) return <FullScreenSpinner />;
-  if (profile.role !== 'super_admin') return <Navigate to="/mehr" replace />;
+  if (profile.role !== 'super_admin') return <Navigate to="/more" replace />;
   return <Outlet />;
 }
 
@@ -98,7 +99,9 @@ export const router = createBrowserRouter([
           { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
           { path: '/coach', element: <CoachPage /> },
           { path: '/team-seyda', element: <TeamSeydaPage /> },
-          { path: '/mehr', element: <MorePage /> },
+          { path: '/more', element: <MorePage /> },
+          { path: '/mehr', element: <Navigate to="/more" replace /> },
+          { path: '/settings', element: <SettingsPage /> },
           { path: '/profil', element: <ProfilePage /> },
           { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
           {

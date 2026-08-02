@@ -5,56 +5,17 @@ import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
-import type { FirstlineProgress } from '@shared/types/domain';
-
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: 'Super-Admin',
-  leader: 'Leader',
-  berater: 'Berater',
-};
+import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
 
 /**
- * Mehr-Tab (Sprint 1): Profil & Genealogie sichtbar machen und den
- * Einladungs-Kreislauf schließen — jeder Nutzer kann hier Partner
- * einladen. Damit ist der komplette Registrierungs-Loop lauffähig:
- * Invite erstellen -> Link teilen -> Partner registriert sich ->
- * Genealogie entsteht automatisch.
+ * More — business hub (Team Seyda, Journey, Firstline, Invite, Tools, Resources).
+ * System preferences live on Settings.
  */
 export function MorePage() {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  const { data: context } = useQuery({
-    queryKey: ['profile-context', profile?.id],
-    enabled: !!profile,
-    queryFn: async () => {
-      const [team, org, sponsor, firstline] = await Promise.all([
-        supabase.from('teams').select('name').eq('id', profile!.team_id).single(),
-        supabase.from('organizations').select('name').eq('id', profile!.org_id).single(),
-        profile!.sponsor_id
-          ? supabase
-              .from('profiles_public')
-              .select('first_name, last_name')
-              .eq('id', profile!.sponsor_id)
-              .single()
-          : Promise.resolve({ data: null }),
-        supabase
-          .from('profiles_public')
-          .select('id', { count: 'exact', head: true })
-          .eq('sponsor_id', profile!.id),
-      ]);
-      return {
-        teamName: team.data?.name ?? '—',
-        orgName: org.data?.name ?? '—',
-        sponsorName: sponsor.data
-          ? `${sponsor.data.first_name} ${sponsor.data.last_name}`.trim()
-          : null,
-        firstlineCount: firstline.count ?? 0,
-      };
-    },
-  });
 
   const { data: firstlineProgress } = useQuery({
     queryKey: ['firstline-progress', profile?.id],
@@ -66,6 +27,15 @@ export function MorePage() {
         .order('completed_steps', { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: tools } = useQuery({
+    queryKey: ['external-tools-more'],
+    queryFn: async (): Promise<ExternalTool[]> => {
+      const { data, error } = await supabase.from('external_tools').select('*');
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -91,65 +61,41 @@ export function MorePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Mehr</h1>
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Business</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">Mehr</h1>
+      </header>
 
-      <Link to="/profil" className="block">
-        <Card>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-lg font-semibold">
-                {profile.first_name} {profile.last_name}
-              </p>
-              <p className="text-sm text-muted">@{profile.username}</p>
-            </div>
-            <span className="shrink-0 text-primary" aria-hidden>
-              →
-            </span>
+      <Link to="/team-seyda" className="block">
+        <Card className="flex items-center justify-between">
+          <div>
+            <p className="font-semibold">Team Seyda</p>
+            <p className="mt-0.5 text-sm text-muted">Guide — Way to Moon</p>
           </div>
-          <dl className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted">Rolle</dt>
-              <dd className="font-medium">{ROLE_LABELS[profile.role] ?? profile.role}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Team</dt>
-              <dd className="font-medium">{context?.teamName ?? '…'}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Organisation</dt>
-              <dd className="font-medium">{context?.orgName ?? '…'}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Sponsor</dt>
-              <dd className="font-medium">{context?.sponsorName ?? 'Gründungsmitglied'}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Firstline</dt>
-              <dd className="font-medium">
-                {context ? `${context.firstlineCount} Partner` : '…'}
-              </dd>
-            </div>
-          </dl>
-          <p className="mt-3 text-sm font-semibold text-accent-deep">Profil öffnen</p>
+          <span className="text-primary" aria-hidden>
+            →
+          </span>
         </Card>
       </Link>
 
       <Link to="/reise" className="block">
         <Card className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">Deine Reise</p>
+            <p className="font-semibold">Journey</p>
             <p className="mt-0.5 text-sm text-muted">Meilensteine und Wochenrhythmus</p>
           </div>
-          <span className="text-primary">→</span>
+          <span className="text-primary" aria-hidden>
+            →
+          </span>
         </Card>
       </Link>
 
-      {firstlineProgress && firstlineProgress.length > 0 ? (
-        <Card>
-          <p className="font-semibold">Deine Firstline auf ihrer Reise</p>
-          <p className="mt-0.5 text-xs text-muted">
-            Du siehst den Fortschritt — Inhalte und Daten bleiben privat.
-          </p>
+      <Card>
+        <p className="font-semibold">Firstline</p>
+        <p className="mt-0.5 text-xs text-muted">
+          Du siehst den Fortschritt — Inhalte und Daten bleiben privat.
+        </p>
+        {firstlineProgress && firstlineProgress.length > 0 ? (
           <ul className="mt-3 space-y-2">
             {firstlineProgress.map((fp) => {
               const done = fp.completed_steps >= fp.total_steps;
@@ -163,15 +109,16 @@ export function MorePage() {
               );
             })}
           </ul>
-        </Card>
-      ) : null}
+        ) : (
+          <p className="mt-3 text-sm text-muted">Noch keine Firstline auf der Reise.</p>
+        )}
+      </Card>
 
       <Card>
-        <p className="font-semibold">Partner einladen</p>
+        <p className="font-semibold">Invite Partner</p>
         <p className="mt-1 text-sm text-muted">
-          Erstelle einen persönlichen Einladungslink. Wer sich darüber registriert, wird
-          automatisch dir als Sponsor und deinem Team zugeordnet. Der Link ist 14 Tage gültig und
-          einmal verwendbar.
+          Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14 Tage
+          gültig, einmal verwendbar.
         </p>
         {inviteLink ? (
           <div className="mt-3 space-y-2">
@@ -189,28 +136,53 @@ export function MorePage() {
         )}
       </Card>
 
-      {/* Admin-Bereich. Die Sichtbarkeit ist Komfort, keine Sicherheit —
-          Route-Guard, RLS und der Rollencheck in ingest-knowledge halten
-          die Grenze. */}
-      {profile?.role === 'super_admin' && (
-        <Card>
-          <p className="font-semibold">Wissensdatenbank</p>
-          <p className="mt-1 text-sm text-muted">
-            Teamdokumente hochladen und freigeben. Was hier fehlt, behandelt Ascent als
-            Wissenslücke.
-          </p>
+      <Card>
+        <p className="font-semibold">Tools</p>
+        <p className="mt-0.5 text-sm text-muted">Externe Werkzeuge für Gespräche und Follow-ups.</p>
+        {tools && tools.length > 0 ? (
+          <ul className="mt-3 space-y-2">
+            {tools.map((tool) => (
+              <li key={tool.key}>
+                <a
+                  href={tool.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-bg"
+                >
+                  <span>{tool.name}</span>
+                  <span className="text-muted" aria-hidden>
+                    →
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">Keine Tools hinterlegt.</p>
+        )}
+      </Card>
+
+      <Card>
+        <p className="font-semibold">Resources</p>
+        <p className="mt-1 text-sm text-muted">
+          Wissen, Guides und Materialien für dein Leadership.
+        </p>
+        {profile.role === 'super_admin' ? (
           <Link
             to="/wissen"
             className="mt-3 flex h-12 items-center justify-center rounded-xl border border-line bg-surface px-4 text-base font-semibold text-ink hover:bg-bg"
           >
-            Dokumente verwalten
+            Wissensdatenbank
           </Link>
-        </Card>
-      )}
-
-      <Button variant="secondary" onClick={signOut}>
-        Abmelden
-      </Button>
+        ) : (
+          <Link
+            to="/team-seyda"
+            className="mt-3 flex h-12 items-center justify-center rounded-xl border border-line bg-surface px-4 text-base font-semibold text-ink hover:bg-bg"
+          >
+            Team Seyda Guide
+          </Link>
+        )}
+      </Card>
     </div>
   );
 }
