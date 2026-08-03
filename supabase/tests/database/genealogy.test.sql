@@ -7,6 +7,8 @@ create extension if not exists pgtap with schema extensions;
 select plan(8);
 
 create schema if not exists tests;
+grant usage on schema tests to authenticated;
+
 create or replace function tests.authenticate_as(user_id uuid)
 returns void language plpgsql as $$
 begin
@@ -20,6 +22,9 @@ create or replace function tests.clear_org()
 returns void language plpgsql as $$
 begin perform set_config('request.headers','{}', true); end;
 $$;
+
+grant execute on function tests.authenticate_as(uuid) to authenticated;
+grant execute on function tests.clear_org() to authenticated;
 
 set local session_replication_role = replica;
 insert into auth.users (id, email) values
