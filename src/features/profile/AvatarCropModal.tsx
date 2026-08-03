@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
+import { useI18n } from '@shared/i18n';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { Button } from '@shared/ui/Button';
 import { cropCircleWebp, type CircleCropTransform } from './cropImage';
@@ -49,6 +50,7 @@ export function AvatarCropModal({
   onCancel,
   onConfirm,
 }: AvatarCropModalProps) {
+  const { t } = useI18n();
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [coverScale, setCoverScale] = useState(1);
@@ -197,7 +199,7 @@ export function AvatarCropModal({
       const blob = await cropCircleWebp(file, currentTransform, CROP_OUTPUT_SIZE);
       await onConfirm(blob);
     } catch {
-      setError('Zuschneiden fehlgeschlagen. Bitte erneut versuchen.');
+      setError(t('profile.cropFailed'));
       setBusy(false);
     }
   };
@@ -210,7 +212,7 @@ export function AvatarCropModal({
       className="avatar-crop-root"
       role="dialog"
       aria-modal="true"
-      aria-label="Profilbild zuschneiden"
+      aria-label={t('profile.cropTitle')}
     >
       <header className="avatar-crop-header">
         <Button
@@ -219,11 +221,11 @@ export function AvatarCropModal({
           size="icon"
           fullWidth={false}
           onClick={onCancel}
-          aria-label="Abbrechen"
+          aria-label={t('common.cancel')}
         >
           ✕
         </Button>
-        <h2 className="avatar-crop-title">Profilbild</h2>
+        <h2 className="avatar-crop-title">{t('profile.photo')}</h2>
         <Button
           type="button"
           variant="primary"
@@ -231,7 +233,7 @@ export function AvatarCropModal({
           fullWidth={false}
           onClick={() => void confirm()}
           disabled={busy || !natural}
-          aria-label="Übernehmen"
+          aria-label={t('profile.avatarApply')}
         >
           ✓
         </Button>
@@ -275,13 +277,11 @@ export function AvatarCropModal({
           ) : null}
           <div className="avatar-crop-veil" aria-hidden />
         </div>
-        <p className="avatar-crop-hint">
-          Zum Zoomen kneifen oder scrollen · Zum Verschieben ziehen
-        </p>
+        <p className="avatar-crop-hint">{t('profile.cropGesture')}</p>
       </div>
 
       <div className="avatar-crop-preview">
-        <p className="avatar-crop-preview-label">Vorschau mit Rahmen</p>
+        <p className="avatar-crop-preview-label">{t('profile.previewFrame')}</p>
         <div className="avatar-crop-preview-frame">
           <RankFrame frameKey={frameKey} src={previewSrc} name={name} size="lg" />
         </div>
@@ -291,10 +291,10 @@ export function AvatarCropModal({
 
       <div className="avatar-crop-actions">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={busy}>
-          Abbrechen
+          {t('common.cancel')}
         </Button>
         <Button type="button" onClick={() => void confirm()} disabled={busy || !natural}>
-          {busy ? 'Wird gespeichert …' : 'Speichern'}
+          {busy ? t('common.saving') : t('common.save')}
         </Button>
       </div>
     </div>

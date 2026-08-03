@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Button } from '@shared/ui/Button';
 import { RankFrame } from '@shared/ui/RankFrame';
@@ -19,6 +20,7 @@ interface NodeDetailSheetProps {
 }
 
 export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDetailSheetProps) {
+  const { t, locale } = useI18n();
   const frameKey = resolveDisplayFrameKey({
     role: node.role,
     rankFrameKey: node.frameAsset,
@@ -45,8 +47,10 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold tracking-tight">{name}</p>
-          <p className="text-sm font-semibold text-accent-deep">{node.rankLabel ?? 'Newcomer'}</p>
-          <p className="text-xs text-muted">{presenceLabel(node)}</p>
+          <p className="text-sm font-semibold text-accent-deep">
+            {node.rankLabel ?? t('team.newcomer')}
+          </p>
+          <p className="text-xs text-muted">{presenceLabel(node, Date.now(), t)}</p>
         </div>
         {node.depth > 0 ? (
           <button
@@ -55,13 +59,13 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             disabled={!editable || toggleFav.isPending}
             aria-pressed={node.isFavorite}
             aria-disabled={!editable}
-            title={editable ? undefined : 'Nur in deiner Struktur verfügbar'}
+            title={editable ? undefined : t('team.structureOnly')}
             onClick={() => {
               if (!editable) return;
               void toggleFav.mutateAsync(node.membershipId);
             }}
           >
-            {node.isFavorite ? '★ Favorit' : '☆ Anpinnen'}
+            {node.isFavorite ? `★ ${t('team.favorite')}` : `☆ ${t('team.pin')}`}
           </button>
         ) : null}
       </div>
@@ -69,21 +73,21 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
           <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">AP</dt>
-          <dd className="font-bold">{node.apTotal.toLocaleString('de-DE')}</dd>
+          <dd className="font-bold">{node.apTotal.toLocaleString(locale)}</dd>
         </div>
         <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
           <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">ICP</dt>
-          <dd className="font-bold">{node.icpMonth.toLocaleString('de-DE')}</dd>
+          <dd className="font-bold">{node.icpMonth.toLocaleString(locale)}</dd>
         </div>
         <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
           <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-            Direkte
+            {t('team.directs')}
           </dt>
           <dd className="font-bold">{node.directCount}</dd>
         </div>
         <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
           <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-            Streak
+            {t('team.streak')}
           </dt>
           <dd className="font-bold">{node.streakDays}d</dd>
         </div>
@@ -98,7 +102,7 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             rel="noreferrer"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
           >
-            WhatsApp
+            {t('team.whatsapp')}
           </a>
         ) : null}
         {tel ? (
@@ -106,7 +110,7 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             href={tel}
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
           >
-            Anrufen
+            {t('team.call')}
           </a>
         ) : null}
         <Button
@@ -117,19 +121,20 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             onCoach(node);
           }}
         >
-          Coach fragen
+          {t('team.askCoach')}
         </Button>
       </div>
 
       {node.sponsorName ? (
         <p className="text-sm text-muted">
-          Persönlicher Sponsor: <span className="font-semibold text-ink">{node.sponsorName}</span>
+          {t('team.personalSponsor')}{' '}
+          <span className="font-semibold text-ink">{node.sponsorName}</span>
         </p>
       ) : null}
 
       <label className="block space-y-1.5">
         <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-          Notizen / Follow-up
+          {t('team.notesFollowUp')}
         </span>
         <textarea
           className="min-h-[88px] w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
@@ -138,9 +143,7 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             if (!editable) return;
             setNote(e.target.value);
           }}
-          placeholder={
-            editable ? 'Was besprichst du als Nächstes?' : 'Nur in deiner Struktur bearbeitbar'
-          }
+          placeholder={editable ? t('team.nextTalk') : t('team.structureEditOnly')}
           readOnly={!editable}
           disabled={!editable}
         />
@@ -156,20 +159,22 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             });
           }}
         >
-          Notiz speichern
+          {t('team.saveNote')}
         </Button>
       </label>
 
       {directs.length > 0 ? (
         <div>
           <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-            Direkte Partner
+            {t('team.directPartners')}
           </p>
           <ul className="space-y-1.5 text-sm">
             {directs.slice(0, 8).map((d) => (
               <li key={d.membershipId} className="flex justify-between gap-2">
                 <span className="font-medium">{displayName(d)}</span>
-                <span className="text-muted">{d.apTotal.toLocaleString('de-DE')} AP</span>
+                <span className="text-muted">
+                  {d.apTotal.toLocaleString(locale)} {t('common.ap')}
+                </span>
               </li>
             ))}
           </ul>

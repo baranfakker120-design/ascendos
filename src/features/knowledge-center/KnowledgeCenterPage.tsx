@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { useMemo, useState, type ClipboardEvent, type ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,6 +20,7 @@ import {
 import { KNOWLEDGE_CATEGORIES, type CoachKnowledgeArticle } from './types';
 
 export function KnowledgeCenterPage() {
+  const { t } = useI18n();
   const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -76,9 +78,9 @@ export function KnowledgeCenterPage() {
       const { text } = await extractText(file);
       setBody((prev) => (prev ? `${prev.trim()}\n\n${text}` : text));
       if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''));
-      setMessage('PDF / Dokument importiert — bitte prüfen und speichern.');
+      setMessage(t('knowledge.importOk'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : t('knowledge.importFailed'));
     }
   };
 
@@ -93,7 +95,7 @@ export function KnowledgeCenterPage() {
         category,
         tags: tags
           .split(',')
-          .map((t) => t.trim())
+          .map((tag) => tag.trim())
           .filter(Boolean),
         intendApprove,
         changeSummary: changeSummary || undefined,
@@ -101,51 +103,51 @@ export function KnowledgeCenterPage() {
       });
       setSelectedId(result.article.id);
       if (result.article.status === 'needs_review') {
-        setMessage('Needs Review — Widersprüche gefunden. Aktivierung blockiert.');
+        setMessage(t('knowledge.needsReviewConflict'));
       } else if (result.article.active) {
-        setMessage('Freigegeben — Coach lernt aus diesem Wissen.');
+        setMessage(t('knowledge.approvedHint'));
       } else {
-        setMessage('Entwurf gespeichert.');
+        setMessage(t('knowledge.draftSaved'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : t('knowledge.saveFailed'));
     }
   };
 
   return (
     <div className="space-y-4 pb-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Coach</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Knowledge Center</h1>
-        <p className="mt-1 text-sm text-muted">
-          Rich Text, Markdown, PDF, Versionen und Widerspruchsprüfung. Nur SuperAdmin & Developer.
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
+          {t('coach.name')}
         </p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('knowledge.centerTitle')}</h1>
+        <p className="mt-1 text-sm text-muted">{t('knowledge.centerBody')}</p>
       </header>
 
       <Input
-        label="Suche"
+        label={t('knowledge.search')}
         hideLabel
-        placeholder="Suche in Titel, Inhalt, Tags …"
+        placeholder={t('knowledge.searchPlaceholder')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {isPending ? <p className="text-sm text-muted">Wissen wird geladen …</p> : null}
-      {isError ? <Alert tone="error">Knowledge Center konnte nicht geladen werden.</Alert> : null}
+      {isPending ? <p className="text-sm text-muted">{t('common.loading')}</p> : null}
+      {isError ? <Alert tone="error">{t('knowledge.centerTitle')}</Alert> : null}
       {message ? <Alert tone="info">{message}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold">Artikel</p>
+            <p className="font-semibold">{t('knowledge.articles')}</p>
             <Button
               size="sm"
               fullWidth={false}
               variant="secondary"
               onClick={() => loadArticle(null)}
             >
-              Neu
+              {t('knowledge.new')}
             </Button>
           </div>
           <ul className="max-h-[28rem] space-y-2 overflow-y-auto">
@@ -161,21 +163,29 @@ export function KnowledgeCenterPage() {
                   <p className="font-medium">{a.title}</p>
                   <p className="mt-0.5 text-xs text-muted">
                     {a.category} · {a.status}
-                    {a.active ? ' · aktiv' : ''}
-                    {a.status === 'needs_review' ? ' · Needs Review' : ''}
+                    {a.active ? ` · ${t('knowledge.active')}` : ''}
+                    {a.status === 'needs_review' ? ` · ${t('knowledge.statusNeedsReview')}` : ''}
                   </p>
                 </button>
               </li>
             ))}
             {articles.length === 0 && !isPending ? (
-              <li className="text-sm text-muted">Noch keine Artikel.</li>
+              <li className="text-sm text-muted">{t('knowledge.emptyArticles')}</li>
             ) : null}
           </ul>
         </Card>
 
         <Card className="space-y-3">
-          <Input label="Titel" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Select label="Kategorie" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <Input
+            label={t('knowledge.titleLabel')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Select
+            label={t('knowledge.category')}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
             {KNOWLEDGE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -183,14 +193,14 @@ export function KnowledgeCenterPage() {
             ))}
           </Select>
           <Input
-            label="Tags"
-            hint="Kommagetrennt"
+            label={t('knowledge.tags')}
+            hint={t('knowledge.tagsHint')}
             value={tags}
             onChange={(e) => setTags(e.target.value)}
           />
           <div className="flex flex-wrap gap-2">
             <label className="ui-btn ui-btn--secondary ui-btn--sm ui-btn--inline cursor-pointer">
-              PDF importieren
+              {t('knowledge.upload')}
               <input
                 type="file"
                 accept=".pdf,.md,.txt,.docx"
@@ -200,21 +210,21 @@ export function KnowledgeCenterPage() {
             </label>
           </div>
           <TextArea
-            label="Inhalt (Markdown / Rich Text)"
+            label={t('knowledge.contentLabel')}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onPaste={onPaste}
             rows={12}
           />
           <Input
-            label="Änderungsnotiz"
+            label={t('knowledge.changeNote')}
             value={changeSummary}
             onChange={(e) => setChangeSummary(e.target.value)}
           />
 
           {selected ? (
             <div className="rounded-xl border border-line bg-bg px-3 py-2 text-sm">
-              <p className="font-medium">Status: {selected.status}</p>
+              <p className="font-medium">{selected.status}</p>
               {asFlagsDisplay(selected.contradiction_flags).length > 0 ? (
                 <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted">
                   {asFlagsDisplay(selected.contradiction_flags).map((f) => (
@@ -224,7 +234,7 @@ export function KnowledgeCenterPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1 text-xs text-muted">Keine Widersprüche gemeldet.</p>
+                <p className="mt-1 text-xs text-muted">{t('knowledge.noContradictions')}</p>
               )}
             </div>
           ) : null}
@@ -236,14 +246,14 @@ export function KnowledgeCenterPage() {
               disabled={saveArticle.isPending}
               onClick={() => void persist(false)}
             >
-              Entwurf speichern
+              {t('knowledge.saveDraft')}
             </Button>
             <Button
               fullWidth={false}
               disabled={saveArticle.isPending}
               onClick={() => void persist(true)}
             >
-              Prüfen & freigeben
+              {t('knowledge.reviewApprove')}
             </Button>
             {selectedId ? (
               <Button
@@ -252,22 +262,24 @@ export function KnowledgeCenterPage() {
                 disabled={deactivate.isPending}
                 onClick={() => void deactivate.mutateAsync(selectedId)}
               >
-                Archivieren
+                {t('knowledge.archive')}
               </Button>
             ) : null}
           </div>
 
           <div>
-            <p className="text-sm font-semibold">Vorschau</p>
+            <p className="text-sm font-semibold">{t('knowledge.preview')}</p>
             <div className="prose prose-sm mt-2 max-w-none rounded-xl border border-line bg-surface px-3 py-2">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{body || '_Leer_'}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {body || t('knowledge.emptyBody')}
+              </ReactMarkdown>
             </div>
           </div>
 
           {selectedId ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <p className="text-sm font-semibold">Version history</p>
+                <p className="text-sm font-semibold">{t('knowledge.versionHistory')}</p>
                 <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-muted">
                   {(versions.data ?? []).map((v) => (
                     <li key={v.id}>
@@ -278,7 +290,7 @@ export function KnowledgeCenterPage() {
                 </ul>
               </div>
               <div>
-                <p className="text-sm font-semibold">Change history</p>
+                <p className="text-sm font-semibold">{t('knowledge.changeHistory')}</p>
                 <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-muted">
                   {(changelog.data ?? []).map((c) => (
                     <li key={c.id}>

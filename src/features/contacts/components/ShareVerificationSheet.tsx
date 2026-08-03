@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import type { ExternalTool } from '@shared/types/domain';
 import { ONBOARDING_DETAIL, isOnboardingShareTool } from '@shared/lib/shareToolsDisplay';
 import {
-  ALREADY_CONFIRMED_MESSAGE,
   attachScreenshot,
   canConfirmShareVerification,
   confirmShareVerification,
@@ -13,9 +13,6 @@ import {
   type ShareVerificationRecord,
 } from '@shared/lib/shareVerification';
 import { Button } from '@shared/ui/Button';
-
-const PROOF_COPY =
-  'Bitte sende einen Screenshot des geteilten Bildschirms oder Chats.\n\nNicht weil wir dir nicht vertrauen, sondern damit Ascent deine Aktivität korrekt dokumentieren kann.';
 
 interface Props {
   open: boolean;
@@ -41,6 +38,7 @@ export function ShareVerificationSheet({
   onProofChange,
   onVerified,
 }: Props) {
+  const { t } = useI18n();
   const titleId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const confirmLock = useRef(false);
@@ -87,11 +85,15 @@ export function ShareVerificationSheet({
     try {
       if (!record) return;
       if (!navigator.share) {
-        setError('Teilen wird auf diesem Gerät nicht unterstützt — bitte Screenshot hochladen.');
+        setError(t('contacts.shareUnsupported'));
         return;
       }
       const firstName = contactName.split(' ')[0] ?? contactName;
-      const text = `Hallo ${firstName}, wie besprochen: ${tool.name} — ${tool.url}`;
+      const text = t('contacts.shareTemplateFull', {
+        firstName,
+        toolName: tool.name,
+        url: tool.url,
+      });
       await navigator.share({ title: tool.name, text, url: tool.url });
       const next = markShareCompleted(record.id);
       if (next) publish(next);
@@ -105,7 +107,7 @@ export function ShareVerificationSheet({
   const onPickScreenshot = async (file: File | null) => {
     if (!file || blocked || busy) return;
     if (file.size <= 0) {
-      setError('Screenshot ist leer — bitte erneut hochladen.');
+      setError(t('contacts.screenshotEmpty'));
       return;
     }
     setError(null);
@@ -115,13 +117,13 @@ export function ShareVerificationSheet({
       const dataUrl = await fileToDataUrl(file);
       const next = attachScreenshot(record.id, dataUrl, file.name);
       if (!next) {
-        setError('Screenshot konnte nicht gespeichert werden.');
+        setError(t('contacts.screenshotSaveFailed'));
         return;
       }
       // Remains pending — future AI may move to pending_review; never auto-verify.
       publish(next);
     } catch {
-      setError('Screenshot konnte nicht gelesen werden.');
+      setError(t('contacts.screenshotReadFailed'));
     } finally {
       setBusy(false);
     }
@@ -131,7 +133,7 @@ export function ShareVerificationSheet({
     if (blocked || busy || confirmLock.current) return;
     if (!record || !canConfirmShareVerification(record)) return;
     if (findVerifiedShareAction(contactId, tool.key)) {
-      setError(ALREADY_CONFIRMED_MESSAGE);
+      setError(t('contacts.shareAlreadyConfirmed'));
       return;
     }
     confirmLock.current = true;
@@ -139,7 +141,7 @@ export function ShareVerificationSheet({
     try {
       const next = confirmShareVerification(record.id);
       if (!next || next.status !== 'verified') {
-        setError(ALREADY_CONFIRMED_MESSAGE);
+        setError(t('contacts.shareAlreadyConfirmed'));
         confirmLock.current = false;
         return;
       }
@@ -160,7 +162,7 @@ export function ShareVerificationSheet({
       <button
         type="button"
         className="absolute inset-0 border-0 bg-[rgb(17_18_20_/0.38)]"
-        aria-label="Schließen"
+        aria-label={t('common.close')}
         onClick={onClose}
       />
       <div
@@ -173,10 +175,11 @@ export function ShareVerificationSheet({
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p id={titleId} className="text-lg font-bold tracking-tight">
-              {blocked ? ALREADY_CONFIRMED_MESSAGE : 'Nachweis erforderlich'}
+              {blocked ? t('contacts.shareAlreadyConfirmed') : t('contacts.shareRequired')}
             </p>
             <p className="mt-0.5 text-sm text-muted">
-              {tool.name} · {blocked ? 'kein erneutes AP' : 'kein AP ohne Nachweis'}
+              {tool.name} ·{' '}
+              {blocked ? t('contacts.shareNoApAgain') : t('contacts.shareNoApWithout')}
             </p>
           </div>
           <button
@@ -184,7 +187,7 @@ export function ShareVerificationSheet({
             className="text-sm font-semibold text-accent-deep"
             onClick={onClose}
           >
-            Schließen
+            {t('common.close')}
           </button>
         </div>
 
@@ -194,30 +197,32 @@ export function ShareVerificationSheet({
 
         {blocked ? (
           <p className="rounded-xl border border-line bg-bg px-3 py-2 text-sm font-medium">
-            {ALREADY_CONFIRMED_MESSAGE}
+            {t('contacts.shareAlreadyConfirmed')}
           </p>
         ) : (
           <>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{PROOF_COPY}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
+              {t('contacts.proofCopy')}
+            </p>
 
             {waiting ? (
               <p className="mt-3 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm font-semibold text-accent-deep">
-                Warte auf Nachweis
+                {t('contacts.shareWaiting')}
               </p>
             ) : null}
 
             {record?.shareCompleted ? (
-              <p className="mt-2 text-xs font-medium text-muted">✓ Teilen abgeschlossen</p>
+              <p className="mt-2 text-xs font-medium text-muted">{t('contacts.shareDone')}</p>
             ) : null}
             {record?.screenshotFileName ? (
               <p className="mt-1 text-xs font-medium text-muted">
-                ✓ Screenshot: {record.screenshotFileName}
+                ✓ {t('contacts.screenshotNamed', { name: record.screenshotFileName })}
               </p>
             ) : null}
             {record?.screenshotDataUrl ? (
               <img
                 src={record.screenshotDataUrl}
-                alt="Hochgeladener Nachweis"
+                alt={t('contacts.proofAlt')}
                 className="mt-2 max-h-40 w-full rounded-xl border border-line object-contain"
               />
             ) : null}
@@ -226,10 +231,10 @@ export function ShareVerificationSheet({
 
             <div className="mt-4 space-y-2">
               <Button disabled={busy} onClick={() => void shareNative()}>
-                {busy ? 'Bitte warten …' : `${tool.name} jetzt teilen`}
+                {busy ? t('contacts.pleaseWait') : t('contacts.shareNow', { name: tool.name })}
               </Button>
               <Button variant="secondary" disabled={busy} onClick={() => fileRef.current?.click()}>
-                Screenshot hochladen
+                {t('contacts.shareUpload')}
               </Button>
               <input
                 ref={fileRef}
@@ -240,7 +245,7 @@ export function ShareVerificationSheet({
                 onChange={(e) => void onPickScreenshot(e.target.files?.[0] ?? null)}
               />
               <Button disabled={busy || !canConfirm} onClick={confirm}>
-                Nachweis bestätigen · AP freigeben
+                {t('contacts.shareConfirm')}
               </Button>
             </div>
           </>

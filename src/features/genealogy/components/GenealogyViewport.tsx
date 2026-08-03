@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import {
   useCallback,
   useEffect,
@@ -32,6 +33,7 @@ export function GenealogyViewport({
   onSelect,
   onToggleCollapse,
 }: GenealogyViewportProps) {
+  const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 360, h: 520 });
@@ -189,7 +191,7 @@ export function GenealogyViewport({
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
         role="application"
-        aria-label="Teambaum. Zoomen und ziehen."
+        aria-label={t('team.treeHintAria')}
       >
         <div className="genealogy-viewport__atmosphere" aria-hidden />
         <div ref={worldRef} className="genealogy-viewport__world">
@@ -217,7 +219,7 @@ export function GenealogyViewport({
       <button
         type="button"
         className="genealogy-minimap"
-        aria-label="Minikarte — Tippen zum Fokussieren"
+        aria-label={t('team.minimap')}
         onClick={onMiniMapClick}
       >
         <span className="genealogy-minimap__canvas">

@@ -1,4 +1,5 @@
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { scoreDailyMission } from '@shared/lib/apScoring';
 import type { DailyPlanItem } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
@@ -20,8 +21,14 @@ export function MorningCommit({
   busy: boolean;
 }) {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const hour = new Date().getHours();
-  const greeting = hour < 11 ? 'Guten Morgen' : hour < 18 ? 'Hallo' : 'Guten Abend';
+  const greeting =
+    hour < 11
+      ? t('today.greetingMorning')
+      : hour < 18
+        ? t('today.greetingDay')
+        : t('today.greetingEvening');
   const count = items.length;
 
   return (
@@ -32,9 +39,7 @@ export function MorningCommit({
           {profile ? `, ${profile.first_name}` : ''}.
         </h1>
         <p className="mt-1 text-sm text-muted">
-          {count === 1
-            ? 'Heute gibt es eine Aufgabe mit der größten Auswirkung auf dein Business.'
-            : `Heute gibt es ${count} Aufgaben mit der größten Auswirkung auf dein Business.`}
+          {count === 1 ? t('today.commitIntroOne') : t('today.commitIntroMany', { count })}
         </p>
       </div>
 
@@ -65,7 +70,7 @@ export function MorningCommit({
       </ol>
 
       <Button onClick={onCommit} disabled={busy}>
-        {busy ? 'Einen Moment …' : '🚀 Ich fokussiere mich auf heute'}
+        {busy ? t('today.commitBusy') : t('today.commitCta')}
       </Button>
     </div>
   );

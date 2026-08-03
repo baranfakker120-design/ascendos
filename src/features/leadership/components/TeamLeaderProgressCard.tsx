@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import type { TeamLeaderProgress } from '../types';
 import './leader-surface.css';
 
@@ -7,6 +8,7 @@ interface TeamLeaderProgressCardProps {
 }
 
 export function TeamLeaderProgressCard({ progress }: TeamLeaderProgressCardProps) {
+  const { t, locale } = useI18n();
   const [celebrate, setCelebrate] = useState(false);
 
   useEffect(() => {
@@ -26,17 +28,20 @@ export function TeamLeaderProgressCard({ progress }: TeamLeaderProgressCardProps
     Math.round((progress.activeFirstlines / Math.max(1, progress.requiredFirstlines)) * 100)
   );
   const missing = Math.max(0, progress.requiredFirstlines - progress.activeFirstlines);
-  const euros = (progress.bonusAmountCents / 100).toLocaleString('de-DE');
+  const euros = (progress.bonusAmountCents / 100).toLocaleString(locale);
 
   return (
     <>
-      <section className="leader-tl leader-glass" aria-label="TeamLeader Fortschritt">
+      <section className="leader-tl leader-glass" aria-label={t('leadership.tlProgress')}>
         <header>
-          <h2>TeamLeader</h2>
+          <h2>{t('leadership.teamLeader')}</h2>
           <p>
             {progress.qualified
-              ? 'Qualifikation erreicht'
-              : `${progress.activeFirstlines} / ${progress.requiredFirstlines} aktive Firstlines`}
+              ? t('leadership.qualified')
+              : t('leadership.activeFirstlines', {
+                  active: progress.activeFirstlines,
+                  required: progress.requiredFirstlines,
+                })}
           </p>
         </header>
         <div className="leader-tl__bar" role="progressbar" aria-valuenow={pct} aria-valuemax={100}>
@@ -44,17 +49,17 @@ export function TeamLeaderProgressCard({ progress }: TeamLeaderProgressCardProps
         </div>
         <dl className="leader-tl__meta">
           <div>
-            <dt>Noch fehlend</dt>
+            <dt>{t('leadership.missing')}</dt>
             <dd>{missing}</dd>
           </div>
           <div>
-            <dt>100 € Bonus</dt>
+            <dt>{t('leadership.bonus100')}</dt>
             <dd>
               {progress.qualified
                 ? progress.bonusPaid
-                  ? 'Ausgezahlt'
-                  : 'Freigegeben'
-                : `${euros} € Vorschau`}
+                  ? t('leadership.paidOut')
+                  : t('leadership.released')
+                : t('leadership.euroPreview', { euros })}
             </dd>
           </div>
         </dl>
@@ -63,11 +68,11 @@ export function TeamLeaderProgressCard({ progress }: TeamLeaderProgressCardProps
       {celebrate ? (
         <div className="leader-unlock" role="dialog" aria-modal="true">
           <div className="leader-unlock__panel">
-            <p className="leader-unlock__eyebrow">Freigeschaltet</p>
-            <h3>TeamLeader</h3>
-            <p>100 € Bonus freigegeben · Frame & Badge aktiv</p>
+            <p className="leader-unlock__eyebrow">{t('leadership.unlocked')}</p>
+            <h3>{t('leadership.teamLeader')}</h3>
+            <p>{t('leadership.unlockBody')}</p>
             <button type="button" onClick={() => setCelebrate(false)}>
-              Weiterführen
+              {t('leadership.continue')}
             </button>
           </div>
         </div>

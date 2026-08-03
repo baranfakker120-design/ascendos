@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { useState, type ChangeEvent } from 'react';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { Alert } from '@shared/ui/Alert';
@@ -24,6 +25,7 @@ function toLocalInputValue(iso: string | null): string {
 }
 
 export function LiveCoachingAdminPage() {
+  const { t } = useI18n();
   const { profile } = useAuth();
   const { data: events = [], isPending } = useLiveCoachingEvents();
   const { saveEvent } = useLiveCoachingMutations();
@@ -82,7 +84,7 @@ export function LiveCoachingAdminPage() {
     setError(null);
     setMessage(null);
     if (!mediaFile && !existingMediaUrl) {
-      setError('Bitte 9:16 Bild oder kurzes MP4 wählen.');
+      setError(t('liveCoaching.mediaHint'));
       return;
     }
     try {
@@ -110,13 +112,9 @@ export function LiveCoachingAdminPage() {
       setExistingMediaPath(event.media_path);
       setExistingMediaUrl(event.media_url);
       setActive(event.active);
-      setMessage(
-        publish
-          ? 'Veröffentlicht — Push an alle geplant (sofort, −30 Min, −5 Min).'
-          : 'Gespeichert.'
-      );
+      setMessage(publish ? t('liveCoaching.publishedPush') : t('liveCoaching.saved'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : t('liveCoaching.error'));
     }
   };
 
@@ -154,11 +152,13 @@ export function LiveCoachingAdminPage() {
   return (
     <div className="space-y-4 pb-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Coach</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Live Coaching Center</h1>
-        <p className="mt-1 text-sm text-muted">
-          9:16 Bild (Gold-Shimmer) oder kurzes MP4 — Publish benachrichtigt alle.
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
+          {t('liveCoaching.eyebrow')}
         </p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">
+          {t('liveCoaching.adminCenterTitle')}
+        </h1>
+        <p className="mt-1 text-sm text-muted">{t('liveCoaching.adminSubtitle')}</p>
       </header>
 
       {message ? <Alert tone="info">{message}</Alert> : null}
@@ -167,12 +167,12 @@ export function LiveCoachingAdminPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="font-semibold">Events</p>
+            <p className="font-semibold">{t('liveCoaching.events')}</p>
             <Button size="sm" fullWidth={false} variant="secondary" onClick={() => load(null)}>
-              Neu
+              {t('liveCoaching.newEvent')}
             </Button>
           </div>
-          {isPending ? <p className="text-sm text-muted">Laden …</p> : null}
+          {isPending ? <p className="text-sm text-muted">{t('liveCoaching.loading')}</p> : null}
           <ul className="max-h-64 space-y-2 overflow-y-auto">
             {events.map((ev) => (
               <li key={ev.id}>
@@ -185,62 +185,87 @@ export function LiveCoachingAdminPage() {
                 >
                   <p className="font-medium">{ev.title}</p>
                   <p className="text-xs text-muted">
-                    {new Date(ev.starts_at).toLocaleString()} · {ev.active ? 'aktiv' : 'entwurf'}
+                    {new Date(ev.starts_at).toLocaleString()} ·{' '}
+                    {ev.active ? t('liveCoaching.statusActive') : t('liveCoaching.statusDraft')}
                   </p>
                 </button>
               </li>
             ))}
           </ul>
 
-          <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Input label="Subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+          <Input
+            label={t('liveCoaching.titleLabel')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Input
+            label={t('liveCoaching.subtitle')}
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+          />
           <TextArea
-            label="Description"
+            label={t('liveCoaching.description')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
-          <Input label="Coach" value={coachName} onChange={(e) => setCoachName(e.target.value)} />
-          <Select label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <Input
+            label={t('liveCoaching.coach')}
+            value={coachName}
+            onChange={(e) => setCoachName(e.target.value)}
+          />
+          <Select
+            label={t('liveCoaching.category')}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
             {LIVE_COACHING_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </Select>
-          <Input label="Language" value={language} onChange={(e) => setLanguage(e.target.value)} />
           <Input
-            label="Date & Time"
+            label={t('liveCoaching.language')}
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          />
+          <Input
+            label={t('liveCoaching.datetime')}
             type="datetime-local"
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
           />
           <Input
-            label="Duration (Min)"
+            label={t('liveCoaching.duration')}
             type="number"
             min={5}
             max={480}
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(Number(e.target.value) || 60)}
           />
-          <Input label="Zoom URL" value={zoomUrl} onChange={(e) => setZoomUrl(e.target.value)} />
+          <Input
+            label={t('liveCoaching.zoomUrl')}
+            value={zoomUrl}
+            onChange={(e) => setZoomUrl(e.target.value)}
+          />
           <Select
-            label="Repeat"
+            label={t('liveCoaching.repeat')}
             value={repeatRule}
             onChange={(e) => setRepeatRule(e.target.value as LiveRepeatRule)}
           >
-            <option value="none">Keine</option>
-            <option value="daily">Täglich</option>
-            <option value="weekly">Wöchentlich</option>
-            <option value="biweekly">Alle 2 Wochen</option>
-            <option value="monthly">Monatlich</option>
+            <option value="none">{t('liveCoaching.repeatNone')}</option>
+            <option value="daily">{t('liveCoaching.repeatDaily')}</option>
+            <option value="weekly">{t('liveCoaching.repeatWeekly')}</option>
+            <option value="biweekly">{t('liveCoaching.repeatBiweekly')}</option>
+            <option value="monthly">{t('liveCoaching.repeatMonthly')}</option>
           </Select>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">Active</span>
-            <Toggle checked={active} onChange={setActive} label="Active" />
+            <span className="text-sm font-medium">{t('liveCoaching.active')}</span>
+            <Toggle checked={active} onChange={setActive} label={t('liveCoaching.active')} />
           </div>
           <label className="ui-btn ui-btn--secondary ui-btn--sm ui-btn--inline cursor-pointer">
-            Bild (9:16) oder MP4
+            {t('liveCoaching.mediaPick')}
             <input
               type="file"
               accept="image/*,video/mp4,video/webm"
@@ -248,9 +273,7 @@ export function LiveCoachingAdminPage() {
               onChange={onFile}
             />
           </label>
-          <p className="text-xs text-muted">
-            Bilder erhalten Gold-Shimmer. Videos ohne Shimmer/Glow.
-          </p>
+          <p className="text-xs text-muted">{t('liveCoaching.mediaShimmerHint')}</p>
           <div className="flex flex-wrap gap-2">
             <Button
               fullWidth={false}
@@ -258,29 +281,26 @@ export function LiveCoachingAdminPage() {
               disabled={saveEvent.isPending}
               onClick={() => void persist(false)}
             >
-              Speichern
+              {t('common.save')}
             </Button>
             <Button
               fullWidth={false}
               disabled={saveEvent.isPending}
               onClick={() => void persist(true)}
             >
-              Publish
+              {t('liveCoaching.publish')}
             </Button>
           </div>
-          <p className="text-xs text-muted">
-            Future ready (stubs): Replay, Recordings, Guests, Multi-Events, Search, Categories,
-            Library.
-          </p>
+          <p className="text-xs text-muted">{t('liveCoaching.futureReady')}</p>
         </Card>
 
         <div className="space-y-3">
-          <p className="font-semibold">Today Preview</p>
+          <p className="font-semibold">{t('liveCoaching.todayPreview')}</p>
           {preview ? (
             <LiveCoachingCard event={preview} />
           ) : (
             <Card>
-              <p className="text-sm text-muted">Vorschau erscheint nach Titel + Media.</p>
+              <p className="text-sm text-muted">{t('liveCoaching.previewHint')}</p>
             </Card>
           )}
         </div>

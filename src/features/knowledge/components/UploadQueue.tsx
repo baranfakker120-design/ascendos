@@ -1,3 +1,4 @@
+import { useI18n, type MessageKey } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { EnergyCore } from '@shared/ui/EnergyCore';
 import { humanFileSize } from '../extractText';
@@ -17,12 +18,12 @@ export interface UploadJob {
   error?: string;
 }
 
-const PHASE_LABEL: Record<JobPhase, string> = {
-  waiting: 'Wartet',
-  reading: 'Text wird gelesen',
-  embedding: 'Wird eingebettet',
-  done: 'Fertig',
-  error: 'Fehler',
+const PHASE_KEYS: Record<JobPhase, MessageKey> = {
+  waiting: 'knowledge.queueWaiting',
+  reading: 'knowledge.queueReading',
+  embedding: 'knowledge.queueEmbedding',
+  done: 'knowledge.queueDone',
+  error: 'knowledge.queueError',
 };
 
 /**
@@ -43,19 +44,22 @@ function progressPercent(job: UploadJob): number {
 }
 
 export function UploadQueue({ jobs }: { jobs: UploadJob[] }) {
+  const { t } = useI18n();
   if (jobs.length === 0) return null;
 
   const active = jobs.filter((j) => j.phase !== 'done' && j.phase !== 'error').length;
   const failed = jobs.filter((j) => j.phase === 'error').length;
 
   return (
-    <section aria-label="Upload-Fortschritt" className="space-y-2">
+    <section aria-label={t('knowledge.queueProgress')} className="space-y-2">
       <div className="flex items-baseline justify-between">
         <h3 className="text-sm font-semibold text-ink">
-          {active > 0 ? `Verarbeitung läuft (${active} offen)` : 'Verarbeitung abgeschlossen'}
+          {active > 0 ? t('knowledge.queueActive', { active }) : t('knowledge.queueComplete')}
         </h3>
         {failed > 0 && (
-          <span className="text-xs font-medium text-red-700">{failed} fehlgeschlagen</span>
+          <span className="text-xs font-medium text-red-700">
+            {failed} {t('knowledge.queueError')}
+          </span>
         )}
       </div>
 
@@ -70,9 +74,11 @@ export function UploadQueue({ jobs }: { jobs: UploadJob[] }) {
                     <p className="truncate text-sm font-medium text-ink">{job.fileName}</p>
                     <p className="text-xs text-muted">
                       {humanFileSize(job.size)}
-                      {job.pages ? ` · ${job.pages} Seiten` : ''}
-                      {job.parts > 1 ? ` · ${job.parts} Teile` : ''}
-                      {job.phase === 'done' && job.chunks > 0 ? ` · ${job.chunks} Abschnitte` : ''}
+                      {job.pages ? ` · ${t('knowledge.pages', { count: job.pages })}` : ''}
+                      {job.parts > 1 ? ` · ${t('knowledge.parts', { count: job.parts })}` : ''}
+                      {job.phase === 'done' && job.chunks > 0
+                        ? ` · ${t('knowledge.chunks', { count: job.chunks })}`
+                        : ''}
                     </p>
                   </div>
                   <span
@@ -84,7 +90,7 @@ export function UploadQueue({ jobs }: { jobs: UploadJob[] }) {
                           : 'text-muted'
                     }`}
                   >
-                    {PHASE_LABEL[job.phase]}
+                    {t(PHASE_KEYS[job.phase])}
                     {job.phase === 'embedding' && job.parts > 1
                       ? ` ${job.partsDone}/${job.parts}`
                       : ''}

@@ -273,7 +273,8 @@ export class PendingCoachShareVision implements CoachShareVisionCapabilities {
 
 const STORAGE_KEY = 'ascendos.share-verifications.v1';
 
-export const ALREADY_CONFIRMED_MESSAGE = 'Bereits für diesen Kontakt bestätigt.';
+/** Catalog key: contacts.shareAlreadyConfirmed — prefer `t()` in UI. */
+export const ALREADY_CONFIRMED_MESSAGE = 'Already confirmed for this contact.';
 
 function readAll(): ShareVerificationRecord[] {
   try {

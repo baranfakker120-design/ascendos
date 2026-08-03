@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
-import {
-  APP_LOCALES,
-  readStoredLocale,
-  writeStoredLocale,
-  type AppLocale,
-} from '@shared/lib/locale';
+import { useI18n } from '@shared/i18n';
+import { APP_LOCALES, type AppLocale } from '@shared/lib/locale';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -22,7 +18,7 @@ import {
  */
 export function SettingsPage() {
   const { signOut } = useAuth();
-  const [locale, setLocale] = useState<AppLocale>(() => readStoredLocale());
+  const { locale, setLocale, t } = useI18n();
   const [deleteHint, setDeleteHint] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushHint, setPushHint] = useState<string | null>(null);
@@ -33,50 +29,45 @@ export function SettingsPage() {
 
   const onLocale = (code: AppLocale) => {
     setLocale(code);
-    writeStoredLocale(code);
   };
 
   const onPushToggle = async (next: boolean) => {
     if (!next) {
       setPushEnabled(false);
-      setPushHint('Push lokal deaktiviert. Systemberechtigung bleibt ggf. bestehen.');
+      setPushHint(t('settings.pushDisabled'));
       return;
     }
     const ok = await ensureNotificationPermission();
     setPushEnabled(ok);
-    setPushHint(
-      ok
-        ? 'Push aktiv — Lock Screen, Notification Center und Banner (sofern vom Gerät erlaubt).'
-        : 'Push-Berechtigung fehlt. Bitte in den Systemeinstellungen erlauben.'
-    );
+    setPushHint(ok ? t('settings.pushActive') : t('settings.pushDenied'));
   };
 
   const requestDelete = () => {
-    const ok = window.confirm(
-      'Konto wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden. Bitte bestätige, dass du eine Löschung anfordern möchtest.'
-    );
+    const ok = window.confirm(t('settings.deleteConfirm'));
     if (!ok) return;
-    setDeleteHint(
-      'Löschanfrage vorgemerkt. Bitte kontaktiere den Support, um die endgültige Löschung abzuschließen.'
-    );
+    setDeleteHint(t('settings.deleteHint'));
   };
 
   return (
     <div className="space-y-4">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">System</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Einstellungen</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
+          {t('settings.eyebrow')}
+        </p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
       </header>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">General</p>
-        <p className="mt-2 text-sm text-muted">
-          Grundlegende App-Einstellungen für deinen AscendOS-Arbeitsplatz.
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.general')}
         </p>
+        <p className="mt-2 text-sm text-muted">{t('settings.generalBody')}</p>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Language</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.language')}
+        </p>
         <ul className="mt-3 space-y-1.5">
           {APP_LOCALES.map((opt) => (
             <li key={opt.code}>
@@ -87,7 +78,7 @@ export function SettingsPage() {
                 className="justify-start text-left"
               >
                 <img src={opt.flag} alt="" aria-hidden className="h-6 w-6" draggable={false} />
-                <span>{opt.label}</span>
+                <span>{t(opt.labelKey)}</span>
               </Button>
             </li>
           ))}
@@ -95,84 +86,87 @@ export function SettingsPage() {
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Notifications</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.notifications')}
+        </p>
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
           <div>
-            <span className="font-medium">Push & Erinnerungen</span>
-            <p className="mt-0.5 text-xs text-muted">
-              Live Coaching: sofort nach Publish, 30 Min und 5 Min vorher.
-            </p>
+            <span className="font-medium">{t('settings.pushTitle')}</span>
+            <p className="mt-0.5 text-xs text-muted">{t('settings.pushBody')}</p>
             {pushHint ? <p className="mt-1 text-xs text-muted">{pushHint}</p> : null}
           </div>
           <Toggle
             checked={pushEnabled}
             onChange={(next) => void onPushToggle(next)}
-            label="Push & Erinnerungen"
+            label={t('settings.pushTitle')}
           />
         </div>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Appearance</p>
-        <p className="mt-2 text-sm text-muted">
-          Licht-Modus nach Brand Foundation v1. Dunkler Modus folgt mit dem PWA-Feinschliff.
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.appearance')}
         </p>
+        <p className="mt-2 text-sm text-muted">{t('settings.appearanceBody')}</p>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Privacy</p>
-        <p className="mt-2 text-sm text-muted">
-          Profil- und Aktivitätsdaten bleiben in deiner Organisation. Firstline sieht nur
-          Fortschritt, keine privaten Inhalte.
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.privacy')}
         </p>
+        <p className="mt-2 text-sm text-muted">{t('settings.privacyBody')}</p>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Support</p>
-        <p className="mt-2 text-sm text-muted">
-          Hilfe und technische Fragen über dein Leadership-Team.
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.support')}
         </p>
+        <p className="mt-2 text-sm text-muted">{t('settings.supportBody')}</p>
         <a
           href="mailto:support@ascendos.app"
           className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline"
         >
-          Support kontaktieren
+          {t('settings.supportCta')}
         </a>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Feedback</p>
-        <p className="mt-2 text-sm text-muted">
-          Ideen und Verbesserungen willkommen — wir bauen AscendOS mit Leadern.
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.feedback')}
         </p>
+        <p className="mt-2 text-sm text-muted">{t('settings.feedbackBody')}</p>
         <a
           href="mailto:feedback@ascendos.app"
           className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline"
         >
-          Feedback senden
+          {t('settings.feedbackCta')}
         </a>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">About AscendOS</p>
-        <p className="mt-2 text-sm text-ink">AscendOS · Build a better tomorrow.</p>
-        <p className="mt-1 text-xs text-muted">Version 0.1.0</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.about')}
+        </p>
+        <p className="mt-2 text-sm text-ink">{t('settings.aboutLine')}</p>
+        <p className="mt-1 text-xs text-muted">{t('settings.version', { version: '0.1.0' })}</p>
         <Link
           to="/profil"
           className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline"
         >
-          Zum Profil
+          {t('settings.toProfile')}
         </Link>
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Danger Zone</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('settings.danger')}
+        </p>
         <div className="mt-3 space-y-2">
           <Button type="button" variant="secondary" onClick={() => void signOut()}>
-            Logout
+            {t('settings.logout')}
           </Button>
           <Button type="button" variant="danger" onClick={requestDelete}>
-            Delete account
+            {t('settings.deleteAccount')}
           </Button>
           {deleteHint ? <Alert tone="info">{deleteHint}</Alert> : null}
         </div>

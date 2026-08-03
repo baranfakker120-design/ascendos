@@ -26,13 +26,15 @@ import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 
 function FullScreenSpinner() {
+  const { t } = useI18n();
   return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-sm text-muted">AscendOS wird geladen …</p>
+      <p className="text-sm text-muted">{t('common.loading')}</p>
     </div>
   );
 }
@@ -56,15 +58,16 @@ function ShellOutlet() {
  * Sprint 5.2: Ascend Stories at the very top (additive).
  */
 function TodayRoute() {
+  const { t } = useI18n();
   const { data: state, isPending, isError, refetch } = useJourneyState();
   if (isPending) return <FullScreenSpinner />;
   if (isError) {
     return (
       <Card className="mt-4 space-y-3 text-center">
-        <p className="font-medium">Dein Heute-Tab konnte nicht geladen werden.</p>
-        <p className="text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+        <p className="font-medium">{t('today.loadErrorTitle')}</p>
+        <p className="text-sm text-muted">{t('today.loadErrorBody')}</p>
         <Button fullWidth={false} variant="secondary" onClick={() => void refetch()}>
-          Erneut versuchen
+          {t('common.retry')}
         </Button>
       </Card>
     );

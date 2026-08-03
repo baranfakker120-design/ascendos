@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
-import {
-  APP_LOCALES,
-  localeOption,
-  readStoredLocale,
-  writeStoredLocale,
-  type AppLocale,
-} from '@shared/lib/locale';
+import { APP_LOCALES, localeOption, type AppLocale } from '@shared/lib/locale';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
 
 /**
  * VisionOS-style floating language picker — top-right header.
+ * Instant locale switch via LocaleProvider (no reload / remount).
  */
 export function LanguageMenu() {
-  const [locale, setLocale] = useState<AppLocale>(() => readStoredLocale());
+  const { locale, setLocale, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -55,7 +51,6 @@ export function LanguageMenu() {
   const choose = (code: AppLocale) => {
     triggerNavHaptic(130);
     setLocale(code);
-    writeStoredLocale(code);
     collapse();
   };
 
@@ -67,7 +62,7 @@ export function LanguageMenu() {
           variant="secondary"
           size="icon"
           fullWidth={false}
-          aria-label="Sprache wählen"
+          aria-label={t('locale.choose')}
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={toggle}
@@ -84,7 +79,7 @@ export function LanguageMenu() {
           }`}
         >
           <Card padding="sm" className="!p-1.5 shadow-[0_16px_40px_rgb(17_18_20/0.12)]">
-            <div role="menu" aria-label="Sprachen">
+            <div role="menu" aria-label={t('locale.menu')}>
               {APP_LOCALES.map((opt, i) => (
                 <Button
                   key={opt.code}
@@ -104,7 +99,7 @@ export function LanguageMenu() {
                     className="h-6 w-6 shrink-0"
                     draggable={false}
                   />
-                  <span>{opt.label}</span>
+                  <span>{t(opt.labelKey)}</span>
                 </Button>
               ))}
             </div>

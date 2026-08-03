@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 import type { DailyPlanItem } from '@shared/types/domain';
 import { comboBonusAp, scoreDailyMission } from '@shared/lib/apScoring';
 import { contactHasPendingShareProof } from '@shared/lib/shareVerification';
@@ -20,6 +21,7 @@ interface Props {
  * Fokus-Modus: eine Mission dominant, Reward-Sticker zeigen den Wert.
  */
 export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) {
+  const { t } = useI18n();
   const { current, queue, resolved } = ordered;
   const [skipPickerFor, setSkipPickerFor] = useState<string | null>(null);
 
@@ -33,12 +35,18 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
   const awaitingProof =
     Boolean(current.contact_id) && contactHasPendingShareProof(current.contact_id!);
 
+  const skipReasons = [
+    { key: 'notReached' as const, label: t('today.skipNotReached') },
+    { key: 'noTime' as const, label: t('today.skipNoTime') },
+    { key: 'other' as const, label: t('today.skipOther') },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Dein Fokus</h1>
+        <h1 className="text-xl font-bold">{t('today.focus')}</h1>
         <span className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted">
-          {progress.done} / {progress.total} erledigt
+          {t('today.progressDone', { done: progress.done, total: progress.total })}
         </span>
       </div>
 
@@ -61,7 +69,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
             <p className="mt-1 text-sm text-muted">{current.reason}</p>
             {awaitingProof ? (
               <p className="mt-2 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent-deep">
-                Warte auf Nachweis
+                {t('today.waitingProof')}
               </p>
             ) : null}
             {current.contact_id ? (
@@ -69,7 +77,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
                 to={`/kontakte/${current.contact_id}`}
                 className="mt-2 inline-block text-sm font-medium text-primary"
               >
-                Kontakt öffnen — anrufen, teilen, dokumentieren →
+                {t('today.openContact')}
               </Link>
             ) : null}
           </div>
@@ -78,29 +86,29 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
         {skipPickerFor === current.id ? (
           <div className="space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              Warum klappt es heute nicht?
+              {t('today.skipWhy')}
             </p>
-            {['Nicht erreicht', 'Termin verschoben', 'Anderer Grund'].map((reason) => (
+            {skipReasons.map((reason) => (
               <Button
-                key={reason}
+                key={reason.key}
                 variant="secondary"
                 disabled={busy}
                 onClick={() => {
-                  onStatus(current.id, 'skipped', reason);
+                  onStatus(current.id, 'skipped', reason.label);
                   setSkipPickerFor(null);
                 }}
               >
-                {reason}
+                {reason.label}
               </Button>
             ))}
             <Button variant="ghost" disabled={busy} onClick={() => setSkipPickerFor(null)}>
-              Zurück
+              {t('common.back')}
             </Button>
           </div>
         ) : (
           <div className="space-y-2">
             <Button disabled={busy} aria-busy={busy} onClick={() => onStatus(current.id, 'done')}>
-              {busy ? 'Wird gespeichert …' : '✓ Erledigt'}
+              {busy ? t('today.saving') : t('today.done')}
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button
@@ -108,14 +116,14 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
                 disabled={busy}
                 onClick={() => onStatus(current.id, 'deferred')}
               >
-                Später heute
+                {t('today.laterToday')}
               </Button>
               <Button
                 variant="secondary"
                 disabled={busy}
                 onClick={() => setSkipPickerFor(current.id)}
               >
-                Heute nicht möglich
+                {t('today.notPossible')}
               </Button>
             </div>
           </div>
@@ -125,7 +133,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
       {queue.length > 0 ? (
         <section>
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Danach ({queue.length})
+            {t('today.afterwardsCount', { count: queue.length })}
           </h2>
           <ul className="space-y-1.5">
             {queue.map((item) => (
@@ -138,7 +146,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
       {resolved.length > 0 ? (
         <section>
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Heute geschafft
+            {t('today.doneToday')}
           </h2>
           <ul className="space-y-1.5">
             {resolved.map((item) => (
@@ -171,6 +179,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
 }
 
 function QueueRow({ item, missionsDoneToday }: { item: DailyPlanItem; missionsDoneToday: number }) {
+  const { t } = useI18n();
   const ap = scoreDailyMission(item.mission_type, {
     engineScore: item.score,
     missionsDoneToday,
@@ -184,7 +193,7 @@ function QueueRow({ item, missionsDoneToday }: { item: DailyPlanItem; missionsDo
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.title}</span>
         <ApRewardSticker ap={ap} size="sm" animate={false} />
         {item.status === 'deferred' ? (
-          <span className="shrink-0 text-xs text-muted">verschoben</span>
+          <span className="shrink-0 text-xs text-muted">{t('today.postponed')}</span>
         ) : null}
       </Card>
     </li>

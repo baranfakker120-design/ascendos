@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { CATEGORIES, useDeleteDoc, useKnowledgeDocs, useSetDocStatus } from '../knowledgeApi';
@@ -6,12 +7,6 @@ const STATUS_STYLE: Record<string, string> = {
   draft: 'bg-amber-50 text-amber-800 border-amber-200',
   approved: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   archived: 'bg-bg text-muted border-line',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  draft: 'Entwurf',
-  approved: 'Freigegeben',
-  archived: 'Archiviert',
 };
 
 function categoryLabel(value: string): string {
@@ -24,24 +19,27 @@ function isRetrievable(value: string): boolean {
 }
 
 export function DocumentList() {
+  const { t } = useI18n();
+  const statusLabel: Record<string, string> = {
+    draft: t('knowledge.statusDraft'),
+    approved: t('knowledge.statusApproved'),
+    archived: t('knowledge.statusArchived'),
+  };
   const { data: docs, isLoading, error } = useKnowledgeDocs();
   const setStatus = useSetDocStatus();
   const remove = useDeleteDoc();
 
-  if (isLoading) return <p className="text-sm text-muted">Dokumente werden geladen …</p>;
+  if (isLoading) return <p className="text-sm text-muted">{t('knowledge.docsLoading')}</p>;
   if (error) {
     return (
       <p className="text-sm text-red-700">
-        Dokumente konnten nicht geladen werden: {(error as Error).message}
+        {t('knowledge.docsLoadError', { message: (error as Error).message })}
       </p>
     );
   }
   if (!docs || docs.length === 0) {
     return (
-      <Card className="px-4 py-6 text-center text-sm text-muted">
-        Noch keine Dokumente. Lade das erste hoch — ohne Wissensbasis behandelt Ascent jede
-        Teamfrage als Wissenslücke.
-      </Card>
+      <Card className="px-4 py-6 text-center text-sm text-muted">{t('knowledge.emptyHint')}</Card>
     );
   }
 
@@ -51,9 +49,7 @@ export function DocumentList() {
     <div className="space-y-3">
       {drafts > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {drafts === 1 ? 'Ein Dokument ist' : `${drafts} Dokumente sind`} noch nicht freigegeben.
-          Für dein Team {drafts === 1 ? 'ist es' : 'sind sie'} damit unsichtbar — du selbst siehst{' '}
-          {drafts === 1 ? 'es' : 'sie'} als Super-Admin trotzdem im Coach.
+          {t('knowledge.draftBanner', { count: drafts })}
         </div>
       )}
 
@@ -74,21 +70,19 @@ export function DocumentList() {
                     STATUS_STYLE[doc.status] ?? STATUS_STYLE.archived
                   }`}
                 >
-                  {STATUS_LABEL[doc.status] ?? doc.status}
+                  {statusLabel[doc.status] ?? doc.status}
                 </span>
               </div>
 
               {!isRetrievable(doc.category) && (
                 <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-                  Die Kategorie „{doc.category}" wird von keinem Agenten abgefragt. Dieses Dokument
-                  wird nie gefunden, auch nach Freigabe nicht.
+                  {t('knowledge.categoryUnused', { category: doc.category })}
                 </p>
               )}
 
               {doc.chunk_count === 0 && (
                 <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-                  Keine Abschnitte vorhanden — die Einbettung ist fehlgeschlagen. Bitte neu
-                  hochladen.
+                  {t('knowledge.queueError')}
                 </p>
               )}
 
@@ -100,7 +94,7 @@ export function DocumentList() {
                     onClick={() => setStatus.mutate({ id: doc.id, status: 'approved' })}
                     disabled={setStatus.isPending}
                   >
-                    Freigeben
+                    {t('knowledge.approve')}
                   </Button>
                 )}
                 {doc.status === 'approved' && (
@@ -111,7 +105,7 @@ export function DocumentList() {
                     onClick={() => setStatus.mutate({ id: doc.id, status: 'archived' })}
                     disabled={setStatus.isPending}
                   >
-                    Archivieren
+                    {t('knowledge.archive')}
                   </Button>
                 )}
                 <Button
@@ -121,13 +115,13 @@ export function DocumentList() {
                   onClick={() => {
                     // Löschen entfernt auch alle Chunks (ON DELETE CASCADE)
                     // und ist nicht rückholbar.
-                    if (window.confirm(`„${doc.title}" endgültig löschen?`)) {
+                    if (window.confirm(t('knowledge.deleteNamed', { title: doc.title }))) {
                       remove.mutate(doc.id);
                     }
                   }}
                   disabled={remove.isPending}
                 >
-                  Löschen
+                  {t('common.delete')}
                 </Button>
               </div>
             </Card>

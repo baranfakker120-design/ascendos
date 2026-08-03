@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { useProfileDetail } from '@features/profile/profileApi';
@@ -22,11 +23,12 @@ export function CoachAvatar({ size = 40 }: { size?: number }) {
 /** User avatar with active RankFrame — same identity as Profile. */
 export function CoachUserAvatar() {
   const { profile, role } = useAuth();
+  const { t } = useI18n();
   const { data } = useProfileDetail();
   const name =
     profile != null
       ? `${profile.first_name} ${profile.last_name}`.trim() || profile.username
-      : 'Du';
+      : t('coach.you');
   const frameKey = resolveDisplayFrameKey({
     role,
     rankFrameKey: data?.rank.current?.frame_asset ?? null,
@@ -42,8 +44,9 @@ export function CoachUserAvatar() {
 
 /** Apple-level typing indicator — three springy dots. */
 export function CoachTypingDots() {
+  const { t } = useI18n();
   return (
-    <span className="coach-typing" aria-label="Ascent schreibt" role="status">
+    <span className="coach-typing" aria-label={t('coach.typing')} role="status">
       <span className="coach-typing__dot" />
       <span className="coach-typing__dot" />
       <span className="coach-typing__dot" />

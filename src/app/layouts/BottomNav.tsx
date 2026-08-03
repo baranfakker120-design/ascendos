@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useI18n, type MessageKey } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
 import { AscendLogo, ContactsIcon, TeamSeydaIcon, TodayIcon } from './nav/NavIcons';
@@ -10,23 +11,23 @@ export type NavTabId = 'heute' | 'kontakte' | 'coach' | 'team' | 'profil';
 interface NavTab {
   id: NavTabId;
   to: string;
-  label: string;
-  ariaLabel: string;
+  labelKey: MessageKey;
+  ariaKey: MessageKey;
   end?: boolean;
   externalInApp?: boolean;
 }
 
 export const BOTTOM_NAV_TABS: readonly NavTab[] = [
-  { id: 'heute', to: '/', label: 'Heute', ariaLabel: 'Heute', end: true },
-  { id: 'kontakte', to: '/kontakte', label: 'Kontakte', ariaLabel: 'Kontakte' },
-  { id: 'coach', to: '/coach', label: 'Coach', ariaLabel: 'Coach — Ascend' },
+  { id: 'heute', to: '/', labelKey: 'nav.today', ariaKey: 'nav.today', end: true },
+  { id: 'kontakte', to: '/kontakte', labelKey: 'nav.contacts', ariaKey: 'nav.contacts' },
+  { id: 'coach', to: '/coach', labelKey: 'nav.coach', ariaKey: 'nav.coachAria' },
   {
     id: 'team',
     to: '/team',
-    label: 'Team',
-    ariaLabel: 'Teambaum',
+    labelKey: 'nav.team',
+    ariaKey: 'nav.teamAria',
   },
-  { id: 'profil', to: '/profil', label: 'Profil', ariaLabel: 'Profil' },
+  { id: 'profil', to: '/profil', labelKey: 'nav.profile', ariaKey: 'nav.profile' },
 ] as const;
 
 function isTabActive(tab: NavTab, pathname: string): boolean {
@@ -54,6 +55,7 @@ function isTabActive(tab: NavTab, pathname: string): boolean {
  * signature liquid champagne hold effect. Ascend logo unchanged.
  */
 export function BottomNav() {
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const [burstId, setBurstId] = useState<NavTabId | null>(null);
@@ -85,7 +87,7 @@ export function BottomNav() {
 
   return (
     <nav
-      aria-label="Hauptnavigation"
+      aria-label={t('nav.main')}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <div className="pointer-events-auto relative mx-auto max-w-lg">
@@ -93,6 +95,8 @@ export function BottomNav() {
           {BOTTOM_NAV_TABS.map((tab) => {
             const active = isTabActive(tab, location.pathname);
             const isCenter = tab.id === 'coach';
+            const label = t(tab.labelKey);
+            const ariaLabel = t(tab.ariaKey);
 
             if (tab.id === 'profil') {
               return (
@@ -117,7 +121,7 @@ export function BottomNav() {
                   <LiquidChampagne>
                     <NavLink
                       to={tab.to}
-                      aria-label={tab.ariaLabel}
+                      aria-label={ariaLabel}
                       onClick={() => playBurst(tab.id)}
                       className={({ isActive }) =>
                         [
@@ -144,7 +148,7 @@ export function BottomNav() {
                               isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
                             ].join(' ')}
                           >
-                            {tab.label}
+                            {label}
                           </span>
                         </>
                       )}
@@ -161,7 +165,7 @@ export function BottomNav() {
                 <NavLink
                   to={tab.to}
                   end={tab.end}
-                  aria-label={tab.ariaLabel}
+                  aria-label={ariaLabel}
                   onClick={(e) => {
                     playBurst(tab.id);
                     if (tab.externalInApp) {
@@ -190,7 +194,7 @@ export function BottomNav() {
                             : 'font-medium text-muted',
                         ].join(' ')}
                       >
-                        {tab.label}
+                        {label}
                       </span>
                     </>
                   )}

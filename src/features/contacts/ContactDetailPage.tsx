@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { activityLabel, daysSince } from '@shared/lib/pipeline';
 import { isProofRequiredShareTool } from '@shared/lib/shareToolsDisplay';
@@ -21,6 +22,7 @@ import { ShareTools } from './components/ShareTools';
 import { useContact, useContactEvents, useContactMutations, useExternalTools } from './contactsApi';
 
 export function ContactDetailPage() {
+  const { t } = useI18n();
   const { contactId } = useParams();
   const navigate = useNavigate();
   const { data: contact, isPending, isError, isSuccess } = useContact(contactId!);
@@ -65,13 +67,13 @@ export function ContactDetailPage() {
     return keys;
   }, [contactId, tools, pipelineEventTypes, proofTick]);
 
-  if (isPending) return <p className="text-sm text-muted">Kontakt wird geladen …</p>;
+  if (isPending) return <p className="text-sm text-muted">{t('contacts.loading')}</p>;
   if (isError) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted">Kontakt konnte nicht geladen werden.</p>
+        <p className="text-sm text-muted">{t('contacts.loadFailed')}</p>
         <Link to="/kontakte" className="text-sm font-medium text-primary">
-          Zurück zu den Kontakten
+          {t('contacts.backToList')}
         </Link>
       </div>
     );
@@ -79,9 +81,9 @@ export function ContactDetailPage() {
   if (isSuccess && !contact) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted">Dieser Kontakt existiert nicht (mehr).</p>
+        <p className="text-sm text-muted">{t('contacts.gone')}</p>
         <Link to="/kontakte" className="text-sm font-medium text-primary">
-          Zurück zu den Kontakten
+          {t('contacts.backToList')}
         </Link>
       </div>
     );
@@ -96,7 +98,7 @@ export function ContactDetailPage() {
     try {
       await addEvent.mutateAsync({ contactId: contact.id, eventType, source });
     } catch {
-      setActionError('Ereignis konnte nicht gespeichert werden.');
+      setActionError(t('contacts.eventSaveFailed'));
       throw new Error('event-failed');
     }
   };
@@ -105,25 +107,23 @@ export function ContactDetailPage() {
     if (
       isShareActionAlreadyAwarded(contact.id, tool.key, tool.share_event_type, pipelineEventTypes)
     ) {
-      setProofTick((t) => t + 1);
+      setProofTick((n) => n + 1);
       return;
     }
     void logEvent(tool.share_event_type, tool.key)
-      .then(() => setProofTick((t) => t + 1))
+      .then(() => setProofTick((n) => n + 1))
       .catch(() => undefined);
   };
 
   const remove = async () => {
-    const ok = window.confirm(
-      `„${contact.name}" wirklich löschen? Die komplette Historie geht dabei verloren.`
-    );
+    const ok = window.confirm(t('contacts.deleteConfirmNamed', { name: contact.name }));
     if (!ok) return;
     setActionError(null);
     try {
       await deleteContact.mutateAsync(contact.id);
       navigate('/kontakte', { replace: true });
     } catch {
-      setActionError('Löschen fehlgeschlagen. Bitte erneut versuchen.');
+      setActionError(t('contacts.deleteFailed'));
     }
   };
 
@@ -131,7 +131,7 @@ export function ContactDetailPage() {
     <div className="space-y-5">
       <div>
         <Link to="/kontakte" className="text-sm text-muted">
-          ← Kontakte
+          {t('contacts.back')}
         </Link>
         <div className="mt-2 flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{contact.name}</h1>
@@ -141,14 +141,16 @@ export function ContactDetailPage() {
           </div>
         </div>
         <p className={`mt-1 text-sm ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}>
-          {activityLabel(contact.last_event_at)}
-          {overdue ? ' · Follow-up überfällig' : ''}
+          {activityLabel(contact.last_event_at, t)}
+          {overdue ? ` · ${t('contacts.followUpOverdue')}` : ''}
         </p>
       </div>
 
       {contact.next_step ? (
         <Card>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Nächster Schritt</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">
+            {t('contacts.nextStep')}
+          </p>
           <p className="mt-1 font-medium">{contact.next_step}</p>
         </Card>
       ) : null}
@@ -170,7 +172,9 @@ export function ContactDetailPage() {
       )}
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Aktionen</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          {t('contacts.actions')}
+        </h2>
         {actionError ? <Alert tone="error">{actionError}</Alert> : null}
         <ButtonLink
           to={`/coach?kontakt=${contact.id}`}
@@ -179,10 +183,10 @@ export function ContactDetailPage() {
         >
           <span className="min-w-0">
             <span className="block text-sm font-medium">
-              Ascent zu {contact.name.split(' ')[0]} fragen
+              {t('contacts.askAscent', { name: contact.name.split(' ')[0] ?? contact.name })}
             </span>
             <span className="block text-xs font-normal text-muted">
-              Kennt Phase, Verlauf und nächsten Schritt bereits
+              {t('contacts.askAscentSub')}
             </span>
           </span>
           <span className="text-xs font-medium text-primary">→</span>
@@ -192,7 +196,7 @@ export function ContactDetailPage() {
           contactId={contact.id}
           contactName={contact.name}
           onShared={onToolShared}
-          onProofChange={() => setProofTick((t) => t + 1)}
+          onProofChange={() => setProofTick((n) => n + 1)}
           pendingToolKeys={pendingToolKeys}
           awardedToolKeys={awardedToolKeys}
         />
@@ -200,15 +204,15 @@ export function ContactDetailPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Verlauf</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          {t('contacts.history')}
+        </h2>
         <EventTimeline
           events={events ?? []}
           pendingProofs={pendingProofs}
           correcting={correctEvent.isPending}
           onCorrect={(eventId) => {
-            const ok = window.confirm(
-              'Dieses Ereignis als Fehl-Eingabe markieren? Es bleibt sichtbar, zählt aber nicht mehr für die Phase.'
-            );
+            const ok = window.confirm(t('contacts.correctConfirm'));
             if (ok) void correctEvent.mutateAsync(eventId);
           }}
         />
@@ -216,10 +220,10 @@ export function ContactDetailPage() {
 
       <section className="space-y-2 border-t border-line pt-4">
         <ButtonLink to={`/kontakte/${contact.id}/bearbeiten`} variant="secondary">
-          Kontakt bearbeiten
+          {t('contacts.editContact')}
         </ButtonLink>
         <Button variant="danger" onClick={() => void remove()}>
-          Kontakt löschen
+          {t('contacts.deleteContact')}
         </Button>
       </section>
     </div>

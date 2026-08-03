@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 import { phaseLabel } from '@shared/lib/pipeline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
@@ -10,15 +11,6 @@ import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
 import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from './intelligence';
 import './coach-chat.css';
-
-const CHIPS = [
-  { label: '🛡️ Einwand behandeln', text: 'Hilf mir, diesen Einwand zu behandeln: ' },
-  {
-    label: '✍️ Nachricht formulieren',
-    text: 'Formuliere mir eine Nachricht für diese Situation: ',
-  },
-  { label: '🎯 Gespräch vorbereiten', text: 'Bereite mich auf das nächste Gespräch vor.' },
-];
 
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 const STICK_THRESHOLD_PX = 96;
@@ -47,6 +39,15 @@ function linkifyText(text: string): Array<string | JSX.Element> {
  * Auto-stick only when the user is already near the bottom.
  */
 export function CoachPage() {
+  const { t } = useI18n();
+  const chips = useMemo(
+    () => [
+      { label: t('coach.chipObjection'), text: t('coach.chipObjectionPrompt') },
+      { label: t('coach.chipMessage'), text: t('coach.chipMessagePrompt') },
+      { label: t('coach.chipPrep'), text: t('coach.chipPrepPrompt') },
+    ],
+    [t]
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const contactId = searchParams.get('kontakt');
   const partnerName = searchParams.get('partner');
@@ -137,7 +138,7 @@ export function CoachPage() {
       const result = await send.mutateAsync({ message, conversationId, contactId });
       setConversationId(result.conversationId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ascent ist gerade nicht erreichbar.');
+      setError(e instanceof Error ? e.message : t('coach.unreachable'));
       setInput(message);
     }
   };
@@ -150,8 +151,8 @@ export function CoachPage() {
         <div className="flex items-center gap-3">
           <img src="/brand/ascendos-symbol-mono-v2.png" alt="" className="h-8 w-auto" aria-hidden />
           <div>
-            <p className="text-lg font-bold leading-tight">Ascent</p>
-            <p className="text-xs text-muted">Dein virtueller Geschäftsführer</p>
+            <p className="text-lg font-bold leading-tight">{t('coach.name')}</p>
+            <p className="text-xs text-muted">{t('coach.subtitle')}</p>
           </div>
         </div>
 
@@ -165,22 +166,27 @@ export function CoachPage() {
         {partnerInsight ? (
           <Card padding="sm">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              Analyse · {partnerInsight.name}
+              {t('coach.analysis', { name: partnerInsight.name })}
             </p>
             <p className="mt-0.5 text-sm font-semibold">{partnerInsight.currentSituation}</p>
             <p className="mt-2 text-xs font-medium text-ink">{partnerInsight.nextBestAction}</p>
-            <p className="mt-0.5 text-xs text-muted">Warum: {partnerInsight.nextBestActionWhy}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {t('coach.whyPrefix', { reason: partnerInsight.nextBestActionWhy })}
+            </p>
             {partnerInsight.possibleObjection ? (
               <p className="mt-1 text-xs text-muted">
-                Möglicher Einwand: {partnerInsight.possibleObjection}
+                {t('coach.possibleObjection', { text: partnerInsight.possibleObjection })}
               </p>
             ) : null}
             <p className="mt-2 whitespace-pre-wrap text-xs text-ink">
               {partnerInsight.suggestedWhatsApp}
             </p>
             <p className="mt-2 text-xs text-muted">
-              Reg. {partnerInsight.probabilityOfRegistration}% · Inaktiv{' '}
-              {partnerInsight.probabilityOfInactivity}% · Risiko {partnerInsight.riskScore}
+              {t('coach.probs', {
+                reg: partnerInsight.probabilityOfRegistration,
+                inactive: partnerInsight.probabilityOfInactivity,
+                risk: partnerInsight.riskScore,
+              })}
             </p>
             {partnerInsight.recommendation ? (
               <Button
@@ -190,11 +196,14 @@ export function CoachPage() {
                 className="mt-2"
                 onClick={() => {
                   setInput(
-                    `Bitte prüfe und verbessere diese Nachricht an ${partnerInsight.name} bevor ich sende:\n\n${partnerInsight.suggestedWhatsApp}`
+                    t('coach.improveDraft', {
+                      name: partnerInsight.name,
+                      draft: partnerInsight.suggestedWhatsApp,
+                    })
                   );
                 }}
               >
-                Nachricht vorbereiten
+                {t('coach.prepMessage')}
               </Button>
             ) : null}
           </Card>
@@ -203,26 +212,25 @@ export function CoachPage() {
         {contact ? (
           <Card padding="sm">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              Ascent kennt bereits
+              {t('coach.knowsAlready')}
             </p>
             <p className="mt-0.5 text-sm font-semibold">
-              {contact.name} · {phaseLabel(contact.phase)}
+              {contact.name} · {phaseLabel(contact.phase, t)}
               <Link to={`/kontakte/${contact.id}`} className="ml-2 font-medium text-primary">
-                Kontakt ansehen
+                {t('coach.viewContact')}
               </Link>
             </p>
-            <p className="mt-0.5 text-xs text-muted">
-              Phase, letzte Ereignisse und dein geplanter nächster Schritt werden automatisch
-              mitgegeben — du musst nichts erklären.
-            </p>
+            <p className="mt-0.5 text-xs text-muted">{t('coach.contextHint')}</p>
           </Card>
         ) : partnerName ? (
           <Card padding="sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Team-Kontext</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              {t('coach.teamContext')}
+            </p>
             <p className="mt-0.5 text-sm font-semibold">{partnerName}</p>
             <p className="mt-0.5 text-xs text-muted">
-              Frag z. B.: „Wie helfe ich {partnerName} heute?“ — Ascent nutzt deinen Leadership-
-              Kontext{partnerMid ? ' und die Teamstruktur' : ''}.
+              {t('coach.teamContextHint', { name: partnerName })}
+              {partnerMid ? t('coach.andTeamStructure') : ''}.
             </p>
           </Card>
         ) : null}
@@ -231,11 +239,7 @@ export function CoachPage() {
       <div ref={scrollerRef} className="coach-page__thread coach-thread" onScroll={updateStick}>
         {showWelcome ? (
           <CoachBubble animate>
-            <CoachMarkdown
-              content={
-                'Ich bin Ascent — dein Mentor für den Alltag im Business.\n\nKein Theorie-Marathon. Eine klare Einsicht, warum sie zählt, und was du als Nächstes tust.\n\nNächster Schritt: Sag mir, woran du gerade arbeitest — Einwand, Nachricht oder nächster Move mit einem Kontakt.'
-              }
-            />
+            <CoachMarkdown content={t('coach.welcome')} />
           </CoachBubble>
         ) : null}
 
@@ -259,7 +263,7 @@ export function CoachPage() {
       <div className="coach-page__composer space-y-2 border-t border-line pt-3">
         {showWelcome ? (
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {CHIPS.map((chip) => (
+            {chips.map((chip) => (
               <Button
                 key={chip.label}
                 type="button"
@@ -282,12 +286,16 @@ export function CoachPage() {
         >
           <div className="min-w-0 flex-1">
             <Input
-              label="Nachricht an Ascent"
+              label={t('coach.inputLabel')}
               hideLabel
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                contact ? `Frage zu ${contact.name.split(' ')[0]} …` : 'Nachricht an Ascent …'
+                contact
+                  ? t('coach.contactPlaceholder', {
+                      name: contact.name.split(' ')[0] ?? contact.name,
+                    })
+                  : t('coach.inputPlaceholder')
               }
               autoComplete="off"
               enterKeyHint="send"
@@ -298,7 +306,7 @@ export function CoachPage() {
             size="md"
             fullWidth={false}
             disabled={send.isPending || !input.trim()}
-            aria-label="Senden"
+            aria-label={t('coach.send')}
             className="!px-4"
           >
             →

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { buildGoogleCalendarUrl, buildOutlookCalendarUrl, downloadAppleIcs } from './calendarLinks';
 import { formatCountdown, resolveLiveCoachingState } from './liveState';
@@ -7,6 +8,7 @@ import { openZoomJoin } from './zoomJoin';
 import './live-coaching.css';
 
 export function LiveCoachingCard({ event }: { event: LiveCoachingEvent }) {
+  const { t, locale } = useI18n();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000);
@@ -21,10 +23,10 @@ export function LiveCoachingCard({ event }: { event: LiveCoachingEvent }) {
 
   const stateLabel =
     state === 'countdown'
-      ? `Countdown · ${formatCountdown(event.starts_at, now)}`
+      ? t('liveCoaching.countdown', { time: formatCountdown(event.starts_at, now) })
       : state === 'live'
-        ? 'LIVE'
-        : 'Finished';
+        ? t('liveCoaching.live')
+        : t('liveCoaching.finished');
 
   const calendarInput = useMemo(
     () => ({
@@ -53,7 +55,7 @@ export function LiveCoachingCard({ event }: { event: LiveCoachingEvent }) {
           <img src={event.media_url} alt="" />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-white/50">
-            Live Coaching
+            {t('liveCoaching.slotTitle')}
           </div>
         )}
       </div>
@@ -73,20 +75,20 @@ export function LiveCoachingCard({ event }: { event: LiveCoachingEvent }) {
             {event.coach_name} · {event.category} · {event.language.toUpperCase()}
           </span>
           <span>
-            {startLocal.toLocaleDateString()} ·{' '}
+            {startLocal.toLocaleDateString(locale)} ·{' '}
             {startLocal.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
-            {event.duration_minutes} Min
+            {event.duration_minutes} {t('liveCoaching.min')}
           </span>
         </div>
         <div className="live-coach-card__actions">
           {event.zoom_url && state !== 'finished' ? (
             <Button fullWidth={false} onClick={() => openZoomJoin(event.zoom_url!)}>
-              Join Coaching
+              {t('liveCoaching.join')}
             </Button>
           ) : null}
         </div>
         <div className="live-coach-card__calendar">
-          <span>Kalender:</span>
+          <span>{t('liveCoaching.calendar')}</span>
           <button type="button" onClick={() => downloadAppleIcs(calendarInput)}>
             Apple
           </button>

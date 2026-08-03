@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { computeRankProgress, rankProgressPercent } from '@shared/lib/rankProgress';
 import {
   ENERGY_FLOW_SPEED,
@@ -58,6 +59,7 @@ export function EnergyCore({
   nextRankLabel = null,
   className = '',
 }: EnergyCoreProps) {
+  const { t } = useI18n();
   const progress = computeRankProgress({ ap, currentThreshold, nextThreshold });
   const percent = rankProgressPercent(progress);
   const state = resolveEnergyCoreState(progress.ratio, progress.isMaxRank, stateOverride);
@@ -335,20 +337,24 @@ export function EnergyCore({
       {showLabel ? (
         <div className="mb-2.5 flex items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">AP</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t('common.ap')}
+            </p>
             <p className={`font-bold tabular-nums text-ink ${apClass}`}>{formatEnergyAp(ap)}</p>
           </div>
           <div className="min-h-[2.5rem] text-right text-xs text-muted">
             {state === 'max' || progress.isMaxRank ? (
-              <span>Höchster Rang erreicht</span>
+              <span>{t('qualifications.highestRank')}</span>
             ) : (
               <>
                 <span className="block">
-                  Nächster Rang
+                  {t('qualifications.next')}
                   {nextRankLabel ? `: ${nextRankLabel}` : ''}
                 </span>
                 <span className="mt-0.5 block tabular-nums">
-                  {progress.remainingAp.toLocaleString('de-DE')} AP bis dahin
+                  {t('qualifications.apUntil', {
+                    ap: progress.remainingAp.toLocaleString('de-DE'),
+                  })}
                 </span>
               </>
             )}
@@ -367,7 +373,7 @@ export function EnergyCore({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent}
-          aria-label="Fortschritt zum nächsten Rang"
+          aria-label={t('qualifications.progressAria')}
         />
         <div className="energy-core__glass" aria-hidden />
         <div className="energy-core__rim" aria-hidden />

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { isMissingRpcError } from '@shared/api/rpcErrors';
 import { useAuth } from '@shared/auth/AuthProvider';
@@ -29,20 +30,18 @@ import type { GenealogyFilter, GenealogyNode } from './types';
 import './team-page.css';
 
 function TeamEmptyState() {
+  const { t } = useI18n();
   return (
     <Card className="mt-2 space-y-4 text-center">
       <div className="space-y-2">
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent-deep">
-          Dein Team
+          {t('team.title')}
         </p>
-        <h2 className="text-xl font-bold tracking-tight">Noch keine Teammitglieder</h2>
-        <p className="mx-auto max-w-sm text-sm text-muted">
-          Du hast aktuell noch keine Teammitglieder. Sobald du deinen ersten Businesspartner
-          registrierst, erscheint dein Team hier.
-        </p>
+        <h2 className="text-xl font-bold tracking-tight">{t('team.emptyTitle')}</h2>
+        <p className="mx-auto max-w-sm text-sm text-muted">{t('team.emptyBody')}</p>
       </div>
       <Link to="/more" className={buttonClassName({ fullWidth: false })}>
-        ➕ Ersten Partner gewinnen
+        {t('team.inviteFirst')}
       </Link>
     </Card>
   );
@@ -53,6 +52,7 @@ function TeamEmptyState() {
  * Empty downline is a first-class state, never an error.
  */
 export function TeamPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { membership } = useAuth();
   const { data: nodes = [], isPending, isError, error, refetch, isFetching } = useGenealogyTree();
@@ -101,7 +101,7 @@ export function TeamPage() {
   if (isPending) {
     return (
       <div className="team-page flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted">Dein Führungszentrum wird aufgebaut …</p>
+        <p className="text-sm text-muted">{t('team.loading')}</p>
       </div>
     );
   }
@@ -110,18 +110,12 @@ export function TeamPage() {
     const schemaGap = isMissingRpcError(error);
     return (
       <Card className="mt-2 space-y-3 text-center">
-        <p className="font-medium">
-          {schemaGap
-            ? 'Team-Funktionen sind noch nicht auf der Datenbank freigeschaltet.'
-            : 'Das Team konnte nicht geladen werden.'}
-        </p>
+        <p className="font-medium">{schemaGap ? t('team.migrationTitle') : t('team.loadError')}</p>
         <p className="text-sm text-muted">
-          {schemaGap
-            ? 'Bitte setup/production-migrations-26-27.sql im Supabase SQL Editor ausführen.'
-            : 'Prüfe deine Verbindung und versuche es erneut.'}
+          {schemaGap ? t('team.migrationBody') : t('common.connectionHint')}
         </p>
         <Button fullWidth={false} variant="secondary" onClick={() => void refetch()}>
-          Erneut versuchen
+          {t('common.retry')}
         </Button>
       </Card>
     );
@@ -132,9 +126,9 @@ export function TeamPage() {
       <div className="team-page flex min-h-0 flex-1 flex-col gap-2.5">
         <header className="shrink-0 space-y-1">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent-deep">
-            Leadership
+            {t('team.leadership')}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight">Dein Team</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('team.title')}</h1>
         </header>
         <TeamLeaderProgressCard progress={tlProgress.data} />
         <TeamEmptyState />
@@ -148,24 +142,24 @@ export function TeamPage() {
         <div className="flex items-end justify-between gap-2">
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent-deep">
-              Leadership
+              {t('team.leadership')}
             </p>
-            <h1 className="text-2xl font-bold tracking-tight">Dein Team</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('team.title')}</h1>
           </div>
           <div className="flex items-center gap-2">
-            {isFetching ? <span className="text-xs text-muted">Aktualisiere…</span> : null}
+            {isFetching ? <span className="text-xs text-muted">{t('team.refreshing')}</span> : null}
             <Link
               to="/qualifikationen"
               className="text-xs font-semibold text-accent-deep underline-offset-2 hover:underline"
             >
-              Qualifikationen
+              {t('team.qualificationsLink')}
             </Link>
             <button
               type="button"
               className="text-xs font-semibold text-muted"
               onClick={() => setShowOps((v) => !v)}
             >
-              {showOps ? 'Kompakt' : 'Dashboard'}
+              {showOps ? t('team.compact') : t('team.dashboard')}
             </button>
           </div>
         </div>
@@ -184,7 +178,7 @@ export function TeamPage() {
 
       <GenealogyViewerShell
         memberCount={visibleIds.size}
-        title="User Tree"
+        title={t('team.treeAria')}
         expandable={mode === 'tree'}
         tree={
           mode === 'tree' ? (
@@ -222,7 +216,9 @@ export function TeamPage() {
 
       <BottomSheet
         open={!!selected}
-        title={selected ? `${selected.firstName} ${selected.lastName}`.trim() || 'Partner' : ''}
+        title={
+          selected ? `${selected.firstName} ${selected.lastName}`.trim() || t('team.partner') : ''
+        }
         onClose={() => setSelected(null)}
       >
         {selected ? (

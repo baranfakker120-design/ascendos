@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { useI18n } from '@shared/i18n';
 import './bottom-sheet.css';
 
 interface BottomSheetProps {
@@ -9,6 +10,7 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ open, title, onClose, children }: BottomSheetProps) {
+  const { t } = useI18n();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +36,7 @@ export function BottomSheet({ open, title, onClose, children }: BottomSheetProps
       <button
         type="button"
         className="bottom-sheet__scrim"
-        aria-label="Schließen"
+        aria-label={t('common.close')}
         onClick={onClose}
       />
       <div
@@ -51,7 +53,7 @@ export function BottomSheet({ open, title, onClose, children }: BottomSheetProps
             {title}
           </h2>
           <button type="button" className="bottom-sheet__close" onClick={onClose}>
-            Schließen
+            {t('common.close')}
           </button>
         </div>
         <div className="bottom-sheet__body">{children}</div>

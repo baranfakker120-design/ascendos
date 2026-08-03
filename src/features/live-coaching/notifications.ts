@@ -1,3 +1,6 @@
+import { createTranslator } from '@shared/i18n';
+import { readStoredLocale } from '@shared/lib/locale';
+
 export type CoachingNotifyKind = 'published' | 't_minus_30' | 't_minus_5';
 
 export interface CoachingNotifyPlanItem {
@@ -26,6 +29,8 @@ export interface ScheduleNotifyInput {
 export function buildCoachingNotificationPlan(
   input: ScheduleNotifyInput
 ): CoachingNotifyPlanItem[] {
+  const t = createTranslator(readStoredLocale());
+
   const startsAt = input.startsAt instanceof Date ? input.startsAt : new Date(input.startsAt);
   const publishedAt = input.publishedAt
     ? input.publishedAt instanceof Date
@@ -38,8 +43,8 @@ export function buildCoachingNotificationPlan(
     {
       kind: 'published',
       scheduledFor: publishedAt,
-      title: 'Neues Live Coaching',
-      body: `${input.title} wurde veröffentlicht.`,
+      title: t('push.publishedTitle'),
+      body: t('push.publishedBody', { title: input.title }),
     },
   ];
 
@@ -50,16 +55,16 @@ export function buildCoachingNotificationPlan(
     items.push({
       kind: 't_minus_30',
       scheduledFor: t30,
-      title: 'Live Coaching in 30 Minuten',
-      body: `${input.title} startet in 30 Minuten.`,
+      title: t('push.t30Title'),
+      body: t('push.t30Body', { title: input.title }),
     });
   }
   if (t5.getTime() > now.getTime()) {
     items.push({
       kind: 't_minus_5',
       scheduledFor: t5,
-      title: 'Live Coaching in 5 Minuten',
-      body: `${input.title} startet in 5 Minuten — Join bereit?`,
+      title: t('push.t5Title'),
+      body: t('push.t5Body', { title: input.title }),
     });
   }
 

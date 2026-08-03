@@ -1,16 +1,9 @@
 import { useMemo } from 'react';
+import { useI18n } from '@shared/i18n';
 import { eventLabel } from '@shared/lib/pipeline';
 import type { ShareVerificationRecord } from '@shared/lib/shareVerification';
 import type { PipelineEvent } from '@shared/types/domain';
 import { Button } from '@shared/ui/Button';
-
-const dateFmt = new Intl.DateTimeFormat('de-DE', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
 
 /**
  * Vollständige, unveränderliche Historie (ADR-003). Fehl-Taps werden
@@ -29,6 +22,19 @@ export function EventTimeline({
   onCorrect: (eventId: string) => void;
   correcting: boolean;
 }) {
+  const { t, locale } = useI18n();
+  const dateFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    [locale]
+  );
+
   const correctedIds = useMemo(() => {
     const ids = new Set<string>();
     for (const e of events) {
@@ -41,7 +47,7 @@ export function EventTimeline({
   }, [events]);
 
   if (events.length === 0 && pendingProofs.length === 0) {
-    return <p className="text-sm text-muted">Noch keine Ereignisse.</p>;
+    return <p className="text-sm text-muted">{t('contacts.noEvents')}</p>;
   }
 
   return (
@@ -53,12 +59,16 @@ export function EventTimeline({
             className="absolute -left-[26.5px] top-1.5 h-2.5 w-2.5 rounded-full bg-accent"
           />
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-medium">{proof.toolName} · Warte auf Nachweis</p>
+            <p className="text-sm font-medium">
+              {t('contacts.waitingProofNamed', { name: proof.toolName })}
+            </p>
           </div>
           <p className="text-xs text-muted">
             {dateFmt.format(new Date(proof.updatedAt))}
-            {proof.shareCompleted ? ' · Teilen ok' : ''}
-            {proof.screenshotFileName ? ` · Screenshot: ${proof.screenshotFileName}` : ''}
+            {proof.shareCompleted ? ` · ${t('contacts.shareOk')}` : ''}
+            {proof.screenshotFileName
+              ? ` · ${t('contacts.screenshotNamed', { name: proof.screenshotFileName })}`
+              : ''}
           </p>
           {proof.screenshotDataUrl ? (
             <img
@@ -85,7 +95,7 @@ export function EventTimeline({
             />
             <div className="flex items-baseline justify-between gap-2">
               <p className={`text-sm font-medium ${corrected ? 'text-muted line-through' : ''}`}>
-                {eventLabel(event.event_type)}
+                {eventLabel(event.event_type, t)}
               </p>
               {correctable ? (
                 <Button
@@ -96,15 +106,15 @@ export function EventTimeline({
                   disabled={correcting}
                   className="shrink-0 underline"
                 >
-                  korrigieren
+                  {t('contacts.correct')}
                 </Button>
               ) : null}
             </div>
             <p className="text-xs text-muted">
               {dateFmt.format(new Date(event.occurred_at))}
-              {corrected ? ' · korrigiert' : ''}
+              {corrected ? ` · ${t('contacts.corrected')}` : ''}
               {event.source !== 'manual' && event.source !== 'system'
-                ? ` · via ${event.source}`
+                ? ` · ${t('contacts.via', { source: event.source })}`
                 : ''}
             </p>
           </li>

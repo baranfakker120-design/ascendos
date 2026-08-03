@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -14,14 +15,15 @@ import { useProfileDetail } from './profileApi';
  * Eigenes Profil: Identität, Rang/AP, geschäftlicher Kontext.
  */
 export function ProfilePage() {
+  const { t } = useI18n();
   const { role: membershipRole } = useAuth();
   const { data, isPending, isError } = useProfileDetail();
 
   if (isPending) {
-    return <p className="text-sm text-muted">Profil wird geladen …</p>;
+    return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
   if (isError || !data) {
-    return <p className="text-sm text-muted">Profil konnte nicht geladen werden.</p>;
+    return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
   }
 
   const { profile, context, rank } = data;
@@ -35,7 +37,7 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Profil</h1>
+      <h1 className="text-2xl font-bold">{t('profile.title')}</h1>
 
       <Card className="flex flex-col items-center gap-4 text-center">
         <RankFrame
@@ -67,29 +69,32 @@ export function ProfilePage() {
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Aktuelle AP" value={formatStatNumber(rank.apTotal)} />
-        <StatCard label="Aktueller Rang" value={currentLabel} />
-        <StatCard label="Organisation" value={context.orgName} />
-        <StatCard label="Rolle" value={<RoleBadge role={membershipRole} className="mt-0.5" />} />
+        <StatCard label={t('profile.ap')} value={formatStatNumber(rank.apTotal)} />
+        <StatCard label={t('profile.rank')} value={currentLabel} />
+        <StatCard label={t('profile.org')} value={context.orgName} />
+        <StatCard
+          label={t('profile.role')}
+          value={<RoleBadge role={membershipRole} className="mt-0.5" />}
+        />
       </div>
 
       <Card>
-        <p className="font-semibold">Geschäftskontext</p>
+        <p className="font-semibold">{t('profile.businessContext')}</p>
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-3">
-            <dt className="text-muted">Team</dt>
+            <dt className="text-muted">{t('profile.team')}</dt>
             <dd className="font-medium">{context.teamName}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt className="text-muted">Sponsor</dt>
-            <dd className="font-medium">{context.sponsorName ?? 'Gründungsmitglied'}</dd>
+            <dt className="text-muted">{t('profile.sponsor')}</dt>
+            <dd className="font-medium">{context.sponsorName ?? t('profile.foundingMember')}</dd>
           </div>
         </dl>
       </Card>
 
       <Link to="/profil/bearbeiten" className="block">
         <Button type="button" variant="secondary">
-          Profil bearbeiten
+          {t('profile.edit')}
         </Button>
       </Link>
     </div>

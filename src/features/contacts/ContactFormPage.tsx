@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Input } from '@shared/ui/Input';
@@ -9,24 +10,23 @@ import type { Contact } from '@shared/types/domain';
 
 /** Ein Formular für beide Fälle: /kontakte/neu und /kontakte/:id/bearbeiten */
 export function ContactFormPage() {
+  const { t } = useI18n();
   const { contactId } = useParams();
   const isEdit = !!contactId;
   const { data: existing, isPending, isError } = useContact(contactId ?? '');
 
   if (isEdit && isPending) {
-    return <p className="text-sm text-muted">Kontakt wird geladen …</p>;
+    return <p className="text-sm text-muted">{t('contacts.loading')}</p>;
   }
 
   if (isEdit && (isError || !existing)) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted">
-          {isError
-            ? 'Kontakt konnte nicht geladen werden.'
-            : 'Dieser Kontakt existiert nicht (mehr).'}
+          {isError ? t('contacts.loadFailed') : t('contacts.gone')}
         </p>
         <Link to="/kontakte" className="text-sm font-medium text-primary">
-          Zurück zu den Kontakten
+          {t('contacts.backToList')}
         </Link>
       </div>
     );
@@ -53,6 +53,7 @@ function ContactForm({
   contactId?: string;
   existing: Contact | null;
 }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { createContact, updateContact } = useContactMutations();
 
@@ -86,57 +87,64 @@ function ContactForm({
         navigate(`/kontakte/${created.id}`, { replace: true });
       }
     } catch {
-      setError('Speichern fehlgeschlagen. Bitte versuche es erneut.');
+      setError(t('contacts.saveFailed'));
     }
   };
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{isEdit ? 'Kontakt bearbeiten' : 'Neuer Kontakt'}</h1>
+      <h1 className="text-2xl font-bold">
+        {isEdit ? t('contacts.editTitle') : t('contacts.newTitle')}
+      </h1>
       <form onSubmit={submit} className="space-y-4">
-        <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <Input
-          label="Telefon (optional)"
+          label={t('contacts.name')}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <Input
+          label={t('contacts.phoneOptional')}
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           autoComplete="off"
         />
         <Input
-          label="E-Mail (optional)"
+          label={t('contacts.emailOptional')}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="off"
         />
         <Input
-          label="Nächster Schritt (optional)"
+          label={t('contacts.nextStepOptional')}
           value={nextStep}
           onChange={(e) => setNextStep(e.target.value)}
-          placeholder="z. B. Nach der Präsentation anrufen"
+          placeholder={t('contacts.nextStepPlaceholder')}
         />
         <Input
-          label="Fällig am (optional)"
+          label={t('contacts.dueOptional')}
           type="date"
           value={nextStepDue}
           onChange={(e) => setNextStepDue(e.target.value)}
-          hint="Terminierte Schritte erscheinen am Fälligkeitstag als Top-Mission in deinem Tagesplan."
+          hint={t('contacts.dueHint')}
         />
         <TextArea
-          label="Notizen (optional)"
+          label={t('contacts.notesOptional')}
           id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          placeholder="Kontext fürs nächste Gespräch"
-          hint="Bitte nur geschäftlich Relevantes notieren — keine sensiblen persönlichen Angaben."
+          placeholder={t('contacts.notesPlaceholder')}
+          hint={t('contacts.notesHint')}
         />
         {error ? <Alert tone="error">{error}</Alert> : null}
         <Button type="submit" disabled={busy || !name.trim()}>
-          {busy ? 'Wird gespeichert …' : isEdit ? 'Änderungen speichern' : 'Kontakt anlegen'}
+          {busy ? t('common.saving') : isEdit ? t('contacts.saveChanges') : t('contacts.create')}
         </Button>
         <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
-          Abbrechen
+          {t('common.cancel')}
         </Button>
       </form>
     </div>

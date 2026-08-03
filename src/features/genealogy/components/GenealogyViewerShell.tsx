@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
+import { useI18n } from '@shared/i18n';
 import './genealogy-viewer-shell.css';
 
 interface GenealogyViewerShellProps {
@@ -28,9 +29,11 @@ export function GenealogyViewerShell({
   children,
   tree,
   memberCount,
-  title = 'User Tree',
+  title,
   expandable = true,
 }: GenealogyViewerShellProps) {
+  const { t } = useI18n();
+  const resolvedTitle = title ?? t('team.treeAria');
   const titleId = useId();
   const [expanded, setExpanded] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -118,7 +121,7 @@ export function GenealogyViewerShell({
         <button
           type="button"
           className="genealogy-viewer-shell__backdrop"
-          aria-label="Vollbild schließen"
+          aria-label={t('team.exitFullscreen')}
           onClick={close}
         />
       ) : null}
@@ -140,13 +143,16 @@ export function GenealogyViewerShell({
             }}
           >
             <h2 id={titleId} className="genealogy-viewer-shell__title">
-              {title} <span className="genealogy-viewer-shell__count">({memberCount} members)</span>
+              {resolvedTitle}{' '}
+              <span className="genealogy-viewer-shell__count">
+                {t('team.membersCount', { count: memberCount })}
+              </span>
             </h2>
             <button
               ref={closeRef}
               type="button"
               className="genealogy-viewer-shell__close"
-              aria-label="Schließen"
+              aria-label={t('common.close')}
               onClick={close}
             >
               ✕
@@ -164,8 +170,8 @@ export function GenealogyViewerShell({
               <button
                 type="button"
                 className="genealogy-viewer-shell__expand"
-                aria-label="Teambaum vergrößern"
-                title="Vollbild"
+                aria-label={t('team.expandTree')}
+                title={t('team.fullscreen')}
                 onClick={open}
               >
                 ⛶
@@ -174,9 +180,7 @@ export function GenealogyViewerShell({
           </div>
 
           {expanded ? (
-            <p className="genealogy-viewer-shell__hint">
-              Drag to pan, Scroll to zoom, Click to select
-            </p>
+            <p className="genealogy-viewer-shell__hint">{t('team.panZoomHint')}</p>
           ) : null}
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { PHASE_ORDER, activityLabel, daysSince, phaseLabel } from '@shared/lib/pipeline';
 import type { ContactPhase } from '@shared/types/domain';
@@ -12,6 +13,7 @@ import { PhaseChip } from '@shared/ui/PhaseChip';
 import { CONTACTS_PAGE_SIZE, useContacts, type ContactWithPhase } from './contactsApi';
 
 export function ContactsPage() {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(CONTACTS_PAGE_SIZE);
   const { data, isPending, isError, refetch } = useContacts({ search, limit });
@@ -33,14 +35,14 @@ export function ContactsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Kontakte</h1>
+        <h1 className="text-2xl font-bold">{t('contacts.title')}</h1>
         <ButtonLink to="/kontakte/neu" variant="primary" size="sm" fullWidth={false}>
-          + Neu
+          {t('contacts.new')}
         </ButtonLink>
       </div>
 
       <Input
-        label="Kontakt suchen"
+        label={t('contacts.searchLabel')}
         hideLabel
         type="search"
         value={search}
@@ -48,47 +50,45 @@ export function ContactsPage() {
           setSearch(e.target.value);
           setLimit(CONTACTS_PAGE_SIZE);
         }}
-        placeholder="Kontakt suchen …"
+        placeholder={t('contacts.searchPlaceholder')}
       />
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         <FilterChip active={filter === 'alle'} onClick={() => setFilter('alle')}>
-          Alle ({contacts?.length ?? 0})
+          {t('common.all')} ({contacts?.length ?? 0})
         </FilterChip>
         {PHASE_ORDER.map((phase) => {
           const count = countByPhase.get(phase) ?? 0;
           if (count === 0) return null;
           return (
             <FilterChip key={phase} active={filter === phase} onClick={() => setFilter(phase)}>
-              {phaseLabel(phase)} ({count})
+              {phaseLabel(phase, t)} ({count})
             </FilterChip>
           );
         })}
       </div>
 
       {isPending ? (
-        <p className="text-sm text-muted">Kontakte werden geladen …</p>
+        <p className="text-sm text-muted">{t('contacts.loadingList')}</p>
       ) : isError ? (
         <Card>
-          <p className="font-medium">Kontakte konnten nicht geladen werden.</p>
-          <p className="mt-1 text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+          <p className="font-medium">{t('contacts.loadError')}</p>
+          <p className="mt-1 text-sm text-muted">{t('common.connectionHint')}</p>
           <Button className="mt-3" variant="secondary" onClick={() => void refetch()}>
-            Erneut versuchen
+            {t('common.retry')}
           </Button>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <p className="font-medium">
             {search
-              ? 'Keine Treffer'
+              ? t('contacts.emptySearch')
               : filter === 'alle'
-                ? 'Noch keine Kontakte'
-                : 'Keine Kontakte in dieser Phase'}
+                ? t('contacts.emptyAll')
+                : t('contacts.emptyPhase')}
           </p>
           <p className="mt-1 text-sm text-muted">
-            {filter === 'alle'
-              ? 'Lege deinen ersten Kontakt an — jede Pipeline beginnt mit einem Namen.'
-              : 'Wähle einen anderen Filter oder lege einen neuen Kontakt an.'}
+            {filter === 'alle' ? t('contacts.emptyAllHint') : t('contacts.emptyPhaseHint')}
           </p>
         </Card>
       ) : (
@@ -100,7 +100,7 @@ export function ContactsPage() {
           </ul>
           {data?.hasMore ? (
             <Button variant="secondary" onClick={() => setLimit((l) => l + CONTACTS_PAGE_SIZE)}>
-              Weitere Kontakte laden
+              {t('contacts.loadMore')}
             </Button>
           ) : null}
         </>
@@ -132,6 +132,7 @@ function FilterChip({
 }
 
 function ContactRow({ contact }: { contact: ContactWithPhase }) {
+  const { t } = useI18n();
   const days = daysSince(contact.last_event_at);
   const overdue = days !== null && days >= 7 && contact.phase !== 'partner';
   const rewardAp = scoreLeadPhase(contact.phase);
@@ -146,8 +147,8 @@ function ContactRow({ contact }: { contact: ContactWithPhase }) {
               <p
                 className={`mt-0.5 text-xs ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}
               >
-                {activityLabel(contact.last_event_at)}
-                {overdue ? ' · Follow-up überfällig' : ''}
+                {activityLabel(contact.last_event_at, t)}
+                {overdue ? ` · ${t('contacts.followUpOverdue')}` : ''}
               </p>
               {contact.next_step ? (
                 <p className="mt-1 truncate text-sm text-ink">→ {contact.next_step}</p>

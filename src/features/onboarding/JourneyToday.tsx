@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { useQuery } from '@tanstack/react-query';
 import { scoreJourneyStep } from '@shared/lib/apScoring';
 import { displayShareTool, renameWayToMoonLabel } from '@shared/lib/shareToolsDisplay';
@@ -18,6 +19,7 @@ import { useCompleteStep, useJourneyState } from './journeyApi';
  * Gerendert über TodayRoute (app/router), nicht vom daily-plan-Feature.
  */
 export function JourneyToday() {
+  const { t } = useI18n();
   const { profile } = useAuth();
   const { data: state, isPending, isError, refetch } = useJourneyState();
   const complete = useCompleteStep();
@@ -34,16 +36,16 @@ export function JourneyToday() {
   });
 
   if (isPending) {
-    return <p className="text-sm text-muted">Deine Reise wird geladen …</p>;
+    return <p className="text-sm text-muted">{t('journey.loading')}</p>;
   }
 
   if (isError || !state?.journey) {
     return (
       <Card>
-        <p className="font-medium">Deine Reise konnte nicht geladen werden.</p>
-        <p className="mt-1 text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+        <p className="font-medium">{t('journey.loadError')}</p>
+        <p className="mt-1 text-sm text-muted">{t('common.connectionHint')}</p>
         <Button className="mt-3" variant="secondary" onClick={() => void refetch()}>
-          Erneut versuchen
+          {t('common.retry')}
         </Button>
       </Card>
     );
@@ -57,10 +59,11 @@ export function JourneyToday() {
     <div className="space-y-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
-          Tag {state.currentDay} von {state.totalDays}
+          {t('journey.dayOf', { current: state.currentDay, total: state.totalDays })}
         </p>
         <h1 className="mt-1 text-2xl font-bold">
-          {profile ? `${profile.first_name}, ` : ''}deine erste Woche
+          {profile ? `${profile.first_name}, ` : ''}
+          {t('journey.firstWeek')}
         </h1>
         <p className="mt-1 text-sm text-muted">{state.journey.title}</p>
         <EnergyCore
@@ -91,7 +94,7 @@ export function JourneyToday() {
             onComplete={() => {
               setStepError(null);
               void complete.mutateAsync(step.id).catch(() => {
-                setStepError('Speichern fehlgeschlagen — bitte erneut versuchen.');
+                setStepError(t('journey.saveFailed'));
               });
             }}
           />
@@ -100,11 +103,11 @@ export function JourneyToday() {
 
       {doneToday === daySteps.length && daySteps.length > 0 ? (
         <Card>
-          <p className="font-semibold">Tag {state.currentDay} geschafft. 💪</p>
+          <p className="font-semibold">{t('journey.dayDone', { day: state.currentDay })}</p>
           <p className="mt-1 text-sm text-muted">
             {state.currentDay < state.totalDays
-              ? `Tag ${state.currentDay + 1} ist jetzt freigeschaltet — mach direkt weiter oder komm morgen zurück.`
-              : 'Das war deine erste Woche! Ab jetzt übernimmt dein täglicher Plan.'}
+              ? t('journey.nextDayUnlocked', { day: state.currentDay + 1 })
+              : t('journey.weekDone')}
           </p>
         </Card>
       ) : null}
@@ -127,8 +130,9 @@ function JourneyStepCard({
   busy: boolean;
   onComplete: () => void;
 }) {
+  const { t } = useI18n();
   const content = (step.content ?? {}) as JourneyStepContent;
-  const rawTool = content.tool_key ? tools.find((t) => t.key === content.tool_key) : null;
+  const rawTool = content.tool_key ? tools.find((tool) => tool.key === content.tool_key) : null;
   const tool = rawTool ? displayShareTool(rawTool) : null;
   const ap = scoreJourneyStep(step.content_type, step.day_number, doneToday);
   const visibleTitle = renameWayToMoonLabel(step.title);
@@ -154,20 +158,20 @@ function JourneyStepCard({
                 rel="noreferrer"
                 className={buttonClassName({ variant: 'secondary' })}
               >
-                <span className="ui-btn__label">{tool.name} öffnen ↗</span>
+                <span className="ui-btn__label">{t('journey.openTool', { name: tool.name })}</span>
               </a>
             ) : null}
             {content.link ? (
               <ButtonLink to={content.link} variant="secondary">
-                {content.cta ?? 'Öffnen'}
+                {content.cta ?? t('common.open')}
               </ButtonLink>
             ) : null}
             <Button onClick={onComplete} disabled={busy} aria-busy={busy}>
               {busy
-                ? 'Wird gespeichert …'
+                ? t('today.saving')
                 : step.content_type === 'info'
-                  ? 'Verstanden ✓'
-                  : 'Erledigt ✓'}
+                  ? t('journey.understood')
+                  : t('journey.doneCheck')}
             </Button>
           </div>
         ) : null}

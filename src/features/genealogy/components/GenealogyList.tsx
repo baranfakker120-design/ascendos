@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { displayName, isNewPartner, presenceLabel } from '../genealogyUtils';
@@ -11,6 +12,7 @@ interface GenealogyListProps {
 }
 
 export function GenealogyList({ nodes, visibleIds, selectedId, onSelect }: GenealogyListProps) {
+  const { t } = useI18n();
   const rows = nodes
     .filter((n) => visibleIds.has(n.membershipId))
     .sort((a, b) => a.depth - b.depth || a.firstName.localeCompare(b.firstName));
@@ -18,13 +20,13 @@ export function GenealogyList({ nodes, visibleIds, selectedId, onSelect }: Genea
   if (rows.length === 0) {
     return (
       <p className="rounded-2xl border border-line bg-white/60 px-4 py-8 text-center text-sm text-muted">
-        Keine Partner für diesen Filter.
+        {t('team.empty')}
       </p>
     );
   }
 
   return (
-    <ul className="space-y-2" aria-label="Teamliste">
+    <ul className="space-y-2" aria-label={t('team.listAria')}>
       {rows.map((node) => {
         const frameKey = resolveDisplayFrameKey({
           role: node.role,
@@ -59,7 +61,7 @@ export function GenealogyList({ nodes, visibleIds, selectedId, onSelect }: Genea
                   ) : null}
                 </span>
                 <span className="block text-xs text-muted">
-                  {node.rankLabel ?? 'Newcomer'} · {node.apTotal} AP · {presenceLabel(node)}
+                  {node.rankLabel ?? t('team.newcomer')} · {node.apTotal} AP · {presenceLabel(node)}
                 </span>
               </span>
               <span className="shrink-0 text-right text-xs font-semibold text-muted">

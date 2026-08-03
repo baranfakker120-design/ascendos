@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { scorePipelineEvent } from '@shared/lib/apScoring';
 import { MANUAL_EVENT_TYPES, eventLabel } from '@shared/lib/pipeline';
 import type { PipelineEventType } from '@shared/types/domain';
@@ -15,6 +16,7 @@ export function EventPicker({
   onSelect: (type: PipelineEventType) => void | Promise<void>;
   busy: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -22,7 +24,7 @@ export function EventPicker({
   if (!open) {
     return (
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        + Ereignis dokumentieren
+        {t('contacts.logEvent')}
       </Button>
     );
   }
@@ -32,7 +34,7 @@ export function EventPicker({
   return (
     <Card padding="sm" className="space-y-2">
       <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted">
-        Was ist passiert?
+        {t('contacts.whatHappened')}
       </p>
       {error ? <Alert tone="error">{error}</Alert> : null}
       <div className="grid grid-cols-1 gap-1.5">
@@ -47,18 +49,18 @@ export function EventPicker({
               setSaving(true);
               void Promise.resolve(onSelect(type))
                 .then(() => setOpen(false))
-                .catch(() => setError('Ereignis konnte nicht gespeichert werden.'))
+                .catch(() => setError(t('contacts.eventSaveFailed')))
                 .finally(() => setSaving(false));
             }}
             className="h-auto min-h-10 justify-between py-2.5 text-left [&_.ui-btn__label]:w-full [&_.ui-btn__label]:justify-between"
           >
-            <span>{eventLabel(type)}</span>
+            <span>{eventLabel(type, t)}</span>
             <ApRewardSticker ap={scorePipelineEvent(type)} size="sm" animate={false} />
           </Button>
         ))}
       </div>
       <Button variant="ghost" disabled={locked} onClick={() => setOpen(false)}>
-        Abbrechen
+        {t('common.cancel')}
       </Button>
     </Card>
   );

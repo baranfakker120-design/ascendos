@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { phaseLabel } from '@shared/lib/pipeline';
 import type { ContactPhase } from '@shared/types/domain';
 import './phase-chip.css';
@@ -18,10 +19,11 @@ const TONE: Record<ContactPhase, string> = {
  * Same material language as RoleBadge (glass, spring presence).
  */
 export function PhaseChip({ phase, className = '' }: { phase: ContactPhase; className?: string }) {
+  const { t } = useI18n();
   return (
     <span className={`phase-chip ${TONE[phase]} ${className}`}>
       <span className="phase-chip__sheen" aria-hidden />
-      <span className="phase-chip__label">{phaseLabel(phase)}</span>
+      <span className="phase-chip__label">{phaseLabel(phase, t)}</span>
     </span>
   );
 }

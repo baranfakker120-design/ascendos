@@ -1,3 +1,4 @@
+import type { MessageKey, TranslateFn } from '@shared/i18n';
 import type { ContactPhase, PipelineEventType } from '@shared/types/domain';
 
 /** Anzeige-Reihenfolge der Pipeline-Phasen (entspricht event_phase_rank). */
@@ -12,6 +13,7 @@ export const PHASE_ORDER: ContactPhase[] = [
   'partner',
 ];
 
+/** Fallback labels (DE) when no translator is provided — e.g. tests / edge functions. */
 export const PHASE_LABELS: Record<ContactPhase, string> = {
   lead: 'Lead',
   im_gespraech: 'Im Gespräch',
@@ -54,11 +56,13 @@ export const MANUAL_EVENT_TYPES: PipelineEventType[] = [
   'registered',
 ];
 
-export function phaseLabel(phase: ContactPhase): string {
+export function phaseLabel(phase: ContactPhase, t?: TranslateFn): string {
+  if (t) return t(`pipeline.phase.${phase}` as MessageKey);
   return PHASE_LABELS[phase];
 }
 
-export function eventLabel(type: PipelineEventType): string {
+export function eventLabel(type: PipelineEventType, t?: TranslateFn): string {
+  if (t) return t(`pipeline.event.${type}` as MessageKey);
   return EVENT_LABELS[type];
 }
 
@@ -75,8 +79,14 @@ export function daysSince(iso: string | null, now: Date = new Date()): number | 
 }
 
 /** Menschlich lesbare Aktivitäts-Angabe für Listen. */
-export function activityLabel(iso: string | null): string {
+export function activityLabel(iso: string | null, t?: TranslateFn): string {
   const d = daysSince(iso);
+  if (t) {
+    if (d === null) return t('pipeline.activity.none');
+    if (d === 0) return t('pipeline.activity.today');
+    if (d === 1) return t('pipeline.activity.yesterday');
+    return t('pipeline.activity.daysAgo', { days: d });
+  }
   if (d === null) return 'Noch keine Aktivität';
   if (d === 0) return 'Heute aktiv';
   if (d === 1) return 'Gestern aktiv';

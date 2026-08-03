@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
@@ -27,19 +28,18 @@ export function TodayPage() {
 }
 
 function TodayDailyPlan() {
+  const { t } = useI18n();
   const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
 
   if (isPending) {
-    return <p className="text-sm text-muted">Dein Tag wird vorbereitet …</p>;
+    return <p className="text-sm text-muted">{t('today.loading')}</p>;
   }
   if (isError || !data) {
     return (
       <Card>
-        <p className="font-medium">Dein Plan konnte nicht geladen werden.</p>
-        <p className="mt-1 text-sm text-muted">
-          Prüfe deine Verbindung und öffne den Tab erneut — dein Plan wartet in der Datenbank.
-        </p>
+        <p className="font-medium">{t('today.loadErrorTitle')}</p>
+        <p className="mt-1 text-sm text-muted">{t('today.loadErrorHint')}</p>
       </Card>
     );
   }
@@ -52,10 +52,8 @@ function TodayDailyPlan() {
     if (data.items.length === 0) {
       return (
         <Card>
-          <p className="font-medium">Heute steht keine Mission an.</p>
-          <p className="mt-1 text-sm text-muted">
-            Deine Pipeline ist ruhig — schau bei Kontakten vorbei oder komm morgen wieder.
-          </p>
+          <p className="font-medium">{t('today.empty')}</p>
+          <p className="mt-1 text-sm text-muted">{t('today.emptyHint')}</p>
         </Card>
       );
     }

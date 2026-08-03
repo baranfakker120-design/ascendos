@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useI18n, type MessageKey } from '@shared/i18n';
 import type { StoryCard } from './types';
-import { STORY_TYPE_LABELS } from './types';
 import './ascend-stories.css';
 
 const SEEN_SLOT = ['ascendos', 'stories-seen', 'v1'].join('.');
@@ -40,6 +40,7 @@ interface Props {
  * Never shame. Never negative compare.
  */
 export function StoriesBar({ stories }: Props) {
+  const { t } = useI18n();
   const [seen, setSeen] = useState<Record<string, string>>(() => readSeen());
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -79,7 +80,7 @@ export function StoriesBar({ stories }: Props) {
   const current = openIndex !== null ? active[openIndex] : null;
 
   return (
-    <section className="ascend-stories" aria-label="Ascend Stories">
+    <section className="ascend-stories" aria-label={t('stories.barAria')}>
       <div className="ascend-stories__track">
         {active.map((story, index) => {
           const isSeen = Boolean(seen[story.id]);
@@ -96,7 +97,7 @@ export function StoriesBar({ stories }: Props) {
               type="button"
               className="ascend-stories__item"
               onClick={() => setOpenIndex(index)}
-              aria-label={`${story.title} Story öffnen`}
+              aria-label={t('stories.openAria', { title: story.title })}
             >
               <div className={ringClass}>
                 <div className="ascend-stories__avatar">
@@ -139,12 +140,14 @@ export function StoriesBar({ stories }: Props) {
           <div className="ascend-stories__meta">
             <div>
               <p className="ascend-stories__meta-title">{current.authorLabel}</p>
-              <p className="ascend-stories__meta-sub">{STORY_TYPE_LABELS[current.type]}</p>
+              <p className="ascend-stories__meta-sub">
+                {t(`stories.types.${current.type}` as MessageKey)}
+              </p>
             </div>
             <button
               type="button"
               className="ascend-stories__close"
-              aria-label="Schließen"
+              aria-label={t('stories.close')}
               onClick={() => setOpenIndex(null)}
             >
               ×
