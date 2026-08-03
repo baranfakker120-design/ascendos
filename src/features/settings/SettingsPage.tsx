@@ -19,7 +19,6 @@ import { Toggle } from '@shared/ui/Toggle';
 export function SettingsPage() {
   const { signOut } = useAuth();
   const [locale, setLocale] = useState<AppLocale>(() => readStoredLocale());
-  const [notifications, setNotifications] = useState(true);
   const [deleteHint, setDeleteHint] = useState<string | null>(null);
 
   const onLocale = (code: AppLocale) => {
@@ -73,10 +72,14 @@ export function SettingsPage() {
       <Card>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Notifications</p>
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">Push & Erinnerungen</span>
+          <div>
+            <span className="font-medium">Push & Erinnerungen</span>
+            <p className="mt-0.5 text-xs text-muted">Demnächst verfügbar — noch nicht speicherbar.</p>
+          </div>
           <Toggle
-            checked={notifications}
-            onChange={setNotifications}
+            checked={false}
+            onChange={() => undefined}
+            disabled
             label="Push & Erinnerungen"
           />
         </div>

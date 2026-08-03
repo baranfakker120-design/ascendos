@@ -39,6 +39,17 @@
   transform: scale(0.96);
 }
 
+.ui-toggle--disabled,
+.ui-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ui-toggle--disabled:active,
+.ui-toggle:disabled:active {
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ui-toggle,
   .ui-toggle__thumb {
