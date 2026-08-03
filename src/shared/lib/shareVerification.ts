@@ -1,17 +1,20 @@
 /**
  * Share / AP proof verification (client-side until AI vision ships).
  * Does not change RPC or ledger — callers award AP only after `verified`.
+ * Never auto-verify screenshots; never award AP twice per contact+action.
  */
 
-export type ShareVerificationStatus = 'pending' | 'verified' | 'rejected';
+export type ShareVerificationStatus = 'pending' | 'pending_review' | 'verified' | 'rejected';
 
 export type ShareChannelHint =
   | 'whatsapp'
   | 'telegram'
   | 'instagram_dm'
   | 'messenger'
+  | 'signal'
   | 'sms'
   | 'email'
+  | 'imessage'
   | 'native_share'
   | 'unknown';
 
@@ -44,8 +47,20 @@ export interface ShareVisionDetection {
   recipientHint: string | null;
   contactNameHint: string | null;
   conversationSummary: string | null;
+  repliesDetected: boolean | null;
+  followUpOpportunity: string | null;
+  /** Screenshot quality signals for future AI. */
+  chatAppearsPresent: boolean | null;
+  urlVisible: boolean | null;
+  timestampVisible: boolean | null;
+  screenshotReadable: boolean | null;
+  looksEmpty: boolean | null;
+  looksBlack: boolean | null;
+  looksObviouslyFake: boolean | null;
   taskAppearsCompleted: boolean | null;
   confidence: number;
+  /** When confidence is low, prefer pending_review — never auto-verify. */
+  suggestedStatus: Extract<ShareVerificationStatus, 'pending' | 'pending_review' | 'rejected'>;
   rawNotes: string | null;
 }
 
@@ -57,6 +72,17 @@ export interface ShareVisionVerifier {
     expectedPresentationUrl: string | null;
     contactName: string;
   }): Promise<ShareVisionDetection>;
+}
+
+/** Future coach answers about a verified/pending share proof. */
+export interface CoachShareReviewAnswers {
+  wasOnboardingReallySent: boolean | null;
+  wasPresentationShared: boolean | null;
+  salesPhaseHint: string | null;
+  objectionAppeared: string | null;
+  nextRecommendedAction: string | null;
+  shouldCreateFollowUpReminder: boolean | null;
+  summary: string;
 }
 
 /**
@@ -97,9 +123,40 @@ export interface CoachShareVisionCapabilities {
     completed: boolean;
     reason: string;
   }>;
+  answerShareReviewQuestions(input: {
+    detection: ShareVisionDetection;
+    toolKey: string;
+    contactName: string;
+  }): Promise<CoachShareReviewAnswers>;
 }
 
-/** Stub verifier — replace with real vision provider later. */
+function emptyDetection(): ShareVisionDetection {
+  return {
+    channel: 'unknown',
+    detectedUrls: [],
+    hasOnboardingLink: false,
+    hasPresentationLink: false,
+    timestampText: null,
+    recipientHint: null,
+    contactNameHint: null,
+    conversationSummary: null,
+    repliesDetected: null,
+    followUpOpportunity: null,
+    chatAppearsPresent: null,
+    urlVisible: null,
+    timestampVisible: null,
+    screenshotReadable: null,
+    looksEmpty: null,
+    looksBlack: null,
+    looksObviouslyFake: null,
+    taskAppearsCompleted: null,
+    confidence: 0,
+    suggestedStatus: 'pending_review',
+    rawNotes: 'Vision verification not configured yet.',
+  };
+}
+
+/** Stub verifier — never auto-verifies; low confidence → pending_review. */
 export class PendingShareVisionVerifier implements ShareVisionVerifier {
   readonly id = 'pending-vision-stub';
 
@@ -110,19 +167,7 @@ export class PendingShareVisionVerifier implements ShareVisionVerifier {
     contactName: string;
   }): Promise<ShareVisionDetection> {
     void input;
-    return {
-      channel: 'unknown',
-      detectedUrls: [],
-      hasOnboardingLink: false,
-      hasPresentationLink: false,
-      timestampText: null,
-      recipientHint: null,
-      contactNameHint: null,
-      conversationSummary: null,
-      taskAppearsCompleted: null,
-      confidence: 0,
-      rawNotes: 'Vision verification not configured yet.',
-    };
+    return emptyDetection();
   }
 }
 
@@ -202,14 +247,33 @@ export class PendingCoachShareVision implements CoachShareVisionCapabilities {
   }> {
     void input;
     return {
-      status: 'pending',
+      status: 'pending_review',
       completed: false,
-      reason: 'Automatic verification not configured yet.',
+      reason: 'Automatic verification not configured yet — never auto-verify.',
+    };
+  }
+
+  async answerShareReviewQuestions(input: {
+    detection: ShareVisionDetection;
+    toolKey: string;
+    contactName: string;
+  }): Promise<CoachShareReviewAnswers> {
+    void input;
+    return {
+      wasOnboardingReallySent: null,
+      wasPresentationShared: null,
+      salesPhaseHint: null,
+      objectionAppeared: null,
+      nextRecommendedAction: null,
+      shouldCreateFollowUpReminder: null,
+      summary: 'Coach vision review not configured yet.',
     };
   }
 }
 
 const STORAGE_KEY = 'ascendos.share-verifications.v1';
+
+export const ALREADY_CONFIRMED_MESSAGE = 'Bereits für diesen Kontakt bestätigt.';
 
 function readAll(): ShareVerificationRecord[] {
   try {
@@ -240,11 +304,41 @@ export function listShareVerifications(contactId?: string): ShareVerificationRec
 }
 
 export function listPendingShareVerifications(contactId?: string): ShareVerificationRecord[] {
-  return listShareVerifications(contactId).filter((r) => r.status === 'pending');
+  return listShareVerifications(contactId).filter(
+    (r) => r.status === 'pending' || r.status === 'pending_review'
+  );
 }
 
 export function getShareVerification(id: string): ShareVerificationRecord | null {
   return readAll().find((r) => r.id === id) ?? null;
+}
+
+export function findVerifiedShareAction(
+  contactId: string,
+  toolKey: string
+): ShareVerificationRecord | null {
+  return (
+    listShareVerifications(contactId).find(
+      (r) => r.toolKey === toolKey && r.status === 'verified'
+    ) ?? null
+  );
+}
+
+/**
+ * Duplicate protection: one AP award per contact + action.
+ * `pipelineEventTypes` = event types already logged for this contact (from timeline).
+ */
+export function isShareActionAlreadyAwarded(
+  contactId: string,
+  toolKey: string,
+  shareEventType: string,
+  pipelineEventTypes: Iterable<string> = []
+): boolean {
+  if (findVerifiedShareAction(contactId, toolKey)) return true;
+  for (const type of pipelineEventTypes) {
+    if (type === shareEventType) return true;
+  }
+  return false;
 }
 
 export function upsertShareVerification(
@@ -295,9 +389,36 @@ export function upsertShareVerification(
   return created;
 }
 
+/** Reuse open pending row for contact+tool; never create if already verified. */
+export function getOrCreatePendingShareVerification(input: {
+  contactId: string;
+  toolKey: string;
+  toolName: string;
+  shareUrl: string;
+  shareEventType: string;
+}): ShareVerificationRecord | null {
+  if (findVerifiedShareAction(input.contactId, input.toolKey)) return null;
+  const pending = listPendingShareVerifications(input.contactId).find(
+    (r) => r.toolKey === input.toolKey
+  );
+  if (pending) return pending;
+  return upsertShareVerification({
+    contactId: input.contactId,
+    toolKey: input.toolKey,
+    toolName: input.toolName,
+    shareUrl: input.shareUrl,
+    shareEventType: input.shareEventType,
+    status: 'pending',
+    shareCompleted: false,
+    screenshotDataUrl: null,
+    screenshotFileName: null,
+    channelHint: 'unknown',
+  });
+}
+
 export function markShareCompleted(id: string): ShareVerificationRecord | null {
   const row = getShareVerification(id);
-  if (!row) return null;
+  if (!row || row.status === 'verified') return null;
   return upsertShareVerification({
     ...row,
     shareCompleted: true,
@@ -306,13 +427,15 @@ export function markShareCompleted(id: string): ShareVerificationRecord | null {
   });
 }
 
+/** Screenshot always stays pending (or pending_review later) — never auto-verify. */
 export function attachScreenshot(
   id: string,
   screenshotDataUrl: string,
   screenshotFileName: string
 ): ShareVerificationRecord | null {
   const row = getShareVerification(id);
-  if (!row) return null;
+  if (!row || row.status === 'verified') return null;
+  if (!screenshotDataUrl || screenshotDataUrl.length < 32) return null;
   return upsertShareVerification({
     ...row,
     screenshotDataUrl,
@@ -322,12 +445,18 @@ export function attachScreenshot(
 }
 
 export function canConfirmShareVerification(row: ShareVerificationRecord): boolean {
+  if (row.status === 'verified' || row.status === 'rejected') return false;
   return row.shareCompleted || Boolean(row.screenshotDataUrl);
 }
 
+/**
+ * Marks verified once. Returns null if already verified / not confirmable
+ * (blocks duplicate AP confirmations).
+ */
 export function confirmShareVerification(id: string): ShareVerificationRecord | null {
   const row = getShareVerification(id);
   if (!row || !canConfirmShareVerification(row)) return null;
+  if (findVerifiedShareAction(row.contactId, row.toolKey)) return null;
   return upsertShareVerification({
     ...row,
     status: 'verified',
@@ -336,10 +465,19 @@ export function confirmShareVerification(id: string): ShareVerificationRecord | 
 
 export function rejectShareVerification(id: string): ShareVerificationRecord | null {
   const row = getShareVerification(id);
-  if (!row) return null;
+  if (!row || row.status === 'verified') return null;
   return upsertShareVerification({
     ...row,
     status: 'rejected',
+  });
+}
+
+export function markPendingReview(id: string): ShareVerificationRecord | null {
+  const row = getShareVerification(id);
+  if (!row || row.status === 'verified') return null;
+  return upsertShareVerification({
+    ...row,
+    status: 'pending_review',
   });
 }
 

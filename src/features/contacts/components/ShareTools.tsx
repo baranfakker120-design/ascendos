@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { scorePipelineEvent } from '@shared/lib/apScoring';
 import { displayShareTool, isProofRequiredShareTool } from '@shared/lib/shareToolsDisplay';
-import type { ShareVerificationRecord } from '@shared/lib/shareVerification';
+import {
+  ALREADY_CONFIRMED_MESSAGE,
+  type ShareVerificationRecord,
+} from '@shared/lib/shareVerification';
 import type { ExternalTool } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
@@ -16,11 +19,13 @@ interface Props {
   /** Pending proof created/updated before AP is awarded. */
   onProofChange?: (proof: ShareVerificationRecord) => void;
   pendingToolKeys?: Set<string>;
+  /** Tool keys already awarded for this contact (duplicate protection). */
+  awardedToolKeys?: Set<string>;
 }
 
 /**
  * Teilt externe Tools. Onboarding + Firmenpräsentation benötigen Nachweis
- * bevor AP freigegeben wird.
+ * bevor AP freigegeben wird. Ein Kontakt erhält AP höchstens einmal pro Aktion.
  */
 export function ShareTools({
   tools,
@@ -29,6 +34,7 @@ export function ShareTools({
   onShared,
   onProofChange,
   pendingToolKeys,
+  awardedToolKeys,
 }: Props) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [verifyTool, setVerifyTool] = useState<ExternalTool | null>(null);
@@ -75,6 +81,7 @@ export function ShareTools({
       {ordered.map((raw) => {
         const tool = displayShareTool(raw);
         const waiting = pendingToolKeys?.has(tool.key);
+        const awarded = awardedToolKeys?.has(tool.key);
         return (
           <Button
             key={tool.id}
@@ -87,7 +94,11 @@ export function ShareTools({
               {tool.description ? (
                 <span className="block text-xs font-normal text-muted">{tool.description}</span>
               ) : null}
-              {waiting ? (
+              {awarded ? (
+                <span className="mt-1 block text-xs font-semibold text-muted">
+                  {ALREADY_CONFIRMED_MESSAGE}
+                </span>
+              ) : waiting ? (
                 <span className="mt-1 block text-xs font-semibold text-accent-deep">
                   Warte auf Nachweis
                 </span>
@@ -100,7 +111,7 @@ export function ShareTools({
                 animate={false}
               />
               <span className="text-xs font-medium text-primary">
-                {copiedKey === tool.key ? '✓' : '↗'}
+                {copiedKey === tool.key ? '✓' : awarded ? '✓' : '↗'}
               </span>
             </span>
           </Button>
@@ -113,9 +124,13 @@ export function ShareTools({
           tool={verifyTool}
           contactId={contactId}
           contactName={contactName}
+          alreadyAwarded={awardedToolKeys?.has(verifyTool.key) ?? false}
           onClose={() => setVerifyTool(null)}
           onProofChange={onProofChange}
-          onVerified={(tool, proof) => onShared(tool, proof)}
+          onVerified={(tool, proof) => {
+            if (awardedToolKeys?.has(tool.key)) return;
+            onShared(tool, proof);
+          }}
         />
       ) : null}
     </div>
