@@ -286,7 +286,7 @@ export function KnowledgeCenterPage() {
                 </ul>
               </div>
               <div>
-                <p className="text-sm font-semibold">Change history</p>
+                <p className="text-sm font-semibold">{t('knowledge.changeHistory')}</p>
                 <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-muted">
                   {(changelog.data ?? []).map((c) => (
                     <li key={c.id}>

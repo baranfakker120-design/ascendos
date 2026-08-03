@@ -102,7 +102,7 @@ export function RegisterPage() {
             label={t('auth.inviteCode')}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="z. B. K7XP2M9QRT"
+            placeholder={t('auth.inviteCodePlaceholder')}
             autoCapitalize="characters"
             autoComplete="off"
             required
@@ -117,8 +117,8 @@ export function RegisterPage() {
           <Card>
             <p className="text-sm">
               {invite.sponsor_first_name
-                ? `${invite.sponsor_first_name} lädt dich ein zu`
-                : 'Du wurdest eingeladen zu'}
+                ? t('auth.invitedBy', { name: invite.sponsor_first_name })
+                : t('auth.invitedGeneric')}
             </p>
             <p className="mt-0.5 font-semibold">
               {invite.team_name} · {invite.org_name}

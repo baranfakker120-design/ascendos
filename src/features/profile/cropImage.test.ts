@@ -26,7 +26,7 @@ describe('cropImage contract', () => {
     expect(upload).toContain('AvatarCropModal');
     expect(upload).toContain('setPicked(file)');
     expect(upload).toContain('onConfirm={onConfirm}');
-    expect(modal).toContain('kneifen');
+    expect(modal).toContain("t('profile.cropGesture')");
     expect(modal).toContain('RankFrame');
   });
 

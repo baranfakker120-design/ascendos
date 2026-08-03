@@ -97,7 +97,10 @@
     "invalidCode": "Invite code is invalid or expired.",
     "codeRequired": "Please enter an invite code.",
     "passwordHint": "At least 8 characters",
-    "usernameHint": "Letters, numbers, underscore"
+    "usernameHint": "Letters, numbers, underscore",
+    "inviteCodePlaceholder": "e.g. K7XP2M9QRT",
+    "invitedBy": "{name} invites you to",
+    "invitedGeneric": "You were invited to"
   },
   "settings": {
     "eyebrow": "System",
@@ -585,7 +588,8 @@
     "notesLabel": "Notes / Follow-up",
     "directShort": "Direct",
     "neverOpened": "Never opened",
-    "notesFollowUp": "Notes / Follow-up"
+    "notesFollowUp": "Notes / Follow-up",
+    "inactiveDays": "Inactive · {days}d"
   },
   "leadership": {
     "activeToday": "Active today",
@@ -685,7 +689,22 @@
     "repeat": "Repeat",
     "active": "Active",
     "slotTitle": "Live Coaching",
-    "coach": "Coach"
+    "coach": "Coach",
+    "eyebrow": "Coach",
+    "adminCenterTitle": "Live Coaching Center",
+    "adminSubtitle": "9:16 image (gold shimmer) or short MP4 — publish notifies everyone.",
+    "events": "Events",
+    "newEvent": "New",
+    "loading": "Loading …",
+    "statusActive": "active",
+    "statusDraft": "draft",
+    "repeatBiweekly": "Every 2 weeks",
+    "repeatMonthly": "Monthly",
+    "mediaPick": "Image (9:16) or MP4",
+    "mediaShimmerHint": "Images get gold shimmer. Videos without shimmer/glow.",
+    "futureReady": "Future ready (stubs): Replay, Recordings, Guests, Multi-Events, Search, Categories, Library.",
+    "todayPreview": "Today Preview",
+    "previewHint": "Preview appears after title + media."
   },
   "push": {
     "publishedTitle": "New Live Coaching",
@@ -770,7 +789,8 @@
     "new": "New",
     "emptyArticles": "No articles yet.",
     "preview": "Preview",
-    "emptyBody": "_Empty_"
+    "emptyBody": "_Empty_",
+    "changeHistory": "Change history"
   },
   "teamSeyda": {
     "loadError": "Guide could not be loaded.",

@@ -97,7 +97,10 @@
     "invalidCode": "Le code d'invitation est invalide ou expiré.",
     "codeRequired": "Saisis un code d'invitation.",
     "passwordHint": "Au moins 8 caractères",
-    "usernameHint": "Lettres, chiffres, underscore"
+    "usernameHint": "Lettres, chiffres, underscore",
+    "inviteCodePlaceholder": "ex. K7XP2M9QRT",
+    "invitedBy": "{name} t’invite à",
+    "invitedGeneric": "Tu as été invité(e) à"
   },
   "settings": {
     "eyebrow": "Système",
@@ -585,7 +588,8 @@
     "notesLabel": "Notes / Suivi",
     "directShort": "Direct",
     "neverOpened": "Jamais ouvert",
-    "notesFollowUp": "Notes / Suivi"
+    "notesFollowUp": "Notes / Suivi",
+    "inactiveDays": "Inactif · {days}j"
   },
   "leadership": {
     "activeToday": "Actifs aujourd’hui",
@@ -685,7 +689,22 @@
     "repeat": "Répéter",
     "active": "Actif",
     "slotTitle": "Live Coaching",
-    "coach": "Coach"
+    "coach": "Coach",
+    "eyebrow": "Coach",
+    "adminCenterTitle": "Centre Live Coaching",
+    "adminSubtitle": "Image 9:16 (shimmer or) ou MP4 court — publier notifie tout le monde.",
+    "events": "Événements",
+    "newEvent": "Nouveau",
+    "loading": "Chargement …",
+    "statusActive": "actif",
+    "statusDraft": "brouillon",
+    "repeatBiweekly": "Toutes les 2 semaines",
+    "repeatMonthly": "Mensuel",
+    "mediaPick": "Image (9:16) ou MP4",
+    "mediaShimmerHint": "Les images ont un shimmer or. Vidéos sans shimmer/glow.",
+    "futureReady": "Prêt pour plus tard (stubs) : Replay, Recordings, Guests, Multi-Events, Search, Categories, Library.",
+    "todayPreview": "Aperçu Aujourd’hui",
+    "previewHint": "L’aperçu apparaît après titre + média."
   },
   "push": {
     "publishedTitle": "Nouveau Live Coaching",
@@ -770,7 +789,8 @@
     "new": "Nouveau",
     "emptyArticles": "Pas encore d’articles.",
     "preview": "Aperçu",
-    "emptyBody": "_Vide_"
+    "emptyBody": "_Vide_",
+    "changeHistory": "Historique des changements"
   },
   "teamSeyda": {
     "loadError": "Impossible de charger le guide.",

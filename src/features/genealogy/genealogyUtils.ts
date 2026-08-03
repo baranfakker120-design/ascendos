@@ -92,7 +92,7 @@ export function presenceLabel(node: GenealogyNode, now = Date.now(), t?: Transla
     if (days < 1) return t('pipeline.activity.today');
     if (days === 1) return t('pipeline.activity.yesterday');
     if (days < 14) return t('team.lastSeenDays', { days });
-    return `${t('team.inactive')} · ${days}d`;
+    return t('team.inactiveDays', { days });
   }
   if (isOnline(node, now)) return 'Online';
   if (!node.lastAppOpenedAt) return 'Noch nie';

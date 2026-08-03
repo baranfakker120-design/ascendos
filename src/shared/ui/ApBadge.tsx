@@ -2,6 +2,8 @@
  * AP-Badge: lebende Zahl über optionalem Sticker / goldener Chip-Fallback.
  * Nur Präsentation — keine Features, kein Supabase.
  */
+import { useOptionalI18n } from '@shared/i18n';
+import type { AppLocale } from '@shared/lib/locale';
 import './ap-badge.css';
 
 export type ApBadgeSize = 'sm' | 'md' | 'lg';
@@ -13,20 +15,28 @@ export const AP_BADGE_SIZE_PX: Record<ApBadgeSize, number> = {
   lg: 72,
 };
 
+const NUMBER_LOCALES: Record<AppLocale, string> = {
+  de: 'de-DE',
+  tr: 'tr-TR',
+  fr: 'fr-FR',
+  en: 'en-GB',
+  it: 'it-IT',
+};
+
 function valueClass(size: ApBadgeSize): string {
   if (size === 'sm') return 'text-xs';
   if (size === 'md') return 'text-sm';
   return 'text-lg';
 }
 
-/** Anzeigezahl mit deutschem Tausenderpunkt. */
-export function formatApBadgeValue(value: number): string {
-  return Math.trunc(value).toLocaleString('de-DE');
+/** Anzeigezahl — locale-aware thousands separators. */
+export function formatApBadgeValue(value: number, locale: AppLocale = 'de'): string {
+  return Math.trunc(value).toLocaleString(NUMBER_LOCALES[locale] ?? 'de-DE');
 }
 
 /** Accessible Name — Zahl trägt die Bedeutung, nicht der Sticker. */
-export function apBadgeAriaLabel(value: number): string {
-  return `${formatApBadgeValue(value)} AP`;
+export function apBadgeAriaLabel(value: number, locale: AppLocale = 'de', unit = 'AP'): string {
+  return `${formatApBadgeValue(value, locale)} ${unit}`;
 }
 
 export interface ApBadgeProps {
@@ -37,10 +47,13 @@ export interface ApBadgeProps {
 }
 
 export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' }: ApBadgeProps) {
+  const i18n = useOptionalI18n();
+  const locale = i18n?.locale ?? 'de';
+  const unit = i18n?.t('common.ap') ?? 'AP';
   const px = AP_BADGE_SIZE_PX[size];
   const hasSticker = !!stickerSrc;
-  const display = formatApBadgeValue(value);
-  const label = apBadgeAriaLabel(value);
+  const display = formatApBadgeValue(value, locale);
+  const label = apBadgeAriaLabel(value, locale, unit);
 
   return (
     <div
@@ -71,7 +84,7 @@ export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' 
           className="ap-badge__unit mt-0.5 text-[10px] font-semibold uppercase tracking-wider"
           aria-hidden
         >
-          AP
+          {unit}
         </span>
       </div>
     </div>

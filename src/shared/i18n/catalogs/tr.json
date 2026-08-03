@@ -97,7 +97,10 @@
     "invalidCode": "Davet kodu geçersiz veya süresi dolmuş.",
     "codeRequired": "Lütfen bir davet kodu gir.",
     "passwordHint": "En az 8 karakter",
-    "usernameHint": "Harfler, sayılar, alt çizgi"
+    "usernameHint": "Harfler, sayılar, alt çizgi",
+    "inviteCodePlaceholder": "örn. K7XP2M9QRT",
+    "invitedBy": "{name} seni davet ediyor:",
+    "invitedGeneric": "Şuraya davet edildin:"
   },
   "settings": {
     "eyebrow": "Sistem",
@@ -585,7 +588,8 @@
     "notesLabel": "Notlar / Takip",
     "directShort": "Direkt",
     "neverOpened": "Hiç açılmadı",
-    "notesFollowUp": "Notlar / Takip"
+    "notesFollowUp": "Notlar / Takip",
+    "inactiveDays": "Pasif · {days}g"
   },
   "leadership": {
     "activeToday": "Bugün aktif",
@@ -685,7 +689,22 @@
     "repeat": "Tekrar",
     "active": "Aktif",
     "slotTitle": "Canlı Coaching",
-    "coach": "Koç"
+    "coach": "Koç",
+    "eyebrow": "Coach",
+    "adminCenterTitle": "Canlı Coaching Merkezi",
+    "adminSubtitle": "9:16 görsel (altın shimmer) veya kısa MP4 — yayın herkese bildirim gönderir.",
+    "events": "Etkinlikler",
+    "newEvent": "Yeni",
+    "loading": "Yükleniyor …",
+    "statusActive": "aktif",
+    "statusDraft": "taslak",
+    "repeatBiweekly": "2 haftada bir",
+    "repeatMonthly": "Aylık",
+    "mediaPick": "Görsel (9:16) veya MP4",
+    "mediaShimmerHint": "Görseller altın shimmer alır. Videolarda shimmer/glow yok.",
+    "futureReady": "Geleceğe hazır (stubs): Replay, Kayıtlar, Konuklar, Çoklu Etkinlik, Arama, Kategoriler, Kütüphane.",
+    "todayPreview": "Bugün Önizleme",
+    "previewHint": "Önizleme başlık + medya sonrası görünür."
   },
   "push": {
     "publishedTitle": "Yeni Canlı Coaching",
@@ -770,7 +789,8 @@
     "new": "Yeni",
     "emptyArticles": "Henüz makale yok.",
     "preview": "Önizleme",
-    "emptyBody": "_Boş_"
+    "emptyBody": "_Boş_",
+    "changeHistory": "Değişiklik geçmişi"
   },
   "teamSeyda": {
     "loadError": "Rehber yüklenemedi.",
