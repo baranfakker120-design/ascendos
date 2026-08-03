@@ -328,5 +328,7 @@
 @media (prefers-reduced-motion: reduce) {
   .coach-md--reveal > * {
     animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
