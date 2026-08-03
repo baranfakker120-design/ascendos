@@ -2,11 +2,7 @@ import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ReactNode } from 'react';
-import {
-  matchTeachingLine,
-  prepareCoachReading,
-  type TeachingMeta,
-} from './coachReading';
+import { matchTeachingLine, prepareCoachReading, type TeachingMeta } from './coachReading';
 import './coach-markdown.css';
 
 function textFromChildren(children: ReactNode): string {
@@ -103,10 +99,17 @@ const components: Components = {
   },
 };
 
-export function CoachMarkdown({ content }: { content: string }) {
+export function CoachMarkdown({
+  content,
+  animate = false,
+}: {
+  content: string;
+  /** Section stagger only for freshly appended assistant replies. */
+  animate?: boolean;
+}) {
   const source = prepareCoachReading(content);
   return (
-    <div className="coach-md coach-md--reveal">
+    <div className={`coach-md${animate ? ' coach-md--reveal' : ''}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {source}
       </ReactMarkdown>

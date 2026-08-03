@@ -32,8 +32,7 @@ export interface RankProgress {
 export function computeRankProgress(input: RankProgressInput): RankProgress {
   const ap = Math.max(0, Math.floor(input.ap));
   const current = Math.max(0, Math.floor(input.currentThreshold));
-  const next =
-    input.nextThreshold == null ? null : Math.max(0, Math.floor(input.nextThreshold));
+  const next = input.nextThreshold == null ? null : Math.max(0, Math.floor(input.nextThreshold));
 
   if (next == null || next <= current) {
     return { ratio: 1, remainingAp: 0, isMaxRank: true };

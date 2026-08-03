@@ -59,10 +59,10 @@ export function DropZone({ onFiles, disabled = false }: Props) {
         <span aria-hidden className="text-2xl leading-none">
           📄
         </span>
-        <p className="text-sm font-semibold text-ink">
-          Dateien hierher ziehen oder tippen
+        <p className="text-sm font-semibold text-ink">Dateien hierher ziehen oder tippen</p>
+        <p className="text-xs text-muted">
+          PDF, DOCX, TXT, Markdown — mehrere gleichzeitig möglich
         </p>
-        <p className="text-xs text-muted">PDF, DOCX, TXT, Markdown — mehrere gleichzeitig möglich</p>
       </div>
       <input
         ref={inputRef}
@@ -77,8 +77,8 @@ export function DropZone({ onFiles, disabled = false }: Props) {
         }}
       />
       <p className="mt-2 text-xs text-muted">
-        Die Dateien selbst werden nicht hochgeladen. Der Text wird im Browser
-        ausgelesen und nur dieser an AscendOS übertragen.
+        Die Dateien selbst werden nicht hochgeladen. Der Text wird im Browser ausgelesen und nur
+        dieser an AscendOS übertragen.
       </p>
     </div>
   );

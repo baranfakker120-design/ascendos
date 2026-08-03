@@ -110,6 +110,26 @@ values
    'b0000000-0000-0000-0000-000000000002',
    null, 'berater', 'Emil', 'Extern', 'emil');
 
+-- Mitgliedschaften + Genealogie (Migration 15). Unter replica, sonst
+-- loescht sync_profile_mirror profiles.sponsor_id vor dem Sponsor-Update.
+set local session_replication_role = replica;
+insert into public.memberships (identity_id, org_id, team_id, role, status)
+select p.id, p.org_id, p.team_id, p.role, 'active'
+from public.profiles p
+where p.id::text like 'c0000000%'
+  and not exists (
+    select 1 from public.memberships m
+    where m.identity_id = p.id and m.org_id = p.org_id and m.status = 'active'
+  );
+update public.memberships m
+set sponsor_membership_id = sp.id
+from public.profiles p
+join public.memberships sp
+  on sp.identity_id = p.sponsor_id and sp.org_id = p.org_id and sp.status = 'active'
+where m.identity_id = p.id and m.org_id = p.org_id and m.status = 'active'
+  and p.id::text like 'c0000000%' and p.sponsor_id is not null;
+set local session_replication_role = origin;
+
 -- ---------- Kontakte ----------
 -- Der Trigger contacts_log_created erzeugt je Kontakt automatisch
 -- ein contact_created-Event. Das ist gewollt.

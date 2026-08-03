@@ -4,6 +4,7 @@ Verbindliche Grundlage für die Implementierung.
 Datum: 25. Juli 2026. Keine Implementierung, keine Migration, kein SQL.
 
 Beruht auf zwei freigegebenen Entscheidungen:
+
 1. Produktname **AscendOS**, KI-Coach **Ascent**.
 2. Identität und Organisationszugehörigkeit werden logisch getrennt. Eine Person kann mehreren Organisationen angehören.
 
@@ -17,10 +18,10 @@ Diese Fassung ersetzt den Entwurf aus Meilenstein 2 vollständig.
 
 Sie hatten die Dokumentation eines Branding-Themas nur für den Fall verlangt, dass die Wortmarke von der beschlossenen Schreibweise abweicht. Ich habe die Wortmarke vermessen, statt sie zu beurteilen.
 
-| Abschnitt der Wortmarke | Bereich | Deckungsgrad |
-|---|---|---|
-| ASCEND | x 389 bis 975 | 15,98 Prozent |
-| OS | x 985 bis 1148 | 37,35 Prozent |
+| Abschnitt der Wortmarke | Bereich        | Deckungsgrad  |
+| ----------------------- | -------------- | ------------- |
+| ASCEND                  | x 389 bis 975  | 15,98 Prozent |
+| OS                      | x 985 bis 1148 | 37,35 Prozent |
 
 `OS` trägt mehr als die doppelte Deckung von `ASCEND`. Das ist keine Zufälligkeit der Buchstabenformen, sondern ein bewusster typografischer Gewichtungswechsel: leichter Schnitt für `ASCEND`, fetter Schnitt für `OS`.
 
@@ -32,11 +33,11 @@ Der frühere Widerspruch lag nicht im Logo, sondern in der Schreibweise „Ascen
 
 ## 0.2 Verbindliche Schreibregeln
 
-| Begriff | Korrekt | Falsch |
-|---|---|---|
-| Produkt | **AscendOS** | AscentOS, Ascend OS, ASCENDOS im Fließtext, AscendOs |
-| KI-Coach | **Ascent** | Ascend, AscentAI, Coach |
-| Wortmarke im Logo | ASCENDOS in Versalien | jede andere Auszeichnung |
+| Begriff           | Korrekt               | Falsch                                               |
+| ----------------- | --------------------- | ---------------------------------------------------- |
+| Produkt           | **AscendOS**          | AscentOS, Ascend OS, ASCENDOS im Fließtext, AscendOs |
+| KI-Coach          | **Ascent**            | Ascend, AscentAI, Coach                              |
+| Wortmarke im Logo | ASCENDOS in Versalien | jede andere Auszeichnung                             |
 
 **Warnung, die in die Vorlagen gehört:** Produkt und Coach unterscheiden sich in einem einzigen Buchstaben, **Ascend** gegen **Ascent**. Diese Verwechslung wird ohne Regel dauerhaft auftreten, und jemand wird eines von beiden „korrigieren". Merkregel: Das Produkt steigt auf, `Ascend`. Der Coach ist der Aufstieg selbst, `Ascent`.
 
@@ -46,13 +47,13 @@ Betrifft ab sofort: alle Dokumente, ADRs, Wireframes, UI-Texte, Systemanweisunge
 
 Original abgelegt unter `docs/brand/ascendos-logo-original.png`, bitweise identisch zur Lieferung. Die vermessenen Vorgaben aus Meilenstein 2 gelten unverändert weiter:
 
-| Vorgabe | Wert |
-|---|---|
-| Symbolquelle | Beschnitt Ursprung x 589, y 200, Größe 360 x 308 |
+| Vorgabe                 | Wert                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| Symbolquelle            | Beschnitt Ursprung x 589, y 200, Größe 360 x 308              |
 | Seitenverhältnis Symbol | 1,169 zu 1, in quadratischen Feldern zentrieren, nie strecken |
-| Mindestschutzraum | 18 Prozent der Symbolhöhe |
-| Mindestgröße | 16 Pixel Favicon, 24 Pixel Navigation |
-| Coach-Header | ausschließlich Symbol, oben rechts, transparent |
+| Mindestschutzraum       | 18 Prozent der Symbolhöhe                                     |
+| Mindestgröße            | 16 Pixel Favicon, 24 Pixel Navigation                         |
+| Coach-Header            | ausschließlich Symbol, oben rechts, transparent               |
 
 ---
 
@@ -62,11 +63,11 @@ Original abgelegt unter `docs/brand/ascendos-logo-original.png`, bitweise identi
 
 Die Trennung erzeugt drei Begriffe, die sauber auseinandergehalten werden müssen. Jede Verwechslung an dieser Stelle erzeugt später eine Sicherheitslücke.
 
-| Ebene | Was sie ist | Anzahl | Beispiel |
-|---|---|---|---|
-| **Identität** | ein Mensch, ein Anmeldekonto | eine je Person | Baran |
-| **Mitgliedschaft** | die Zugehörigkeit einer Identität zu einer Organisation | beliebig viele je Identität | Baran bei Team Şeyda |
-| **Organisation** | der Mandant | beliebig viele | Team Şeyda, ein Fremdteam |
+| Ebene              | Was sie ist                                             | Anzahl                      | Beispiel                  |
+| ------------------ | ------------------------------------------------------- | --------------------------- | ------------------------- |
+| **Identität**      | ein Mensch, ein Anmeldekonto                            | eine je Person              | Baran                     |
+| **Mitgliedschaft** | die Zugehörigkeit einer Identität zu einer Organisation | beliebig viele je Identität | Baran bei Team Şeyda      |
+| **Organisation**   | der Mandant                                             | beliebig viele              | Team Şeyda, ein Fremdteam |
 
 **Die Mitgliedschaft ist die zentrale Einheit der Autorisierung.** Nicht die Identität. Jede Rolle, jede Berechtigung, jede Genealogiebeziehung und jeder operative Datensatz hängt an einer Mitgliedschaft.
 
@@ -76,23 +77,23 @@ Begründung: Eine Identität sagt nur, wer jemand ist. Was jemand darf, ergibt s
 
 Diese Zuordnung ist die wichtigste Tabelle des ganzen Dokuments. Eine falsche Einordnung führt entweder zu Datenverlust beim Wechsel oder zu einem Datenleck zwischen Organisationen.
 
-| Angabe | Ebene | Begründung |
-|---|---|---|
-| Anmeldedaten, E-Mail | Identität | Ein Mensch, ein Konto |
-| Vorname, Nachname | Identität | Der Name ändert sich nicht je Organisation |
-| Benutzername | Identität, **global eindeutig** | Siehe FD-3 in Teil 10 |
-| Sprache, Anzeigeeinstellungen | Identität | persönliche Voreinstellung |
-| **Rolle** | **Mitgliedschaft** | Berater in einer Organisation, Admin in einer anderen |
-| **Berechtigungen** | **Mitgliedschaft** | ausdrücklich so entschieden |
-| **Team** | **Mitgliedschaft** | Teams gehören zu Organisationen |
-| **Sponsor** | **Mitgliedschaft** | Siehe 1.5 |
-| Kontakte | **Mitgliedschaft** | Siehe 1.6 |
-| Coach-Gespräche | **Mitgliedschaft** | Wissenskontext ist organisationsspezifisch |
-| Punkte, Rang, Lizenzstatus | **Mitgliedschaft** | PT in einer Organisation hat mit einer anderen nichts zu tun |
-| Pipeline-Ereignisse | **Mitgliedschaft** | Geschäftsvorfall in einem Mandanten |
-| Journey-Fortschritt | **Mitgliedschaft** | Journeys tragen bereits `org_id` |
-| Auszeichnungen | **Mitgliedschaft** | Bezug auf organisationsspezifische Ziele |
-| Nutzungsereignisse | **Mitgliedschaft** | Kennzahlen sind mandantenbezogen |
+| Angabe                        | Ebene                           | Begründung                                                   |
+| ----------------------------- | ------------------------------- | ------------------------------------------------------------ |
+| Anmeldedaten, E-Mail          | Identität                       | Ein Mensch, ein Konto                                        |
+| Vorname, Nachname             | Identität                       | Der Name ändert sich nicht je Organisation                   |
+| Benutzername                  | Identität, **global eindeutig** | Siehe FD-3 in Teil 10                                        |
+| Sprache, Anzeigeeinstellungen | Identität                       | persönliche Voreinstellung                                   |
+| **Rolle**                     | **Mitgliedschaft**              | Berater in einer Organisation, Admin in einer anderen        |
+| **Berechtigungen**            | **Mitgliedschaft**              | ausdrücklich so entschieden                                  |
+| **Team**                      | **Mitgliedschaft**              | Teams gehören zu Organisationen                              |
+| **Sponsor**                   | **Mitgliedschaft**              | Siehe 1.5                                                    |
+| Kontakte                      | **Mitgliedschaft**              | Siehe 1.6                                                    |
+| Coach-Gespräche               | **Mitgliedschaft**              | Wissenskontext ist organisationsspezifisch                   |
+| Punkte, Rang, Lizenzstatus    | **Mitgliedschaft**              | PT in einer Organisation hat mit einer anderen nichts zu tun |
+| Pipeline-Ereignisse           | **Mitgliedschaft**              | Geschäftsvorfall in einem Mandanten                          |
+| Journey-Fortschritt           | **Mitgliedschaft**              | Journeys tragen bereits `org_id`                             |
+| Auszeichnungen                | **Mitgliedschaft**              | Bezug auf organisationsspezifische Ziele                     |
+| Nutzungsereignisse            | **Mitgliedschaft**              | Kennzahlen sind mandantenbezogen                             |
 
 **Faustregel für jede künftige Tabelle:** Wenn eine Angabe in zwei Organisationen unterschiedlich sein kann oder unterschiedlich sein darf, gehört sie an die Mitgliedschaft. Im Zweifel: Mitgliedschaft. Der Fehler in die eine Richtung ist eine Redundanz, in die andere Richtung ein Datenleck.
 
@@ -110,12 +111,12 @@ Damit ist es zulässig, dass der Selektor vom Client kommt, obwohl das auf den e
 
 **Auflösungsregel, vier Fälle, in dieser Reihenfolge:**
 
-| Fall | Verhalten |
-|---|---|
-| Selektor gesetzt und zeigt auf eine aktive Mitgliedschaft der Identität | diese Organisation gilt |
-| Selektor gesetzt, zeigt aber nicht auf eine aktive Mitgliedschaft | **abweisen.** Nicht auf eine andere ausweichen |
-| Selektor nicht gesetzt, Identität hat genau eine aktive Mitgliedschaft | diese gilt |
-| Selektor nicht gesetzt, Identität hat mehrere aktive Mitgliedschaften | **abweisen** |
+| Fall                                                                    | Verhalten                                      |
+| ----------------------------------------------------------------------- | ---------------------------------------------- |
+| Selektor gesetzt und zeigt auf eine aktive Mitgliedschaft der Identität | diese Organisation gilt                        |
+| Selektor gesetzt, zeigt aber nicht auf eine aktive Mitgliedschaft       | **abweisen.** Nicht auf eine andere ausweichen |
+| Selektor nicht gesetzt, Identität hat genau eine aktive Mitgliedschaft  | diese gilt                                     |
+| Selektor nicht gesetzt, Identität hat mehrere aktive Mitgliedschaften   | **abweisen**                                   |
 
 Der vierte Fall ist die wichtigste Regel dieses Abschnitts: **Bei Mehrdeutigkeit wird abgewiesen, nie geraten.** Ein System, das bei zwei Mitgliedschaften „die erste" nimmt, erzeugt einen mandantenübergreifenden Datenzugriff, der nur bei bestimmten Sortierungen auftritt und deshalb kaum reproduzierbar ist.
 
@@ -125,12 +126,12 @@ Der dritte Fall stellt sicher, dass der heutige Zustand unverändert funktionier
 
 ## 1.4 Zustände einer Mitgliedschaft
 
-| Zustand | Bedeutung | Zugriff | Historie |
-|---|---|---|---|
-| `pending` | eingeladen, noch nicht angenommen | keiner | entsteht erst |
-| `active` | regulär | vollständig gemäß Rolle und Berechtigungen | wächst |
-| `suspended` | vorübergehend gesperrt | keiner | bleibt vollständig |
-| `ended` | ausgeschieden | keiner | bleibt vollständig |
+| Zustand     | Bedeutung                         | Zugriff                                    | Historie           |
+| ----------- | --------------------------------- | ------------------------------------------ | ------------------ |
+| `pending`   | eingeladen, noch nicht angenommen | keiner                                     | entsteht erst      |
+| `active`    | regulär                           | vollständig gemäß Rolle und Berechtigungen | wächst             |
+| `suspended` | vorübergehend gesperrt            | keiner                                     | bleibt vollständig |
+| `ended`     | ausgeschieden                     | keiner                                     | bleibt vollständig |
 
 **Mitgliedschaften werden niemals gelöscht, nur beendet.** Das ist die technische Umsetzung Ihrer Vorgabe, dass Historien erhalten bleiben und ein Organisationswechsel keine Daten verliert. Ein Wechsel ist: alte Mitgliedschaft auf `ended`, neue Mitgliedschaft anlegen. Beide Datenbestände bleiben, getrennt und zuordenbar.
 
@@ -167,9 +168,9 @@ Daraus folgt zwingend:
 
 Heute erzeugt eine Einladung genau einen Weg: neues Konto plus Profil. Künftig gibt es zwei Wege, und die Unterscheidung ist verpflichtend:
 
-| Fall | Ergebnis |
-|---|---|
-| Die eingeladene Person hat noch keine Identität | Identität anlegen **und** Mitgliedschaft anlegen |
+| Fall                                              | Ergebnis                                               |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| Die eingeladene Person hat noch keine Identität   | Identität anlegen **und** Mitgliedschaft anlegen       |
 | Die eingeladene Person hat bereits eine Identität | **nur** Mitgliedschaft anlegen, keine zweite Identität |
 
 Der zweite Fall existiert heute nicht und ist die häufigste Fehlerquelle bei dieser Art Umstellung. Wird er übersehen, entstehen Doppelidentitäten desselben Menschen, die sich nachträglich nur unter Datenverlust zusammenführen lassen.
@@ -184,12 +185,12 @@ Rollen kodieren ausschließlich **Funktion**. Beziehung ergibt sich aus der Gene
 
 **Die Rolle hängt an der Mitgliedschaft.** Dieselbe Person kann Berater in einer und Admin in einer anderen Organisation sein.
 
-| Rolle | Stufe | Ebene | Anzahl |
-|---|---|---|---|
-| `berater` | 10 | Mitgliedschaft | beliebig |
-| `admin` | 50 | Mitgliedschaft | wenige je Organisation |
-| `super_admin` | 90 | Mitgliedschaft | mindestens einer, empfohlen zwei |
-| `platform_operator` | 99 | **Identität, ohne Mitgliedschaft** | sehr wenige |
+| Rolle               | Stufe | Ebene                              | Anzahl                           |
+| ------------------- | ----- | ---------------------------------- | -------------------------------- |
+| `berater`           | 10    | Mitgliedschaft                     | beliebig                         |
+| `admin`             | 50    | Mitgliedschaft                     | wenige je Organisation           |
+| `super_admin`       | 90    | Mitgliedschaft                     | mindestens einer, empfohlen zwei |
+| `platform_operator` | 99    | **Identität, ohne Mitgliedschaft** | sehr wenige                      |
 
 Die Stufe existiert für eine einzige Regel: Verändert werden dürfen nur Prinzipale mit **strikt niedrigerer** Stufe.
 
@@ -202,6 +203,7 @@ Die Stufe existiert für eine einzige Regel: Verändert werden dürfen nur Prinz
 **Änderbar.** Eigenes Profil auf Identitätsebene ohne die geschützten Felder. Eigene Kontakte, Ereignisse, Ziele, Punkte innerhalb der Mitgliedschaft. Einladungen mit Rolle `berater`.
 
 **Verboten.**
+
 - Kontakte anderer Personen, auch in der eigenen Downline
 - Coach-Gespräche anderer Personen
 - Sidelines
@@ -219,6 +221,7 @@ Die Stufe existiert für eine einzige Regel: Verändert werden dürfen nur Prinz
 **Änderbar.** Inhalte gemäß Berechtigung. Mitgliedschaften von Prinzipalen **niedrigerer Stufe**, und dort nur die betrieblichen Felder.
 
 **Verboten, hart und nicht delegierbar.**
+
 - Berechtigungen erteilen oder entziehen
 - Rollen zuweisen
 - Einen `super_admin` oder einen anderen `admin` bearbeiten
@@ -236,6 +239,7 @@ Der letzte Punkt ist eine unmittelbare Folge der Trennung und war im alten Model
 **Sichtbar.** Alles in der eigenen Organisation, **mit zwei Ausnahmen**: Kontakte und Coach-Gespräche anderer Personen. Zugriff darauf nur über den Notfallpfad aus Teil 3.6.
 
 **Verboten.**
+
 - Die eigene Rolle ändern
 - Einen anderen `super_admin` bearbeiten, gleiche Stufe genügt nicht
 - Fremde Organisationen berühren, auch wenn dieselbe Identität dort Mitglied ist
@@ -262,13 +266,13 @@ Ohne diesen Prinzipal ist AscendOS nicht an Unternehmen verkäuflich. Jede Siche
 
 ## 2.5 Was bewusst keine Rolle wird
 
-| Konzept | Wo es hingehört | Begründung |
-|---|---|---|
-| Leader, Teamleitung | Beziehung, `is_ancestor_of()` | dynamisch, veraltet als Rolle |
-| Senior Leader und 14 weitere Stufen | Rangberechnung | 16 Stufen, und die Wissensdatenbank führt eine Planschwelle bereits als VERALTET. Als Rolle würde jede Planänderung eine Migration erzwingen |
-| Insider | Lizenzstatus der Mitgliedschaft | Zustand, nicht Funktion |
-| Kunde | offene Produktentscheidung | siehe Teil 10, FD-5 |
-| Produktpfleger, Wissensredakteur | Berechtigung | genau der Fall, für den Berechtigungen existieren |
+| Konzept                             | Wo es hingehört                 | Begründung                                                                                                                                   |
+| ----------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Leader, Teamleitung                 | Beziehung, `is_ancestor_of()`   | dynamisch, veraltet als Rolle                                                                                                                |
+| Senior Leader und 14 weitere Stufen | Rangberechnung                  | 16 Stufen, und die Wissensdatenbank führt eine Planschwelle bereits als VERALTET. Als Rolle würde jede Planänderung eine Migration erzwingen |
+| Insider                             | Lizenzstatus der Mitgliedschaft | Zustand, nicht Funktion                                                                                                                      |
+| Kunde                               | offene Produktentscheidung      | siehe Teil 10, FD-5                                                                                                                          |
+| Produktpfleger, Wissensredakteur    | Berechtigung                    | genau der Fall, für den Berechtigungen existieren                                                                                            |
 
 Der bestehende Wert `leader` bleibt als überholt markiert im Datenmodell, wird niemandem zugewiesen und in einer späteren Aufräum-Migration entfernt. Null Profile betroffen.
 
@@ -282,25 +286,25 @@ Eine Erteilung gilt für eine Mitgliedschaft, nicht für eine Identität. Damit 
 
 ## 3.2 Geltungsbereich
 
-| Bereich | Bedeutung |
-|---|---|
-| `self` | nur eigene Daten innerhalb der Mitgliedschaft |
+| Bereich    | Bedeutung                                                           |
+| ---------- | ------------------------------------------------------------------- |
+| `self`     | nur eigene Daten innerhalb der Mitgliedschaft                       |
 | `downline` | eigene Struktur, über `is_ancestor_of()` innerhalb der Organisation |
-| `team` | eigenes Team |
-| `org` | die gesamte Organisation der Mitgliedschaft |
+| `team`     | eigenes Team                                                        |
+| `org`      | die gesamte Organisation der Mitgliedschaft                         |
 
 Es gibt bewusst **keinen** Bereich über die Organisation hinaus. Ein solcher Bereich wäre der einzige Weg, die Mandantengrenze zu durchbrechen, und er soll nicht existieren. Mandantenübergreifende Sichten sind ausschließlich dem Plattformbetreiber möglich, über den gesonderten, protokollierten Pfad, und auch dort nur auf Aggregate.
 
 ## 3.3 Aufbau einer Erteilung
 
-| Bestandteil | Zweck |
-|---|---|
-| Mitgliedschaft | wer, in welcher Organisation |
-| Berechtigung | was |
-| Geltungsbereich | über wen |
-| Gültig ab, gültig bis | zeitlich begrenzte Rechte |
-| Erteilt von, erteilt am | Prüfbarkeit |
-| Grund | Nachvollziehbarkeit |
+| Bestandteil             | Zweck                        |
+| ----------------------- | ---------------------------- |
+| Mitgliedschaft          | wer, in welcher Organisation |
+| Berechtigung            | was                          |
+| Geltungsbereich         | über wen                     |
+| Gültig ab, gültig bis   | zeitlich begrenzte Rechte    |
+| Erteilt von, erteilt am | Prüfbarkeit                  |
+| Grund                   | Nachvollziehbarkeit          |
 
 **Zwei Regeln:**
 
@@ -317,54 +321,54 @@ Begründung: Eine Mischung aus Erlauben und Verbieten erzeugt Auflösungsfragen,
 
 **Team und Struktur**
 
-| Berechtigung | Zulässiger Bereich |
-|---|---|
-| `can_view_team` | downline, team, org |
-| `can_manage_team` | downline, team |
+| Berechtigung      | Zulässiger Bereich  |
+| ----------------- | ------------------- |
+| `can_view_team`   | downline, team, org |
+| `can_manage_team` | downline, team      |
 
 **Inhalte**
 
-| Berechtigung | Zulässiger Bereich |
-|---|---|
-| `can_manage_documents` | org |
-| `can_approve_documents` | org |
-| `can_manage_training` | org |
-| `can_manage_products` | org |
-| `can_manage_news` | org, team |
-| `can_manage_events` | org |
+| Berechtigung            | Zulässiger Bereich |
+| ----------------------- | ------------------ |
+| `can_manage_documents`  | org                |
+| `can_approve_documents` | org                |
+| `can_manage_training`   | org                |
+| `can_manage_products`   | org                |
+| `can_manage_news`       | org, team          |
+| `can_manage_events`     | org                |
 
 Die Trennung von `can_manage_documents` und `can_approve_documents` bleibt bestehen. Die Wissensdatenbank verlangt eine Freigabe durch eine zweite Person. Fällt beides zusammen, ist die Freigabe eine Formsache, und Wissen ist für Ascent oberste Wahrheit.
 
 **Auswertung**
 
-| Berechtigung | Zulässiger Bereich |
-|---|---|
-| `can_view_reports` | downline, team, org |
-| `can_export_reports` | downline, team, org |
-| `can_manage_dashboard` | org |
+| Berechtigung           | Zulässiger Bereich  |
+| ---------------------- | ------------------- |
+| `can_view_reports`     | downline, team, org |
+| `can_export_reports`   | downline, team, org |
+| `can_manage_dashboard` | org                 |
 
 **Nutzer und Rechte**
 
-| Berechtigung | Zulässiger Bereich |
-|---|---|
-| `can_manage_users` | org |
-| `can_manage_roles` | org |
+| Berechtigung             | Zulässiger Bereich                                   |
+| ------------------------ | ---------------------------------------------------- |
+| `can_manage_users`       | org                                                  |
+| `can_manage_roles`       | org                                                  |
 | `can_manage_permissions` | org, ausschließlich `super_admin`, nicht delegierbar |
 
 **Betrieb**
 
-| Berechtigung | Zulässiger Bereich |
-|---|---|
-| `can_manage_settings` | org |
-| `can_manage_ai` | org |
-| `can_manage_system` | org |
-| `can_view_audit` | org |
+| Berechtigung          | Zulässiger Bereich |
+| --------------------- | ------------------ |
+| `can_manage_settings` | org                |
+| `can_manage_ai`       | org                |
+| `can_manage_system`   | org                |
+| `can_view_audit`      | org                |
 
 **Datenschutz, neu gegenüber dem Entwurf**
 
-| Berechtigung | Zulässiger Bereich | Zweck |
-|---|---|---|
-| `can_manage_privacy` | org | Auskunft und Löschung nach DSGVO durchführen |
+| Berechtigung         | Zulässiger Bereich | Zweck                                        |
+| -------------------- | ------------------ | -------------------------------------------- |
+| `can_manage_privacy` | org                | Auskunft und Löschung nach DSGVO durchführen |
 
 Diese Berechtigung ist neu und notwendig, weil die DSGVO-Pflichten sonst über `can_manage_users` mitliefen und damit an jeden Nutzerverwalter gingen. Sie ist ausschließlich `super_admin` zugänglich und jeder Aufruf ist protokollpflichtig.
 
@@ -433,11 +437,11 @@ Immer mit dem Zugangstoken des Aufrufers, nie mit dem Dienstschlüssel, außer b
 
 Berechtigungen im Frontend dienen ausschließlich der Darstellung, niemals der Sicherheit.
 
-| Zweck | Erlaubt |
-|---|---|
-| Menüpunkt ausblenden | ja |
-| Schaltfläche deaktivieren | ja |
-| Zugriff verhindern | **nein** |
+| Zweck                     | Erlaubt  |
+| ------------------------- | -------- |
+| Menüpunkt ausblenden      | ja       |
+| Schaltfläche deaktivieren | ja       |
+| Zugriff verhindern        | **nein** |
 
 **Neu, mit unmittelbarer UI-Folge:** Bei mehreren aktiven Mitgliedschaften braucht die Oberfläche einen sichtbaren Organisationswechsler, und die aktive Organisation muss **dauerhaft sichtbar** sein. Ein Nutzer, der nicht erkennt, in welcher Organisation er arbeitet, erzeugt Fehleingaben, die nachträglich schwer zu bereinigen sind. Diese Anforderung geht in Meilenstein 4 ein.
 
@@ -457,32 +461,32 @@ Zum Szenario „KI fordert geschützte Daten an": Die Antwort scheitert nicht da
 Zeichen: ✓ erlaubt, ✗ verboten, △ eingeschränkt.
 Alle Angaben gelten **je Mitgliedschaft**.
 
-| Berechtigung | berater | admin | super_admin | platform_operator |
-|---|---|---|---|---|
-| `can_view_team` | △ 1 | △ 2 | ✓ | △ 3 |
-| `can_manage_team` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_documents` | ✗ | △ 2 | ✓ | ✗ |
-| `can_approve_documents` | ✗ | ✗ 4 | ✓ | ✗ |
-| `can_manage_training` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_products` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_news` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_events` | ✗ | △ 2 | ✓ | ✗ |
-| `can_view_reports` | △ 1 | △ 2 | ✓ | △ 3 |
-| `can_export_reports` | ✗ | △ 5 | ✓ | ✗ |
-| `can_manage_dashboard` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_users` | ✗ | △ 6 | ✓ | ✗ |
-| `can_manage_roles` | ✗ | ✗ 7 | △ 8 | ✗ |
-| `can_manage_permissions` | ✗ | ✗ 9 | ✓ | ✗ |
-| `can_manage_settings` | ✗ | △ 2 | ✓ | △ 3 |
-| `can_manage_ai` | ✗ | ✗ 10 | ✓ | ✗ |
-| `can_manage_system` | ✗ | ✗ | ✓ | △ 3 |
-| `can_view_audit` | ✗ | ✗ 11 | ✓ | △ 3 |
-| `can_manage_privacy` | ✗ | ✗ 12 | ✓ | ✗ |
-| Eigene Kontakte | ✓ | ✓ | ✓ | ✗ |
-| **Fremde Kontakte** | **✗** | **✗** | **△ 13** | **✗ 14** |
-| **Fremde Coach-Gespräche** | **✗** | **✗** | **✗ 15** | **✗** |
-| **Identitätsdaten anderer** | **✗** | **✗ 16** | **✗ 16** | **✗** |
-| **Daten anderer Organisationen** | **✗ 17** | **✗ 17** | **✗ 17** | **△ 3** |
+| Berechtigung                     | berater  | admin    | super_admin | platform_operator |
+| -------------------------------- | -------- | -------- | ----------- | ----------------- |
+| `can_view_team`                  | △ 1      | △ 2      | ✓           | △ 3               |
+| `can_manage_team`                | ✗        | △ 2      | ✓           | ✗                 |
+| `can_manage_documents`           | ✗        | △ 2      | ✓           | ✗                 |
+| `can_approve_documents`          | ✗        | ✗ 4      | ✓           | ✗                 |
+| `can_manage_training`            | ✗        | △ 2      | ✓           | ✗                 |
+| `can_manage_products`            | ✗        | △ 2      | ✓           | ✗                 |
+| `can_manage_news`                | ✗        | △ 2      | ✓           | ✗                 |
+| `can_manage_events`              | ✗        | △ 2      | ✓           | ✗                 |
+| `can_view_reports`               | △ 1      | △ 2      | ✓           | △ 3               |
+| `can_export_reports`             | ✗        | △ 5      | ✓           | ✗                 |
+| `can_manage_dashboard`           | ✗        | △ 2      | ✓           | ✗                 |
+| `can_manage_users`               | ✗        | △ 6      | ✓           | ✗                 |
+| `can_manage_roles`               | ✗        | ✗ 7      | △ 8         | ✗                 |
+| `can_manage_permissions`         | ✗        | ✗ 9      | ✓           | ✗                 |
+| `can_manage_settings`            | ✗        | △ 2      | ✓           | △ 3               |
+| `can_manage_ai`                  | ✗        | ✗ 10     | ✓           | ✗                 |
+| `can_manage_system`              | ✗        | ✗        | ✓           | △ 3               |
+| `can_view_audit`                 | ✗        | ✗ 11     | ✓           | △ 3               |
+| `can_manage_privacy`             | ✗        | ✗ 12     | ✓           | ✗                 |
+| Eigene Kontakte                  | ✓        | ✓        | ✓           | ✗                 |
+| **Fremde Kontakte**              | **✗**    | **✗**    | **△ 13**    | **✗ 14**          |
+| **Fremde Coach-Gespräche**       | **✗**    | **✗**    | **✗ 15**    | **✗**             |
+| **Identitätsdaten anderer**      | **✗**    | **✗ 16** | **✗ 16**    | **✗**             |
+| **Daten anderer Organisationen** | **✗ 17** | **✗ 17** | **✗ 17**    | **△ 3**           |
 
 **Fußnoten**
 
@@ -512,48 +516,48 @@ Alle Angaben gelten **je Mitgliedschaft**.
 
 ## 6.1 Die geforderten Szenarien
 
-| # | Szenario | Ergebnis | Womit verhindert |
-|---|---|---|---|
-| 1 | Leader sieht fremde Organisation | abgewiesen | Mandantengrenze als erste Policy-Bedingung, Organisationsfilter in `get_downline()` |
-| 2 | Leader ändert Rollen | abgewiesen | `leader` ist keine Rolle. `can_manage_roles` nur Eigentümer, Stufenregel |
-| 3 | Admin bearbeitet Super Admin | abgewiesen | Stufenregel, 50 gegen 90 |
-| 4 | Berater öffnet fremde Kontakte | abgewiesen | Eigentum auf Mitgliedschaftsebene. Für keine Rolle im Normalbetrieb sichtbar |
-| 5 | Manipulierte Nutzerkennung | abgewiesen | Kein Fremdparameter, wo der eigene gemeint ist. Sonst Aufruferprüfung Pflicht |
-| 6 | Manipulierte Organisationskennung | abgewiesen | Organisation kommt aus der validierten aktiven Mitgliedschaft, nie aus dem Aufruf |
-| 7 | Direkter RPC-Aufruf | abgewiesen | Prüfung im Funktionskörper, Ausführungsrechte für `anon` entzogen |
-| 8 | Direkter API-Aufruf | abgewiesen | Dieselbe RLS, keine zweite Ebene und damit keine Lücke dazwischen |
-| 9 | KI fordert geschützte Daten an | abgewiesen | Ascent arbeitet unter der RLS des Nutzers, Retrieval filtert Organisation, Status und Zielgruppe |
+| #   | Szenario                          | Ergebnis   | Womit verhindert                                                                                 |
+| --- | --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| 1   | Leader sieht fremde Organisation  | abgewiesen | Mandantengrenze als erste Policy-Bedingung, Organisationsfilter in `get_downline()`              |
+| 2   | Leader ändert Rollen              | abgewiesen | `leader` ist keine Rolle. `can_manage_roles` nur Eigentümer, Stufenregel                         |
+| 3   | Admin bearbeitet Super Admin      | abgewiesen | Stufenregel, 50 gegen 90                                                                         |
+| 4   | Berater öffnet fremde Kontakte    | abgewiesen | Eigentum auf Mitgliedschaftsebene. Für keine Rolle im Normalbetrieb sichtbar                     |
+| 5   | Manipulierte Nutzerkennung        | abgewiesen | Kein Fremdparameter, wo der eigene gemeint ist. Sonst Aufruferprüfung Pflicht                    |
+| 6   | Manipulierte Organisationskennung | abgewiesen | Organisation kommt aus der validierten aktiven Mitgliedschaft, nie aus dem Aufruf                |
+| 7   | Direkter RPC-Aufruf               | abgewiesen | Prüfung im Funktionskörper, Ausführungsrechte für `anon` entzogen                                |
+| 8   | Direkter API-Aufruf               | abgewiesen | Dieselbe RLS, keine zweite Ebene und damit keine Lücke dazwischen                                |
+| 9   | KI fordert geschützte Daten an    | abgewiesen | Ascent arbeitet unter der RLS des Nutzers, Retrieval filtert Organisation, Status und Zielgruppe |
 
 ## 6.2 Szenarien aus dem Mehrorganisationsmodell, neu
 
 Diese Szenarien existieren erst durch Ihre Entscheidung und sind die eigentliche Prüfung dieser Fassung.
 
-| # | Szenario | Ergebnis | Womit verhindert |
-|---|---|---|---|
-| 20 | Eigentümer in Organisation A greift auf Organisation B zu, wo er nur Berater ist | **abgewiesen** | Regel 4. Rechte hängen an der Mitgliedschaft, nicht an der Identität |
-| 21 | Person lässt sich in einer selbst gegründeten Kleinorganisation zum Eigentümer machen und erwartet Rechte überall | **abgewiesen** | Regel 4. Der wichtigste neue Angriffsweg, deshalb eine eigene Regel |
-| 22 | Selektor der aktiven Organisation zeigt auf eine fremde Organisation | **abgewiesen** | Validierung gegen aktive Mitgliedschaften. Selektor ist keine Berechtigung |
-| 23 | Selektor zeigt auf eine beendete Mitgliedschaft | **abgewiesen** | Nur `active` zählt |
-| 24 | Kein Selektor gesetzt, Person hat zwei Mitgliedschaften | **abgewiesen** | Fail closed bei Mehrdeutigkeit, nie raten |
-| 25 | Kontakte aus Organisation A erscheinen in Organisation B | **abgewiesen** | Kontakte hängen an der Mitgliedschaft |
-| 26 | Sponsorbeziehung über Organisationsgrenzen | **abgewiesen** | Strukturregel 1.5. Würde sonst die Deckelung pro Linie unberechenbar machen |
-| 27 | Admin ändert die E-Mail einer Identität und übernimmt das Konto | **abgewiesen** | Identitätsdaten sind für keine Mitgliedschaftsrolle änderbar, Fußnote 16 |
-| 28 | Ausgeschiedener Berater greift weiter zu | **abgewiesen** | Mitgliedschaft `ended`, Historie bleibt, Zugriff endet |
-| 29 | Gesperrte Mitgliedschaft wird als Ausscheiden gewertet und verändert die Genealogie | **abgewiesen** | `suspended` und `ended` sind getrennt |
-| 30 | Einladungsstrecke wird genutzt, um zu prüfen, ob eine E-Mail registriert ist | **abgewiesen** | Weichenstellung erst nach der Anmeldung, 1.7 |
-| 31 | Zwei Identitäten für denselben Menschen durch zwei Einladungen | **abgewiesen** | Zweiter Weg in 1.7, Mitgliedschaft ohne neue Identität |
-| 32 | Plattformbetreiber erscheint in einer Teamliste | **abgewiesen** | Identität ohne Mitgliedschaft |
-| 33 | Plattformbetreiber greift ohne Anlass zu | **abgewiesen** | Zeitfenster, Zweckbindung, Protokoll, Sichtbarkeit |
-| 34 | Abgelaufenes Recht wirkt weiter, weil kein Zeitplan läuft | **abgewiesen** | Prüffunktion vergleicht immer den Zeitraum |
-| 35 | Autor gibt eigenes Wissen frei | **abgewiesen** | Trennung der beiden Wissensberechtigungen |
-| 36 | Sponsor liest Kontaktnamen der Downline | **abgewiesen** | Aggregat statt Identität |
-| 37 | Frontend blendet Schaltfläche aus, Angreifer ruft Schnittstelle | **abgewiesen** | Frontend ist Darstellung, Datenbank ist Autorität |
+| #   | Szenario                                                                                                          | Ergebnis       | Womit verhindert                                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------- |
+| 20  | Eigentümer in Organisation A greift auf Organisation B zu, wo er nur Berater ist                                  | **abgewiesen** | Regel 4. Rechte hängen an der Mitgliedschaft, nicht an der Identität        |
+| 21  | Person lässt sich in einer selbst gegründeten Kleinorganisation zum Eigentümer machen und erwartet Rechte überall | **abgewiesen** | Regel 4. Der wichtigste neue Angriffsweg, deshalb eine eigene Regel         |
+| 22  | Selektor der aktiven Organisation zeigt auf eine fremde Organisation                                              | **abgewiesen** | Validierung gegen aktive Mitgliedschaften. Selektor ist keine Berechtigung  |
+| 23  | Selektor zeigt auf eine beendete Mitgliedschaft                                                                   | **abgewiesen** | Nur `active` zählt                                                          |
+| 24  | Kein Selektor gesetzt, Person hat zwei Mitgliedschaften                                                           | **abgewiesen** | Fail closed bei Mehrdeutigkeit, nie raten                                   |
+| 25  | Kontakte aus Organisation A erscheinen in Organisation B                                                          | **abgewiesen** | Kontakte hängen an der Mitgliedschaft                                       |
+| 26  | Sponsorbeziehung über Organisationsgrenzen                                                                        | **abgewiesen** | Strukturregel 1.5. Würde sonst die Deckelung pro Linie unberechenbar machen |
+| 27  | Admin ändert die E-Mail einer Identität und übernimmt das Konto                                                   | **abgewiesen** | Identitätsdaten sind für keine Mitgliedschaftsrolle änderbar, Fußnote 16    |
+| 28  | Ausgeschiedener Berater greift weiter zu                                                                          | **abgewiesen** | Mitgliedschaft `ended`, Historie bleibt, Zugriff endet                      |
+| 29  | Gesperrte Mitgliedschaft wird als Ausscheiden gewertet und verändert die Genealogie                               | **abgewiesen** | `suspended` und `ended` sind getrennt                                       |
+| 30  | Einladungsstrecke wird genutzt, um zu prüfen, ob eine E-Mail registriert ist                                      | **abgewiesen** | Weichenstellung erst nach der Anmeldung, 1.7                                |
+| 31  | Zwei Identitäten für denselben Menschen durch zwei Einladungen                                                    | **abgewiesen** | Zweiter Weg in 1.7, Mitgliedschaft ohne neue Identität                      |
+| 32  | Plattformbetreiber erscheint in einer Teamliste                                                                   | **abgewiesen** | Identität ohne Mitgliedschaft                                               |
+| 33  | Plattformbetreiber greift ohne Anlass zu                                                                          | **abgewiesen** | Zeitfenster, Zweckbindung, Protokoll, Sichtbarkeit                          |
+| 34  | Abgelaufenes Recht wirkt weiter, weil kein Zeitplan läuft                                                         | **abgewiesen** | Prüffunktion vergleicht immer den Zeitraum                                  |
+| 35  | Autor gibt eigenes Wissen frei                                                                                    | **abgewiesen** | Trennung der beiden Wissensberechtigungen                                   |
+| 36  | Sponsor liest Kontaktnamen der Downline                                                                           | **abgewiesen** | Aggregat statt Identität                                                    |
+| 37  | Frontend blendet Schaltfläche aus, Angreifer ruft Schnittstelle                                                   | **abgewiesen** | Frontend ist Darstellung, Datenbank ist Autorität                           |
 
 ## 6.3 Ein Szenario, das nicht verhindert wird
 
-| # | Szenario | Ergebnis |
-|---|---|---|
-| 38 | Berater liest seine eigenen Kontakte, sichert sie und nimmt sie beim Ausscheiden mit | **nicht verhindert** |
+| #   | Szenario                                                                             | Ergebnis             |
+| --- | ------------------------------------------------------------------------------------ | -------------------- |
+| 38  | Berater liest seine eigenen Kontakte, sichert sie und nimmt sie beim Ausscheiden mit | **nicht verhindert** |
 
 Solange die Mitgliedschaft aktiv ist, darf er seine Kontakte lesen. Das ist seine Arbeitsgrundlage. Technisch ist Lesen nicht von Abschreiben unterscheidbar.
 
@@ -565,20 +569,20 @@ Dies ist eine vertragliche Frage und gehört in die Nutzungsbedingungen, nicht i
 
 ## 7.1 Was sich konkret ändert
 
-| Element | Änderung | Umfang |
-|---|---|---|
-| `profiles` | wird in Identität und Mitgliedschaft getrennt | **strukturell, der Kern der Umstellung** |
-| `current_org_id()` | Bedeutung wird „validierte aktive Organisation". Name bleibt | eine Funktion. **Deshalb bleiben alle 31 Policies unverändert** |
-| `is_ancestor_of()` | arbeitet auf Mitgliedschaften | eine Funktion |
-| `get_downline()` | arbeitet auf Mitgliedschaften, Organisationsfilter bleibt | eine Funktion |
-| `protect_profile_columns()` | schützt künftig die Mitgliedschaft statt des Profils. Identitätsfelder werden gegen Fremdzugriff geschützt | eine Funktion, Bedeutung erweitert |
-| `handle_new_user()` | muss zwischen neuer Identität und zusätzlicher Mitgliedschaft unterscheiden | eine Funktion, **neue Fallunterscheidung** |
-| `create_invite()` | Einladung zielt auf eine Organisation, nicht auf ein Profil | eine Funktion |
-| `profiles_public` | wird Mitgliederliste je Organisation. **Spalte `role` entfällt** | ein View |
-| Alle 22 Tabellen mit `org_id` | Bezug wandert von Profil auf Mitgliedschaft | Schemaarbeit, aber gleichförmig |
-| RLS-Policies | Struktur bleibt dreiteilig, Bezug wird Mitgliedschaft | gleichförmig |
-| Edge Functions | müssen die aktive Organisation weitergeben und validieren | drei Functions |
-| Frontend | Organisationswechsler, aktive Organisation dauerhaft sichtbar | Meilenstein 4 |
+| Element                       | Änderung                                                                                                   | Umfang                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `profiles`                    | wird in Identität und Mitgliedschaft getrennt                                                              | **strukturell, der Kern der Umstellung**                        |
+| `current_org_id()`            | Bedeutung wird „validierte aktive Organisation". Name bleibt                                               | eine Funktion. **Deshalb bleiben alle 31 Policies unverändert** |
+| `is_ancestor_of()`            | arbeitet auf Mitgliedschaften                                                                              | eine Funktion                                                   |
+| `get_downline()`              | arbeitet auf Mitgliedschaften, Organisationsfilter bleibt                                                  | eine Funktion                                                   |
+| `protect_profile_columns()`   | schützt künftig die Mitgliedschaft statt des Profils. Identitätsfelder werden gegen Fremdzugriff geschützt | eine Funktion, Bedeutung erweitert                              |
+| `handle_new_user()`           | muss zwischen neuer Identität und zusätzlicher Mitgliedschaft unterscheiden                                | eine Funktion, **neue Fallunterscheidung**                      |
+| `create_invite()`             | Einladung zielt auf eine Organisation, nicht auf ein Profil                                                | eine Funktion                                                   |
+| `profiles_public`             | wird Mitgliederliste je Organisation. **Spalte `role` entfällt**                                           | ein View                                                        |
+| Alle 22 Tabellen mit `org_id` | Bezug wandert von Profil auf Mitgliedschaft                                                                | Schemaarbeit, aber gleichförmig                                 |
+| RLS-Policies                  | Struktur bleibt dreiteilig, Bezug wird Mitgliedschaft                                                      | gleichförmig                                                    |
+| Edge Functions                | müssen die aktive Organisation weitergeben und validieren                                                  | drei Functions                                                  |
+| Frontend                      | Organisationswechsler, aktive Organisation dauerhaft sichtbar                                              | Meilenstein 4                                                   |
 
 **Der entscheidende Punkt zur Umsetzbarkeit:** Die Indirektion liegt in `current_org_id()`. Weil alle 31 Policies diese Funktion aufrufen und nicht direkt auf `profiles.org_id` zugreifen, bleiben sie unverändert gültig. Diese Vorarbeit aus Sprint 1 ist der Grund, warum die Umstellung jetzt bezahlbar ist.
 
@@ -590,14 +594,14 @@ Dies ist eine vertragliche Frage und gehört in die Nutzungsbedingungen, nicht i
 
 ## 7.3 Weitere Bereiche
 
-| Bereich | Bewertung |
-|---|---|
-| **Views** | `security_invoker` bleibt Standard. `profiles_public` verliert `role` |
-| **Realtime** | Abonnements unterliegen RLS. Ein Rechteentzug beendet ein bestehendes Abonnement nicht. **Neu hinzu:** Ein Organisationswechsel muss laufende Abonnements beenden, sonst empfängt der Client weiter Ereignisse der alten Organisation |
-| **Storage** | Noch nicht in Gebrauch. Ablagepfade müssen die Organisation enthalten, damit die Grenze am Pfad prüfbar ist |
-| **Wissensdatenbank** | Freigabe zweistufig. Retrieval filtert Organisation, Status und Zielgruppe |
-| **Ascent** | Kein eigener Prinzipal. Aktive Organisation muss durchgereicht werden |
-| **Vergütungsberechnung** | Punkte und Rang strikt je Mitgliedschaft. Eine Zusammenführung über Organisationen wäre fachlich falsch |
+| Bereich                  | Bewertung                                                                                                                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Views**                | `security_invoker` bleibt Standard. `profiles_public` verliert `role`                                                                                                                                                                 |
+| **Realtime**             | Abonnements unterliegen RLS. Ein Rechteentzug beendet ein bestehendes Abonnement nicht. **Neu hinzu:** Ein Organisationswechsel muss laufende Abonnements beenden, sonst empfängt der Client weiter Ereignisse der alten Organisation |
+| **Storage**              | Noch nicht in Gebrauch. Ablagepfade müssen die Organisation enthalten, damit die Grenze am Pfad prüfbar ist                                                                                                                           |
+| **Wissensdatenbank**     | Freigabe zweistufig. Retrieval filtert Organisation, Status und Zielgruppe                                                                                                                                                            |
+| **Ascent**               | Kein eigener Prinzipal. Aktive Organisation muss durchgereicht werden                                                                                                                                                                 |
+| **Vergütungsberechnung** | Punkte und Rang strikt je Mitgliedschaft. Eine Zusammenführung über Organisationen wäre fachlich falsch                                                                                                                               |
 
 Der Realtime-Punkt ist neu und leicht zu übersehen: Ein Wechsel der Organisation ohne Beendigung der Abonnements ist ein mandantenübergreifendes Leck, das nur im laufenden Betrieb auftritt und in Tests nicht erscheint.
 
@@ -621,10 +625,10 @@ Eine plattformweite Löschung über alle Organisationen hinweg gibt es nicht, un
 
 Dies ist die zentrale Strukturregel dieses Teils. Ohne sie sind Löschpflicht und Aufbewahrungspflicht nicht gleichzeitig erfüllbar.
 
-| Kategorie | Beispiele | Bei Löschung |
-|---|---|---|
-| **Personenbezogene Daten** | Kontakte mit Namen und Notizen, Coach-Gespräche, Identitätsdaten | **löschen oder anonymisieren** |
-| **Geschäftsunterlagen** | Punkte, Pipeline-Ereignisse, Qualifikationsergebnisse, Provisionsgrundlagen | **anonymisieren und aufbewahren** |
+| Kategorie                  | Beispiele                                                                   | Bei Löschung                      |
+| -------------------------- | --------------------------------------------------------------------------- | --------------------------------- |
+| **Personenbezogene Daten** | Kontakte mit Namen und Notizen, Coach-Gespräche, Identitätsdaten            | **löschen oder anonymisieren**    |
+| **Geschäftsunterlagen**    | Punkte, Pipeline-Ereignisse, Qualifikationsergebnisse, Provisionsgrundlagen | **anonymisieren und aufbewahren** |
 
 Eine Provisionsabrechnung ist steuerlich aufbewahrungspflichtig. Sie zu löschen wäre ein Verstoß in die andere Richtung. Anonymisiert bleibt sie auswertbar, ohne die Person zu identifizieren.
 
@@ -640,13 +644,13 @@ Wird das erst nach dem Aufbau bemerkt, ist die Behebung eine Schemaänderung auf
 
 ## 8.4 Kontakte beim Ausscheiden
 
-| Frage | Antwort |
-|---|---|
-| Wer ist Verantwortlicher? | die Organisation |
-| Wo bleiben die Daten? | bei der beendeten Mitgliedschaft, vollständig |
+| Frage                                        | Antwort                                                              |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| Wer ist Verantwortlicher?                    | die Organisation                                                     |
+| Wo bleiben die Daten?                        | bei der beendeten Mitgliedschaft, vollständig                        |
 | Sieht der ausgeschiedene Berater sie weiter? | **nein**, Voreinstellung. Er handelt nicht mehr für die Organisation |
-| Sieht sie danach jemand anderes? | nein, außer über den Notfallpfad |
-| Gibt es eine Ausleitung beim Ausscheiden? | **geschäftliche Entscheidung**, siehe unten |
+| Sieht sie danach jemand anderes?             | nein, außer über den Notfallpfad                                     |
+| Gibt es eine Ausleitung beim Ausscheiden?    | **geschäftliche Entscheidung**, siehe unten                          |
 
 Die Architektur trägt beide Varianten. Voreinstellung ist keine Ausleitung, weil das die datenschutzrechtlich klare Variante ist. Eine Ausleitung wäre kein Architekturthema, sondern eine Regel in den Nutzungsbedingungen plus ein protokollierter Ausleitungspfad über `can_manage_privacy`.
 
@@ -654,14 +658,14 @@ Die Architektur trägt beide Varianten. Voreinstellung ist keine Ausleitung, wei
 
 ## 8.5 Auskunft nach Artikel 15
 
-| Eigenschaft | Festlegung |
-|---|---|
-| Berechtigung | `can_manage_privacy`, nur `super_admin` |
-| Umfang | Identitätsdaten plus alle Daten der Mitgliedschaft in **dieser** Organisation |
-| Nicht enthalten | Daten anderer Organisationen. Andere Verantwortliche |
-| Kontaktdaten Dritter | enthalten, soweit die Person Betroffene ist, nicht soweit sie Erfasserin ist |
-| Protokoll | jeder Aufruf, mit Grund |
-| Frist | ein Monat, gesetzlich |
+| Eigenschaft          | Festlegung                                                                    |
+| -------------------- | ----------------------------------------------------------------------------- |
+| Berechtigung         | `can_manage_privacy`, nur `super_admin`                                       |
+| Umfang               | Identitätsdaten plus alle Daten der Mitgliedschaft in **dieser** Organisation |
+| Nicht enthalten      | Daten anderer Organisationen. Andere Verantwortliche                          |
+| Kontaktdaten Dritter | enthalten, soweit die Person Betroffene ist, nicht soweit sie Erfasserin ist  |
+| Protokoll            | jeder Aufruf, mit Grund                                                       |
+| Frist                | ein Monat, gesetzlich                                                         |
 
 Die Unterscheidung in Zeile vier ist wichtig und wird häufig falsch gemacht: Ein Berater, der 200 Interessenten erfasst hat, erhält bei seiner eigenen Auskunft nicht die Daten dieser 200 Menschen. Er ist dort nicht Betroffener, sondern Erfasser.
 
@@ -669,14 +673,14 @@ Damit ist Blocker 3 aus Meilenstein 2 architektonisch erledigt.
 
 ## 8.6 Prüfprotokoll
 
-| Eigenschaft | Festlegung |
-|---|---|
-| Bezug | **je Organisation.** Ein Eigentümer sieht nur Einträge seiner Organisation |
-| Schreibweise | **nur anfügen.** Kein Ändern, kein Löschen, auch nicht für Eigentümer |
-| Was wird protokolliert | Rechteänderungen, Rollenänderungen, DSGVO-Handlungen, Notfallzugriffe, Zugriffe des Plattformbetreibers, Organisationswechsel |
-| Was wird nicht protokolliert | Lesen eigener Daten. Menge ohne Erkenntniswert |
-| Aufbewahrung | Rechteänderungen dauerhaft, Zugriffe begrenzt. **Frist ist zu entscheiden** |
-| Sichtbarkeit für Betroffene | Notfallzugriffe und Zugriffe des Anbieters sind für den Betroffenen einsehbar |
+| Eigenschaft                  | Festlegung                                                                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Bezug                        | **je Organisation.** Ein Eigentümer sieht nur Einträge seiner Organisation                                                    |
+| Schreibweise                 | **nur anfügen.** Kein Ändern, kein Löschen, auch nicht für Eigentümer                                                         |
+| Was wird protokolliert       | Rechteänderungen, Rollenänderungen, DSGVO-Handlungen, Notfallzugriffe, Zugriffe des Plattformbetreibers, Organisationswechsel |
+| Was wird nicht protokolliert | Lesen eigener Daten. Menge ohne Erkenntniswert                                                                                |
+| Aufbewahrung                 | Rechteänderungen dauerhaft, Zugriffe begrenzt. **Frist ist zu entscheiden**                                                   |
+| Sichtbarkeit für Betroffene  | Notfallzugriffe und Zugriffe des Anbieters sind für den Betroffenen einsehbar                                                 |
 
 Der Bezug je Organisation ist eine Folge der Mehrmandantenfähigkeit: Ein globales Protokoll würde einem Eigentümer Einträge über andere Organisationen zeigen.
 
@@ -686,15 +690,15 @@ Der Bezug je Organisation ist eine Folge der Mehrmandantenfähigkeit: Ein global
 
 Die Trennung von Identität und Mitgliedschaft macht mehrere Enterprise-Anforderungen von strukturellen Umbauten zu additiven Erweiterungen. Das ist der eigentliche Gewinn Ihrer Entscheidung.
 
-| Anforderung | Vorher | Jetzt |
-|---|---|---|
-| Ein Mensch in mehreren Mandanten | unmöglich | vorgesehen |
-| Anmeldung über den Unternehmensverzeichnisdienst | schwierig, weil Anmeldung und Mitgliedschaft verschränkt waren | die Anmeldung betrifft die Identität, die Mitgliedschaft bleibt getrennt. Additiv |
-| Automatische Bereitstellung von Nutzern | nicht darstellbar | die Bereitstellung erzeugt Mitgliedschaften. Additiv |
-| Mehrere Marken eines Kunden | nicht darstellbar | Markenebene über der Organisation, siehe FD-4 |
-| Datenhaltung je Kunde | schwer, weil Daten am Profil hingen | Daten hängen an der Mitgliedschaft und damit an der Organisation. Deutlich einfacher |
-| Support durch den Anbieter | nur über einen Eigentümerzugang im Mandanten | eigener Prinzipal, zeitbegrenzt, protokolliert |
-| Trennung von Verantwortlichen | nicht darstellbar | je Organisation, Teil 8 |
+| Anforderung                                      | Vorher                                                         | Jetzt                                                                                |
+| ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Ein Mensch in mehreren Mandanten                 | unmöglich                                                      | vorgesehen                                                                           |
+| Anmeldung über den Unternehmensverzeichnisdienst | schwierig, weil Anmeldung und Mitgliedschaft verschränkt waren | die Anmeldung betrifft die Identität, die Mitgliedschaft bleibt getrennt. Additiv    |
+| Automatische Bereitstellung von Nutzern          | nicht darstellbar                                              | die Bereitstellung erzeugt Mitgliedschaften. Additiv                                 |
+| Mehrere Marken eines Kunden                      | nicht darstellbar                                              | Markenebene über der Organisation, siehe FD-4                                        |
+| Datenhaltung je Kunde                            | schwer, weil Daten am Profil hingen                            | Daten hängen an der Mitgliedschaft und damit an der Organisation. Deutlich einfacher |
+| Support durch den Anbieter                       | nur über einen Eigentümerzugang im Mandanten                   | eigener Prinzipal, zeitbegrenzt, protokolliert                                       |
+| Trennung von Verantwortlichen                    | nicht darstellbar                                              | je Organisation, Teil 8                                                              |
 
 Zwei Anforderungen bleiben offen und sind als Fundamententscheidungen in Teil 10 aufgeführt: Dienstkonten für maschinellen Zugriff, FD-1, und die Markenebene, FD-4.
 
@@ -801,48 +805,48 @@ Die endgültige Architektur besteht aus:
 
 ## 11.4 Risiken
 
-| Priorität | Risiko | Bewertung |
-|---|---|---|
-| 1 | **F1 unverifiziert.** Szenario 1 und 6 stützen sich auf den Organisationsfilter, den F1 einführt | Der Filter ist geschrieben, nie ausgeführt. Bis zur Verifikation begründete Annahme, kein Nachweis |
-| 2 | FD-6, provisionsrelevante Daten ohne Unveränderlichkeit | Nachträglich nicht heilbar. Für den Zeitraum davor existiert dann kein Nachweis |
-| 3 | Realtime-Abonnements über einen Organisationswechsel hinweg | Mandantenübergreifendes Leck, das nur im Betrieb auftritt |
-| 4 | Doppelidentitäten durch übersehene Weichenstellung in 1.7 | Nachträglich nur unter Datenverlust zusammenführbar |
-| 5 | FD-4, Markenebene | Additiv, solange nirgends „Organisation ist die Wurzel" festgeschrieben wird |
-| 6 | Leistung der Auflösung bei großen Strukturen | Mengenweise Prüfung statt je Zeile |
-| 7 | Aufbewahrungsfristen des Prüfprotokolls nicht festgelegt | Wächst unbegrenzt, kein Sicherheitsrisiko |
+| Priorität | Risiko                                                                                           | Bewertung                                                                                          |
+| --------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| 1         | **F1 unverifiziert.** Szenario 1 und 6 stützen sich auf den Organisationsfilter, den F1 einführt | Der Filter ist geschrieben, nie ausgeführt. Bis zur Verifikation begründete Annahme, kein Nachweis |
+| 2         | FD-6, provisionsrelevante Daten ohne Unveränderlichkeit                                          | Nachträglich nicht heilbar. Für den Zeitraum davor existiert dann kein Nachweis                    |
+| 3         | Realtime-Abonnements über einen Organisationswechsel hinweg                                      | Mandantenübergreifendes Leck, das nur im Betrieb auftritt                                          |
+| 4         | Doppelidentitäten durch übersehene Weichenstellung in 1.7                                        | Nachträglich nur unter Datenverlust zusammenführbar                                                |
+| 5         | FD-4, Markenebene                                                                                | Additiv, solange nirgends „Organisation ist die Wurzel" festgeschrieben wird                       |
+| 6         | Leistung der Auflösung bei großen Strukturen                                                     | Mengenweise Prüfung statt je Zeile                                                                 |
+| 7         | Aufbewahrungsfristen des Prüfprotokolls nicht festgelegt                                         | Wächst unbegrenzt, kein Sicherheitsrisiko                                                          |
 
 ## 11.5 Empfohlene Änderungen
 
-| # | Änderung | Nutzen | Risiko | Status |
-|---|---|---|---|---|
-| Ä1 | Identität und Mitgliedschaft trennen | alle Mehrmandantenfälle bleiben offen | eine Ebene mehr je Policy | **freigegeben** |
-| Ä2 | `role` aus `profiles_public` entfernen | Eigentümer nicht mehr org-weit identifizierbar | gering | empfohlen |
-| Ä3 | Kontakte bleiben bei der beendeten Mitgliedschaft | DSGVO-Pflicht erfüllt | keins technisch | **architektonisch erledigt**, ein Parameter offen |
-| Ä4 | Auskunfts- und Löschpfad über `can_manage_privacy` | DSGVO-Pflicht erfüllt | der Pfad selbst braucht dieselbe Härte wie der Notfallpfad | **architektonisch erledigt** |
-| Ä5 | `leader` als überholt markieren, nicht entfernen | keine Scheinsicherheit, keine Migration | keins, null Profile | empfohlen |
-| Ä6 | Kein kaskadierendes Löschen Identität zu Mitgliedschaft | Aufbewahrungspflicht bleibt erfüllbar | keins | **verbindlich** |
-| Ä7 | Auflösungsfunktion über einen Prinzipalbegriff definieren | Dienstkonten später additiv | keins | empfohlen, siehe FD-1 |
+| #   | Änderung                                                  | Nutzen                                         | Risiko                                                     | Status                                            |
+| --- | --------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------- |
+| Ä1  | Identität und Mitgliedschaft trennen                      | alle Mehrmandantenfälle bleiben offen          | eine Ebene mehr je Policy                                  | **freigegeben**                                   |
+| Ä2  | `role` aus `profiles_public` entfernen                    | Eigentümer nicht mehr org-weit identifizierbar | gering                                                     | empfohlen                                         |
+| Ä3  | Kontakte bleiben bei der beendeten Mitgliedschaft         | DSGVO-Pflicht erfüllt                          | keins technisch                                            | **architektonisch erledigt**, ein Parameter offen |
+| Ä4  | Auskunfts- und Löschpfad über `can_manage_privacy`        | DSGVO-Pflicht erfüllt                          | der Pfad selbst braucht dieselbe Härte wie der Notfallpfad | **architektonisch erledigt**                      |
+| Ä5  | `leader` als überholt markieren, nicht entfernen          | keine Scheinsicherheit, keine Migration        | keins, null Profile                                        | empfohlen                                         |
+| Ä6  | Kein kaskadierendes Löschen Identität zu Mitgliedschaft   | Aufbewahrungspflicht bleibt erfüllbar          | keins                                                      | **verbindlich**                                   |
+| Ä7  | Auflösungsfunktion über einen Prinzipalbegriff definieren | Dienstkonten später additiv                    | keins                                                      | empfohlen, siehe FD-1                             |
 
 ## 11.6 Offene Punkte
 
-| # | Punkt | Art | Entscheider |
-|---|---|---|---|
-| O1 | Ausleitung der Kontakte beim Ausscheiden, ja oder nein | geschäftlich | Sie |
-| O2 | Aufbewahrungsfristen des Prüfprotokolls je Kategorie | geschäftlich, rechtlich | Sie |
-| O3 | Bestätigung von FD-2 und FD-3 | Architektur, von mir entschieden | Sie, bestätigend |
-| O4 | Symbol-Asset aus dem Logo gewinnen | Umsetzung | Sie, dann ich |
-| O5 | Grundausstattung je Rolle im Detail | Architektur | ich, Teil der Umsetzungsvorbereitung |
+| #   | Punkt                                                  | Art                              | Entscheider                          |
+| --- | ------------------------------------------------------ | -------------------------------- | ------------------------------------ |
+| O1  | Ausleitung der Kontakte beim Ausscheiden, ja oder nein | geschäftlich                     | Sie                                  |
+| O2  | Aufbewahrungsfristen des Prüfprotokolls je Kategorie   | geschäftlich, rechtlich          | Sie                                  |
+| O3  | Bestätigung von FD-2 und FD-3                          | Architektur, von mir entschieden | Sie, bestätigend                     |
+| O4  | Symbol-Asset aus dem Logo gewinnen                     | Umsetzung                        | Sie, dann ich                        |
+| O5  | Grundausstattung je Rolle im Detail                    | Architektur                      | ich, Teil der Umsetzungsvorbereitung |
 
 **Keiner dieser Punkte ändert die Struktur.** O1 und O2 sind Parameter, O3 sind Bestätigungen bereits getroffener Festlegungen, O4 ist ein Beschnitt, O5 ist Ausarbeitung innerhalb des Modells.
 
 ## 11.7 Langfristige Skalierbarkeit
 
-| Zeitraum | Bewertung |
-|---|---|
-| 1 Jahr, ein Mandant | tragfähig |
-| 2 bis 3 Jahre, mehrere Teams als Mandanten | tragfähig. Genau der Fall, für den Ä1 entschieden wurde |
-| 3 bis 5 Jahre, Unternehmenskunden | tragfähig mit FD-1 als Erweiterung. Verzeichnisdienst und Bereitstellung sind additiv |
-| über 5 Jahre, mehrere Marken | Markenebene als Erweiterung, FD-4. Additiv, sofern die Empfehlung eingehalten wird |
+| Zeitraum                                   | Bewertung                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| 1 Jahr, ein Mandant                        | tragfähig                                                                             |
+| 2 bis 3 Jahre, mehrere Teams als Mandanten | tragfähig. Genau der Fall, für den Ä1 entschieden wurde                               |
+| 3 bis 5 Jahre, Unternehmenskunden          | tragfähig mit FD-1 als Erweiterung. Verzeichnisdienst und Bereitstellung sind additiv |
+| über 5 Jahre, mehrere Marken               | Markenebene als Erweiterung, FD-4. Additiv, sofern die Empfehlung eingehalten wird    |
 
 Das Berechtigungssystem selbst, also 19 Berechtigungen mit Geltungsbereich und vier Ausweitungsregeln, halte ich ohne Umbau über fünf Jahre für tragfähig. Neue Bereiche kommen als Berechtigungen hinzu, nicht als Rollen. Das war das Ziel, und es ist erreicht.
 

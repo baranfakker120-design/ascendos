@@ -12,10 +12,10 @@ import { missionProgress, orderMissions } from './missionOrder';
  * ist hier der Normalfall; Begründungen kommen aus der Regel-Engine).
  */
 export function TodayPage() {
-  const { data, isLoading, isError } = useDailyPlan();
+  const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
 
-  if (isLoading) {
+  if (isPending) {
     return <p className="text-sm text-muted">Dein Tag wird vorbereitet …</p>;
   }
   if (isError || !data) {
@@ -34,6 +34,16 @@ export function TodayPage() {
 
   // Zustand 1: Morgen-Commit — Plan steht, noch nicht bestätigt.
   if (!data.plan.committed_at) {
+    if (data.items.length === 0) {
+      return (
+        <Card>
+          <p className="font-medium">Heute steht keine Mission an.</p>
+          <p className="mt-1 text-sm text-muted">
+            Deine Pipeline ist ruhig — schau bei Kontakten vorbei oder komm morgen wieder.
+          </p>
+        </Card>
+      );
+    }
     return (
       <MorningCommit
         items={data.items}
@@ -44,15 +54,20 @@ export function TodayPage() {
   }
 
   // Zustand 3: Tagesabschluss — nichts wartet mehr.
-  if (ordered.dayComplete) {
+  if (ordered.dayComplete || data.items.length === 0) {
     return <DayReview items={data.items} />;
   }
 
-  // Zustand 2: Fokus-Modus.
+  // Zustand 2: Fokus-Modus — nur wenn es eine aktuelle Mission gibt.
+  if (!ordered.current) {
+    return <DayReview items={data.items} />;
+  }
+
   return (
     <FocusMode
       ordered={ordered}
       progress={progress}
+      busy={setMissionStatus.isPending}
       onStatus={(itemId, status, reason) =>
         void setMissionStatus.mutateAsync({ itemId, status, reason })
       }

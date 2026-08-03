@@ -20,7 +20,7 @@ export function ProfileEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { refreshProfile, role: membershipRole } = useAuth();
-  const { data, isLoading, isError } = useProfileDetail();
+  const { data, isPending, isError } = useProfileDetail();
   const updateProfile = useUpdateProfile();
 
   const [firstName, setFirstName] = useState('');
@@ -43,11 +43,11 @@ export function ProfileEditPage() {
     setHydrated(true);
   }, [data, hydrated]);
 
-  if (isLoading || !hydrated) {
-    return <p className="text-sm text-muted">Profil wird geladen …</p>;
-  }
-  if (isError || !data) {
+  if (isError) {
     return <p className="text-sm text-muted">Profil konnte nicht geladen werden.</p>;
+  }
+  if (isPending || !data || !hydrated) {
+    return <p className="text-sm text-muted">Profil wird geladen …</p>;
   }
 
   const displayName = `${firstName} ${lastName}`.trim() || data.profile.username;

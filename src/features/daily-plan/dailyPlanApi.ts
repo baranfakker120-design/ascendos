@@ -30,15 +30,11 @@ export function useDailyPlan() {
       if (genError) throw genError;
       const [plan, items] = await Promise.all([
         supabase.from('daily_plans').select('*').eq('id', planId).single(),
-        supabase
-          .from('daily_plan_items')
-          .select('*')
-          .eq('plan_id', planId)
-          .order('position'),
+        supabase.from('daily_plan_items').select('*').eq('plan_id', planId).order('position'),
       ]);
       if (plan.error) throw plan.error;
       if (items.error) throw items.error;
-      return { plan: plan.data, items: items.data };
+      return { plan: plan.data, items: items.data as DailyPlanItem[] };
     },
   });
 }
@@ -64,7 +60,7 @@ export function useDailyPlanMutations() {
       const { error } = await supabase.rpc('update_mission_status', {
         p_item_id: input.itemId,
         p_status: input.status,
-        p_reason: input.reason ?? null,
+        p_reason: input.reason,
       });
       if (error) throw error;
     },
@@ -82,6 +78,7 @@ export function useDailyPlanMutations() {
                   ? {
                       ...i,
                       status: input.status,
+                      status_reason: input.reason ?? null,
                       resolved_at:
                         input.status === 'done' || input.status === 'skipped'
                           ? new Date().toISOString()

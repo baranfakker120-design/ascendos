@@ -2,12 +2,7 @@ import { useCallback, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
-import {
-  AscendLogo,
-  ContactsIcon,
-  TeamSeydaIcon,
-  TodayIcon,
-} from './nav/NavIcons';
+import { AscendLogo, ContactsIcon, TeamSeydaIcon, TodayIcon } from './nav/NavIcons';
 import { ProfileStack } from './nav/ProfileStack';
 
 export type NavTabId = 'heute' | 'kontakte' | 'coach' | 'team' | 'profil';

@@ -1,6 +1,7 @@
-import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
+import { Navigate, Outlet, createBrowserRouter, useLocation } from 'react-router-dom';
 import { AppShell } from '@app/layouts/AppShell';
 import { AuthLayout } from '@app/layouts/AuthLayout';
+import { RouteErrorBoundary } from '@app/RouteErrorBoundary';
 import { CoachPage } from '@features/coach/CoachPage';
 import { ContactDetailPage } from '@features/contacts/ContactDetailPage';
 import { ContactFormPage } from '@features/contacts/ContactFormPage';
@@ -18,12 +19,23 @@ import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { Button } from '@shared/ui/Button';
+import { Card } from '@shared/ui/Card';
 
 function FullScreenSpinner() {
   return (
     <div className="flex h-full items-center justify-center">
       <p className="text-sm text-muted">AscendOS wird geladen …</p>
     </div>
+  );
+}
+
+function ShellOutlet() {
+  const { pathname } = useLocation();
+  return (
+    <RouteErrorBoundary resetKey={pathname}>
+      <Outlet />
+    </RouteErrorBoundary>
   );
 }
 
@@ -34,8 +46,19 @@ function FullScreenSpinner() {
  * läuft, wird generate_daily_plan gar nicht erst aufgerufen.
  */
 function TodayRoute() {
-  const { data: state, isLoading } = useJourneyState();
-  if (isLoading) return <FullScreenSpinner />;
+  const { data: state, isPending, isError, refetch } = useJourneyState();
+  if (isPending) return <FullScreenSpinner />;
+  if (isError) {
+    return (
+      <Card className="mt-4 space-y-3 text-center">
+        <p className="font-medium">Dein Heute-Tab konnte nicht geladen werden.</p>
+        <p className="text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+        <Button fullWidth={false} variant="secondary" onClick={() => void refetch()}>
+          Erneut versuchen
+        </Button>
+      </Card>
+    );
+  }
   if (state && state.journey && !state.isComplete) return <JourneyToday />;
   return <TodayPage />;
 }
@@ -90,22 +113,27 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: '/', element: <TodayRoute /> },
-          { path: '/reise', element: <ProgressPage /> },
-          { path: '/kontakte', element: <ContactsPage /> },
-          { path: '/kontakte/neu', element: <ContactFormPage /> },
-          { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
-          { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
-          { path: '/coach', element: <CoachPage /> },
-          { path: '/team-seyda', element: <TeamSeydaPage /> },
-          { path: '/more', element: <MorePage /> },
-          { path: '/mehr', element: <Navigate to="/more" replace /> },
-          { path: '/settings', element: <SettingsPage /> },
-          { path: '/profil', element: <ProfilePage /> },
-          { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
           {
-            element: <RequireSuperAdmin />,
-            children: [{ path: '/wissen', element: <KnowledgePage /> }],
+            element: <ShellOutlet />,
+            children: [
+              { path: '/', element: <TodayRoute /> },
+              { path: '/reise', element: <ProgressPage /> },
+              { path: '/kontakte', element: <ContactsPage /> },
+              { path: '/kontakte/neu', element: <ContactFormPage /> },
+              { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
+              { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
+              { path: '/coach', element: <CoachPage /> },
+              { path: '/team-seyda', element: <TeamSeydaPage /> },
+              { path: '/more', element: <MorePage /> },
+              { path: '/mehr', element: <Navigate to="/more" replace /> },
+              { path: '/settings', element: <SettingsPage /> },
+              { path: '/profil', element: <ProfilePage /> },
+              { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
+              {
+                element: <RequireSuperAdmin />,
+                children: [{ path: '/wissen', element: <KnowledgePage /> }],
+              },
+            ],
           },
         ],
       },

@@ -54,17 +54,20 @@ export function CoachTypingDots() {
 export function CoachBubble({
   children,
   pending = false,
+  animate = false,
 }: {
   children?: ReactNode;
   pending?: boolean;
+  /** Enter animation only for newly appended messages — never on refetch. */
+  animate?: boolean;
 }) {
   return (
-    <div className="coach-row coach-row--assistant coach-row--in">
-      <div className="coach-avatar-wrap">
+    <div className={`coach-row coach-row--assistant ${animate ? 'coach-row--in' : ''}`}>
+      <div className={`coach-avatar-wrap ${animate ? '' : 'coach-avatar-wrap--static'}`}>
         <CoachAvatar />
       </div>
       <div
-        className={`coach-bubble coach-bubble--assistant coach-bubble--pop ${pending ? 'coach-bubble--pending' : ''}`}
+        className={`coach-bubble coach-bubble--assistant ${animate ? 'coach-bubble--pop' : ''} ${pending ? 'coach-bubble--pending' : ''}`}
       >
         {pending ? <CoachTypingDots /> : children}
       </div>
@@ -72,11 +75,19 @@ export function CoachBubble({
   );
 }
 
-export function UserBubble({ children }: { children: ReactNode }) {
+export function UserBubble({
+  children,
+  animate = false,
+}: {
+  children: ReactNode;
+  animate?: boolean;
+}) {
   return (
-    <div className="coach-row coach-row--user coach-row--in">
-      <div className="coach-bubble coach-bubble--user coach-bubble--pop">{children}</div>
-      <div className="coach-user-avatar-wrap">
+    <div className={`coach-row coach-row--user ${animate ? 'coach-row--in' : ''}`}>
+      <div className={`coach-bubble coach-bubble--user ${animate ? 'coach-bubble--pop' : ''}`}>
+        {children}
+      </div>
+      <div className={`coach-user-avatar-wrap ${animate ? '' : 'coach-user-avatar-wrap--static'}`}>
         <CoachUserAvatar />
       </div>
     </div>

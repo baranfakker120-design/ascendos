@@ -1,7 +1,11 @@
 import { Card } from '@shared/ui/Card';
 import { useProgression } from './progressApi';
 
-const dateFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dateFmt = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
 
 /**
  * Deine Business-Reise (Sprint 5): sichtbarer echter Fortschritt.
@@ -44,7 +48,9 @@ export function ProgressPage() {
           </h2>
           {unlocked.map((a) => (
             <Card key={a.id} className="flex items-center gap-3 border-accent/40">
-              <span aria-hidden className="text-2xl">{a.icon}</span>
+              <span aria-hidden className="text-2xl">
+                {a.icon}
+              </span>
               <div className="min-w-0">
                 <p className="font-semibold">{a.title}</p>
                 <p className="text-sm text-muted">{a.description}</p>
@@ -64,7 +70,9 @@ export function ProgressPage() {
           </h2>
           {locked.map((a) => (
             <Card key={a.id} className="flex items-center gap-3 opacity-55">
-              <span aria-hidden className="text-2xl grayscale">{a.icon}</span>
+              <span aria-hidden className="text-2xl grayscale">
+                {a.icon}
+              </span>
               <div className="min-w-0">
                 <p className="font-semibold">{a.title}</p>
                 <p className="text-sm text-muted">{a.description}</p>

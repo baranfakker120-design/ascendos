@@ -206,7 +206,12 @@ export function AvatarCropModal({
   const drawnH = base.baseHeight * scale;
 
   return (
-    <div className="avatar-crop-root" role="dialog" aria-modal="true" aria-label="Profilbild zuschneiden">
+    <div
+      className="avatar-crop-root"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Profilbild zuschneiden"
+    >
       <header className="avatar-crop-header">
         <Button
           type="button"
@@ -240,7 +245,10 @@ export function AvatarCropModal({
         onPointerCancel={onPointerUp}
         onWheel={onWheel}
       >
-        <div className="avatar-crop-circle" style={{ width: CROP_CIRCLE_PX, height: CROP_CIRCLE_PX }}>
+        <div
+          className="avatar-crop-circle"
+          style={{ width: CROP_CIRCLE_PX, height: CROP_CIRCLE_PX }}
+        >
           {objectUrl ? (
             <img
               src={objectUrl}
@@ -267,7 +275,9 @@ export function AvatarCropModal({
           ) : null}
           <div className="avatar-crop-veil" aria-hidden />
         </div>
-        <p className="avatar-crop-hint">Zum Zoomen kneifen oder scrollen · Zum Verschieben ziehen</p>
+        <p className="avatar-crop-hint">
+          Zum Zoomen kneifen oder scrollen · Zum Verschieben ziehen
+        </p>
       </div>
 
       <div className="avatar-crop-preview">

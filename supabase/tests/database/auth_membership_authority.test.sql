@@ -1,4 +1,4 @@
--- Migration 20: memberships.role is canonical authority.
+-- Migration 25: Fall 4 rejects ambiguity (no mirror guess).
 begin;
 select plan(5);
 
@@ -46,8 +46,8 @@ select ok(
     where n.nspname = 'public' and p.proname = 'active_membership_id'
     order by p.oid desc
     limit 1
-  ) like '%profiles%',
-  'active_membership_id can fall back to profiles.org_id mirror'
+  ) not like '%v_mirror%',
+  'active_membership_id does not fall back to profiles.org_id mirror'
 );
 
 select ok(

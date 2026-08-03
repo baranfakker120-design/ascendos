@@ -51,6 +51,9 @@ values
 
 -- Mitgliedschaften (Migration 15 legt sie fuer Bestandsprofile an,
 -- fuer hier neu angelegte muss der Umzug nachgezogen werden).
+-- Unter replica: sync_profile_mirror darf profiles.sponsor_id nicht
+-- vor der Genealogie-Aktualisierung loeschen; protect blockiert sonst.
+set local session_replication_role = replica;
 insert into public.memberships (identity_id, org_id, team_id, role, status)
 select p.id, p.org_id, p.team_id, p.role, 'active'
 from public.profiles p
@@ -63,6 +66,7 @@ from public.profiles p
 join public.memberships sp on sp.identity_id=p.sponsor_id and sp.org_id=p.org_id and sp.status='active'
 where m.identity_id=p.id and m.org_id=p.org_id and m.status='active'
   and p.id::text like 'd1000000%' and p.sponsor_id is not null;
+set local session_replication_role = origin;
 
 -- ---------- Startdaten, WORTGETREU aus Migration 18 ----------
 -- Bewusst dieselben INSERTs: damit prueft diese Suite auch die
@@ -152,13 +156,20 @@ $$;
  *  deterministisch: TestOrg (...0001) kommt vor FremdOrg (...0002),
  *  und genau das ist ueberall gemeint. */
 create or replace function tests.mid(p_username text)
-returns uuid language sql stable as $$
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
   select m.id from public.memberships m
   join public.profiles p on p.id = m.identity_id
   where p.username = p_username and m.status = 'active'
   order by m.org_id::text
   limit 1;
 $$;
+
+grant execute on function tests.mid(text) to authenticated;
 
 
 -- ============================================================
@@ -387,7 +398,8 @@ select is(
 select throws_ok(
   $$ insert into public.membership_cosmetics (membership_id, item_id, kind)
      values (tests.mid('s4bert'), gen_random_uuid(), 'frame') $$,
-  '23503', null,
+  'P0001',
+  'AscendOS: Unbekannter kosmetischer Gegenstand.',
   'F4 Unbekannter kosmetischer Gegenstand wird abgewiesen');
 
 
@@ -671,6 +683,10 @@ select throws_like(
 -- M. Zeilenrechte
 -- ============================================================
 
+-- Setup-Buchung als postgres (ap_ledger hat keine INSERT-Policy fuer
+-- authenticated — geschrieben wird sonst nur vom Award-Trigger).
+reset role;
+
 -- Clara bekommt eine eigene Buchung, damit M3 ein ECHTER Test wird:
 -- ohne sie waere "sieht 0 Buchungen" auch dann erfuellt, wenn die
 -- Policy gar nicht greift -- sie hat naemlich schlicht keine.
@@ -756,6 +772,7 @@ select is(
 -- hier festgehalten, damit sie bewusst getroffen wird.
 -- ============================================================
 
+-- Regeln als postgres setzen (kein Admin-Schreiben noetig).
 reset role;
 
 update public.ap_rules set ap = 10
@@ -764,6 +781,11 @@ where org_id='a1000000-0000-0000-0000-000000000001'
 update public.ap_rules set ap = 10
 where org_id='a1000000-0000-0000-0000-000000000001'
   and event_type='contact_created' and source_kind='usage_event';
+
+-- track_usage prueft auth.uid(): ohne Sitzung als Clara wuerde der
+-- Usage-Strom abgewiesen (WARNUNG) und N2 faelschlich nur +10 zaehlen.
+select tests.authenticate_as('d1000000-0000-0000-0000-00000000000c'); -- Clara
+select tests.clear_org();
 
 select lives_ok(
   $$ select tests.make_contact('d1000000-0000-0000-0000-00000000000c',

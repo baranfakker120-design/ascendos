@@ -79,6 +79,12 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
   };
 
   const onProfileTap = () => {
+    // From any other tab: go straight to Profil (one tap). Expand stack only
+    // when already inside the profile area for Mehr / Einstellungen.
+    if (!pathInStack(pathname)) {
+      go('profil');
+      return;
+    }
     if (expanded) {
       go('profil');
       return;
@@ -137,11 +143,7 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
               expanded || closing ? 'profile-stack-anchor' : '',
             ].join(' ')}
           >
-            <ProfileIcon
-              key={`profil-${burstKey}`}
-              active={active || expanded}
-              burst={burst}
-            />
+            <ProfileIcon key={`profil-${burstKey}`} active={active || expanded} burst={burst} />
           </span>
           <span
             className={[

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import './role-badge.css';
 
-export type RoleBadgeTone = 'default' | 'super_admin' | 'developer' | 'admin' | 'leader' | 'berater';
+export type RoleBadgeTone =
+  'default' | 'super_admin' | 'developer' | 'admin' | 'leader' | 'berater';
 
 export interface RoleBadgeProps {
   role: string | null | undefined;

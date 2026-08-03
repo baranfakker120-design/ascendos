@@ -15,10 +15,10 @@ Nichts angenommen. Jede Aussage beruht auf einem ausgeführten Befehl oder einer
 
 Dieser Bericht unterscheidet zwei Arten von Befunden. Die Vermischung wäre irreführend.
 
-| Art | Bedeutung | Kennzeichnung |
-|---|---|---|
-| **Projektbefund** | Etwas fehlt oder ist falsch im Repository, in der Datenbank oder in der Konfiguration. Ihre Sache | **P** |
-| **Prüfgrenze** | Ich konnte es hier nicht prüfen, weil das Werkzeug fehlt. Kein Mangel Ihres Projekts | **G** |
+| Art               | Bedeutung                                                                                         | Kennzeichnung |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ------------- |
+| **Projektbefund** | Etwas fehlt oder ist falsch im Repository, in der Datenbank oder in der Konfiguration. Ihre Sache | **P**         |
+| **Prüfgrenze**    | Ich konnte es hier nicht prüfen, weil das Werkzeug fehlt. Kein Mangel Ihres Projekts              | **G**         |
 
 In dieser Umgebung fehlen: **Docker, Docker Compose, Supabase CLI, psql, Deno**. Die npm-Registry antwortet mit 403. Es gibt kein Git-Verzeichnis, weil ich es vor dem Verpacken entferne, damit ein mitgeliefertes Repository nicht Ihre Historie überschreibt.
 
@@ -28,25 +28,25 @@ Alles, was diese Werkzeuge braucht, ist mit **G** gekennzeichnet und bleibt offe
 
 # Teil 1: Werkzeugkette
 
-| Prüfpunkt | Ergebnis | Bewertung |
-|---|---|---|
-| Node | v22.22.2 | ✅ |
-| npm | 10.9.7 | ✅ |
-| git | 2.43.0 | ✅ |
-| Geforderte Node-Version | `engines: >=20`, erfüllt | ✅ |
-| **Docker** | nicht vorhanden | ❌ **G** |
-| **Docker Compose** | nicht vorhanden | ❌ **G** |
-| **Supabase CLI** | nicht vorhanden | ❌ **G** |
-| psql | nicht vorhanden | ❌ **G** |
-| Deno | nicht vorhanden | ❌ **G** |
-| npm-Registry | 403 Forbidden | ❌ **G** |
+| Prüfpunkt               | Ergebnis                 | Bewertung |
+| ----------------------- | ------------------------ | --------- |
+| Node                    | v22.22.2                 | ✅        |
+| npm                     | 10.9.7                   | ✅        |
+| git                     | 2.43.0                   | ✅        |
+| Geforderte Node-Version | `engines: >=20`, erfüllt | ✅        |
+| **Docker**              | nicht vorhanden          | ❌ **G**  |
+| **Docker Compose**      | nicht vorhanden          | ❌ **G**  |
+| **Supabase CLI**        | nicht vorhanden          | ❌ **G**  |
+| psql                    | nicht vorhanden          | ❌ **G**  |
+| Deno                    | nicht vorhanden          | ❌ **G**  |
+| npm-Registry            | 403 Forbidden            | ❌ **G**  |
 
 ## 1.1 Zwei Projektbefunde zur Versionsführung
 
-| Befund | Bewertung |
-|---|---|
-| **P** Keine `.nvmrc`. Ein neuer Entwickler hat keine Versionsbindung | ⚠ |
-| **P** CI läuft auf Node 20, `engines` erlaubt ab 20, lokal wird 22 verwendet. Geprüft wird also auf einer anderen Version als entwickelt | ⚠ |
+| Befund                                                                                                                                   | Bewertung |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| **P** Keine `.nvmrc`. Ein neuer Entwickler hat keine Versionsbindung                                                                     | ⚠         |
+| **P** CI läuft auf Node 20, `engines` erlaubt ab 20, lokal wird 22 verwendet. Geprüft wird also auf einer anderen Version als entwickelt | ⚠         |
 
 Beides ist klein und beides erzeugt später schwer zuzuordnende Abweichungen. Behebung: eine Datei mit einer Zeile, und die CI auf dieselbe Version heben.
 
@@ -64,21 +64,21 @@ Bewertung: ✅
 
 ## 2.2 Abhängigkeiten
 
-| Prüfpunkt | Ergebnis | Bewertung |
-|---|---|---|
-| Umfang | 7 Laufzeit, 19 Entwicklung | ✅ |
-| **`package-lock.json`** | **fehlt** | ❌ **P** |
-| `node_modules` | fehlt, folgt aus dem fehlenden Lockfile | ❌ **G** |
-| Erzeugung des Lockfiles | hier unmöglich, Registry 403 | **G** |
+| Prüfpunkt               | Ergebnis                                | Bewertung |
+| ----------------------- | --------------------------------------- | --------- |
+| Umfang                  | 7 Laufzeit, 19 Entwicklung              | ✅        |
+| **`package-lock.json`** | **fehlt**                               | ❌ **P**  |
+| `node_modules`          | fehlt, folgt aus dem fehlenden Lockfile | ❌ **G**  |
+| Erzeugung des Lockfiles | hier unmöglich, Registry 403            | **G**     |
 
 Der fehlende Lockfile ist ein **Projektbefund**, nicht meine Prüfgrenze. Er fehlte auch im hochgeladenen Archiv. Folge: Die CI-Aufgabe `quality` bricht bei `npm ci` ab, weil dieser Befehl ohne Lockfile den Dienst verweigert.
 
 ## 2.3 Git
 
-| Prüfpunkt | Ergebnis | Bewertung |
-|---|---|---|
-| Repository, Branch-Struktur, Remotes, Historie | hier nicht vorhanden | **G** |
-| `.gitignore` | vorhanden, deckt `node_modules`, `dist`, `.env`, `supabase/functions/.env` | ✅ |
+| Prüfpunkt                                      | Ergebnis                                                                   | Bewertung |
+| ---------------------------------------------- | -------------------------------------------------------------------------- | --------- |
+| Repository, Branch-Struktur, Remotes, Historie | hier nicht vorhanden                                                       | **G**     |
+| `.gitignore`                                   | vorhanden, deckt `node_modules`, `dist`, `.env`, `supabase/functions/.env` | ✅        |
 
 Zur Branch-Struktur kann ich keine Aussage treffen. Sie ist von hier aus unsichtbar.
 
@@ -86,8 +86,8 @@ Zur Branch-Struktur kann ich keine Aussage treffen. Sie ist von hier aus unsicht
 
 # Teil 3: Docker
 
-| Prüfpunkt | Ergebnis |
-|---|---|
+| Prüfpunkt                                                                       | Ergebnis                   |
+| ------------------------------------------------------------------------------- | -------------------------- |
 | Installation, Compose, Container, Volumes, Netzwerk, Startverhalten, Persistenz | **sämtlich nicht prüfbar** |
 
 Bewertung: ❌ **G**
@@ -102,24 +102,24 @@ Docker ist die Voraussetzung für `supabase db start` und damit für den lokalen
 
 Über den Datenbankzugang, ohne CLI.
 
-| Prüfpunkt | Ergebnis | Bewertung |
-|---|---|---|
-| Projekt erreichbar | `shaydtihwicnocjjlnjm`, eu-central-2, ACTIVE_HEALTHY | ✅ |
-| PostgreSQL | 17.6 | ✅ |
-| Verbindungsrolle | `postgres`, **kein Superuser** | ✅ dokumentiert |
-| Tabellen mit RLS aktiv | 24 | ✅ |
-| Policies | 40 | ✅ |
-| RPC-Funktionen in `public` | 26 | ✅ |
-| Trigger in `public` | 5 | ✅ |
-| Auth-Trigger `on_auth_user_created` | vorhanden | ✅ |
-| Auth-Nutzer | 5 | ⚠ siehe Teil 8 |
-| Storage-Buckets | 1, `produktbilder`, öffentlich, 3 Objekte | ⚠ siehe Teil 8 |
-| Extensions | `pg_stat_statements`, `pgcrypto`, `supabase_vault`, `uuid-ossp`, `vector 0.8.2` | ✅ |
-| **pgvector** | vorhanden, 0.8.2 | ✅ |
-| **pg_cron** | **nicht installiert** | ⚠ **P** |
-| **pg_net** | **nicht installiert** | ⚠ **P** |
-| **pgTAP** | **nicht installiert** | ❌ **P** |
-| Migrationsverfolgung | `supabase_migrations.schema_migrations` **fehlt** | ⚠ **P** |
+| Prüfpunkt                           | Ergebnis                                                                        | Bewertung       |
+| ----------------------------------- | ------------------------------------------------------------------------------- | --------------- |
+| Projekt erreichbar                  | `shaydtihwicnocjjlnjm`, eu-central-2, ACTIVE_HEALTHY                            | ✅              |
+| PostgreSQL                          | 17.6                                                                            | ✅              |
+| Verbindungsrolle                    | `postgres`, **kein Superuser**                                                  | ✅ dokumentiert |
+| Tabellen mit RLS aktiv              | 24                                                                              | ✅              |
+| Policies                            | 40                                                                              | ✅              |
+| RPC-Funktionen in `public`          | 26                                                                              | ✅              |
+| Trigger in `public`                 | 5                                                                               | ✅              |
+| Auth-Trigger `on_auth_user_created` | vorhanden                                                                       | ✅              |
+| Auth-Nutzer                         | 5                                                                               | ⚠ siehe Teil 8  |
+| Storage-Buckets                     | 1, `produktbilder`, öffentlich, 3 Objekte                                       | ⚠ siehe Teil 8  |
+| Extensions                          | `pg_stat_statements`, `pgcrypto`, `supabase_vault`, `uuid-ossp`, `vector 0.8.2` | ✅              |
+| **pgvector**                        | vorhanden, 0.8.2                                                                | ✅              |
+| **pg_cron**                         | **nicht installiert**                                                           | ⚠ **P**         |
+| **pg_net**                          | **nicht installiert**                                                           | ⚠ **P**         |
+| **pgTAP**                           | **nicht installiert**                                                           | ❌ **P**        |
+| Migrationsverfolgung                | `supabase_migrations.schema_migrations` **fehlt**                               | ⚠ **P**         |
 
 ## 4.2 Vier Befunde mit Folgen
 
@@ -133,19 +133,19 @@ Docker ist die Voraussetzung für `supabase db start` und damit für den lokalen
 
 ## 4.3 Auslieferungsstand der Edge Functions
 
-| Function | Version | Zuletzt ausgeliefert | `verify_jwt` | Auslieferungsart |
-|---|---|---|---|---|
-| `validate-invite` | 6 | 22.07.2026 19:07 | **true** | Einzeldatei |
-| `coach-chat` | 7 | 24.07.2026 03:47 | **false** | modular mit `_shared` |
-| `ingest-knowledge` | 7 | 24.07.2026 03:47 | **false** | modular mit `_shared` |
+| Function           | Version | Zuletzt ausgeliefert | `verify_jwt` | Auslieferungsart      |
+| ------------------ | ------- | -------------------- | ------------ | --------------------- |
+| `validate-invite`  | 6       | 22.07.2026 19:07     | **true**     | Einzeldatei           |
+| `coach-chat`       | 7       | 24.07.2026 03:47     | **false**    | modular mit `_shared` |
+| `ingest-knowledge` | 7       | 24.07.2026 03:47     | **false**    | modular mit `_shared` |
 
 Drei Befunde:
 
-| # | Befund | Bewertung |
-|---|---|---|
-| 1 | **`verify_jwt` ist genau umgekehrt zum Bedarf.** `validate-invite` wird bei der Registrierung aufgerufen und hat `true`. `coach-chat` und `ingest-knowledge` verlangen eine Anmeldung und haben `false` | ⚠ **P** |
-| 2 | **Zwei Auslieferungsarten in Gebrauch.** Eine Function als Einzeldatei, zwei modular | ⚠ **P** |
-| 3 | Quelltext des ausgelieferten Stands **nicht vergleichbar**. Der Abruf wurde abgewiesen | **G** |
+| #   | Befund                                                                                                                                                                                                  | Bewertung |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1   | **`verify_jwt` ist genau umgekehrt zum Bedarf.** `validate-invite` wird bei der Registrierung aufgerufen und hat `true`. `coach-chat` und `ingest-knowledge` verlangen eine Anmeldung und haben `false` | ⚠ **P**   |
+| 2   | **Zwei Auslieferungsarten in Gebrauch.** Eine Function als Einzeldatei, zwei modular                                                                                                                    | ⚠ **P**   |
+| 3   | Quelltext des ausgelieferten Stands **nicht vergleichbar**. Der Abruf wurde abgewiesen                                                                                                                  | **G**     |
 
 Zu Befund 1: Es ist kein Loch, weil beide Functions im Code selbst prüfen und mit 401 antworten. Aber unauthentifizierter Verkehr erreicht überhaupt erst die Function und verbraucht Aufrufe. Bei einem kostenpflichtigen Modell ist das die Ebene, auf der Missbrauch abzufangen wäre.
 
@@ -155,31 +155,31 @@ Zu Befund 3: Ein Byte-Vergleich zwischen ausgeliefertem Stand und Repository ist
 
 # Teil 5: Tests, Build, CI
 
-| Prüfpunkt | Ergebnis | Bewertung |
-|---|---|---|
-| Testrahmen Frontend | Vitest eingebunden | ✅ |
-| Testrahmen Datenbank | pgTAP, 6 Dateien, 94 Prüfungen geschrieben | ✅ |
-| **Prüfungen ausführbar** | **nein**, kein pgTAP, keine CLI, kein Docker | ❌ **G** |
-| **`npm run test`** | nicht ausführbar, keine Abhängigkeiten | ❌ **G** |
-| **`npm run lint`** | nicht ausführbar | ❌ **G** |
-| **`npm run typecheck`** | nicht ausführbar | ❌ **G** |
-| **`npm run build`** | nicht ausführbar | ❌ **G** |
-| **Typgenerierung `db:types`** | nicht ausführbar, braucht lokalen Stapel | ❌ **G** |
-| Datenbanktypen | **handgepflegt**, siehe unten | ⚠ **P** |
-| CI-Struktur | 3 Aufgaben: `quality`, `database`, `secrets` | ✅ |
-| Geheimnisprüfung | gitleaks eingebunden | ✅ |
+| Prüfpunkt                     | Ergebnis                                     | Bewertung |
+| ----------------------------- | -------------------------------------------- | --------- |
+| Testrahmen Frontend           | Vitest eingebunden                           | ✅        |
+| Testrahmen Datenbank          | pgTAP, 6 Dateien, 94 Prüfungen geschrieben   | ✅        |
+| **Prüfungen ausführbar**      | **nein**, kein pgTAP, keine CLI, kein Docker | ❌ **G**  |
+| **`npm run test`**            | nicht ausführbar, keine Abhängigkeiten       | ❌ **G**  |
+| **`npm run lint`**            | nicht ausführbar                             | ❌ **G**  |
+| **`npm run typecheck`**       | nicht ausführbar                             | ❌ **G**  |
+| **`npm run build`**           | nicht ausführbar                             | ❌ **G**  |
+| **Typgenerierung `db:types`** | nicht ausführbar, braucht lokalen Stapel     | ❌ **G**  |
+| Datenbanktypen                | **handgepflegt**, siehe unten                | ⚠ **P**   |
+| CI-Struktur                   | 3 Aufgaben: `quality`, `database`, `secrets` | ✅        |
+| Geheimnisprüfung              | gitleaks eingebunden                         | ✅        |
 
 ## 5.1 Ersatzprüfungen, die ohne npm möglich waren
 
-| Prüfung | Umfang | Ergebnis |
-|---|---|---|
-| Syntax aller TypeScript- und JavaScript-Dateien | **64 Dateien** | **0 Fehler** ✅ |
-| Strikte Typprüfung Edge Functions, modular | mit Deno-Ersatzdefinitionen | **fehlerfrei** ✅ |
-| Strikte Typprüfung Edge Functions, gebündelt | mit Deno-Ersatzdefinitionen | **fehlerfrei** ✅ |
-| Generatorabgleich Bundles | 3 Dateien | **aktuell** ✅ |
-| Generatorabgleich Setup-Datei | 12 Migrationen | **aktuell** ✅ |
-| Balance der `$$`-Begrenzer | 12 Migrationen | **alle gerade** ✅ |
-| Reihenfolge der Migrationen | 12 Dateien | **korrekt** ✅ |
+| Prüfung                                         | Umfang                      | Ergebnis           |
+| ----------------------------------------------- | --------------------------- | ------------------ |
+| Syntax aller TypeScript- und JavaScript-Dateien | **64 Dateien**              | **0 Fehler** ✅    |
+| Strikte Typprüfung Edge Functions, modular      | mit Deno-Ersatzdefinitionen | **fehlerfrei** ✅  |
+| Strikte Typprüfung Edge Functions, gebündelt    | mit Deno-Ersatzdefinitionen | **fehlerfrei** ✅  |
+| Generatorabgleich Bundles                       | 3 Dateien                   | **aktuell** ✅     |
+| Generatorabgleich Setup-Datei                   | 12 Migrationen              | **aktuell** ✅     |
+| Balance der `$$`-Begrenzer                      | 12 Migrationen              | **alle gerade** ✅ |
+| Reihenfolge der Migrationen                     | 12 Dateien                  | **korrekt** ✅     |
 
 Das ersetzt keinen Build. Es schließt aber Syntax- und Typfehler als Ursache aus, wenn der Build später scheitert.
 
@@ -195,23 +195,23 @@ Bewertung: ⚠ **P**. Behebung ist ein Befehl, braucht aber den lokalen Stapel.
 
 Punktweise gegen die Produktionsdatenbank geprüft. Nicht analysiert, nur verifiziert.
 
-| # | Zusage aus Migration 12 | Ergebnis |
-|---|---|---|
-| F1-01 | `is_ancestor_of` existiert | ❌ nicht erfüllt |
-| F1-02 | `plan_contact_state` ohne Nutzerparameter | ❌ nicht erfüllt |
-| F1-03 | `plan_signal_*` ohne Nutzerparameter | ❌ nicht erfüllt, **5 betroffen** |
-| F1-04 | `get_downline` mit Organisationsfilter | ❌ nicht erfüllt |
-| F1-05 | `get_downline` mit Aufruferprüfung | ❌ nicht erfüllt |
-| F1-06 | `coach_messages_today` mit Aufruferprüfung | ❌ nicht erfüllt |
-| F1-07 | `track_usage` mit Aufruferprüfung | ❌ nicht erfüllt |
-| F1-08 | `match_knowledge` mit `extensions` im `search_path` | ❌ nicht erfüllt |
-| F1-09 | `anon` ohne EXECUTE auf `get_downline` | ❌ nicht erfüllt |
-| F1-10 | `anon` ohne EXECUTE auf `plan_contact_state` | ❌ nicht erfüllt |
-| F1-11 | `anon` ohne EXECUTE auf `validate_invite` | ❌ nicht erfüllt |
-| F1-12 | `anon` behält EXECUTE auf `current_org_id` | ✅ erfüllt |
-| F1-13 | Test I1, jede DEFINER-Funktion mit `search_path` | ✅ erfüllt, **aber siehe 6.2** |
+| #     | Zusage aus Migration 12                                          | Ergebnis                           |
+| ----- | ---------------------------------------------------------------- | ---------------------------------- |
+| F1-01 | `is_ancestor_of` existiert                                       | ❌ nicht erfüllt                   |
+| F1-02 | `plan_contact_state` ohne Nutzerparameter                        | ❌ nicht erfüllt                   |
+| F1-03 | `plan_signal_*` ohne Nutzerparameter                             | ❌ nicht erfüllt, **5 betroffen**  |
+| F1-04 | `get_downline` mit Organisationsfilter                           | ❌ nicht erfüllt                   |
+| F1-05 | `get_downline` mit Aufruferprüfung                               | ❌ nicht erfüllt                   |
+| F1-06 | `coach_messages_today` mit Aufruferprüfung                       | ❌ nicht erfüllt                   |
+| F1-07 | `track_usage` mit Aufruferprüfung                                | ❌ nicht erfüllt                   |
+| F1-08 | `match_knowledge` mit `extensions` im `search_path`              | ❌ nicht erfüllt                   |
+| F1-09 | `anon` ohne EXECUTE auf `get_downline`                           | ❌ nicht erfüllt                   |
+| F1-10 | `anon` ohne EXECUTE auf `plan_contact_state`                     | ❌ nicht erfüllt                   |
+| F1-11 | `anon` ohne EXECUTE auf `validate_invite`                        | ❌ nicht erfüllt                   |
+| F1-12 | `anon` behält EXECUTE auf `current_org_id`                       | ✅ erfüllt                         |
+| F1-13 | Test I1, jede DEFINER-Funktion mit `search_path`                 | ✅ erfüllt, **aber siehe 6.2**     |
 | F1-14 | Test J1, keine DEFINER-Funktion mit Nutzerparameter ohne Prüfung | ❌ nicht erfüllt, **9 Funktionen** |
-| F1-15 | pgTAP installiert | ❌ nicht erfüllt |
+| F1-15 | pgTAP installiert                                                | ❌ nicht erfüllt                   |
 
 **13 von 15 nicht erfüllt. Migration 12 ist nicht angewendet.**
 
@@ -237,10 +237,10 @@ Mein Test I1 in `function_security.test.sql` prüft ausschließlich Funktionen m
 
 **Behoben in diesem Sprint.** Die Bedingung `prosecdef` ist aus dem Prädikat entfernt, geprüft wird jetzt jede Funktion in `public`. Gegen die Produktionsdatenbank verifiziert:
 
-| Fassung | Treffer | Verhalten |
-|---|---|---|
-| alt, nur DEFINER | **0** | wäre grün geworden, obwohl die Härtung fehlt |
-| neu, alle Funktionen | **4** | wird rot, erkennt die Lücke korrekt |
+| Fassung              | Treffer | Verhalten                                    |
+| -------------------- | ------- | -------------------------------------------- |
+| alt, nur DEFINER     | **0**   | wäre grün geworden, obwohl die Härtung fehlt |
+| neu, alle Funktionen | **4**   | wird rot, erkennt die Lücke korrekt          |
 
 Die vier Treffer sind genau die vier invoker-Funktionen. Nach Anwendung von Migration 12 muss die Prüfung grün werden. Damit ist sie ab Sprint 1 ein belastbarer Maßstab.
 
@@ -250,17 +250,17 @@ Bewertung: ✅ **behoben**, Datei `supabase/tests/database/function_security.tes
 
 # Teil 7: Dokumentation
 
-| Prüfpunkt | Ergebnis | Bewertung |
-|---|---|---|
-| `README.md` | vorhanden, 230 Zeilen | ✅ |
-| **Installationsanleitung im README** | **keine Überschrift zu Installation, Setup oder Schnellstart** | ❌ **P** |
-| **Entwickler-Onboarding** | **kein eigenes Dokument** | ❌ **P** |
-| Projektstruktur dokumentiert | knapp, eine Fundstelle | ⚠ **P** |
-| `.env.example` | vorhanden, 9 Zeilen | ⚠ siehe 7.1 |
-| `docs/deployment.md` | vorhanden, 70 Zeilen | ✅ |
-| `setup/SETUP-ANLEITUNG.md` | vorhanden, 132 Zeilen | ✅ |
-| `docs/adr.md` | vorhanden, 472 Zeilen, 29 Entscheidungen | ✅ |
-| `docs/design-system.md` | vorhanden, 95 Zeilen | ✅ |
+| Prüfpunkt                            | Ergebnis                                                       | Bewertung   |
+| ------------------------------------ | -------------------------------------------------------------- | ----------- |
+| `README.md`                          | vorhanden, 230 Zeilen                                          | ✅          |
+| **Installationsanleitung im README** | **keine Überschrift zu Installation, Setup oder Schnellstart** | ❌ **P**    |
+| **Entwickler-Onboarding**            | **kein eigenes Dokument**                                      | ❌ **P**    |
+| Projektstruktur dokumentiert         | knapp, eine Fundstelle                                         | ⚠ **P**     |
+| `.env.example`                       | vorhanden, 9 Zeilen                                            | ⚠ siehe 7.1 |
+| `docs/deployment.md`                 | vorhanden, 70 Zeilen                                           | ✅          |
+| `setup/SETUP-ANLEITUNG.md`           | vorhanden, 132 Zeilen                                          | ✅          |
+| `docs/adr.md`                        | vorhanden, 472 Zeilen, 29 Entscheidungen                       | ✅          |
+| `docs/design-system.md`              | vorhanden, 95 Zeilen                                           | ✅          |
 
 ## 7.1 Umgebungsvariablen, Abgleich Code gegen Dokumentation
 
@@ -290,10 +290,10 @@ Das ist die auffälligste Auslassung der gesamten Dokumentation, und sie fällt 
 
 Kurz, weil ausdrücklich nicht mein Auftrag. Beide Befunde stammen vom **8. Juni 2026**, dem Tag der Projektanlage. Die erste AscendOS-Migration ist vom **21. Juli**.
 
-| Befund | Einordnung |
-|---|---|
+| Befund                                                                                    | Einordnung                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **3 Auth-Nutzer ohne Profil**, alle bestätigt, keiner mit Einladungscode in den Metadaten | Kein AscendOS-Mangel. Sie können sich anmelden, erhalten aber nichts, weil `current_org_id()` ohne Profil NULL liefert und jede Policy geschlossen ausfällt |
-| **Storage-Bucket `produktbilder`, öffentlich, 3 Objekte** | Kein AscendOS-Bestandteil. Öffentlich lesbar für jeden mit der Adresse |
+| **Storage-Bucket `produktbilder`, öffentlich, 3 Objekte**                                 | Kein AscendOS-Bestandteil. Öffentlich lesbar für jeden mit der Adresse                                                                                      |
 
 Ich habe an beidem nichts geändert und empfehle keine Änderung im Rahmen von Sprint 0. Beides gehört auf eine Liste für einen späteren Aufräumschritt, gemeinsam mit `kabelkatalog_state`.
 
@@ -301,14 +301,14 @@ Ich habe an beidem nichts geändert und empfehle keine Änderung im Rahmen von S
 
 # Teil 9: Bewertung nach Vorgabe
 
-| Punkt | Bewertung | Begründung |
-|---|---|---|
-| **Entwicklungsumgebung bereit** | ❌ | Docker, Supabase CLI und npm-Registry fehlen. Kein Lockfile |
-| **Migrationen bereit** | ⚠ | 12 Dateien vorhanden, Reihenfolge korrekt, Syntax geprüft. Migration 12 nirgends angewendet, keine Migrationsverfolgung |
-| **Tests bereit** | ⚠ | 94 Prüfungen geschrieben, strukturell validiert, **nie ausgeführt**. Der Test mit falscher Sicherheit ist behoben und gegen die Datenbank gegengeprüft, siehe 6.2 |
-| **CI bereit** | ❌ | Struktur korrekt, zwei Aufgaben brechen sicher ab: `npm ci` ohne Lockfile, Typenabgleich gegen handgepflegte Datei |
-| **Build bereit** | ⚠ | Nicht ausführbar. Ersatzweise 64 Dateien syntaktisch und Edge Functions strikt typgeprüft, alles fehlerfrei |
-| **F1 verifiziert** | ❌ | 13 von 15 Zusagen nicht erfüllt. Migration 12 nicht angewendet |
+| Punkt                           | Bewertung | Begründung                                                                                                                                                        |
+| ------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Entwicklungsumgebung bereit** | ❌        | Docker, Supabase CLI und npm-Registry fehlen. Kein Lockfile                                                                                                       |
+| **Migrationen bereit**          | ⚠         | 12 Dateien vorhanden, Reihenfolge korrekt, Syntax geprüft. Migration 12 nirgends angewendet, keine Migrationsverfolgung                                           |
+| **Tests bereit**                | ⚠         | 94 Prüfungen geschrieben, strukturell validiert, **nie ausgeführt**. Der Test mit falscher Sicherheit ist behoben und gegen die Datenbank gegengeprüft, siehe 6.2 |
+| **CI bereit**                   | ❌        | Struktur korrekt, zwei Aufgaben brechen sicher ab: `npm ci` ohne Lockfile, Typenabgleich gegen handgepflegte Datei                                                |
+| **Build bereit**                | ⚠         | Nicht ausführbar. Ersatzweise 64 Dateien syntaktisch und Edge Functions strikt typgeprüft, alles fehlerfrei                                                       |
+| **F1 verifiziert**              | ❌        | 13 von 15 Zusagen nicht erfüllt. Migration 12 nicht angewendet                                                                                                    |
 
 ---
 
@@ -318,28 +318,28 @@ Ausschließlich Sprint-0-Umfang. Keine Architektur, keine Features.
 
 ## Blockierend für Sprint 1
 
-| # | Aufgabe | Wer | Aufwand |
-|---|---|---|---|
-| **T1** | **Rechner mit Docker und Supabase CLI bereitstellen.** Ohne das ist keine der folgenden Aufgaben ausführbar | Sie | Beschaffung |
-| **T2** | `npm install`, `package-lock.json` einchecken | Sie am Rechner | 5 Minuten |
-| **T3** | `supabase db start`, alle 12 Migrationen anwenden, Fehler protokollieren | Sie am Rechner | 15 Minuten |
-| **T4** | `npm run db:types`, erzeugte Datei einchecken | Sie am Rechner | 5 Minuten |
-| ~~T5~~ | ~~Test I1 korrigieren~~ **erledigt in diesem Sprint.** Gegengeprüft: alt 0 Treffer, neu 4 Treffer | ich | erledigt |
-| **T6** | `supabase test db`, alle 94 Prüfungen ausführen, Ergebnis protokollieren | Sie am Rechner | 10 Minuten |
-| **T7** | CI grün bekommen. Erwartet grün nach T2 und T4 | Sie | 15 Minuten |
+| #      | Aufgabe                                                                                                     | Wer            | Aufwand     |
+| ------ | ----------------------------------------------------------------------------------------------------------- | -------------- | ----------- |
+| **T1** | **Rechner mit Docker und Supabase CLI bereitstellen.** Ohne das ist keine der folgenden Aufgaben ausführbar | Sie            | Beschaffung |
+| **T2** | `npm install`, `package-lock.json` einchecken                                                               | Sie am Rechner | 5 Minuten   |
+| **T3** | `supabase db start`, alle 12 Migrationen anwenden, Fehler protokollieren                                    | Sie am Rechner | 15 Minuten  |
+| **T4** | `npm run db:types`, erzeugte Datei einchecken                                                               | Sie am Rechner | 5 Minuten   |
+| ~~T5~~ | ~~Test I1 korrigieren~~ **erledigt in diesem Sprint.** Gegengeprüft: alt 0 Treffer, neu 4 Treffer           | ich            | erledigt    |
+| **T6** | `supabase test db`, alle 94 Prüfungen ausführen, Ergebnis protokollieren                                    | Sie am Rechner | 10 Minuten  |
+| **T7** | CI grün bekommen. Erwartet grün nach T2 und T4                                                              | Sie            | 15 Minuten  |
 
 ## Nicht blockierend, aber Sprint-0-Umfang
 
-| # | Aufgabe | Wer | Aufwand |
-|---|---|---|---|
-| T8 | **Sechs offene Einladungen zurückhalten**, bis F1 in Produktion ist. Entschärft die einzige Frist | Sie, SQL-Editor | 2 Minuten |
-| T9 | Installationsanleitung im README ergänzen: Repository, Abhängigkeiten, lokaler Stapel, Umgebungsvariablen, Prüfungen | ich | 1 Stunde |
-| T10 | `.env.example` um die drei lokal nötigen Variablen ergänzen, mit Hinweis | ich | 10 Minuten |
-| T11 | `.nvmrc` anlegen, CI-Node-Version darauf heben | ich | 10 Minuten |
-| T12 | Migrationsverfolgung einrichten, damit der SQL-Editor-Weg endet | Sie am Rechner | 15 Minuten |
-| T13 | `verify_jwt` bei den drei Functions richtigstellen | Sie im Dashboard | 5 Minuten |
-| T14 | Auf eine Auslieferungsart festlegen, modular oder Einzeldatei | Entscheidung | Minuten |
-| T15 | Entwickler-Onboarding als eigenes Dokument | ich | 1 Stunde |
+| #   | Aufgabe                                                                                                              | Wer              | Aufwand    |
+| --- | -------------------------------------------------------------------------------------------------------------------- | ---------------- | ---------- |
+| T8  | **Sechs offene Einladungen zurückhalten**, bis F1 in Produktion ist. Entschärft die einzige Frist                    | Sie, SQL-Editor  | 2 Minuten  |
+| T9  | Installationsanleitung im README ergänzen: Repository, Abhängigkeiten, lokaler Stapel, Umgebungsvariablen, Prüfungen | ich              | 1 Stunde   |
+| T10 | `.env.example` um die drei lokal nötigen Variablen ergänzen, mit Hinweis                                             | ich              | 10 Minuten |
+| T11 | `.nvmrc` anlegen, CI-Node-Version darauf heben                                                                       | ich              | 10 Minuten |
+| T12 | Migrationsverfolgung einrichten, damit der SQL-Editor-Weg endet                                                      | Sie am Rechner   | 15 Minuten |
+| T13 | `verify_jwt` bei den drei Functions richtigstellen                                                                   | Sie im Dashboard | 5 Minuten  |
+| T14 | Auf eine Auslieferungsart festlegen, modular oder Einzeldatei                                                        | Entscheidung     | Minuten    |
+| T15 | Entwickler-Onboarding als eigenes Dokument                                                                           | ich              | 1 Stunde   |
 
 T5, T9, T10, T11 und T15 kann ich hier erledigen. Alles mit Rechnerbezug nicht.
 
@@ -355,11 +355,11 @@ Sprint 1 kann nicht beginnen.
 
 Nur die, die es wirklich verhindern. Der Rest steht in Teil 10.
 
-| # | Blocker | Warum es Sprint 1 verhindert |
-|---|---|---|
+| #      | Blocker                                      | Warum es Sprint 1 verhindert                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **B1** | **Kein Rechner mit Docker und Supabase CLI** | Sprint 1 wendet Migration 12 auf Produktion an. Die Migration ist **nirgends** angewendet worden. Sie enthält zwei Konstrukte, die nur eigenständig geprüft sind: die `CYCLE`-Klausel innerhalb `RETURN QUERY` und die Rechtebefehle mit `extensions.vector` in der Signatur. Eine ungeprüfte Migration direkt auf Produktion anzuwenden, ist genau das, was die Definition of Done von Sprint 0 verhindern soll |
-| **B2** | **Die 94 Prüfungen wurden nie ausgeführt** | Die Definition of Done von Sprint 1 lautet, dass Prüfung J1 grün ist und `anon` kein Ausführungsrecht mehr hat. Ohne ausführbare Prüfungen ist dieser Nachweis nicht erbringbar. pgTAP ist nirgends installiert |
-| ~~B3~~ | ~~Test I1 gibt falsche Sicherheit~~ | **In diesem Sprint behoben.** Der Test prüfte nur DEFINER-Funktionen, während genau die vier betroffenen invoker sind. Er wäre grün geworden, ohne dass die Härtung geschah. Korrigiert und gegen die Produktionsdatenbank gegengeprüft |
+| **B2** | **Die 94 Prüfungen wurden nie ausgeführt**   | Die Definition of Done von Sprint 1 lautet, dass Prüfung J1 grün ist und `anon` kein Ausführungsrecht mehr hat. Ohne ausführbare Prüfungen ist dieser Nachweis nicht erbringbar. pgTAP ist nirgends installiert                                                                                                                                                                                                  |
+| ~~B3~~ | ~~Test I1 gibt falsche Sicherheit~~          | **In diesem Sprint behoben.** Der Test prüfte nur DEFINER-Funktionen, während genau die vier betroffenen invoker sind. Er wäre grün geworden, ohne dass die Härtung geschah. Korrigiert und gegen die Produktionsdatenbank gegengeprüft                                                                                                                                                                          |
 
 **Es verbleiben zwei Blocker, B1 und B2. Beide hängen an einem Rechner mit Docker und Supabase CLI.** Beide sind an einem Vormittag zu erledigen, sobald dieser Zugang besteht.
 
@@ -369,11 +369,11 @@ F1 behebt eine offene Lücke. Es liegen 6 Einladungen aus. Daraus entsteht ein D
 
 Drei Wege, mit ihren Kosten:
 
-| Weg | Nutzen | Kosten |
-|---|---|---|
-| A: Auf den Rechner warten, dann ordentlich | vollständig geprüft | Lücke bleibt offen, solange Einladungen aus sind |
-| B: Migration ungeprüft auf Produktion | Lücke sofort zu | Zwei ungeprüfte Konstrukte. Ein Fehler in `get_downline` oder in den Rechtebefehlen kann Nutzer aussperren oder Rechte falsch setzen. Kein Rückweg ohne weitere Handarbeit |
-| C: **Einladungen zurückhalten, dann Weg A** | Frist entfällt, Prüfung bleibt vollständig | 2 Minuten Aufwand, Registrierungen verschieben sich |
+| Weg                                         | Nutzen                                     | Kosten                                                                                                                                                                     |
+| ------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A: Auf den Rechner warten, dann ordentlich  | vollständig geprüft                        | Lücke bleibt offen, solange Einladungen aus sind                                                                                                                           |
+| B: Migration ungeprüft auf Produktion       | Lücke sofort zu                            | Zwei ungeprüfte Konstrukte. Ein Fehler in `get_downline` oder in den Rechtebefehlen kann Nutzer aussperren oder Rechte falsch setzen. Kein Rückweg ohne weitere Handarbeit |
+| C: **Einladungen zurückhalten, dann Weg A** | Frist entfällt, Prüfung bleibt vollständig | 2 Minuten Aufwand, Registrierungen verschieben sich                                                                                                                        |
 
 **Empfehlung: C.** Die Frist entsteht ausschließlich durch die offenen Einladungen. Sie zu entwerten kostet zwei Minuten und löst den Konflikt vollständig, ohne die Prüfdisziplin aufzugeben, die diesen Sprint überhaupt begründet.
 

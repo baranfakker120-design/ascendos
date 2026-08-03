@@ -1,7 +1,9 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { activityLabel, daysSince } from '@shared/lib/pipeline';
 import type { ExternalTool, PipelineEventType } from '@shared/types/domain';
+import { Alert } from '@shared/ui/Alert';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { ButtonLink } from '@shared/ui/ButtonLink';
@@ -10,23 +12,29 @@ import { PhaseChip } from '@shared/ui/PhaseChip';
 import { EventPicker } from './components/EventPicker';
 import { EventTimeline } from './components/EventTimeline';
 import { ShareTools } from './components/ShareTools';
-import {
-  useContact,
-  useContactEvents,
-  useContactMutations,
-  useExternalTools,
-} from './contactsApi';
+import { useContact, useContactEvents, useContactMutations, useExternalTools } from './contactsApi';
 
 export function ContactDetailPage() {
   const { contactId } = useParams();
   const navigate = useNavigate();
-  const { data: contact, isLoading } = useContact(contactId!);
+  const { data: contact, isPending, isError, isSuccess } = useContact(contactId!);
   const { data: events } = useContactEvents(contactId!);
   const { data: tools } = useExternalTools();
   const { addEvent, deleteContact, correctEvent } = useContactMutations();
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  if (isLoading) return <p className="text-sm text-muted">Kontakt wird geladen …</p>;
-  if (!contact) {
+  if (isPending) return <p className="text-sm text-muted">Kontakt wird geladen …</p>;
+  if (isError) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted">Kontakt konnte nicht geladen werden.</p>
+        <Link to="/kontakte" className="text-sm font-medium text-primary">
+          Zurück zu den Kontakten
+        </Link>
+      </div>
+    );
+  }
+  if (isSuccess && !contact) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted">Dieser Kontakt existiert nicht (mehr).</p>
@@ -36,16 +44,23 @@ export function ContactDetailPage() {
       </div>
     );
   }
+  if (!contact) return null;
 
   const days = daysSince(contact.last_event_at);
   const overdue = days !== null && days >= 7 && contact.phase !== 'partner';
 
-  const logEvent = (eventType: PipelineEventType, source = 'manual') => {
-    void addEvent.mutateAsync({ contactId: contact.id, eventType, source });
+  const logEvent = async (eventType: PipelineEventType, source = 'manual') => {
+    setActionError(null);
+    try {
+      await addEvent.mutateAsync({ contactId: contact.id, eventType, source });
+    } catch {
+      setActionError('Ereignis konnte nicht gespeichert werden.');
+      throw new Error('event-failed');
+    }
   };
 
   const onToolShared = (tool: ExternalTool) => {
-    logEvent(tool.share_event_type, tool.key);
+    void logEvent(tool.share_event_type, tool.key).catch(() => undefined);
   };
 
   const remove = async () => {
@@ -53,8 +68,13 @@ export function ContactDetailPage() {
       `„${contact.name}" wirklich löschen? Die komplette Historie geht dabei verloren.`
     );
     if (!ok) return;
-    await deleteContact.mutateAsync(contact.id);
-    navigate('/kontakte', { replace: true });
+    setActionError(null);
+    try {
+      await deleteContact.mutateAsync(contact.id);
+      navigate('/kontakte', { replace: true });
+    } catch {
+      setActionError('Löschen fehlgeschlagen. Bitte erneut versuchen.');
+    }
   };
 
   return (
@@ -78,9 +98,7 @@ export function ContactDetailPage() {
 
       {contact.next_step ? (
         <Card>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            Nächster Schritt
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Nächster Schritt</p>
           <p className="mt-1 font-medium">{contact.next_step}</p>
         </Card>
       ) : null}
@@ -103,13 +121,16 @@ export function ContactDetailPage() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Aktionen</h2>
+        {actionError ? <Alert tone="error">{actionError}</Alert> : null}
         <ButtonLink
           to={`/coach?kontakt=${contact.id}`}
           variant="secondary"
           className="h-auto min-h-12 justify-between py-3 text-left [&_.ui-btn__label]:w-full [&_.ui-btn__label]:justify-between"
         >
           <span className="min-w-0">
-            <span className="block text-sm font-medium">Ascent zu {contact.name.split(' ')[0]} fragen</span>
+            <span className="block text-sm font-medium">
+              Ascent zu {contact.name.split(' ')[0]} fragen
+            </span>
             <span className="block text-xs font-normal text-muted">
               Kennt Phase, Verlauf und nächsten Schritt bereits
             </span>

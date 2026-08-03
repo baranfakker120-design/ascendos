@@ -15,9 +15,9 @@ import { useProfileDetail } from './profileApi';
  */
 export function ProfilePage() {
   const { role: membershipRole } = useAuth();
-  const { data, isLoading, isError } = useProfileDetail();
+  const { data, isPending, isError } = useProfileDetail();
 
-  if (isLoading) {
+  if (isPending) {
     return <p className="text-sm text-muted">Profil wird geladen …</p>;
   }
   if (isError || !data) {
@@ -70,10 +70,7 @@ export function ProfilePage() {
         <StatCard label="Aktuelle AP" value={formatStatNumber(rank.apTotal)} />
         <StatCard label="Aktueller Rang" value={currentLabel} />
         <StatCard label="Organisation" value={context.orgName} />
-        <StatCard
-          label="Rolle"
-          value={<RoleBadge role={membershipRole} className="mt-0.5" />}
-        />
+        <StatCard label="Rolle" value={<RoleBadge role={membershipRole} className="mt-0.5" />} />
       </div>
 
       <Card>

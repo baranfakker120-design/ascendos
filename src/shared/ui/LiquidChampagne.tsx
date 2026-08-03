@@ -49,7 +49,11 @@ export interface LiquidChampagneProps {
  * AscendOS signature: liquid champagne light under the finger.
  * Reusable — wrap any pressable control. GPU: transform / opacity / blur only.
  */
-export function LiquidChampagne({ children, className = '', disabled = false }: LiquidChampagneProps) {
+export function LiquidChampagne({
+  children,
+  className = '',
+  disabled = false,
+}: LiquidChampagneProps) {
   const rootRef = useRef<HTMLSpanElement>(null);
   const targetRef = useRef({ x: 0, y: 0 });
   const currentRef = useRef({ x: 0, y: 0, vx: 0, vy: 0 });

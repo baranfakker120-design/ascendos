@@ -1,12 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
-import type {
-  Membership,
-  NextRankForAp,
-  Profile,
-  RankForAp,
-} from '@shared/types/domain';
+import type { Membership, NextRankForAp, Profile, RankForAp } from '@shared/types/domain';
 
 export const AVATAR_BUCKET = 'avatare';
 export const AVATAR_OBJECT_NAME = 'avatar.webp';
@@ -163,7 +158,9 @@ export function useUpdateProfile() {
 
 /** Öffentliche URL für ein Avatar-Objekt im Bucket avatare. */
 export function publicAvatarUrl(userId: string): string {
-  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(`${userId}/${AVATAR_OBJECT_NAME}`);
+  const { data } = supabase.storage
+    .from(AVATAR_BUCKET)
+    .getPublicUrl(`${userId}/${AVATAR_OBJECT_NAME}`);
   return data.publicUrl;
 }
 

@@ -25,14 +25,14 @@ Das Logo ist ab sofort Bestandteil der Design-Sprache. Ich habe die Datei vermes
 
 ## 0.1 Prüfergebnis der gelieferten Datei
 
-| Prüfung | Ergebnis |
-|---|---|
-| Format | PNG, RGBA, 1536 x 1024 |
-| Transparenter Hintergrund | **erfüllt.** Alpha an allen vier Ecken ist 0 |
-| Weiße Fläche hinter dem Logo | **keine** |
-| Schleier oder Artefakte am Rand | **keine.** Maximales Alpha im 20-Pixel-Randstreifen ist 2 von 255 |
-| Tatsächlicher Inhalt | x 390 bis 1148, y 200 bis 729, also 758 x 530 Pixel |
-| Anteil der Nutzfläche an der Datei | 49 Prozent der Breite, 52 Prozent der Höhe |
+| Prüfung                            | Ergebnis                                                          |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| Format                             | PNG, RGBA, 1536 x 1024                                            |
+| Transparenter Hintergrund          | **erfüllt.** Alpha an allen vier Ecken ist 0                      |
+| Weiße Fläche hinter dem Logo       | **keine**                                                         |
+| Schleier oder Artefakte am Rand    | **keine.** Maximales Alpha im 20-Pixel-Randstreifen ist 2 von 255 |
+| Tatsächlicher Inhalt               | x 390 bis 1148, y 200 bis 729, also 758 x 530 Pixel               |
+| Anteil der Nutzfläche an der Datei | 49 Prozent der Breite, 52 Prozent der Höhe                        |
 
 Die Vorgaben transparenter Hintergrund, keine weiße Fläche und keine Schatten sind durch die Datei selbst bereits erfüllt.
 
@@ -40,11 +40,11 @@ Die Vorgaben transparenter Hintergrund, keine weiße Fläche und keine Schatten 
 
 Drei getrennte Inhaltsblöcke, gemessen über das Alpha-Zeilenprofil:
 
-| Block | Bereich in der Datei | Größe | Bedeutung |
-|---|---|---|---|
-| 1 | x 589 bis 948, y 200 bis 507 | 360 x 308 | **das stilisierte A, das offizielle Symbol** |
-| 2 | x 389 bis 1148, y 572 bis 650 | 760 x 79 | Wortmarke ASCENDOS |
-| 3 | x 446 bis 1082, y 710 bis 729 | 637 x 20 | Claim BUILD A BETTER TOMORROW |
+| Block | Bereich in der Datei          | Größe     | Bedeutung                                    |
+| ----- | ----------------------------- | --------- | -------------------------------------------- |
+| 1     | x 589 bis 948, y 200 bis 507  | 360 x 308 | **das stilisierte A, das offizielle Symbol** |
+| 2     | x 389 bis 1148, y 572 bis 650 | 760 x 79  | Wortmarke ASCENDOS                           |
+| 3     | x 446 bis 1082, y 710 bis 729 | 637 x 20  | Claim BUILD A BETTER TOMORROW                |
 
 Abstand zwischen Symbol und Wortmarke: 65 Pixel. Dieser Wert dient als Mindestschutzraum, siehe 0.4.
 
@@ -91,18 +91,18 @@ Das ist eine Markenentscheidung, keine Architekturentscheidung. Ich treffe sie n
 
 ## 1.1 Istzustand, belegt
 
-| Element | Befund |
-|---|---|
-| Rollenwerte | `super_admin`, `leader`, `berater` in einer CHECK-Bedingung auf `profiles.role` |
-| Policies, die `leader` auswerten | **0** |
-| Funktionen, die `leader` auswerten | **0** |
-| Profile mit Rolle `leader` | **0** |
-| Rollenprüfende Helfer | `is_super_admin()`, `current_user_role()` |
-| Organisationsbezug | `current_org_id()`, in 31 Policies verwendet |
-| Beziehungsprüfung | `get_downline()`, `is_ancestor_of()`, nach F1 mit Organisationsfilter |
-| Schutz vor Selbstbeförderung | `protect_profile_columns()`, Positivliste: `role`, `org_id`, `team_id`, `sponsor_id` |
-| JWT-Ansprüche | ausschließlich `sub` und `role: authenticated`. Keine eigenen Ansprüche |
-| Rollen in `profiles_public` sichtbar | **ja**, Spalte `role` wird org-weit ausgeliefert |
+| Element                              | Befund                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| Rollenwerte                          | `super_admin`, `leader`, `berater` in einer CHECK-Bedingung auf `profiles.role`      |
+| Policies, die `leader` auswerten     | **0**                                                                                |
+| Funktionen, die `leader` auswerten   | **0**                                                                                |
+| Profile mit Rolle `leader`           | **0**                                                                                |
+| Rollenprüfende Helfer                | `is_super_admin()`, `current_user_role()`                                            |
+| Organisationsbezug                   | `current_org_id()`, in 31 Policies verwendet                                         |
+| Beziehungsprüfung                    | `get_downline()`, `is_ancestor_of()`, nach F1 mit Organisationsfilter                |
+| Schutz vor Selbstbeförderung         | `protect_profile_columns()`, Positivliste: `role`, `org_id`, `team_id`, `sponsor_id` |
+| JWT-Ansprüche                        | ausschließlich `sub` und `role: authenticated`. Keine eigenen Ansprüche              |
+| Rollen in `profiles_public` sichtbar | **ja**, Spalte `role` wird org-weit ausgeliefert                                     |
 
 ## 1.2 Die Wurzelursache
 
@@ -110,11 +110,11 @@ Das bestehende Modell versucht, mit einer einzigen Spalte drei voneinander unabh
 
 In einem Vertriebsnetzwerk entsteht Autorität aus drei Quellen:
 
-| Quelle | Wesen | Beispiel | Woher |
-|---|---|---|---|
-| **Beziehung** | dynamisch, abgeleitet | Ich habe dich gesponsert, also darf ich deine Aktivität sehen | `sponsor_id`, Genealogie |
-| **Rang** | erworben, berechnet | Ab Manager gibt es Zugriff auf Leader-Auswertungen | Vergütungsplan, `qualification_results` |
-| **Funktion** | zugewiesen, delegierbar | Ich pflege den Produktkatalog | Zuweisung durch einen Berechtigten |
+| Quelle        | Wesen                   | Beispiel                                                      | Woher                                   |
+| ------------- | ----------------------- | ------------------------------------------------------------- | --------------------------------------- |
+| **Beziehung** | dynamisch, abgeleitet   | Ich habe dich gesponsert, also darf ich deine Aktivität sehen | `sponsor_id`, Genealogie                |
+| **Rang**      | erworben, berechnet     | Ab Manager gibt es Zugriff auf Leader-Auswertungen            | Vergütungsplan, `qualification_results` |
+| **Funktion**  | zugewiesen, delegierbar | Ich pflege den Produktkatalog                                 | Zuweisung durch einen Berechtigten      |
 
 Diese drei sind orthogonal. Ein Berater ohne jeden Rang kann Produktpfleger sein. Ein Emerald kann null administrative Funktion haben. Ein Sponsor sieht seine Downline unabhängig von beidem.
 
@@ -122,29 +122,29 @@ Diese drei sind orthogonal. Ein Berater ohne jeden Rang kann Produktpfleger sein
 
 ## 1.3 Dokumentierte Schwachstellen
 
-| # | Schwachstelle | Art | Schwere |
-|---|---|---|---|
-| S1 | `leader` ohne Wirkung, aber im Datenmodell vorhanden | Scheinsicherheit. Ein Betreiber vergibt die Rolle und glaubt, damit Rechte erteilt zu haben | hoch |
-| S2 | Keine Delegation möglich. Jede administrative Handlung erfordert `super_admin` | Verstoß gegen Least Privilege. In der Praxis führt es dazu, dass mehrere Personen `super_admin` erhalten | hoch |
-| S3 | Kein Berechtigungsbegriff. Rechte sind an drei Rollen gebunden | Jede neue Funktion erzwingt entweder eine neue Rolle oder eine Rechteausweitung bestehender Rollen | hoch |
-| S4 | Rang ist nirgends autorisierungsrelevant abgebildet | Rangabhängige Sichten sind nicht darstellbar, ohne Rollen zu missbrauchen | mittel |
-| S5 | `profiles_public` liefert `role` org-weit aus | Jeder Angemeldete kann den Betreiber identifizieren. Erleichtert gezielte Angriffe | mittel |
-| S6 | Kein Prüfprotokoll für Rechteänderungen | DSGVO-Nachweispflicht nicht erfüllbar. Rechteausweitung nicht rekonstruierbar | mittel |
-| S7 | Keine zeitlich begrenzten Rechte | Vertretung im Urlaub führt zu dauerhafter Rechteausweitung, weil niemand zurücknimmt | mittel |
-| S8 | Keine Trennung Autor und Freigeber bei Wissen | Wer Wissen schreibt, kann es selbst freigeben. Die Freigabepflicht der Wissensdatenbank wird damit zur Formsache | mittel |
-| S9 | Identität ist 1 zu 1 an eine Organisation gebunden | `profiles.id = auth.users.id` und `profiles.org_id` als Einzelspalte. Eine Person kann nie in zwei Organisationen sein | **hoch, siehe Teil 8** |
-| S10 | Kein Prinzipal für den Plattformbetreiber | Support für Fremdmandanten wäre nur über `super_admin` in deren Organisation möglich | mittel |
-| S11 | Keine Rangordnung zwischen Rollen | „Darf Admin einen Super-Admin bearbeiten" ist im Modell nicht beantwortbar | hoch |
+| #   | Schwachstelle                                                                  | Art                                                                                                                    | Schwere                |
+| --- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| S1  | `leader` ohne Wirkung, aber im Datenmodell vorhanden                           | Scheinsicherheit. Ein Betreiber vergibt die Rolle und glaubt, damit Rechte erteilt zu haben                            | hoch                   |
+| S2  | Keine Delegation möglich. Jede administrative Handlung erfordert `super_admin` | Verstoß gegen Least Privilege. In der Praxis führt es dazu, dass mehrere Personen `super_admin` erhalten               | hoch                   |
+| S3  | Kein Berechtigungsbegriff. Rechte sind an drei Rollen gebunden                 | Jede neue Funktion erzwingt entweder eine neue Rolle oder eine Rechteausweitung bestehender Rollen                     | hoch                   |
+| S4  | Rang ist nirgends autorisierungsrelevant abgebildet                            | Rangabhängige Sichten sind nicht darstellbar, ohne Rollen zu missbrauchen                                              | mittel                 |
+| S5  | `profiles_public` liefert `role` org-weit aus                                  | Jeder Angemeldete kann den Betreiber identifizieren. Erleichtert gezielte Angriffe                                     | mittel                 |
+| S6  | Kein Prüfprotokoll für Rechteänderungen                                        | DSGVO-Nachweispflicht nicht erfüllbar. Rechteausweitung nicht rekonstruierbar                                          | mittel                 |
+| S7  | Keine zeitlich begrenzten Rechte                                               | Vertretung im Urlaub führt zu dauerhafter Rechteausweitung, weil niemand zurücknimmt                                   | mittel                 |
+| S8  | Keine Trennung Autor und Freigeber bei Wissen                                  | Wer Wissen schreibt, kann es selbst freigeben. Die Freigabepflicht der Wissensdatenbank wird damit zur Formsache       | mittel                 |
+| S9  | Identität ist 1 zu 1 an eine Organisation gebunden                             | `profiles.id = auth.users.id` und `profiles.org_id` als Einzelspalte. Eine Person kann nie in zwei Organisationen sein | **hoch, siehe Teil 8** |
+| S10 | Kein Prinzipal für den Plattformbetreiber                                      | Support für Fremdmandanten wäre nur über `super_admin` in deren Organisation möglich                                   | mittel                 |
+| S11 | Keine Rangordnung zwischen Rollen                                              | „Darf Admin einen Super-Admin bearbeiten" ist im Modell nicht beantwortbar                                             | hoch                   |
 
 ## 1.4 Bewertung der vorgeschlagenen Rollen
 
-| Vorgeschlagen | Bewertung | Begründung |
-|---|---|---|
-| `user` | **umbenennen nicht empfohlen** | Der Bestand nutzt `berater`. Ein Umbenennen berührt die CHECK-Bedingung und jede Stelle, die den Wert vergleicht, ohne fachlichen Gewinn. `berater` ist zudem präziser: es bezeichnet einen Lizenzinhaber, nicht einen beliebigen Kontoinhaber |
-| `leader` | **nicht als Rolle** | Die gemeinte Befugnis ist beziehungsbasiert und mit `is_ancestor_of()` seit F1 gelöst. Eine Rolle daneben erzeugt eine zweite, widersprüchliche Wahrheitsquelle |
-| `senior_leader` | **nicht als Rolle** | Der Vergütungsplan hat 16 Stufen. Eine Teilmenge als Rollen zu kodieren heißt entweder 16 Rollen oder willkürliche Grenzen. Die Wissensdatenbank belegt, dass Chogan Planwerte ändert: die PT-Schwelle für Senior Manager ist dort als VERALTET geführt. Eine Planänderung würde dann eine Migration erzwingen. Rang gehört in `qualification_results` |
-| `admin` | **übernehmen** | Schließt die Delegationslücke S2. Braucht aber eine trennscharfe Abgrenzung zu `super_admin`, sonst ist es Dekoration |
-| `super_admin` | **übernehmen** | Bleibt Mandanteneigentümer |
+| Vorgeschlagen   | Bewertung                      | Begründung                                                                                                                                                                                                                                                                                                                                             |
+| --------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `user`          | **umbenennen nicht empfohlen** | Der Bestand nutzt `berater`. Ein Umbenennen berührt die CHECK-Bedingung und jede Stelle, die den Wert vergleicht, ohne fachlichen Gewinn. `berater` ist zudem präziser: es bezeichnet einen Lizenzinhaber, nicht einen beliebigen Kontoinhaber                                                                                                         |
+| `leader`        | **nicht als Rolle**            | Die gemeinte Befugnis ist beziehungsbasiert und mit `is_ancestor_of()` seit F1 gelöst. Eine Rolle daneben erzeugt eine zweite, widersprüchliche Wahrheitsquelle                                                                                                                                                                                        |
+| `senior_leader` | **nicht als Rolle**            | Der Vergütungsplan hat 16 Stufen. Eine Teilmenge als Rollen zu kodieren heißt entweder 16 Rollen oder willkürliche Grenzen. Die Wissensdatenbank belegt, dass Chogan Planwerte ändert: die PT-Schwelle für Senior Manager ist dort als VERALTET geführt. Eine Planänderung würde dann eine Migration erzwingen. Rang gehört in `qualification_results` |
+| `admin`         | **übernehmen**                 | Schließt die Delegationslücke S2. Braucht aber eine trennscharfe Abgrenzung zu `super_admin`, sonst ist es Dekoration                                                                                                                                                                                                                                  |
+| `super_admin`   | **übernehmen**                 | Bleibt Mandanteneigentümer                                                                                                                                                                                                                                                                                                                             |
 
 Ergebnis: aus fünf vorgeschlagenen Rollen werden **drei Rollen plus ein Prinzipal außerhalb der Mandanten**. Alles Weitere wird Daten. Das ist keine Vereinfachung aus Bequemlichkeit, sondern die Konsequenz aus 1.2. Weniger Rollen bei gleichzeitig feinerer Steuerung, weil die Steuerung in die Berechtigungen wandert.
 
@@ -154,12 +154,12 @@ Ergebnis: aus fünf vorgeschlagenen Rollen werden **drei Rollen plus ein Prinzip
 
 Jede Rolle trägt eine **Stufe**. Die Stufe existiert ausschließlich, um S11 zu lösen: Ein Prinzipal darf nur Prinzipale mit **strikt niedrigerer** Stufe verändern.
 
-| Rolle | Stufe | Anzahl je Organisation |
-|---|---|---|
-| `berater` | 10 | beliebig |
-| `admin` | 50 | wenige |
-| `super_admin` | 90 | mindestens einer, empfohlen zwei |
-| `platform_operator` | 99 | außerhalb der Organisation, siehe 2.4 |
+| Rolle               | Stufe | Anzahl je Organisation                |
+| ------------------- | ----- | ------------------------------------- |
+| `berater`           | 10    | beliebig                              |
+| `admin`             | 50    | wenige                                |
+| `super_admin`       | 90    | mindestens einer, empfohlen zwei      |
+| `platform_operator` | 99    | außerhalb der Organisation, siehe 2.4 |
 
 ## 2.1 berater
 
@@ -168,6 +168,7 @@ Jede Rolle trägt eine **Stufe**. Die Stufe existiert ausschließlich, um S11 zu
 **Verantwortlichkeiten.** Eigene Kontakte pflegen, eigene Pipeline führen, eigene Aktivität erfassen, eigene Downline führen.
 
 **Sichtbare Daten.**
+
 - Alles Eigene, ohne Einschränkung
 - Von der eigenen Downline: aggregierte Aktivität, Rang, Journey-Fortschritt, Fristenstatus
 - Von der eigenen Organisation: Teamliste mit Namen und Benutzernamen, freigegebenes Wissen, Produkte, Ereignisse, Nachrichten
@@ -175,6 +176,7 @@ Jede Rolle trägt eine **Stufe**. Die Stufe existiert ausschließlich, um S11 zu
 **Änderbare Daten.** Eigenes Profil ohne die geschützten Spalten. Eigene Kontakte, Ereignisse, Ziele, Punkte. Eigene Einladungen mit Rolle `berater`.
 
 **Verbotene Daten, ausdrücklich.**
+
 - **Kontakte anderer Personen, auch in der eigenen Downline.** Das ist die wichtigste Grenze des ganzen Modells. Kontakte enthalten Namen und Notizen zu Menschen, die AscendOS nicht kennen und nicht zugestimmt haben. Ein Sponsor braucht die Kennzahl „fünf offene Follow-ups", nicht die Namen
 - Coach-Gesprächsinhalte anderer Personen
 - Sidelines, also Zweige außerhalb der eigenen Struktur
@@ -198,12 +200,14 @@ Jede Rolle trägt eine **Stufe**. Die Stufe existiert ausschließlich, um S11 zu
 **Änderbare Daten.** Wissen, Produkte, Trainings, Ereignisse, Nachrichten. Profile von Prinzipalen **niedrigerer Stufe**, und dort nur die betrieblichen Felder.
 
 **Verbotene Daten.**
+
 - **Kontakte fremder Personen. Auch als Admin.** Eine administrative Funktion begründet keinen Zugriff auf personenbezogene Daten Dritter. Das ist der Kern von Least Privilege in diesem System
 - Coach-Gesprächsinhalte
 - Prüfprotokoll, sofern nicht ausdrücklich erteilt
 - Organisationseinstellungen, die Sicherheit betreffen
 
 **Verbotene Aktionen, hart und nicht delegierbar.**
+
 - Berechtigungen vergeben oder entziehen. `can_manage_permissions` bleibt ausschließlich bei `super_admin`
 - Rollen zuweisen
 - Einen `super_admin` oder einen anderen `admin` bearbeiten, Stufenregel
@@ -224,6 +228,7 @@ Jede Rolle trägt eine **Stufe**. Die Stufe existiert ausschließlich, um S11 zu
 **Änderbare Daten.** Alles innerhalb der Organisation, außer den geschützten Spalten des eigenen Profils und außer anderen `super_admin`.
 
 **Verbotene Aktionen.**
+
 - Sich selbst die eigene Rolle ändern. Der bestehende Schutz `protect_profile_columns` bleibt und gilt auch hier
 - Einen anderen `super_admin` bearbeiten. Gleiche Stufe ist nicht erlaubt, nur strikt niedrigere. Verhindert, dass ein kompromittiertes Konto den zweiten Eigentümer entfernt und den Mandanten übernimmt
 - Fremde Organisationen berühren
@@ -249,13 +254,13 @@ Jede Rolle trägt eine **Stufe**. Die Stufe existiert ausschließlich, um S11 zu
 
 ## 2.5 Was bewusst keine Rolle wird
 
-| Konzept | Wo es hingehört | Begründung |
-|---|---|---|
-| Leader, Teamleitung | Beziehung, `is_ancestor_of()` | Dynamisch, ändert sich mit der Struktur. Eine Rolle würde veralten |
-| Senior Leader und die weiteren 14 Stufen | `qualification_results.computed_rank` | Berechnet, Planwerte ändern sich. Siehe 1.4 |
-| Insider, Lizenz verloren | `license_status` | Zustand, nicht Funktion. Ergibt sich aus der Sechs-Monats-Regel |
-| Kunde | offene Produktentscheidung | Heute hat AscendOS keinen Kundenzugang. Die Kundenwerkzeuge der Generation 1 leisten das bereits |
-| Produktpfleger, Wissensredakteur | Berechtigung | Genau der Fall, für den Berechtigungen existieren |
+| Konzept                                  | Wo es hingehört                       | Begründung                                                                                       |
+| ---------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Leader, Teamleitung                      | Beziehung, `is_ancestor_of()`         | Dynamisch, ändert sich mit der Struktur. Eine Rolle würde veralten                               |
+| Senior Leader und die weiteren 14 Stufen | `qualification_results.computed_rank` | Berechnet, Planwerte ändern sich. Siehe 1.4                                                      |
+| Insider, Lizenz verloren                 | `license_status`                      | Zustand, nicht Funktion. Ergibt sich aus der Sechs-Monats-Regel                                  |
+| Kunde                                    | offene Produktentscheidung            | Heute hat AscendOS keinen Kundenzugang. Die Kundenwerkzeuge der Generation 1 leisten das bereits |
+| Produktpfleger, Wissensredakteur         | Berechtigung                          | Genau der Fall, für den Berechtigungen existieren                                                |
 
 ## 2.6 Umgang mit dem bestehenden Wert `leader`
 
@@ -271,12 +276,12 @@ Ein reiner Wahrheitswert je Berechtigung ist der klassische Fehler, der im zweit
 
 Jede Erteilung trägt deshalb einen Geltungsbereich:
 
-| Geltungsbereich | Bedeutung |
-|---|---|
-| `self` | nur eigene Daten |
-| `downline` | eigene Struktur, über `is_ancestor_of()` bestimmt |
-| `team` | das eigene Team, `team_id` |
-| `org` | die gesamte Organisation |
+| Geltungsbereich | Bedeutung                                         |
+| --------------- | ------------------------------------------------- |
+| `self`          | nur eigene Daten                                  |
+| `downline`      | eigene Struktur, über `is_ancestor_of()` bestimmt |
+| `team`          | das eigene Team, `team_id`                        |
+| `org`           | die gesamte Organisation                          |
 
 `can_view_reports` mit `downline` und `can_view_reports` mit `org` sind zwei völlig verschiedene Befugnisse. Ohne diese Dimension müsste man beide als getrennte Berechtigungen führen, und die Anzahl der Berechtigungen würde sich mit jedem neuen Bereich vervielfachen.
 
@@ -284,15 +289,15 @@ Jede Erteilung trägt deshalb einen Geltungsbereich:
 
 Fachliche Bestandteile, ohne Schemafestlegung:
 
-| Bestandteil | Zweck |
-|---|---|
-| Prinzipal | wer |
-| Berechtigung | was |
-| Geltungsbereich | über wen |
-| Organisation | in welchem Mandanten |
-| Gültig ab, gültig bis | zeitlich begrenzte Rechte, S7 |
-| Erteilt von, erteilt am | Prüfbarkeit, S6 |
-| Grund | Nachvollziehbarkeit bei Prüfungen |
+| Bestandteil             | Zweck                             |
+| ----------------------- | --------------------------------- |
+| Prinzipal               | wer                               |
+| Berechtigung            | was                               |
+| Geltungsbereich         | über wen                          |
+| Organisation            | in welchem Mandanten              |
+| Gültig ab, gültig bis   | zeitlich begrenzte Rechte, S7     |
+| Erteilt von, erteilt am | Prüfbarkeit, S6                   |
+| Grund                   | Nachvollziehbarkeit bei Prüfungen |
 
 Zwei Regeln zur Gültigkeit:
 
@@ -311,50 +316,50 @@ Generische Namen, wie vorgegeben. Der zulässige Geltungsbereich ist Teil der De
 
 **Team und Struktur**
 
-| Berechtigung | Zulässiger Bereich | Bedeutung |
-|---|---|---|
-| `can_view_team` | downline, team, org | Struktur und Kennzahlen sehen, ohne Kontaktidentitäten |
-| `can_manage_team` | downline, team | Teamzuordnung ändern, Journey zuweisen |
+| Berechtigung      | Zulässiger Bereich  | Bedeutung                                              |
+| ----------------- | ------------------- | ------------------------------------------------------ |
+| `can_view_team`   | downline, team, org | Struktur und Kennzahlen sehen, ohne Kontaktidentitäten |
+| `can_manage_team` | downline, team      | Teamzuordnung ändern, Journey zuweisen                 |
 
 **Inhalte**
 
-| Berechtigung | Zulässiger Bereich | Bedeutung |
-|---|---|---|
-| `can_manage_documents` | org | Wissen anlegen und bearbeiten, Status bleibt Entwurf |
-| `can_approve_documents` | org | Entwurf freigeben |
-| `can_manage_training` | org | Journeys und Trainings pflegen |
-| `can_manage_products` | org | Produkte und Preise pflegen |
-| `can_manage_news` | org, team | Nachrichten veröffentlichen |
-| `can_manage_events` | org | Termine pflegen |
+| Berechtigung            | Zulässiger Bereich | Bedeutung                                            |
+| ----------------------- | ------------------ | ---------------------------------------------------- |
+| `can_manage_documents`  | org                | Wissen anlegen und bearbeiten, Status bleibt Entwurf |
+| `can_approve_documents` | org                | Entwurf freigeben                                    |
+| `can_manage_training`   | org                | Journeys und Trainings pflegen                       |
+| `can_manage_products`   | org                | Produkte und Preise pflegen                          |
+| `can_manage_news`       | org, team          | Nachrichten veröffentlichen                          |
+| `can_manage_events`     | org                | Termine pflegen                                      |
 
 **Trennung von `can_manage_documents` und `can_approve_documents`.** Das ist die Behebung von S8. Die Wissensdatenbank verlangt eine Freigabe durch eine zweite Person. Fällt beides zusammen, ist die Freigabe eine Formsache. Wissen ist für den Coach oberste Wahrheit, ein Fehler darin wirkt auf jede Antwort.
 
 **Auswertung**
 
-| Berechtigung | Zulässiger Bereich | Bedeutung |
-|---|---|---|
-| `can_view_reports` | downline, team, org | Auswertungen sehen, aggregiert |
-| `can_export_reports` | downline, team, org | Ausleitung als Datei |
-| `can_manage_dashboard` | org | Standardansichten festlegen |
+| Berechtigung           | Zulässiger Bereich  | Bedeutung                      |
+| ---------------------- | ------------------- | ------------------------------ |
+| `can_view_reports`     | downline, team, org | Auswertungen sehen, aggregiert |
+| `can_export_reports`   | downline, team, org | Ausleitung als Datei           |
+| `can_manage_dashboard` | org                 | Standardansichten festlegen    |
 
 **Getrennt von `can_view_reports`, weil eine Ausleitung die Daten aus dem System entfernt und damit aus jeder weiteren Kontrolle. Das ist DSGVO-relevant und braucht eine eigene Entscheidung.**
 
 **Nutzer und Rechte**
 
-| Berechtigung | Zulässiger Bereich | Bedeutung |
-|---|---|---|
-| `can_manage_users` | org | Nutzer anlegen, deaktivieren, betriebliche Felder pflegen |
-| `can_manage_roles` | org | Rollen zuweisen, nur unterhalb der eigenen Stufe |
-| `can_manage_permissions` | org | Berechtigungen erteilen. **Nicht delegierbar, ausschließlich super_admin** |
+| Berechtigung             | Zulässiger Bereich | Bedeutung                                                                  |
+| ------------------------ | ------------------ | -------------------------------------------------------------------------- |
+| `can_manage_users`       | org                | Nutzer anlegen, deaktivieren, betriebliche Felder pflegen                  |
+| `can_manage_roles`       | org                | Rollen zuweisen, nur unterhalb der eigenen Stufe                           |
+| `can_manage_permissions` | org                | Berechtigungen erteilen. **Nicht delegierbar, ausschließlich super_admin** |
 
 **Betrieb**
 
-| Berechtigung | Zulässiger Bereich | Bedeutung |
-|---|---|---|
-| `can_manage_settings` | org | Organisationseinstellungen |
-| `can_manage_ai` | org | Agenten, Systemanweisungen, Modellwahl, Schwellwerte |
-| `can_manage_system` | org | Wartung, Sicherheitsrelevantes |
-| `can_view_audit` | org | Prüfprotokoll lesen |
+| Berechtigung          | Zulässiger Bereich | Bedeutung                                            |
+| --------------------- | ------------------ | ---------------------------------------------------- |
+| `can_manage_settings` | org                | Organisationseinstellungen                           |
+| `can_manage_ai`       | org                | Agenten, Systemanweisungen, Modellwahl, Schwellwerte |
+| `can_manage_system`   | org                | Wartung, Sicherheitsrelevantes                       |
+| `can_view_audit`      | org                | Prüfprotokoll lesen                                  |
 
 **`can_manage_ai` ist bewusst eigenständig und nicht Teil von `can_manage_settings`.** Wer Systemanweisungen ändern kann, ändert das Verhalten des Coaches gegenüber allen Nutzern, einschließlich der Compliance-Grenzen zu Einkommensversprechen. Das ist eine der wirksamsten Befugnisse im System und darf nicht als Nebenwirkung einer allgemeinen Einstellungsberechtigung mitkommen.
 
@@ -424,11 +429,11 @@ Edge Functions arbeiten mit dem Zugangstoken des Aufrufers, nie mit dem Dienstsc
 
 Berechtigungen im Frontend dienen **ausschließlich der Darstellung**, niemals der Sicherheit.
 
-| Zweck | Erlaubt |
-|---|---|
-| Menüpunkt ausblenden | ja |
-| Schaltfläche deaktivieren | ja |
-| Zugriff verhindern | **nein** |
+| Zweck                     | Erlaubt  |
+| ------------------------- | -------- |
+| Menüpunkt ausblenden      | ja       |
+| Schaltfläche deaktivieren | ja       |
+| Zugriff verhindern        | **nein** |
 
 Eine ausgeblendete Schaltfläche verhindert einen Fehlversuch, keinen Angriff. Der Angreifer ruft die Schnittstelle direkt. Deshalb gilt: Jede Oberflächenprüfung hat eine gleichlautende Prüfung in der Datenbank, und die Datenbank ist die Autorität.
 
@@ -454,29 +459,29 @@ Zum Szenario „KI fordert geschützte Daten an": Ein Prompt kann nach fremden K
 Zeichen: ✓ erlaubt, ✗ verboten, △ eingeschränkt.
 Bei △ steht der Grund in der Fußnote.
 
-| Berechtigung | berater | admin | super_admin | platform_operator |
-|---|---|---|---|---|
-| `can_view_team` | △ 1 | △ 2 | ✓ | △ 3 |
-| `can_manage_team` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_documents` | ✗ | △ 2 | ✓ | ✗ |
-| `can_approve_documents` | ✗ | ✗ 4 | ✓ | ✗ |
-| `can_manage_training` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_products` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_news` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_events` | ✗ | △ 2 | ✓ | ✗ |
-| `can_view_reports` | △ 1 | △ 2 | ✓ | △ 3 |
-| `can_export_reports` | ✗ | △ 5 | ✓ | ✗ |
-| `can_manage_dashboard` | ✗ | △ 2 | ✓ | ✗ |
-| `can_manage_users` | ✗ | △ 6 | ✓ | ✗ |
-| `can_manage_roles` | ✗ | ✗ 7 | △ 8 | ✗ |
-| `can_manage_permissions` | ✗ | ✗ 9 | ✓ | ✗ |
-| `can_manage_settings` | ✗ | △ 2 | ✓ | △ 3 |
-| `can_manage_ai` | ✗ | ✗ 10 | ✓ | ✗ |
-| `can_manage_system` | ✗ | ✗ | ✓ | △ 3 |
-| `can_view_audit` | ✗ | ✗ 11 | ✓ | △ 3 |
-| Eigene Kontakte | ✓ | ✓ | ✓ | ✗ |
-| **Fremde Kontakte** | **✗** | **✗** | **△ 12** | **✗ 13** |
-| **Fremde Coach-Gespräche** | **✗** | **✗** | **✗ 14** | **✗** |
+| Berechtigung               | berater | admin | super_admin | platform_operator |
+| -------------------------- | ------- | ----- | ----------- | ----------------- |
+| `can_view_team`            | △ 1     | △ 2   | ✓           | △ 3               |
+| `can_manage_team`          | ✗       | △ 2   | ✓           | ✗                 |
+| `can_manage_documents`     | ✗       | △ 2   | ✓           | ✗                 |
+| `can_approve_documents`    | ✗       | ✗ 4   | ✓           | ✗                 |
+| `can_manage_training`      | ✗       | △ 2   | ✓           | ✗                 |
+| `can_manage_products`      | ✗       | △ 2   | ✓           | ✗                 |
+| `can_manage_news`          | ✗       | △ 2   | ✓           | ✗                 |
+| `can_manage_events`        | ✗       | △ 2   | ✓           | ✗                 |
+| `can_view_reports`         | △ 1     | △ 2   | ✓           | △ 3               |
+| `can_export_reports`       | ✗       | △ 5   | ✓           | ✗                 |
+| `can_manage_dashboard`     | ✗       | △ 2   | ✓           | ✗                 |
+| `can_manage_users`         | ✗       | △ 6   | ✓           | ✗                 |
+| `can_manage_roles`         | ✗       | ✗ 7   | △ 8         | ✗                 |
+| `can_manage_permissions`   | ✗       | ✗ 9   | ✓           | ✗                 |
+| `can_manage_settings`      | ✗       | △ 2   | ✓           | △ 3               |
+| `can_manage_ai`            | ✗       | ✗ 10  | ✓           | ✗                 |
+| `can_manage_system`        | ✗       | ✗     | ✓           | △ 3               |
+| `can_view_audit`           | ✗       | ✗ 11  | ✓           | △ 3               |
+| Eigene Kontakte            | ✓       | ✓     | ✓           | ✗                 |
+| **Fremde Kontakte**        | **✗**   | **✗** | **△ 12**    | **✗ 13**          |
+| **Fremde Coach-Gespräche** | **✗**   | **✗** | **✗ 14**    | **✗**             |
 
 **Fußnoten**
 
@@ -501,37 +506,37 @@ Bei △ steht der Grund in der Fußnote.
 
 # Teil 6: Sicherheitsprüfung der Szenarien
 
-| # | Szenario | Ergebnis | Womit verhindert | Bewertung |
-|---|---|---|---|---|
-| 1 | Leader sieht fremde Organisation | **abgewiesen** | Mandantengrenze in jeder Policy als erste Bedingung, Organisationsfilter in `get_downline()` seit F1 | gedeckt, sofern F1 verifiziert ist |
-| 2 | Leader ändert Rollen | **abgewiesen** | `leader` ist keine Rolle mehr. `can_manage_roles` nur `super_admin`, Stufenregel | gedeckt |
-| 3 | Admin bearbeitet Super Admin | **abgewiesen** | Stufenregel: strikt niedrigere Stufe. Admin 50 gegen Super-Admin 90 | gedeckt. War im alten Modell nicht beantwortbar, S11 |
-| 4 | Berater öffnet fremde Kontakte | **abgewiesen** | RLS auf Eigentum. Kontaktidentitäten sind für **keine** Rolle im Normalbetrieb sichtbar | gedeckt |
-| 5 | Manipulierte Nutzerkennung | **abgewiesen** | Kein Fremdparameter, wo der eigene Nutzer gemeint ist. Bleibt einer, ist die Aufruferprüfung Pflicht. Lehre aus F1 | gedeckt durch die Baseline |
-| 6 | Manipulierte Organisationskennung | **abgewiesen** | Organisation kommt nie aus dem Aufruf, immer aus `current_org_id()`. Wo ein Parameter bleibt, wird er gegen die eigene Organisation geprüft | gedeckt |
-| 7 | Direkter RPC-Aufruf | **abgewiesen** | Prüfung liegt im Funktionskörper, nicht im Aufrufer. Ausführungsrechte für `anon` entzogen | gedeckt |
-| 8 | Direkter API-Aufruf | **abgewiesen** | Dieselbe RLS wie in der Oberfläche. Keine zweite Ebene, deshalb keine Lücke zwischen den Ebenen | gedeckt |
-| 9 | KI fordert geschützte Daten an | **abgewiesen** | Der Coach arbeitet unter der RLS des Nutzers. Geschützte Daten gelangen nicht in den Kontext. Retrieval filtert Status und Zielgruppe | gedeckt |
+| #   | Szenario                          | Ergebnis       | Womit verhindert                                                                                                                            | Bewertung                                            |
+| --- | --------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 1   | Leader sieht fremde Organisation  | **abgewiesen** | Mandantengrenze in jeder Policy als erste Bedingung, Organisationsfilter in `get_downline()` seit F1                                        | gedeckt, sofern F1 verifiziert ist                   |
+| 2   | Leader ändert Rollen              | **abgewiesen** | `leader` ist keine Rolle mehr. `can_manage_roles` nur `super_admin`, Stufenregel                                                            | gedeckt                                              |
+| 3   | Admin bearbeitet Super Admin      | **abgewiesen** | Stufenregel: strikt niedrigere Stufe. Admin 50 gegen Super-Admin 90                                                                         | gedeckt. War im alten Modell nicht beantwortbar, S11 |
+| 4   | Berater öffnet fremde Kontakte    | **abgewiesen** | RLS auf Eigentum. Kontaktidentitäten sind für **keine** Rolle im Normalbetrieb sichtbar                                                     | gedeckt                                              |
+| 5   | Manipulierte Nutzerkennung        | **abgewiesen** | Kein Fremdparameter, wo der eigene Nutzer gemeint ist. Bleibt einer, ist die Aufruferprüfung Pflicht. Lehre aus F1                          | gedeckt durch die Baseline                           |
+| 6   | Manipulierte Organisationskennung | **abgewiesen** | Organisation kommt nie aus dem Aufruf, immer aus `current_org_id()`. Wo ein Parameter bleibt, wird er gegen die eigene Organisation geprüft | gedeckt                                              |
+| 7   | Direkter RPC-Aufruf               | **abgewiesen** | Prüfung liegt im Funktionskörper, nicht im Aufrufer. Ausführungsrechte für `anon` entzogen                                                  | gedeckt                                              |
+| 8   | Direkter API-Aufruf               | **abgewiesen** | Dieselbe RLS wie in der Oberfläche. Keine zweite Ebene, deshalb keine Lücke zwischen den Ebenen                                             | gedeckt                                              |
+| 9   | KI fordert geschützte Daten an    | **abgewiesen** | Der Coach arbeitet unter der RLS des Nutzers. Geschützte Daten gelangen nicht in den Kontext. Retrieval filtert Status und Zielgruppe       | gedeckt                                              |
 
 ## 6.1 Zusätzlich geprüfte Szenarien
 
-| # | Szenario | Ergebnis | Bemerkung |
-|---|---|---|---|
-| 10 | Admin erteilt sich selbst Rechte | abgewiesen | Regel 1, keine Selbsterteilung |
-| 11 | Admin erteilt einem Berater mehr, als er selbst hat | abgewiesen | Regel 2, keine Ausweitung durch Delegation |
-| 12 | Kompromittierter Super-Admin entfernt den zweiten Eigentümer | abgewiesen | Stufenregel, gleiche Stufe ist ausgeschlossen |
-| 13 | Urlaubsvertretung behält Rechte dauerhaft | abgewiesen | Gültigkeitszeitraum, und die Prüffunktion vergleicht ihn immer |
-| 14 | Autor gibt eigenes Wissen frei | abgewiesen | Trennung `can_manage_documents` und `can_approve_documents` |
-| 15 | Sponsor liest Kontaktnamen der Downline | abgewiesen | Aggregat statt Identität. Die zentrale Privacy-Grenze |
-| 16 | Anbieter greift ohne Anlass auf Mandantendaten zu | abgewiesen | Zeitfenster, Zweckbindung, Protokoll, Sichtbarkeit für den Mandanten |
-| 17 | Abgelaufenes Recht wirkt weiter, weil kein Aufräumlauf existiert | abgewiesen | Prüfung vergleicht den Zeitraum, verlässt sich nicht auf Bereinigung |
-| 18 | Frontend blendet Schaltfläche aus, Angreifer ruft Schnittstelle | abgewiesen | Frontend ist Darstellung, Datenbank ist Autorität |
+| #   | Szenario                                                         | Ergebnis   | Bemerkung                                                            |
+| --- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------- |
+| 10  | Admin erteilt sich selbst Rechte                                 | abgewiesen | Regel 1, keine Selbsterteilung                                       |
+| 11  | Admin erteilt einem Berater mehr, als er selbst hat              | abgewiesen | Regel 2, keine Ausweitung durch Delegation                           |
+| 12  | Kompromittierter Super-Admin entfernt den zweiten Eigentümer     | abgewiesen | Stufenregel, gleiche Stufe ist ausgeschlossen                        |
+| 13  | Urlaubsvertretung behält Rechte dauerhaft                        | abgewiesen | Gültigkeitszeitraum, und die Prüffunktion vergleicht ihn immer       |
+| 14  | Autor gibt eigenes Wissen frei                                   | abgewiesen | Trennung `can_manage_documents` und `can_approve_documents`          |
+| 15  | Sponsor liest Kontaktnamen der Downline                          | abgewiesen | Aggregat statt Identität. Die zentrale Privacy-Grenze                |
+| 16  | Anbieter greift ohne Anlass auf Mandantendaten zu                | abgewiesen | Zeitfenster, Zweckbindung, Protokoll, Sichtbarkeit für den Mandanten |
+| 17  | Abgelaufenes Recht wirkt weiter, weil kein Aufräumlauf existiert | abgewiesen | Prüfung vergleicht den Zeitraum, verlässt sich nicht auf Bereinigung |
+| 18  | Frontend blendet Schaltfläche aus, Angreifer ruft Schnittstelle  | abgewiesen | Frontend ist Darstellung, Datenbank ist Autorität                    |
 
 ## 6.2 Ein Szenario, das nicht vollständig gedeckt ist
 
-| # | Szenario | Ergebnis |
-|---|---|---|
-| 19 | Berater exportiert die eigene Kontaktliste und nimmt sie beim Wechsel mit | **nicht verhindert** |
+| #   | Szenario                                                                  | Ergebnis             |
+| --- | ------------------------------------------------------------------------- | -------------------- |
+| 19  | Berater exportiert die eigene Kontaktliste und nimmt sie beim Wechsel mit | **nicht verhindert** |
 
 Der Berater ist Eigentümer seiner Kontakte und darf sie lesen. Technisch ist das nicht zu unterbinden, und es wäre auch falsch: Es sind seine Kontakte.
 
@@ -541,18 +546,18 @@ Das ist keine technische, sondern eine vertragliche Frage, und sie gehört in di
 
 # Teil 7: Architekturprüfung
 
-| Bereich | Auswirkung | Bewertung |
-|---|---|---|
-| **RLS** | Jede Policy erhält als dritten Teil die Berechtigungsprüfung. Bestehende Policies bleiben gültig, sie werden erweitert, nicht ersetzt | mittlerer Umfang, kein Bruch |
-| **JWT-Ansprüche** | **Keine Berechtigungen im Token.** Begründung unten | keine Änderung nötig |
-| **`current_user_role()`** | Bleibt. Wird um die Stufenauflösung ergänzt, damit die Stufenregel prüfbar ist | kleine Erweiterung |
-| **`current_org_id()`** | Bleibt unverändert und bleibt erste Bedingung jeder Policy | keine Änderung |
-| **RPC-Funktionen** | Prüfen künftig zusätzlich Berechtigungen. Die Baseline aus F1 gilt unverändert weiter | Erweiterung je Funktion |
-| **Views** | `security_invoker` bleibt Standard. **`profiles_public` verliert die Spalte `role`**, siehe S5 | eine Änderung |
-| **Realtime** | Abonnements unterliegen RLS. Wichtig: Ein Rechteentzug beendet ein bestehendes Abonnement nicht automatisch. Empfehlung: bei Rechteänderung die Sitzung des Betroffenen als ungültig markieren | Punkt für die Umsetzung |
-| **Storage** | Heute nicht in Gebrauch. Sobald Dateien hinzukommen, gelten dieselben drei Policy-Teile. Ablagepfade müssen die Organisation enthalten, damit die Grenze am Pfad prüfbar ist | Vorgabe für später |
-| **Wissensdatenbank** | Freigabe wird zweistufig, Autor und Freigeber getrennt. Retrieval erhält den Zielgruppenfilter | passt zu F6 |
-| **KI** | Coach bleibt ohne eigene Rechte. `can_manage_ai` wird eigenständig | klein |
+| Bereich                   | Auswirkung                                                                                                                                                                                     | Bewertung                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **RLS**                   | Jede Policy erhält als dritten Teil die Berechtigungsprüfung. Bestehende Policies bleiben gültig, sie werden erweitert, nicht ersetzt                                                          | mittlerer Umfang, kein Bruch |
+| **JWT-Ansprüche**         | **Keine Berechtigungen im Token.** Begründung unten                                                                                                                                            | keine Änderung nötig         |
+| **`current_user_role()`** | Bleibt. Wird um die Stufenauflösung ergänzt, damit die Stufenregel prüfbar ist                                                                                                                 | kleine Erweiterung           |
+| **`current_org_id()`**    | Bleibt unverändert und bleibt erste Bedingung jeder Policy                                                                                                                                     | keine Änderung               |
+| **RPC-Funktionen**        | Prüfen künftig zusätzlich Berechtigungen. Die Baseline aus F1 gilt unverändert weiter                                                                                                          | Erweiterung je Funktion      |
+| **Views**                 | `security_invoker` bleibt Standard. **`profiles_public` verliert die Spalte `role`**, siehe S5                                                                                                 | eine Änderung                |
+| **Realtime**              | Abonnements unterliegen RLS. Wichtig: Ein Rechteentzug beendet ein bestehendes Abonnement nicht automatisch. Empfehlung: bei Rechteänderung die Sitzung des Betroffenen als ungültig markieren | Punkt für die Umsetzung      |
+| **Storage**               | Heute nicht in Gebrauch. Sobald Dateien hinzukommen, gelten dieselben drei Policy-Teile. Ablagepfade müssen die Organisation enthalten, damit die Grenze am Pfad prüfbar ist                   | Vorgabe für später           |
+| **Wissensdatenbank**      | Freigabe wird zweistufig, Autor und Freigeber getrennt. Retrieval erhält den Zielgruppenfilter                                                                                                 | passt zu F6                  |
+| **KI**                    | Coach bleibt ohne eigene Rechte. `can_manage_ai` wird eigenständig                                                                                                                             | klein                        |
 
 ## 7.1 Die Entscheidung gegen Berechtigungen im Zugangstoken
 
@@ -590,28 +595,28 @@ Der Preis dieser Entscheidung ist Leistung. Gegenmaßnahme: Die Auflösungsfunkt
 
 **Das ist die wichtigste Entscheidung dieses Meilensteins, und ich treffe sie nicht.** Drei Optionen:
 
-| Option | Nutzen | Kosten und Risiken | Empfehlung |
-|---|---|---|---|
-| **A: Grenze ausdrücklich annehmen** | keine Arbeit jetzt | Bei Eintritt eines der fünf Fälle ein zweites Fundament. Enterprise-Verkauf mit gemeinsamem Personal wird unmöglich | nur, wenn Mehrmandantenfähigkeit aufgegeben wird |
-| **B: Mitgliedschaft jetzt einführen** | Alle fünf Fälle bleiben offen. Der Plattformbetreiber wird sauber darstellbar | Ein Konzept mehr im Modell, jede Policy erhält eine Ebene, `current_org_id()` wird zu „aktive Mitgliedschaft". Aufwand jetzt überschaubar | **empfohlen** |
-| **C: Bewusst später** | Nichts jetzt, Entscheidung dokumentiert | Kosten steigen mit jedem Datensatz. Der Zeitpunkt kommt erfahrungsgemäß, wenn ein Kunde wartet | Notlösung |
+| Option                                | Nutzen                                                                        | Kosten und Risiken                                                                                                                        | Empfehlung                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **A: Grenze ausdrücklich annehmen**   | keine Arbeit jetzt                                                            | Bei Eintritt eines der fünf Fälle ein zweites Fundament. Enterprise-Verkauf mit gemeinsamem Personal wird unmöglich                       | nur, wenn Mehrmandantenfähigkeit aufgegeben wird |
+| **B: Mitgliedschaft jetzt einführen** | Alle fünf Fälle bleiben offen. Der Plattformbetreiber wird sauber darstellbar | Ein Konzept mehr im Modell, jede Policy erhält eine Ebene, `current_org_id()` wird zu „aktive Mitgliedschaft". Aufwand jetzt überschaubar | **empfohlen**                                    |
+| **C: Bewusst später**                 | Nichts jetzt, Entscheidung dokumentiert                                       | Kosten steigen mit jedem Datensatz. Der Zeitpunkt kommt erfahrungsgemäß, wenn ein Kunde wartet                                            | Notlösung                                        |
 
 Zu beachten: Ihre Wissensdatenbank führt Skalierungsstufe 5 als Ziel und nennt Chogan, Essence Tribe und Team Şeyda als drei Ebenen. Option A widerspricht dem erklärten Ziel.
 
 ## 8.2 Weitere Risiken
 
-| # | Risiko | Schwere | Empfehlung |
-|---|---|---|---|
-| Z1 | Keine Markenebene über der Organisation. Chogan, Essence Tribe und Team Şeyda sind drei Ebenen, das Modell hat zwei | mittel | Jetzt nicht bauen, aber nie voraussetzen, dass `org_id` die oberste Ebene ist |
-| Z2 | Zeitlich begrenzte Rechte brauchen eine Uhr | mittel | Die Prüffunktion vergleicht immer den Zeitraum. Regel steht in 3.2 |
-| Z3 | Prüfprotokoll wächst unbegrenzt | niedrig | Aufbewahrung nach Kategorie festlegen. Rechteänderungen dauerhaft, Zugriffe begrenzt |
-| Z4 | Löschung nach DSGVO und die Kontakte eines ausgeschiedenen Beraters | **hoch** | Ungeklärt: Wem gehören Kontakte, wenn der Eigentümer geht. Braucht eine Aufbewahrungs- und Übergaberegel, bevor der erste Fall eintritt |
-| Z5 | Auskunftspflicht nach DSGVO ist nicht umsetzbar | hoch | Es gibt keinen Weg, alle Daten einer Person auszugeben. Braucht eine eigene Berechtigung und einen Ausleitungspfad |
-| Z6 | `profiles_public` gibt `role` org-weit aus | mittel | Spalte entfernen, siehe S5 |
-| Z7 | Rechteentzug beendet ein Realtime-Abonnement nicht | mittel | Bei Rechteänderung Sitzung des Betroffenen ungültig machen |
-| Z8 | Kein Kundenzugang, aber die Wissensdatenbank sieht die Rolle Kunde vor | mittel | Produktentscheidung. Falls Kunden Zugang erhalten, kommt ein Prinzipaltyp ohne Genealogie hinzu |
-| Z9 | Leistung der Berechtigungsauflösung bei großen Strukturen | mittel | Mengenweise Prüfung statt je Zeile, entspricht F12 |
-| Z10 | Mandantenübergreifende Auswertungen für den Anbieter | niedrig | Nur über aggregierte, nicht personenbezogene Sichten |
+| #   | Risiko                                                                                                              | Schwere  | Empfehlung                                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Z1  | Keine Markenebene über der Organisation. Chogan, Essence Tribe und Team Şeyda sind drei Ebenen, das Modell hat zwei | mittel   | Jetzt nicht bauen, aber nie voraussetzen, dass `org_id` die oberste Ebene ist                                                           |
+| Z2  | Zeitlich begrenzte Rechte brauchen eine Uhr                                                                         | mittel   | Die Prüffunktion vergleicht immer den Zeitraum. Regel steht in 3.2                                                                      |
+| Z3  | Prüfprotokoll wächst unbegrenzt                                                                                     | niedrig  | Aufbewahrung nach Kategorie festlegen. Rechteänderungen dauerhaft, Zugriffe begrenzt                                                    |
+| Z4  | Löschung nach DSGVO und die Kontakte eines ausgeschiedenen Beraters                                                 | **hoch** | Ungeklärt: Wem gehören Kontakte, wenn der Eigentümer geht. Braucht eine Aufbewahrungs- und Übergaberegel, bevor der erste Fall eintritt |
+| Z5  | Auskunftspflicht nach DSGVO ist nicht umsetzbar                                                                     | hoch     | Es gibt keinen Weg, alle Daten einer Person auszugeben. Braucht eine eigene Berechtigung und einen Ausleitungspfad                      |
+| Z6  | `profiles_public` gibt `role` org-weit aus                                                                          | mittel   | Spalte entfernen, siehe S5                                                                                                              |
+| Z7  | Rechteentzug beendet ein Realtime-Abonnement nicht                                                                  | mittel   | Bei Rechteänderung Sitzung des Betroffenen ungültig machen                                                                              |
+| Z8  | Kein Kundenzugang, aber die Wissensdatenbank sieht die Rolle Kunde vor                                              | mittel   | Produktentscheidung. Falls Kunden Zugang erhalten, kommt ein Prinzipaltyp ohne Genealogie hinzu                                         |
+| Z9  | Leistung der Berechtigungsauflösung bei großen Strukturen                                                           | mittel   | Mengenweise Prüfung statt je Zeile, entspricht F12                                                                                      |
+| Z10 | Mandantenübergreifende Auswertungen für den Anbieter                                                                | niedrig  | Nur über aggregierte, nicht personenbezogene Sichten                                                                                    |
 
 **Z4 und Z5 sind DSGVO-Pflichten, keine Wünsche.** Beide sind heute nicht erfüllbar. Sie gehören in Phase 0, nicht in eine späte Phase.
 
@@ -649,15 +654,15 @@ Alle neun geforderten Szenarien werden abgewiesen, dazu neun weitere, die ich er
 
 Vollständig in Teil 8. Nach Schwere:
 
-| Priorität | Risiko |
-|---|---|
-| 1 | 8.1, Identität an eine Organisation gebunden. Entscheidung erforderlich |
-| 2 | Z4, Kontakte eines ausgeschiedenen Beraters. DSGVO |
-| 3 | Z5, Auskunftspflicht nicht umsetzbar. DSGVO |
-| 4 | Z1, keine Markenebene |
-| 5 | Z6, `role` in `profiles_public` |
-| 6 | Z7, Realtime nach Rechteentzug |
-| 7 | Z9, Leistung bei großen Strukturen |
+| Priorität | Risiko                                                                  |
+| --------- | ----------------------------------------------------------------------- |
+| 1         | 8.1, Identität an eine Organisation gebunden. Entscheidung erforderlich |
+| 2         | Z4, Kontakte eines ausgeschiedenen Beraters. DSGVO                      |
+| 3         | Z5, Auskunftspflicht nicht umsetzbar. DSGVO                             |
+| 4         | Z1, keine Markenebene                                                   |
+| 5         | Z6, `role` in `profiles_public`                                         |
+| 6         | Z7, Realtime nach Rechteentzug                                          |
+| 7         | Z9, Leistung bei großen Strukturen                                      |
 
 ## 9.5 Empfohlene Änderungen, mit Begründung
 
@@ -675,23 +680,23 @@ Nach Ihren Arbeitsregeln jede mit Nutzen, Risiko, Alternative und Auswirkung.
 
 ## 9.6 Offene Punkte
 
-| # | Offener Punkt | Entscheider |
-|---|---|---|
-| O1 | Ä1, Mitgliedschaft trennen oder Grenze annehmen | Sie |
-| O2 | Produktname AscendOS oder AscentOS, siehe 0.5 | Sie |
-| O3 | Symbol-Asset aus dem Logo gewinnen, Beschnitt aus 0.3 | Sie, dann ich |
-| O4 | Erhalten Kunden Zugang, Z8 | Sie |
-| O5 | Aufbewahrungsfrist für das Prüfprotokoll je Kategorie | Sie |
-| O6 | Grundausstattung je Rolle im Detail festlegen | ich, nach O1 |
+| #   | Offener Punkt                                         | Entscheider   |
+| --- | ----------------------------------------------------- | ------------- |
+| O1  | Ä1, Mitgliedschaft trennen oder Grenze annehmen       | Sie           |
+| O2  | Produktname AscendOS oder AscentOS, siehe 0.5         | Sie           |
+| O3  | Symbol-Asset aus dem Logo gewinnen, Beschnitt aus 0.3 | Sie, dann ich |
+| O4  | Erhalten Kunden Zugang, Z8                            | Sie           |
+| O5  | Aufbewahrungsfrist für das Prüfprotokoll je Kategorie | Sie           |
+| O6  | Grundausstattung je Rolle im Detail festlegen         | ich, nach O1  |
 
 ## 9.7 Langfristige Skalierbarkeit
 
-| Zeitraum | Tragfähigkeit |
-|---|---|
-| 1 Jahr, ein Mandant | tragfähig ohne Ä1 |
-| 2 bis 3 Jahre, mehrere Teams als Mandanten | tragfähig nur mit Ä1 |
-| 3 bis 5 Jahre, Unternehmenskunden | Ä1, Ä3, Ä4 und Z1 erforderlich |
-| über 5 Jahre, mehrere Marken | Markenebene über der Organisation, Z1 |
+| Zeitraum                                   | Tragfähigkeit                         |
+| ------------------------------------------ | ------------------------------------- |
+| 1 Jahr, ein Mandant                        | tragfähig ohne Ä1                     |
+| 2 bis 3 Jahre, mehrere Teams als Mandanten | tragfähig nur mit Ä1                  |
+| 3 bis 5 Jahre, Unternehmenskunden          | Ä1, Ä3, Ä4 und Z1 erforderlich        |
+| über 5 Jahre, mehrere Marken               | Markenebene über der Organisation, Z1 |
 
 Das Berechtigungssystem selbst, also 18 Berechtigungen mit Geltungsbereich und drei Ausweitungsregeln, halte ich ohne Umbau über fünf Jahre für tragfähig. Neue Bereiche kommen als neue Berechtigungen hinzu, nicht als neue Rollen. Das war das Ziel.
 
@@ -709,13 +714,13 @@ Der Entwurf ist vollständig und in sich stimmig. Er ist es aber nicht als Umset
 
 ## Blocker nach Priorität
 
-| Priorität | Blocker | Art | Behebung |
-|---|---|---|---|
-| **1** | **Ä1, Identität an eine Organisation gebunden.** Entscheidung erforderlich, bevor irgendetwas gebaut wird | Fundament | Ihre Freigabe für Option A, B oder C aus 8.1 |
-| **2** | **Ä3, Aufbewahrung und Übergabe von Kontakten** | DSGVO | Regel festlegen |
-| **3** | **Ä4, Auskunfts- und Löschpfad** | DSGVO | Berechtigung und Pfad entwerfen |
-| **4** | O1 bis O6, offene Punkte aus 9.6 | Entscheidungen | siehe Tabelle |
-| **5** | F1 unverifiziert | Voraussetzung | Der Organisationsfilter in `get_downline()` trägt Szenario 1. Solange F1 nicht verifiziert ist, ist diese Deckung unbewiesen |
+| Priorität | Blocker                                                                                                   | Art            | Behebung                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **1**     | **Ä1, Identität an eine Organisation gebunden.** Entscheidung erforderlich, bevor irgendetwas gebaut wird | Fundament      | Ihre Freigabe für Option A, B oder C aus 8.1                                                                                 |
+| **2**     | **Ä3, Aufbewahrung und Übergabe von Kontakten**                                                           | DSGVO          | Regel festlegen                                                                                                              |
+| **3**     | **Ä4, Auskunfts- und Löschpfad**                                                                          | DSGVO          | Berechtigung und Pfad entwerfen                                                                                              |
+| **4**     | O1 bis O6, offene Punkte aus 9.6                                                                          | Entscheidungen | siehe Tabelle                                                                                                                |
+| **5**     | F1 unverifiziert                                                                                          | Voraussetzung  | Der Organisationsfilter in `get_downline()` trägt Szenario 1. Solange F1 nicht verifiziert ist, ist diese Deckung unbewiesen |
 
 Blocker 5 verdient eine ausdrückliche Bemerkung: Szenario 1 der Sicherheitsprüfung, Leader sieht fremde Organisation, wird durch den Organisationsfilter abgewiesen, den F1 einführt. Dieser Filter ist geschrieben, aber nie ausgeführt. Bis zur Verifikation von F1 ist die Deckung von Szenario 1 eine begründete Annahme, kein Nachweis.
 

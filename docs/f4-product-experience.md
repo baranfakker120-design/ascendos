@@ -15,28 +15,28 @@ F1 eingefroren. F2 und F3 unverändert gültig.
 
 Verbindliche Entscheidungen aus v1, die unverändert bleiben:
 
-| Entscheidung | Bewertung |
-|---|---|
-| Monochrom plus Champagner-Akzent, **kein Blau** | bleibt. Aus der Logo-Familie abgeleitet |
-| Silber nur im Logo und in Meilenstein-Momenten, **nie als UI-Funktionsfarbe** | bleibt, und meine Messung bestätigt es, siehe 0.3 |
-| Champagner ist ein Gewürz, kein Anstrich | bleibt. Die Ja-Nein-Liste in v1 Abschnitt 3 ist präzise |
-| `accent-deep` als eigener Token für Text | bleibt. Behebt die häufigste Falle bei Goldtönen |
-| Inter als einzige Schrift, Markenmomente über Behandlung | bleibt, mit Begründung in 6.3 |
-| Funktionsfarben bleiben funktional, Rot und Grün als Ausnahme vom Monochrom | bleibt |
-| Claim nur auf Login- und Marketingflächen, nie in der Arbeits-UI | bleibt |
+| Entscheidung                                                                  | Bewertung                                               |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Monochrom plus Champagner-Akzent, **kein Blau**                               | bleibt. Aus der Logo-Familie abgeleitet                 |
+| Silber nur im Logo und in Meilenstein-Momenten, **nie als UI-Funktionsfarbe** | bleibt, und meine Messung bestätigt es, siehe 0.3       |
+| Champagner ist ein Gewürz, kein Anstrich                                      | bleibt. Die Ja-Nein-Liste in v1 Abschnitt 3 ist präzise |
+| `accent-deep` als eigener Token für Text                                      | bleibt. Behebt die häufigste Falle bei Goldtönen        |
+| Inter als einzige Schrift, Markenmomente über Behandlung                      | bleibt, mit Begründung in 6.3                           |
+| Funktionsfarben bleiben funktional, Rot und Grün als Ausnahme vom Monochrom   | bleibt                                                  |
+| Claim nur auf Login- und Marketingflächen, nie in der Arbeits-UI              | bleibt                                                  |
 
 Ich habe geprüft, ob eine der Entscheidungen von v1 dem Enterprise-Anspruch dieses Meilensteins widerspricht. Keine tut das. Die naheliegende Versuchung wäre ein kühler Blauakzent gewesen, wie ihn Linear, Stripe und Vercel verwenden. v1 hat Blau ausdrücklich ausgeschlossen und aus der Logo-Familie begründet. Diese Begründung trägt, und ein Wechsel wäre eine Markenänderung ohne Anlass.
 
 ## 0.2 Was v1 offen gelassen hat
 
-| Offener Punkt aus v1 | Status in v2 |
-|---|---|
+| Offener Punkt aus v1                                  | Status in v2                             |
+| ----------------------------------------------------- | ---------------------------------------- |
 | Emoji-Icons als v2-Empfehlung, bewusst zurückgestellt | **jetzt verbindlich behoben**, siehe 6.4 |
-| Dark Mode als Token definiert, nicht verdrahtet | **verdrahtet**, siehe 6.2 |
-| Logo als SVG angefordert | **weiter offen**, siehe 0.4 |
-| Keine Informationsarchitektur | **Kern dieses Dokuments** |
-| Kein Desktop, kein Tablet | **Teil 4** |
-| Keine Befehlsleiste, keine globale Suche | **Teil 5** |
+| Dark Mode als Token definiert, nicht verdrahtet       | **verdrahtet**, siehe 6.2                |
+| Logo als SVG angefordert                              | **weiter offen**, siehe 0.4              |
+| Keine Informationsarchitektur                         | **Kern dieses Dokuments**                |
+| Kein Desktop, kein Tablet                             | **Teil 4**                               |
+| Keine Befehlsleiste, keine globale Suche              | **Teil 5**                               |
 
 ## 0.3 Drei Messungen am Logo
 
@@ -44,12 +44,12 @@ Statt zu beurteilen habe ich gemessen. Alle drei Ergebnisse haben architektonisc
 
 **Messung 1: Die Materialfarbe des Symbols ist kühl.**
 
-| Wert | Ergebnis |
-|---|---|
-| Mittelwert | R 198,1, G 199,6, B 201,4 |
-| Farbstich | Blau liegt 3,3 Punkte über Rot, also **kühl** |
-| Median | `#D7D8DA` |
-| Spannweite | `#020409` bis `#FFFFFF` |
+| Wert       | Ergebnis                                      |
+| ---------- | --------------------------------------------- |
+| Mittelwert | R 198,1, G 199,6, B 201,4                     |
+| Farbstich  | Blau liegt 3,3 Punkte über Rot, also **kühl** |
+| Median     | `#D7D8DA`                                     |
+| Spannweite | `#020409` bis `#FFFFFF`                       |
 
 Das Symbol ist ein kühles Silber. Der Hintergrund von v1 ist ein **warmes** Off-White, `#F7F6F3`. Diese Paarung ist nicht falsch, kühles Metall auf warmem Papier ist ein etablierter Kontrast, aber sie ist bewusst und sollte dokumentiert sein.
 
@@ -57,11 +57,11 @@ Das Symbol ist ein kühles Silber. Der Hintergrund von v1 ist ein **warmes** Off
 
 Anteil der Symbolfläche mit einem Kontrast unter 1,5 zu 1:
 
-| Untergrund | Unsichtbar oder kaum sichtbar |
-|---|---|
-| `bg` hell `#F7F6F3` | **55,4 Prozent** |
-| `surface` `#FFFFFF` | **52,3 Prozent** |
-| `bg` dunkel `#0F1012` | **0,6 Prozent** |
+| Untergrund            | Unsichtbar oder kaum sichtbar |
+| --------------------- | ----------------------------- |
+| `bg` hell `#F7F6F3`   | **55,4 Prozent**              |
+| `surface` `#FFFFFF`   | **52,3 Prozent**              |
+| `bg` dunkel `#0F1012` | **0,6 Prozent**               |
 
 Das ist keine Geschmacksfrage. Auf dem hellen Standardhintergrund von v1 fehlt mehr als die Hälfte des Symbols. Die verbindliche Vorgabe verlangt das Symbol in Login, Splash, Ladeanzeige, Sidebar, Dashboard, Favicon, PWA, Einstellungen und im Coach-Header. An jeder dieser Stellen wäre es im hellen Theme halb aufgelöst.
 
@@ -71,14 +71,14 @@ Konsequenz in Teil 2.
 
 v1 sagt zu, alle Textkontraste lägen bei mindestens 4,5 zu 1. Das ist für Text korrekt. Für **Grafikelemente**, die Information tragen, gilt 3 zu 1, und das wurde nicht geprüft:
 
-| Prüfung | Licht | Dunkel |
-|---|---|---|
-| `ink` auf `bg` | 17,34 zu 1, erfüllt | 17,16 zu 1, erfüllt |
-| `muted` auf `bg` | 4,59 zu 1, erfüllt | 6,93 zu 1, erfüllt |
-| `accent-deep` als Text auf `surface` | 4,89 zu 1, erfüllt | 9,70 zu 1, erfüllt |
-| `accent` als Text auf `surface` | 2,85 zu 1, **unterschritten**, in v1 bereits untersagt | 7,80 zu 1, erfüllt |
-| **`accent` als Fläche auf `bg`, Soll 3 zu 1** | **2,64 zu 1, unterschritten** | 8,36 zu 1, erfüllt |
-| `line` auf `bg`, Soll 3 zu 1 | 1,18 zu 1, **unterschritten** | 1,29 zu 1, **unterschritten** |
+| Prüfung                                       | Licht                                                  | Dunkel                        |
+| --------------------------------------------- | ------------------------------------------------------ | ----------------------------- |
+| `ink` auf `bg`                                | 17,34 zu 1, erfüllt                                    | 17,16 zu 1, erfüllt           |
+| `muted` auf `bg`                              | 4,59 zu 1, erfüllt                                     | 6,93 zu 1, erfüllt            |
+| `accent-deep` als Text auf `surface`          | 4,89 zu 1, erfüllt                                     | 9,70 zu 1, erfüllt            |
+| `accent` als Text auf `surface`               | 2,85 zu 1, **unterschritten**, in v1 bereits untersagt | 7,80 zu 1, erfüllt            |
+| **`accent` als Fläche auf `bg`, Soll 3 zu 1** | **2,64 zu 1, unterschritten**                          | 8,36 zu 1, erfüllt            |
+| `line` auf `bg`, Soll 3 zu 1                  | 1,18 zu 1, **unterschritten**                          | 1,29 zu 1, **unterschritten** |
 
 Zwei Befunde:
 
@@ -103,11 +103,11 @@ Das ist eine **Lieferabhängigkeit**, kein Architekturmangel. Sie steht in Teil 
 
 ## 1.1 Der Widerspruch im Auftrag
 
-| Vorgabe | Belegte Wirklichkeit |
-|---|---|
+| Vorgabe                                               | Belegte Wirklichkeit                                                             |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Enterprise-Niveau wie Linear, Stripe, Vercel, Raycast | Die Wissensdatenbank stellt fest: Arbeit ausschließlich vom iPhone, kein Rechner |
-| Auch mit 50 bis 100 Funktionen intuitiv | Die Nutzerschaft sind Vertriebspartner, überwiegend im Nebenerwerb |
-| Befehlsleiste, Tastaturbedienung | Ein Telefon hat keine Tastatur im Sinne von Raycast |
+| Auch mit 50 bis 100 Funktionen intuitiv               | Die Nutzerschaft sind Vertriebspartner, überwiegend im Nebenerwerb               |
+| Befehlsleiste, Tastaturbedienung                      | Ein Telefon hat keine Tastatur im Sinne von Raycast                              |
 
 Linear und Raycast sind Werkzeuge für geübte Anwender an einer Tastatur. Ihre Befehlsleiste ist der zentrale Bedienweg, nicht ein Zusatz. Ein Vertriebspartner, der zwischen zwei Terminen auf dem Telefon fünf Minuten hat, bedient nichts über eine Befehlsleiste.
 
@@ -115,13 +115,13 @@ Linear und Raycast sind Werkzeuge für geübte Anwender an einer Tastatur. Ihre 
 
 **Übernommen wird die Strenge dieser Produkte, nicht ihr Bedienmodell.**
 
-| Von Linear und Stripe übernommen | Nicht übernommen |
-|---|---|
-| Kompromisslose Konsistenz. Dieselbe Handlung sieht überall gleich aus | Tastaturbedienung als Hauptweg |
-| Zurückhaltung. Nichts blinkt, nichts hüpft | Hohe Informationsdichte auf kleinem Raum |
-| Geschwindigkeit als Merkmal, nicht als Nebenprodukt | Erwartung geübter Anwender |
-| Disziplin bei Informationsdichte. Weniger auf einem Bildschirm, klarer | Desktop als Leitfläche |
-| Leere Zustände als Aufforderung, nicht als Fehlermeldung | |
+| Von Linear und Stripe übernommen                                       | Nicht übernommen                         |
+| ---------------------------------------------------------------------- | ---------------------------------------- |
+| Kompromisslose Konsistenz. Dieselbe Handlung sieht überall gleich aus  | Tastaturbedienung als Hauptweg           |
+| Zurückhaltung. Nichts blinkt, nichts hüpft                             | Hohe Informationsdichte auf kleinem Raum |
+| Geschwindigkeit als Merkmal, nicht als Nebenprodukt                    | Erwartung geübter Anwender               |
+| Disziplin bei Informationsdichte. Weniger auf einem Bildschirm, klarer | Desktop als Leitfläche                   |
+| Leere Zustände als Aufforderung, nicht als Fehlermeldung               |                                          |
 
 Konkret bedeutet das: **Die Befehlsleiste ist der Kraftweg für Desktop und wird gebaut. Der Hauptweg auf dem Telefon bleibt die Navigation und eine Suche mit einem Feld.** Beide greifen auf denselben Index zu. Details in Teil 5.
 
@@ -147,10 +147,10 @@ Begründung: Messung 2 in 0.3. Auf hellem Grund fehlen 55,4 Prozent der Symbolfl
 
 Umsetzung ohne jede Änderung am Logo:
 
-| Theme | Wo das Symbol steht |
-|---|---|
-| Dunkel | ohnehin dunkler Grund, kein Zusatz nötig |
-| Hell | in einem dunklen Träger: Navigationsleiste, Kopfblock, Splash-Fläche |
+| Theme  | Wo das Symbol steht                                                  |
+| ------ | -------------------------------------------------------------------- |
+| Dunkel | ohnehin dunkler Grund, kein Zusatz nötig                             |
+| Hell   | in einem dunklen Träger: Navigationsleiste, Kopfblock, Splash-Fläche |
 
 Das ist zulässig. Untersagt sind Änderungen am Logo, eine **weiße** Fläche dahinter, Schatten, Farbänderung und Verzerrung. Ein dunkler Träger ist eine Layoutentscheidung, keine Logoänderung, und v1 hat in Abschnitt 6 selbst nach einer Lösung für dunklen Grund gefragt.
 
@@ -176,35 +176,35 @@ Die Frage des Auftrags lautet, ob die Plattform mit 100 Funktionen noch bedienba
 
 Man kann nicht zu 100 Funktionen navigieren. Man kann zu etwa fünf Orten navigieren und dort das finden, was zum jeweiligen Gegenstand gehört. Drei Mechanismen tragen das:
 
-| Mechanismus | Aufgabe |
-|---|---|
-| **Stabile Primärnavigation** | maximal fünf Einträge, feste Positionen, wächst nie |
+| Mechanismus                         | Aufgabe                                                         |
+| ----------------------------------- | --------------------------------------------------------------- |
+| **Stabile Primärnavigation**        | maximal fünf Einträge, feste Positionen, wächst nie             |
 | **Kontextnavigation am Gegenstand** | eine Funktion, die einen Kontakt betrifft, erscheint am Kontakt |
-| **Suche und Befehlsleiste** | der eine Weg zu allem, was man nicht sucht, sondern kennt |
+| **Suche und Befehlsleiste**         | der eine Weg zu allem, was man nicht sucht, sondern kennt       |
 
 Die Wissensdatenbank belegt, was bei Verstoß passiert: Das Ultimate Tool wirkte überwältigend, und Bereiche wurden **entfernt**. Also verworfene Arbeit. Und in `17_BEST_PRACTICES.md`: Bei umfangreichen Werkzeugen entscheidet die Navigation über den Nutzen, nicht der Inhaltsumfang.
 
 ## 3.2 Fünf Navigationsebenen
 
-| Ebene | Was | Wo |
-|---|---|---|
-| 1 Primär | fünf Bereiche | untere Leiste mobil, linke Schiene Desktop |
-| 2 Sekundär | Unterbereiche eines Bereichs | Reiter oder Liste im Bereich |
-| 3 Kontext | Handlungen an einem Gegenstand | am Gegenstand selbst |
-| 4 Befehle | alles, sofern bekannt | Suche mobil, Befehlsleiste Desktop |
-| 5 Verlauf | zuletzt verwendet, Favoriten | Startseite und Befehlsleiste |
+| Ebene      | Was                            | Wo                                         |
+| ---------- | ------------------------------ | ------------------------------------------ |
+| 1 Primär   | fünf Bereiche                  | untere Leiste mobil, linke Schiene Desktop |
+| 2 Sekundär | Unterbereiche eines Bereichs   | Reiter oder Liste im Bereich               |
+| 3 Kontext  | Handlungen an einem Gegenstand | am Gegenstand selbst                       |
+| 4 Befehle  | alles, sofern bekannt          | Suche mobil, Befehlsleiste Desktop         |
+| 5 Verlauf  | zuletzt verwendet, Favoriten   | Startseite und Befehlsleiste               |
 
 ## 3.3 Primärnavigation
 
 Fünf Einträge. **Feste Positionen. Sie verschieben sich nie**, auch wenn ein Eintrag ausgeblendet ist. Begründung: Muskelgedächtnis. Eine Leiste, die je nach Rolle umsortiert, muss bei jeder Nutzung neu gelesen werden.
 
-| Position | Bereich | Sichtbar für | Aufgabe |
-|---|---|---|---|
-| 1 | **Heute** | alle | Tagesplan. Der eine Ort, an dem der Tag beginnt |
-| 2 | **Kontakte** | alle | Pipeline und Kontaktpflege |
-| 3 | **Ascent** | alle | der Coach |
-| 4 | **Team** | nur mit Downline | Struktur, Aktivierung, Kennzahlen |
-| 5 | **Mehr** | alle | strukturierter Einstieg in alles Übrige |
+| Position | Bereich      | Sichtbar für     | Aufgabe                                         |
+| -------- | ------------ | ---------------- | ----------------------------------------------- |
+| 1        | **Heute**    | alle             | Tagesplan. Der eine Ort, an dem der Tag beginnt |
+| 2        | **Kontakte** | alle             | Pipeline und Kontaktpflege                      |
+| 3        | **Ascent**   | alle             | der Coach                                       |
+| 4        | **Team**     | nur mit Downline | Struktur, Aktivierung, Kennzahlen               |
+| 5        | **Mehr**     | alle             | strukturierter Einstieg in alles Übrige         |
 
 Position 4 ist an eine **Beziehung** gebunden, nicht an eine Rolle. Wer eine Downline hat, sieht Team. Das entspricht F2, wo Sichtbarkeit an der Beziehung hängt und nicht an einer zugewiesenen Rolle. Ohne Downline bleibt der Platz leer, die übrigen vier behalten ihre Position.
 
@@ -216,14 +216,14 @@ Der häufigste Fehler an dieser Stelle: Mehr wird eine wachsende Liste. Genau da
 
 **Mehr hat sechs feste Abteilungen. Sie wachsen nicht. Neue Funktionen werden einer davon zugeordnet.**
 
-| Abteilung | Inhalt heute | Sichtbarkeit |
-|---|---|---|
-| **Mein Geschäft** | Rang und Qualifikation, Lizenzstatus, Ziele, Fortschritt, Auszeichnungen | alle |
-| **Wissen** | Wissensdatenbank, Training und Journey, Produkte und Katalog | alle, Inhalte nach Freigabe |
-| **Kommunikation** | Nachrichten, Termine, Benachrichtigungen | alle |
-| **Werkzeuge** | die Werkzeuge der Generation 1 aus `external_tools` | nach Freigabestufe |
-| **Verwaltung** | Nutzer, Rollen, Rechte, Wissensfreigabe, Produktpflege, KI, Prüfprotokoll, Datenschutz | **nur mit Berechtigung** |
-| **Konto** | Profil, Sprache, Organisation, Theme, Abmelden | alle |
+| Abteilung         | Inhalt heute                                                                           | Sichtbarkeit                |
+| ----------------- | -------------------------------------------------------------------------------------- | --------------------------- |
+| **Mein Geschäft** | Rang und Qualifikation, Lizenzstatus, Ziele, Fortschritt, Auszeichnungen               | alle                        |
+| **Wissen**        | Wissensdatenbank, Training und Journey, Produkte und Katalog                           | alle, Inhalte nach Freigabe |
+| **Kommunikation** | Nachrichten, Termine, Benachrichtigungen                                               | alle                        |
+| **Werkzeuge**     | die Werkzeuge der Generation 1 aus `external_tools`                                    | nach Freigabestufe          |
+| **Verwaltung**    | Nutzer, Rollen, Rechte, Wissensfreigabe, Produktpflege, KI, Prüfprotokoll, Datenschutz | **nur mit Berechtigung**    |
+| **Konto**         | Profil, Sprache, Organisation, Theme, Abmelden                                         | alle                        |
 
 Das ist die Antwort auf 100 Funktionen: **sechs Schubladen mit festen Namen.** Eine neue Funktion kommt in eine bestehende Schublade oder an einen Gegenstand. Sie bekommt keinen neuen Menüpunkt. Wenn eine Funktion in keine Schublade passt, ist das ein Hinweis, dass sie nicht zum Produkt gehört.
 
@@ -295,17 +295,17 @@ Mehr
 
 ## 3.6 Bereiche, die nie in der Navigation erscheinen
 
-| Bereich | Warum | Wie erreichbar |
-|---|---|---|
-| Registrierung | vor der Anmeldung | Einladungslink |
-| Anmeldung | vor der Anmeldung | Startadresse |
-| Kontaktdetail | Gegenstand, kein Bereich | über die Liste oder Suche |
-| Mitgliedsprofil | Gegenstand | über Team oder Suche |
-| Ascent zu einem Kontakt | Kontextsprung | vom Kontakt aus |
-| Wissensartikel | Gegenstand | über Suche oder Zitat |
-| Fehlerseiten | Zustand | automatisch |
-| Notfallzugriff auf Fremddaten | soll wehtun, siehe F2 | nur aus Datenschutz, mit Begründung |
-| Prüfprotokoll-Einzeleintrag | Gegenstand | aus dem Protokoll |
+| Bereich                       | Warum                    | Wie erreichbar                      |
+| ----------------------------- | ------------------------ | ----------------------------------- |
+| Registrierung                 | vor der Anmeldung        | Einladungslink                      |
+| Anmeldung                     | vor der Anmeldung        | Startadresse                        |
+| Kontaktdetail                 | Gegenstand, kein Bereich | über die Liste oder Suche           |
+| Mitgliedsprofil               | Gegenstand               | über Team oder Suche                |
+| Ascent zu einem Kontakt       | Kontextsprung            | vom Kontakt aus                     |
+| Wissensartikel                | Gegenstand               | über Suche oder Zitat               |
+| Fehlerseiten                  | Zustand                  | automatisch                         |
+| Notfallzugriff auf Fremddaten | soll wehtun, siehe F2    | nur aus Datenschutz, mit Begründung |
+| Prüfprotokoll-Einzeleintrag   | Gegenstand               | aus dem Protokoll                   |
 
 Regel: **Gegenstände haben keine Menüpunkte.** Nur Bereiche haben Menüpunkte. Diese Regel allein verhindert das Wachstum der Navigation, denn die meisten neuen Funktionen betreffen Gegenstände.
 
@@ -313,13 +313,13 @@ Regel: **Gegenstände haben keine Menüpunkte.** Nur Bereiche haben Menüpunkte.
 
 Sie verändert sich **kaum**, und das ist beabsichtigt.
 
-| Prinzipal | Primärnavigation | Mehr |
-|---|---|---|
-| Berater ohne Downline | 4 Einträge, Team leer | 5 Abteilungen, Verwaltung fehlt |
-| Berater mit Downline | 5 Einträge | 5 Abteilungen |
-| Admin | 5 Einträge | 6 Abteilungen, Verwaltung nach erteilten Berechtigungen |
-| Super-Admin | 5 Einträge | 6 Abteilungen, Verwaltung vollständig |
-| Plattformbetreiber | eigene Oberfläche, kein Mandantenzugang | entfällt |
+| Prinzipal             | Primärnavigation                        | Mehr                                                    |
+| --------------------- | --------------------------------------- | ------------------------------------------------------- |
+| Berater ohne Downline | 4 Einträge, Team leer                   | 5 Abteilungen, Verwaltung fehlt                         |
+| Berater mit Downline  | 5 Einträge                              | 5 Abteilungen                                           |
+| Admin                 | 5 Einträge                              | 6 Abteilungen, Verwaltung nach erteilten Berechtigungen |
+| Super-Admin           | 5 Einträge                              | 6 Abteilungen, Verwaltung vollständig                   |
+| Plattformbetreiber    | eigene Oberfläche, kein Mandantenzugang | entfällt                                                |
 
 **Verbindliche Regel: Ausblenden, nicht deaktivieren.** Eine sichtbare, aber gesperrte Funktion erzeugt die Frage, wie man sie freischaltet, und die Antwort lautet in einem Vertriebssystem oft „gar nicht". Das ist Frustration ohne Nutzen.
 
@@ -343,12 +343,12 @@ Die Arbeitsregeln verlangen für Abweichungen von bestehender Architektur eine B
 
 **Empfehlung:** dauerhaft sichtbar **nur, wenn die Identität mehr als eine aktive Mitgliedschaft hat.**
 
-| | |
-|---|---|
-| **Nutzen** | Bei einer Mitgliedschaft, dem heutigen Fall für alle Nutzer, ist die Anzeige eine feste Zeile ohne Informationswert. Auf 375 Pixeln Breite ist das der teuerste Platz im Produkt |
-| **Risiko** | Sehr gering. Bei genau einer Mitgliedschaft ist Verwechslung ausgeschlossen |
-| **Alternative** | Wörtliche Umsetzung. Kostet dauerhaft eine Zeile für null Information |
-| **Langfristig** | Sobald jemand eine zweite Mitgliedschaft erhält, erscheint die Anzeige automatisch. Der Wechsel ist ein Ereignis, das der Nutzer bemerkt, und genau dann braucht er die Anzeige |
+|                 |                                                                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nutzen**      | Bei einer Mitgliedschaft, dem heutigen Fall für alle Nutzer, ist die Anzeige eine feste Zeile ohne Informationswert. Auf 375 Pixeln Breite ist das der teuerste Platz im Produkt |
+| **Risiko**      | Sehr gering. Bei genau einer Mitgliedschaft ist Verwechslung ausgeschlossen                                                                                                      |
+| **Alternative** | Wörtliche Umsetzung. Kostet dauerhaft eine Zeile für null Information                                                                                                            |
+| **Langfristig** | Sobald jemand eine zweite Mitgliedschaft erhält, erscheint die Anzeige automatisch. Der Wechsel ist ein Ereignis, das der Nutzer bemerkt, und genau dann braucht er die Anzeige  |
 
 Der Zweck der Vorgabe, nämlich Fehleingaben im falschen Mandanten zu verhindern, bleibt vollständig erfüllt. Er greift nur dann, wenn er greifen kann.
 
@@ -360,12 +360,12 @@ Der Zweck der Vorgabe, nämlich Fehleingaben im falschen Mandanten zu verhindern
 
 **Empfehlung:** Sprachwechsler unter **Konto**. Dauerhaft sichtbar bleibt dagegen die **Kennzeichnung des Sprach-Fallbacks am Inhalt**, und das ist der eigentlich wichtige Teil der Vorgabe.
 
-| | |
-|---|---|
-| **Nutzen** | Die Sprache wird ein- bis zweimal im Leben eines Kontos gewechselt. Ein dauerhaftes Bedienelement dafür verbraucht einen der wenigen Plätze in der Navigation, den täglich genutzte Funktionen brauchen |
-| **Risiko** | Ein Nutzer in der falschen Sprache findet den Wechsler nicht. **Gegenmaßnahme:** Der Wechsler erscheint zusätzlich auf der Anmeldeseite und im ersten Onboarding-Schritt, also genau dort, wo die Sprache erstmals falsch sein kann. Und er ist über die Suche erreichbar |
-| **Alternative** | Wörtliche Umsetzung. Ein dauerhaftes Element für eine sehr seltene Handlung |
-| **Langfristig** | Unverändert tragfähig. Kommen weitere Sprachen hinzu, ändert sich nur der Inhalt der Auswahl |
+|                 |                                                                                                                                                                                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nutzen**      | Die Sprache wird ein- bis zweimal im Leben eines Kontos gewechselt. Ein dauerhaftes Bedienelement dafür verbraucht einen der wenigen Plätze in der Navigation, den täglich genutzte Funktionen brauchen                                                                   |
+| **Risiko**      | Ein Nutzer in der falschen Sprache findet den Wechsler nicht. **Gegenmaßnahme:** Der Wechsler erscheint zusätzlich auf der Anmeldeseite und im ersten Onboarding-Schritt, also genau dort, wo die Sprache erstmals falsch sein kann. Und er ist über die Suche erreichbar |
+| **Alternative** | Wörtliche Umsetzung. Ein dauerhaftes Element für eine sehr seltene Handlung                                                                                                                                                                                               |
+| **Langfristig** | Unverändert tragfähig. Kommen weitere Sprachen hinzu, ändert sich nur der Inhalt der Auswahl                                                                                                                                                                              |
 
 **Was ausdrücklich dauerhaft sichtbar bleibt:** die Kennzeichnung, wenn ein Inhalt aus der Fallback-Kette stammt. F3 verlangt, dass ein Sprachwechsel nie stillschweigend geschieht. Diese Kennzeichnung sitzt am Inhalt, nicht in der Navigation, und ist dort wirksamer, weil sie im Moment des Lesens erscheint.
 
@@ -383,11 +383,11 @@ Dieselbe Seitenkarte, dieselben Namen, dieselben Reihenfolgen. Was sich untersch
 
 ## 4.2 Haltepunkte
 
-| Name | Breite | Leitfläche | Anordnung |
-|---|---|---|---|
-| Kompakt | bis 767 | **Telefon, die Leitfläche** | untere Leiste, ein Inhaltsbereich |
-| Mittel | 768 bis 1279 | Tablet | linke Schiene schmal, ein Inhaltsbereich, Detail als Overlay |
-| Weit | ab 1280 | Desktop | linke Schiene, Liste und Detail nebeneinander |
+| Name    | Breite       | Leitfläche                  | Anordnung                                                    |
+| ------- | ------------ | --------------------------- | ------------------------------------------------------------ |
+| Kompakt | bis 767      | **Telefon, die Leitfläche** | untere Leiste, ein Inhaltsbereich                            |
+| Mittel  | 768 bis 1279 | Tablet                      | linke Schiene schmal, ein Inhaltsbereich, Detail als Overlay |
+| Weit    | ab 1280      | Desktop                     | linke Schiene, Liste und Detail nebeneinander                |
 
 **Das Telefon ist die Leitfläche, nicht der kleinste Fall.** Die Wissensdatenbank belegt, dass ausschließlich vom iPhone gearbeitet wird. Ein Entwurf, der am Desktop beginnt und nach unten verkleinert, verliert genau dort Qualität, wo alle Nutzer sind.
 
@@ -395,23 +395,23 @@ Dieselbe Seitenkarte, dieselben Namen, dieselben Reihenfolgen. Was sich untersch
 
 Der Auftrag verlangt Wireframes für drei Flächen. Die liefere ich. Zur Umsetzung empfehle ich eine Reihenfolge:
 
-| Fläche | Empfehlung |
-|---|---|
-| Kompakt | vollständig ausbauen. Hier sind die Nutzer |
-| Weit | **responsiv** aus denselben Bausteinen, nicht eigens optimiert |
-| Mittel | ergibt sich aus beiden, kein eigener Entwurf |
+| Fläche  | Empfehlung                                                     |
+| ------- | -------------------------------------------------------------- |
+| Kompakt | vollständig ausbauen. Hier sind die Nutzer                     |
+| Weit    | **responsiv** aus denselben Bausteinen, nicht eigens optimiert |
+| Mittel  | ergibt sich aus beiden, kein eigener Entwurf                   |
 
 Begründung: Eine eigens für den Desktop optimierte Oberfläche verdreifacht den Aufwand für eine Nutzergruppe, die es heute nicht gibt. Sobald ein Unternehmenskunde mit Schreibtischarbeitsplätzen dazukommt, ist der Ausbau eine Erweiterung und kein Umbau, weil die Architektur ihn vorsieht. Nichts in diesem Dokument präjudiziert gegen den Desktop.
 
 ## 4.4 Berührungsziele und Erreichbarkeit
 
-| Regel | Wert | Begründung |
-|---|---|---|
-| Mindestgröße Berührungsziel | 44 mal 44 Punkte | aus v1 übernommen |
-| Primäre Handlung | im unteren Drittel | Daumenreichweite bei einhändiger Bedienung |
-| Zerstörende Handlung | nie im unteren Drittel | ein versehentlicher Daumendruck darf nichts löschen |
-| Abstand zwischen Zielen | mindestens 8 Punkte | |
-| Unterer Sicherheitsabstand | Systemabstand plus 8 | Geräte ohne Knopf |
+| Regel                       | Wert                   | Begründung                                          |
+| --------------------------- | ---------------------- | --------------------------------------------------- |
+| Mindestgröße Berührungsziel | 44 mal 44 Punkte       | aus v1 übernommen                                   |
+| Primäre Handlung            | im unteren Drittel     | Daumenreichweite bei einhändiger Bedienung          |
+| Zerstörende Handlung        | nie im unteren Drittel | ein versehentlicher Daumendruck darf nichts löschen |
+| Abstand zwischen Zielen     | mindestens 8 Punkte    |                                                     |
+| Unterer Sicherheitsabstand  | Systemabstand plus 8   | Geräte ohne Knopf                                   |
 
 Die dritte Regel ist eine Konsequenz aus der zweiten und wird regelmäßig übersehen: Wenn die bequemste Zone der Handlung dient, darf dort nichts Zerstörendes liegen.
 
@@ -423,22 +423,22 @@ Die dritte Regel ist eine Konsequenz aus der zweiten und wird regelmäßig über
 
 Ein Index, zwei Zugänge.
 
-| Fläche | Zugang | Auslösung |
-|---|---|---|
-| Kompakt | Suchfeld auf Heute und in jedem Bereich | Berührung |
-| Weit | Befehlsleiste | Tastenkürzel und Schaltfläche |
+| Fläche  | Zugang                                  | Auslösung                     |
+| ------- | --------------------------------------- | ----------------------------- |
+| Kompakt | Suchfeld auf Heute und in jedem Bereich | Berührung                     |
+| Weit    | Befehlsleiste                           | Tastenkürzel und Schaltfläche |
 
 **Ein gemeinsamer Index.** Getrennte Indizes für Suche und Befehlsleiste würden bedeuten, dass eine Funktion an einem Ort auffindbar ist und am anderen nicht. Das ist der Anfang von Inkonsistenz.
 
 ## 5.2 Was der Index enthält
 
-| Art | Beispiel | Sichtbarkeit |
-|---|---|---|
-| Bereiche und Unterbereiche | Kontakte, Rang und Qualifikation | nach Berechtigung |
-| Gegenstände | ein Kontakt, ein Mitglied, ein Wissensartikel | nach RLS |
-| Handlungen | Kontakt anlegen, Tagesplan erzeugen | nach Berechtigung |
-| Einstellungen | Sprache, Erscheinungsbild, Organisation wechseln | alle |
-| Wissen | Volltext und Bedeutung | nach Freigabe und Sprache |
+| Art                        | Beispiel                                         | Sichtbarkeit              |
+| -------------------------- | ------------------------------------------------ | ------------------------- |
+| Bereiche und Unterbereiche | Kontakte, Rang und Qualifikation                 | nach Berechtigung         |
+| Gegenstände                | ein Kontakt, ein Mitglied, ein Wissensartikel    | nach RLS                  |
+| Handlungen                 | Kontakt anlegen, Tagesplan erzeugen              | nach Berechtigung         |
+| Einstellungen              | Sprache, Erscheinungsbild, Organisation wechseln | alle                      |
+| Wissen                     | Volltext und Bedeutung                           | nach Freigabe und Sprache |
 
 **Verbindlich: Der Index gibt niemals etwas aus, das der Prinzipal nicht sehen darf.** Er ist kein zweiter Zugriffsweg, sondern eine andere Darstellung desselben. Das folgt unmittelbar aus F2: Die Datenbank ist die Autorität, die Oberfläche ist Darstellung. Ein Suchergebnis, das auf eine gesperrte Seite führt, wäre ein Informationsleck über die Existenz.
 
@@ -446,21 +446,21 @@ Ein Index, zwei Zugänge.
 
 Höchstens vier, kontextabhängig, immer an derselben Stelle.
 
-| Kontext | Schnellhandlungen |
-|---|---|
-| Heute | Kontakt anlegen, Ascent fragen, Tagesplan erzeugen |
-| Kontakte | Kontakt anlegen, Filter, Suche |
+| Kontext       | Schnellhandlungen                                       |
+| ------------- | ------------------------------------------------------- |
+| Heute         | Kontakt anlegen, Ascent fragen, Tagesplan erzeugen      |
+| Kontakte      | Kontakt anlegen, Filter, Suche                          |
 | Kontaktdetail | Ereignis erfassen, Nachricht entwerfen, Werkzeug teilen |
-| Team | Mitglied suchen, Aktivierung ansehen |
+| Team          | Mitglied suchen, Aktivierung ansehen                    |
 
 Begründung für die Obergrenze: Vier Elemente sind ohne Zählen erfassbar. Ab sechs wird gelesen statt erkannt, und der Geschwindigkeitsgewinn ist verloren.
 
 ## 5.4 Verlauf und Favoriten
 
-| Element | Verhalten | Wo |
-|---|---|---|
-| Zuletzt verwendet | die letzten fünf Gegenstände, automatisch | Heute und Befehlsleiste |
-| Favoriten | manuell markiert, ohne Obergrenze | Befehlsleiste, auf Heute die ersten drei |
+| Element           | Verhalten                                 | Wo                                       |
+| ----------------- | ----------------------------------------- | ---------------------------------------- |
+| Zuletzt verwendet | die letzten fünf Gegenstände, automatisch | Heute und Befehlsleiste                  |
+| Favoriten         | manuell markiert, ohne Obergrenze         | Befehlsleiste, auf Heute die ersten drei |
 
 Bewusst zurückhaltend: Zuletzt verwendet ist automatisch und damit kostenlos für den Nutzer. Favoriten kosten eine Handlung und werden von den meisten nie benutzt. Deshalb sind sie vorhanden, aber nicht prominent. Ein Produkt, das Favoriten in den Mittelpunkt stellt, verlangt Einrichtungsarbeit vor dem ersten Nutzen.
 
@@ -478,9 +478,9 @@ Farbwelt, Akzentregeln, Typografie, Funktionsfarben, Claim-Regel. Siehe 0.1. Ich
 
 Befund aus 0.3: `line` liegt bei 1,18 zu 1. Als dekorative Trennlinie zulässig, als einzige Kennzeichnung eines Eingabefeldes nicht.
 
-| Token | Rolle | Anforderung |
-|---|---|---|
-| `line` | dekorative Trennung, Tabellenlinien, Kartenränder | keine, von der Anforderung ausgenommen |
+| Token                  | Rolle                                                                      | Anforderung                            |
+| ---------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| `line`                 | dekorative Trennung, Tabellenlinien, Kartenränder                          | keine, von der Anforderung ausgenommen |
 | **`line-strong`**, neu | Eingabefelder, Auswahlfelder, alles, was als bedienbar erkennbar sein muss | mindestens 3 zu 1 gegen den Untergrund |
 
 Ohne diese Trennung müsste man entweder `line` verdunkeln, was die ruhige Anmutung von v1 zerstört, oder die Anforderung verletzen. Zwei Token lösen beides.
@@ -489,12 +489,12 @@ Ohne diese Trennung müsste man entweder `line` verdunkeln, was die ruhige Anmut
 
 v1 hat die dunklen Werte definiert, aber keinen Umschalter. Verbindlich:
 
-| Regel | Wert |
-|---|---|
-| Voreinstellung | Systemeinstellung des Geräts |
-| Überschreibung | hell, dunkel, System. Am Konto gespeichert |
-| Speicherort | **Identität**, nicht Mitgliedschaft. Nach F3 Teil 8.1 ist eine Anzeigeeinstellung persönlich |
-| Schiene | bleibt in beiden Themes dunkel, siehe Teil 2 |
+| Regel          | Wert                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| Voreinstellung | Systemeinstellung des Geräts                                                                 |
+| Überschreibung | hell, dunkel, System. Am Konto gespeichert                                                   |
+| Speicherort    | **Identität**, nicht Mitgliedschaft. Nach F3 Teil 8.1 ist eine Anzeigeeinstellung persönlich |
+| Schiene        | bleibt in beiden Themes dunkel, siehe Teil 2                                                 |
 
 Das dunkle Theme ist nach der Messung in 0.3 in jeder Hinsicht das kontraststärkere. Es wird trotzdem nicht zur Voreinstellung, weil v1 den hellen Grund aus der Logo-Familie begründet und ein Wechsel eine Markenänderung ohne Anlass wäre.
 
@@ -512,15 +512,15 @@ Inter bleibt, wie in v1 entschieden. Ich habe geprüft, ob der Enterprise-Anspru
 
 Typenskala, ergänzend zu v1:
 
-| Rolle | Größe | Gewicht | Bemerkung |
-|---|---|---|---|
-| Marke, Versalien | 14 bis 20 | 300 | `tracking` 0,25em, aus v1 |
-| Seitentitel | 24 | 600 | |
-| Abschnittstitel | 18 | 600 | |
-| Bereichslabel | 12 | 500 | Versalien, `muted`, aus v1 |
-| Fließtext | 16 | 400 | **nie kleiner auf dem Telefon** |
-| Sekundärtext | 14 | 400 | `muted` |
-| Zahlen | je Kontext | 500 | `tabular-nums`, aus v1 |
+| Rolle            | Größe      | Gewicht | Bemerkung                       |
+| ---------------- | ---------- | ------- | ------------------------------- |
+| Marke, Versalien | 14 bis 20  | 300     | `tracking` 0,25em, aus v1       |
+| Seitentitel      | 24         | 600     |                                 |
+| Abschnittstitel  | 18         | 600     |                                 |
+| Bereichslabel    | 12         | 500     | Versalien, `muted`, aus v1      |
+| Fließtext        | 16         | 400     | **nie kleiner auf dem Telefon** |
+| Sekundärtext     | 14         | 400     | `muted`                         |
+| Zahlen           | je Kontext | 500     | `tabular-nums`, aus v1          |
 
 16 Punkte als Mindestgröße für Fließtext auf dem Telefon ist verbindlich. Darunter beginnt auf iOS das automatische Vergrößern von Eingabefeldern, was das Layout verschiebt.
 
@@ -528,10 +528,10 @@ Typenskala, ergänzend zu v1:
 
 **Befund im Bestand: 27 Verstöße in 14 Dateien.**
 
-| Art | Anzahl | Beispiele |
-|---|---|---|
-| Bildzeichen | 10 | Sonne, Personen, Schild, Stift, Zielscheibe, Telefon, Brief, Rakete, Blatt, Arm |
-| Unicode-Zeichen als Symbol | 17 | Pfeile, Häkchen |
+| Art                        | Anzahl | Beispiele                                                                       |
+| -------------------------- | ------ | ------------------------------------------------------------------------------- |
+| Bildzeichen                | 10     | Sonne, Personen, Schild, Stift, Zielscheibe, Telefon, Brief, Rakete, Blatt, Arm |
+| Unicode-Zeichen als Symbol | 17     | Pfeile, Häkchen                                                                 |
 
 Ein Verstoß stammt von mir selbst, das Blatt-Zeichen in der Uploadfläche der Wissensdatenbank.
 
@@ -539,14 +539,14 @@ v1 hat das Problem in Abschnitt 7 selbst benannt und die Behebung **bewusst zur�
 
 **Verbindlich:**
 
-| Regel | Festlegung |
-|---|---|
-| Bibliothek | **Lucide** |
-| Strichstärke | 1,5 Pixel |
-| Größen | 16, 20, 24. Keine Zwischenwerte |
-| Farbe | `currentColor`, nie fest |
-| Unicode als Symbol | untersagt, auch Pfeile und Häkchen |
-| Emoji in der Oberfläche | untersagt |
+| Regel                   | Festlegung                                                        |
+| ----------------------- | ----------------------------------------------------------------- |
+| Bibliothek              | **Lucide**                                                        |
+| Strichstärke            | 1,5 Pixel                                                         |
+| Größen                  | 16, 20, 24. Keine Zwischenwerte                                   |
+| Farbe                   | `currentColor`, nie fest                                          |
+| Unicode als Symbol      | untersagt, auch Pfeile und Häkchen                                |
+| Emoji in der Oberfläche | untersagt                                                         |
 | Emoji in Nutzerinhalten | zulässig. Ein Kontaktname darf enthalten, was der Nutzer schreibt |
 
 Begründung für Lucide gegenüber Heroicons und Tabler: Lucide hat eine einheitliche Strichstärke über den gesamten Satz, was bei gemischten Größen wichtiger ist als der Umfang. Heroicons liegt in zwei Varianten vor, deren Mischung eine häufige Inkonsistenzquelle ist. Tabler ist umfangreicher, aber in der Strichführung weniger einheitlich. Alle drei sind zulässig, Lucide ist die Empfehlung.
@@ -555,15 +555,15 @@ Begründung für Lucide gegenüber Heroicons und Tabler: Lucide hat eine einheit
 
 ## 6.5 Raster und Abstände
 
-| Größe | Wert | Verwendung |
-|---|---|---|
-| Basiseinheit | 4 | alle Abstände sind Vielfache |
-| Dicht | 8 | innerhalb einer Komponente |
-| Standard | 16 | zwischen Komponenten |
-| Abschnitt | 24 | zwischen Abschnitten |
-| Bereich | 32 | über einem Seitentitel |
-| Seitenrand kompakt | 16 | |
-| Seitenrand weit | 32 | |
+| Größe               | Wert       | Verwendung                             |
+| ------------------- | ---------- | -------------------------------------- |
+| Basiseinheit        | 4          | alle Abstände sind Vielfache           |
+| Dicht               | 8          | innerhalb einer Komponente             |
+| Standard            | 16         | zwischen Komponenten                   |
+| Abschnitt           | 24         | zwischen Abschnitten                   |
+| Bereich             | 32         | über einem Seitentitel                 |
+| Seitenrand kompakt  | 16         |                                        |
+| Seitenrand weit     | 32         |                                        |
 | Maximale Textbreite | 72 Zeichen | Lesbarkeit, betrifft Wissen und Ascent |
 
 Raster: kompakt eine Spalte, mittel zwei, weit zwölf mit Schiene. **Kein mehrspaltiges Layout im kompakten Fall.** Zwei Spalten auf 375 Pixeln erzeugen Spalten, die für keinen Inhalt breit genug sind.
@@ -572,23 +572,23 @@ Raster: kompakt eine Spalte, mittel zwei, weit zwölf mit Schiene. **Kein mehrsp
 
 Für jede Komponente die Festlegung, die später Konsistenz erzwingt.
 
-| Komponente | Festlegung |
-|---|---|
-| **Schaltfläche** | drei Stufen: primär Graphit, sekundär Rand, unauffällig nur Text. Genau **eine** primäre Handlung je Bildschirm |
-| **Eingabefeld** | Rand `line-strong`, Beschriftung immer sichtbar, nie nur Platzhalter |
-| **Auswahl** | unter 7 Werten Segmentanzeige, ab 7 Auswahlliste, ab 20 mit Suche |
-| **Karte** | Behälter für einen Gegenstand. Kein Schatten, nur Rand. Schatten ausschließlich für schwebende Ebenen |
-| **Liste** | die Leitform auf dem Telefon. Zeilenhöhe mindestens 56, ein Gegenstand je Zeile |
-| **Tabelle** | **erst ab weit.** Im kompakten Fall wird eine Tabelle zur Liste, nicht zu einer scrollenden Tabelle |
-| **Reiter** | maximal vier, sonst Auswahlliste. Kein horizontales Scrollen von Reitern |
-| **Dialog** | nur für Bestätigungen, unter 80 Pixeln Höhe Inhalt |
-| **Schublade** | für Formulare und Detailansichten im kompakten Fall, von unten |
-| **Filter** | in einer Schublade, nicht als aufgeklappte Leiste. Aktive Filter als entfernbare Marke über der Liste |
-| **Benachrichtigung** | kurze Meldung unten, 4 Sekunden, eine Rückgängig-Handlung zulässig |
-| **Ladeplatzhalter** | Form des erwarteten Inhalts, nie ein Drehkreis für ganze Seiten |
-| **Leerer Zustand** | Aussage, Begründung, **eine** Handlung. Kein Bild, keine Zeichnung |
-| **Fehlerzustand** | was geschah, was zu tun ist. Keine Entschuldigung, keine technischen Kennungen |
-| **Bestätigung** | nur bei nicht umkehrbaren Handlungen. Umkehrbares wird ausgeführt und mit Rückgängig angeboten |
+| Komponente           | Festlegung                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Schaltfläche**     | drei Stufen: primär Graphit, sekundär Rand, unauffällig nur Text. Genau **eine** primäre Handlung je Bildschirm |
+| **Eingabefeld**      | Rand `line-strong`, Beschriftung immer sichtbar, nie nur Platzhalter                                            |
+| **Auswahl**          | unter 7 Werten Segmentanzeige, ab 7 Auswahlliste, ab 20 mit Suche                                               |
+| **Karte**            | Behälter für einen Gegenstand. Kein Schatten, nur Rand. Schatten ausschließlich für schwebende Ebenen           |
+| **Liste**            | die Leitform auf dem Telefon. Zeilenhöhe mindestens 56, ein Gegenstand je Zeile                                 |
+| **Tabelle**          | **erst ab weit.** Im kompakten Fall wird eine Tabelle zur Liste, nicht zu einer scrollenden Tabelle             |
+| **Reiter**           | maximal vier, sonst Auswahlliste. Kein horizontales Scrollen von Reitern                                        |
+| **Dialog**           | nur für Bestätigungen, unter 80 Pixeln Höhe Inhalt                                                              |
+| **Schublade**        | für Formulare und Detailansichten im kompakten Fall, von unten                                                  |
+| **Filter**           | in einer Schublade, nicht als aufgeklappte Leiste. Aktive Filter als entfernbare Marke über der Liste           |
+| **Benachrichtigung** | kurze Meldung unten, 4 Sekunden, eine Rückgängig-Handlung zulässig                                              |
+| **Ladeplatzhalter**  | Form des erwarteten Inhalts, nie ein Drehkreis für ganze Seiten                                                 |
+| **Leerer Zustand**   | Aussage, Begründung, **eine** Handlung. Kein Bild, keine Zeichnung                                              |
+| **Fehlerzustand**    | was geschah, was zu tun ist. Keine Entschuldigung, keine technischen Kennungen                                  |
+| **Bestätigung**      | nur bei nicht umkehrbaren Handlungen. Umkehrbares wird ausgeführt und mit Rückgängig angeboten                  |
 
 Die Regel zu Tabellen ist die wichtigste für den Enterprise-Anspruch. Eine Tabelle auf einem Telefon ist immer ein Kompromiss. Der Ausweg über horizontales Scrollen ist der schlechteste, weil dann Spalten verborgen sind, deren Existenz man nicht sieht.
 
@@ -596,12 +596,12 @@ Die Regel zu Bestätigungen ist die wichtigste für die Geschwindigkeit. Jede un
 
 ## 6.7 Bewegung
 
-| Vorgang | Dauer | Kurve |
-|---|---|---|
-| Zustandswechsel, Berührung | 120 ms | ease-out |
-| Ein- und Ausblenden von Ebenen | 200 ms | ease-out |
-| Schublade | 240 ms | eigene Kurve, leicht überschwingfrei |
-| Seitenwechsel | **keine** | |
+| Vorgang                        | Dauer     | Kurve                                |
+| ------------------------------ | --------- | ------------------------------------ |
+| Zustandswechsel, Berührung     | 120 ms    | ease-out                             |
+| Ein- und Ausblenden von Ebenen | 200 ms    | ease-out                             |
+| Schublade                      | 240 ms    | eigene Kurve, leicht überschwingfrei |
+| Seitenwechsel                  | **keine** |                                      |
 
 **Kein Seitenwechseleffekt.** Begründung: Er kostet bei jedem Wechsel Zeit, und im kompakten Fall wechselt man häufig. Wahrgenommene Geschwindigkeit entsteht durch Weglassen, nicht durch flüssige Übergänge.
 
@@ -609,18 +609,18 @@ Verbindlich: ausschließlich `transform` und `opacity`, damit die Grafikeinheit 
 
 ## 6.8 Barrierefreiheit
 
-| Anforderung | Festlegung |
-|---|---|
-| Textkontrast | mindestens 4,5 zu 1. In v1 geprüft und erfüllt |
-| Grafikkontrast | mindestens 3 zu 1. **Heute nicht erfüllt bei `accent` im hellen Theme**, siehe 0.3 |
-| Status nie nur über Farbe | immer zusätzlich Text oder Symbol. Aus v1 |
-| Fokus sichtbar | Ring in `accent`, mindestens 2 Pixel, nie entfernt |
-| Bedienbarkeit per Tastatur | vollständig, auch wenn das Telefon die Leitfläche ist |
-| Beschriftungen | jede Eingabe hat eine sichtbare Beschriftung |
-| Symbole ohne Text | brauchen eine Textalternative |
-| Sprache am Element | wenn ein Inhalt aus der Fallback-Kette stammt, siehe F3 |
-| Laufrichtung | logische CSS-Eigenschaften, **ab sofort verbindlich**, aus F3 |
-| Bewegung | `prefers-reduced-motion` |
+| Anforderung                | Festlegung                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Textkontrast               | mindestens 4,5 zu 1. In v1 geprüft und erfüllt                                     |
+| Grafikkontrast             | mindestens 3 zu 1. **Heute nicht erfüllt bei `accent` im hellen Theme**, siehe 0.3 |
+| Status nie nur über Farbe  | immer zusätzlich Text oder Symbol. Aus v1                                          |
+| Fokus sichtbar             | Ring in `accent`, mindestens 2 Pixel, nie entfernt                                 |
+| Bedienbarkeit per Tastatur | vollständig, auch wenn das Telefon die Leitfläche ist                              |
+| Beschriftungen             | jede Eingabe hat eine sichtbare Beschriftung                                       |
+| Symbole ohne Text          | brauchen eine Textalternative                                                      |
+| Sprache am Element         | wenn ein Inhalt aus der Fallback-Kette stammt, siehe F3                            |
+| Laufrichtung               | logische CSS-Eigenschaften, **ab sofort verbindlich**, aus F3                      |
+| Bewegung                   | `prefers-reduced-motion`                                                           |
 
 Der zweite Punkt ist ein offener Befund und steht in Teil 10.
 
@@ -632,11 +632,11 @@ Der zweite Punkt ist ein offener Befund und steht in Teil 10.
 
 Jeder Bildschirm folgt einem von drei Mustern. Wenn ein Bildschirm ein viertes Muster braucht, ist das ein Hinweis auf eine Fehlplatzierung.
 
-| Muster | Für | Beispiele |
-|---|---|---|
-| **A Liste und Detail** | Sammlungen von Gegenständen | Kontakte, Team, Wissen, Produkte, Nachrichten, Nutzerverwaltung |
-| **B Übersicht** | Zustand und nächste Handlung | Heute, Dashboard, Rang, Fortschritt |
-| **C Unterhaltung** | fortlaufender Verlauf | Ascent |
+| Muster                 | Für                          | Beispiele                                                       |
+| ---------------------- | ---------------------------- | --------------------------------------------------------------- |
+| **A Liste und Detail** | Sammlungen von Gegenständen  | Kontakte, Team, Wissen, Produkte, Nachrichten, Nutzerverwaltung |
+| **B Übersicht**        | Zustand und nächste Handlung | Heute, Dashboard, Rang, Fortschritt                             |
+| **C Unterhaltung**     | fortlaufender Verlauf        | Ascent                                                          |
 
 Das ist die eigentliche Antwort auf 100 Funktionen: Der zwanzigste Listenbildschirm braucht keinen neuen Entwurf.
 
@@ -786,14 +786,14 @@ Zwei verbindliche Elemente in diesem Bildschirm:
 
 Alle folgen Muster A. Die Festlegungen je Bildschirm:
 
-| Bildschirm | Liste zeigt | Detail zeigt | Besonderheit |
-|---|---|---|---|
-| Team, Struktur | Name, Rang, Aktivstatus, Ebene | Mitgliedsprofil, Aggregate | **nie Kontaktnamen der Downline**, F2 |
-| Team, Aktivierung | Wer braucht Aufmerksamkeit, mit Begründung | Gesprächsvorschlag | Berechtigung `can_view_team` |
-| Wissen | Titel, Kategorie, Sprache, Status | Artikel, maximal 72 Zeichen Breite | Entwürfe nur mit Berechtigung |
-| Produkte | Name, Code, Preis | Beschreibung, Anwendung, Duftpyramide | Code **nie** übersetzt, F3 |
-| Nachrichten | Titel, Datum | Beitrag | |
-| Verwaltung, Nutzer | Name, Rolle, Status | Mitgliedschaft, keine Identitätsfelder | Identitätsdaten nicht änderbar, F2 |
+| Bildschirm         | Liste zeigt                                | Detail zeigt                           | Besonderheit                          |
+| ------------------ | ------------------------------------------ | -------------------------------------- | ------------------------------------- |
+| Team, Struktur     | Name, Rang, Aktivstatus, Ebene             | Mitgliedsprofil, Aggregate             | **nie Kontaktnamen der Downline**, F2 |
+| Team, Aktivierung  | Wer braucht Aufmerksamkeit, mit Begründung | Gesprächsvorschlag                     | Berechtigung `can_view_team`          |
+| Wissen             | Titel, Kategorie, Sprache, Status          | Artikel, maximal 72 Zeichen Breite     | Entwürfe nur mit Berechtigung         |
+| Produkte           | Name, Code, Preis                          | Beschreibung, Anwendung, Duftpyramide  | Code **nie** übersetzt, F3            |
+| Nachrichten        | Titel, Datum                               | Beitrag                                |                                       |
+| Verwaltung, Nutzer | Name, Rolle, Status                        | Mitgliedschaft, keine Identitätsfelder | Identitätsdaten nicht änderbar, F2    |
 
 Auf dem Telefon wird jede dieser Listen eine Liste, keine Tabelle. Im weiten Fall darf die Nutzerverwaltung eine Tabelle sein, weil dort Breite und ein Verwaltungskontext vorhanden sind.
 
@@ -830,27 +830,27 @@ Zur Frage nach Three.js und WebGL, siehe Teil 8.
 
 Der Auftrag erlaubt WebGL, wo es echten Mehrwert schafft. Ich habe jeden genannten Anwendungsfall geprüft.
 
-| Vorgeschlagener Fall | Bewertung |
-|---|---|
-| Netzwerkvisualisierung der Struktur | **einziger Fall mit echtem Mehrwert**, und nur ab einer gewissen Größe |
-| Premium-Dashboards | nein. Ein Dashboard ist Text und Zahlen. WebGL macht es langsamer, nicht besser |
-| Datenvisualisierung | nein. Balken und Linien sind in SVG schärfer und barrierefrei |
-| Hintergrundanimationen | nein. Widerspricht der Zurückhaltung von v1 und kostet Akkulaufzeit auf der Leitfläche |
-| Hero-Bereiche | nur Login und Splash, und dort ist eine ruhige Fläche stärker als eine Animation |
-| Interaktive Übersichten | fällt mit der Netzwerkvisualisierung zusammen |
+| Vorgeschlagener Fall                | Bewertung                                                                              |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| Netzwerkvisualisierung der Struktur | **einziger Fall mit echtem Mehrwert**, und nur ab einer gewissen Größe                 |
+| Premium-Dashboards                  | nein. Ein Dashboard ist Text und Zahlen. WebGL macht es langsamer, nicht besser        |
+| Datenvisualisierung                 | nein. Balken und Linien sind in SVG schärfer und barrierefrei                          |
+| Hintergrundanimationen              | nein. Widerspricht der Zurückhaltung von v1 und kostet Akkulaufzeit auf der Leitfläche |
+| Hero-Bereiche                       | nur Login und Splash, und dort ist eine ruhige Fläche stärker als eine Animation       |
+| Interaktive Übersichten             | fällt mit der Netzwerkvisualisierung zusammen                                          |
 
 ## 8.2 Die eine Empfehlung, mit Bedingungen
 
 **Struktur als Visualisierung, ausschließlich im weiten Fall, ab etwa 50 Knoten, mit einer Liste als vollwertiger Alternative.**
 
-| Bedingung | Begründung |
-|---|---|
-| Nur ab weit | Ein Baum ist auf 375 Pixeln nicht lesbar. Der kompakte Fall erhält eine eingerückte Liste, und die ist dort besser, nicht schlechter |
-| Erst ab etwa 50 Knoten | Darunter ist SVG schärfer, leichter und barrierefrei |
-| Liste ist die Voreinstellung, nicht die Notlösung | Ein Nutzer, der Namen sucht, sucht in einer Liste schneller |
-| Kein WebGL auf dem Telefon | Akkulaufzeit und Speicher. Die Wissensdatenbank belegt Telefonnutzung als Regelfall |
-| Textalternative zwingend | Eine Zeichenfläche ist für Vorleseprogramme leer. Ohne Alternative wäre die Struktur für blinde Nutzer nicht zugänglich |
-| Keine Umsatzzahlen im Knoten | F2, Teil 5, Fußnote 1. Nur Name, Rang, Aktivstatus |
+| Bedingung                                         | Begründung                                                                                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Nur ab weit                                       | Ein Baum ist auf 375 Pixeln nicht lesbar. Der kompakte Fall erhält eine eingerückte Liste, und die ist dort besser, nicht schlechter |
+| Erst ab etwa 50 Knoten                            | Darunter ist SVG schärfer, leichter und barrierefrei                                                                                 |
+| Liste ist die Voreinstellung, nicht die Notlösung | Ein Nutzer, der Namen sucht, sucht in einer Liste schneller                                                                          |
+| Kein WebGL auf dem Telefon                        | Akkulaufzeit und Speicher. Die Wissensdatenbank belegt Telefonnutzung als Regelfall                                                  |
+| Textalternative zwingend                          | Eine Zeichenfläche ist für Vorleseprogramme leer. Ohne Alternative wäre die Struktur für blinde Nutzer nicht zugänglich              |
+| Keine Umsatzzahlen im Knoten                      | F2, Teil 5, Fußnote 1. Nur Name, Rang, Aktivstatus                                                                                   |
 
 Der letzte Punkt ist eine Berechtigungsfrage, nicht eine Gestaltungsfrage: Eine hübsche Netzwerkgrafik, die Umsätze je Knoten zeigt, verletzt die Compliance-Grenze aus F2 gegen Verdienstbeispiele.
 
@@ -866,32 +866,32 @@ Der letzte Punkt ausdrücklich: Das Logo trägt bereits einen Verlauf. Eine zus�
 
 ## 9.1 Gefundene Probleme
 
-| # | Problem | Schwere | Empfehlung |
-|---|---|---|---|
-| U1 | **27 Emoji- und Unicode-Symbole in 14 Dateien** | hoch | Lucide, siehe 6.4. Betrifft praktisch jede Oberfläche |
-| U2 | **Kein Dark Mode verdrahtet**, Tokens vorhanden | mittel | 6.2 |
-| U3 | `line` bei 1,18 zu 1 als einzige Kennzeichnung von Eingabefeldern | mittel | `line-strong`, 6.2 |
-| U4 | `accent` bei 2,64 zu 1 als Grafikelement im hellen Theme | mittel | siehe Teil 10, FD-3 |
-| U5 | **Mehr ist heute eine flache Liste** | mittel | sechs feste Abteilungen, 3.4. Ohne das wiederholt sich das Ultimate-Tool-Problem |
-| U6 | Keine Suche, kein Sprung zwischen Bereichen | mittel | Teil 5. Mit 25 Bereichen heute noch tragbar, mit 50 nicht |
-| U7 | Kein „Ascent zu diesem Kontakt" | mittel | 7.5. Der wirksamste Weg auf den dokumentierten Engpass |
-| U8 | Keine Ladeplatzhalter, ganze Seiten warten | niedrig | 6.6 |
-| U9 | Leere Zustände ohne Handlung | niedrig | 6.6 |
-| U10 | Zurück ohne Zielbenennung | niedrig | 3.8 |
-| U11 | Kein Sprachwechsler auf der Anmeldeseite | niedrig | 7.3. Genau dort ist die Sprache erstmals falsch |
+| #   | Problem                                                           | Schwere | Empfehlung                                                                       |
+| --- | ----------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| U1  | **27 Emoji- und Unicode-Symbole in 14 Dateien**                   | hoch    | Lucide, siehe 6.4. Betrifft praktisch jede Oberfläche                            |
+| U2  | **Kein Dark Mode verdrahtet**, Tokens vorhanden                   | mittel  | 6.2                                                                              |
+| U3  | `line` bei 1,18 zu 1 als einzige Kennzeichnung von Eingabefeldern | mittel  | `line-strong`, 6.2                                                               |
+| U4  | `accent` bei 2,64 zu 1 als Grafikelement im hellen Theme          | mittel  | siehe Teil 10, FD-3                                                              |
+| U5  | **Mehr ist heute eine flache Liste**                              | mittel  | sechs feste Abteilungen, 3.4. Ohne das wiederholt sich das Ultimate-Tool-Problem |
+| U6  | Keine Suche, kein Sprung zwischen Bereichen                       | mittel  | Teil 5. Mit 25 Bereichen heute noch tragbar, mit 50 nicht                        |
+| U7  | Kein „Ascent zu diesem Kontakt"                                   | mittel  | 7.5. Der wirksamste Weg auf den dokumentierten Engpass                           |
+| U8  | Keine Ladeplatzhalter, ganze Seiten warten                        | niedrig | 6.6                                                                              |
+| U9  | Leere Zustände ohne Handlung                                      | niedrig | 6.6                                                                              |
+| U10 | Zurück ohne Zielbenennung                                         | niedrig | 3.8                                                                              |
+| U11 | Kein Sprachwechsler auf der Anmeldeseite                          | niedrig | 7.3. Genau dort ist die Sprache erstmals falsch                                  |
 
 ## 9.2 Was im Bestand gut ist
 
 Damit die Bewertung nicht einseitig ausfällt.
 
-| Befund | Bewertung |
-|---|---|
-| Tokens laufen über CSS-Variablen, damit `organizations.branding` sie zur Laufzeit überschreiben kann | vorausschauend. Weiß-Label ohne Neubau ist damit möglich |
-| `accent-deep` als eigener Token für Text | löst die häufigste Falle bei Goldtönen, bevor sie auftritt |
-| Berührungsziele mindestens 44 Punkte | bereits eingehalten |
-| Status nie nur über Farbe | bereits Regel |
-| Chevron als wiederkehrendes Motiv | verbindet Marke und Oberfläche ohne Logogebrauch |
-| Vier Navigationseinträge statt sieben | die richtige Ausgangsentscheidung |
+| Befund                                                                                               | Bewertung                                                  |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Tokens laufen über CSS-Variablen, damit `organizations.branding` sie zur Laufzeit überschreiben kann | vorausschauend. Weiß-Label ohne Neubau ist damit möglich   |
+| `accent-deep` als eigener Token für Text                                                             | löst die häufigste Falle bei Goldtönen, bevor sie auftritt |
+| Berührungsziele mindestens 44 Punkte                                                                 | bereits eingehalten                                        |
+| Status nie nur über Farbe                                                                            | bereits Regel                                              |
+| Chevron als wiederkehrendes Motiv                                                                    | verbindet Marke und Oberfläche ohne Logogebrauch           |
+| Vier Navigationseinträge statt sieben                                                                | die richtige Ausgangsentscheidung                          |
 
 ---
 
@@ -921,11 +921,11 @@ Dokumentiert, begründet, nicht umgesetzt.
 
 **Drei Optionen:**
 
-| Option | Nutzen | Kosten und Risiken |
-|---|---|---|
-| A: `accent` im hellen Theme abdunkeln | Anforderung erfüllt | Der Champagner verliert seine Leichtigkeit. Widerspricht der Anmutung von v1 |
-| B: Ein zweiter Token für tragende Grafikelemente, `accent` bleibt für Dekoration | Anforderung erfüllt, Anmutung bleibt | Ein Token mehr, und die Disziplin muss gehalten werden |
-| C: Gegenmaßnahme aus v1 fortschreiben: Champagner nie als einziger Träger | keine Änderung | Formal bleibt die Anforderung unerfüllt. Praktisch benutzbar |
+| Option                                                                           | Nutzen                               | Kosten und Risiken                                                           |
+| -------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------- |
+| A: `accent` im hellen Theme abdunkeln                                            | Anforderung erfüllt                  | Der Champagner verliert seine Leichtigkeit. Widerspricht der Anmutung von v1 |
+| B: Ein zweiter Token für tragende Grafikelemente, `accent` bleibt für Dekoration | Anforderung erfüllt, Anmutung bleibt | Ein Token mehr, und die Disziplin muss gehalten werden                       |
+| C: Gegenmaßnahme aus v1 fortschreiben: Champagner nie als einziger Träger        | keine Änderung                       | Formal bleibt die Anforderung unerfüllt. Praktisch benutzbar                 |
 
 **Meine Empfehlung ist B.** Begründung: Die Gegenmaßnahme aus v1 ist richtig und sollte bleiben, aber sie ist eine Regel, die Menschen einhalten müssen. Ein zweiter Token macht die Einhaltung überprüfbar. Und die Anforderung ist bei einem Produkt mit Enterprise-Anspruch keine Formalie, weil Unternehmenskunden Barrierefreiheit prüfen.
 
@@ -963,44 +963,44 @@ Dokumentiert, begründet, nicht umgesetzt.
 
 ## 11.1 Bewertung
 
-| Bereich | Bewertung | Begründung |
-|---|---|---|
-| **Informationsarchitektur** | tragfähig | Fünf Bereiche, sechs feste Abteilungen, Gegenstände ohne Menüpunkte. Wächst mit Rollen, nicht mit Funktionen |
-| **Benutzerführung** | tragfähig | Maximal drei Ebenen, Kontextsprünge am Gegenstand, eine primäre Handlung je Bildschirm |
-| **Konsistenz** | tragfähig | Drei Layoutmuster für alle Bildschirme. Der zwanzigste Listenbildschirm braucht keinen Entwurf |
-| **Skalierbarkeit** | tragfähig bis etwa 100 Funktionen | Grenze ist nicht die Navigation, sondern die Zahl der Abteilungen. Bei mehr als etwa 12 Einträgen je Abteilung braucht es eine weitere Ebene, und die ist vorgesehen |
-| **Wartbarkeit** | tragfähig | Eine Architektur, drei Darstellungen. v1 bleibt das Farbdokument, v2 ergänzt Struktur |
-| **Enterprise UX** | tragfähig, mit Einschränkung | Strenge übernommen, Bedienmodell bewusst nicht. Die Einschränkung ist in 1.2 begründet und beabsichtigt |
-| **Mobile UX** | **stärkster Bereich** | Telefon ist Leitfläche, nicht kleinster Fall. Daumenzonen, keine Tabellen, keine Seitenwechseleffekte |
-| **Accessibility** | tragfähig, ein offener Befund | Textkontraste erfüllt, Grafikkontrast bei `accent` offen, FD-3 |
-| **Performance** | tragfähig | Kein WebGL auf dem Telefon, keine Seitenwechseleffekte, ausschließlich `transform` und `opacity`, Sprachkataloge getrennt geladen |
-| **Branding** | tragfähig, aus Messung abgeleitet | Dunkle Schiene als Signatur, Logo unverändert, Palette aus v1 |
-| **Design-System** | tragfähig | v1 unverändert, v2 ergänzt zwei Token, Symbolsatz, Komponenten, Zustände |
-| **Langfristige Tragfähigkeit** | tragfähig | Sieben Fundamententscheidungen benannt, jede mit Kostenvergleich |
+| Bereich                        | Bewertung                         | Begründung                                                                                                                                                           |
+| ------------------------------ | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Informationsarchitektur**    | tragfähig                         | Fünf Bereiche, sechs feste Abteilungen, Gegenstände ohne Menüpunkte. Wächst mit Rollen, nicht mit Funktionen                                                         |
+| **Benutzerführung**            | tragfähig                         | Maximal drei Ebenen, Kontextsprünge am Gegenstand, eine primäre Handlung je Bildschirm                                                                               |
+| **Konsistenz**                 | tragfähig                         | Drei Layoutmuster für alle Bildschirme. Der zwanzigste Listenbildschirm braucht keinen Entwurf                                                                       |
+| **Skalierbarkeit**             | tragfähig bis etwa 100 Funktionen | Grenze ist nicht die Navigation, sondern die Zahl der Abteilungen. Bei mehr als etwa 12 Einträgen je Abteilung braucht es eine weitere Ebene, und die ist vorgesehen |
+| **Wartbarkeit**                | tragfähig                         | Eine Architektur, drei Darstellungen. v1 bleibt das Farbdokument, v2 ergänzt Struktur                                                                                |
+| **Enterprise UX**              | tragfähig, mit Einschränkung      | Strenge übernommen, Bedienmodell bewusst nicht. Die Einschränkung ist in 1.2 begründet und beabsichtigt                                                              |
+| **Mobile UX**                  | **stärkster Bereich**             | Telefon ist Leitfläche, nicht kleinster Fall. Daumenzonen, keine Tabellen, keine Seitenwechseleffekte                                                                |
+| **Accessibility**              | tragfähig, ein offener Befund     | Textkontraste erfüllt, Grafikkontrast bei `accent` offen, FD-3                                                                                                       |
+| **Performance**                | tragfähig                         | Kein WebGL auf dem Telefon, keine Seitenwechseleffekte, ausschließlich `transform` und `opacity`, Sprachkataloge getrennt geladen                                    |
+| **Branding**                   | tragfähig, aus Messung abgeleitet | Dunkle Schiene als Signatur, Logo unverändert, Palette aus v1                                                                                                        |
+| **Design-System**              | tragfähig                         | v1 unverändert, v2 ergänzt zwei Token, Symbolsatz, Komponenten, Zustände                                                                                             |
+| **Langfristige Tragfähigkeit** | tragfähig                         | Sieben Fundamententscheidungen benannt, jede mit Kostenvergleich                                                                                                     |
 
 ## 11.2 Risiken
 
-| Priorität | Risiko | Bewertung |
-|---|---|---|
-| 1 | **FD-1 oder FD-2 werden gebrochen** | Die Navigation ist danach nicht durch Umsortieren zu retten. Beide Regeln sind billig zu halten und teuer zu heilen |
-| 2 | **Logo-SVG fehlt weiter** | Das Symbol soll bei 16 und 24 Pixeln erscheinen. Ein Verlauf von 308 auf 16 Pixel verkleinert wird ein grauer Fleck |
-| 3 | Grafikkontrast des Akzents ungelöst, FD-3 | Bei einer Prüfung durch einen Unternehmenskunden ein Befund |
-| 4 | 27 Symbolverstöße bleiben | Widerspricht der verbindlichen Vorgabe und der Premium-Linie |
-| 5 | Desktop wird ausgebaut, bevor es Desktop-Nutzer gibt | Dreifacher Aufwand ohne Nutzen. Gegenmaßnahme in 4.3 |
-| 6 | WebGL wird über den einen Fall hinaus verwendet | Akkulaufzeit auf der Leitfläche, Barrierefreiheit |
-| 7 | Ä1 und Ä2 werden wörtlich umgesetzt | Zwei dauerhafte Elemente für seltene Handlungen auf der knappsten Fläche |
+| Priorität | Risiko                                               | Bewertung                                                                                                           |
+| --------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 1         | **FD-1 oder FD-2 werden gebrochen**                  | Die Navigation ist danach nicht durch Umsortieren zu retten. Beide Regeln sind billig zu halten und teuer zu heilen |
+| 2         | **Logo-SVG fehlt weiter**                            | Das Symbol soll bei 16 und 24 Pixeln erscheinen. Ein Verlauf von 308 auf 16 Pixel verkleinert wird ein grauer Fleck |
+| 3         | Grafikkontrast des Akzents ungelöst, FD-3            | Bei einer Prüfung durch einen Unternehmenskunden ein Befund                                                         |
+| 4         | 27 Symbolverstöße bleiben                            | Widerspricht der verbindlichen Vorgabe und der Premium-Linie                                                        |
+| 5         | Desktop wird ausgebaut, bevor es Desktop-Nutzer gibt | Dreifacher Aufwand ohne Nutzen. Gegenmaßnahme in 4.3                                                                |
+| 6         | WebGL wird über den einen Fall hinaus verwendet      | Akkulaufzeit auf der Leitfläche, Barrierefreiheit                                                                   |
+| 7         | Ä1 und Ä2 werden wörtlich umgesetzt                  | Zwei dauerhafte Elemente für seltene Handlungen auf der knappsten Fläche                                            |
 
 ## 11.3 Offene Punkte
 
-| # | Punkt | Art | Entscheider |
-|---|---|---|---|
-| O1 | **Logo als SVG**, Symbol solo und Kombinationsmarke | Lieferung | Sie |
-| O2 | Freigabe für Ä1, Organisation nur bei Mehrdeutigkeit | Architekturänderung an F2 | Sie |
-| O3 | Freigabe für Ä2, Sprachwechsler unter Konto | Architekturänderung an F3 | Sie |
-| O4 | Freigabe für FD-3, Option B | Änderung an v1 | Sie |
-| O5 | Kommt Arabisch, und damit die Laufrichtung | geschäftlich, aus F3 | Sie |
-| O6 | Wird der Desktop ausgebaut, und wann | geschäftlich | Sie |
-| O7 | Benennung der sechs Abteilungen in Mehr, endgültig | Formulierung | ich, mit Ihrer Bestätigung |
+| #   | Punkt                                                | Art                       | Entscheider                |
+| --- | ---------------------------------------------------- | ------------------------- | -------------------------- |
+| O1  | **Logo als SVG**, Symbol solo und Kombinationsmarke  | Lieferung                 | Sie                        |
+| O2  | Freigabe für Ä1, Organisation nur bei Mehrdeutigkeit | Architekturänderung an F2 | Sie                        |
+| O3  | Freigabe für Ä2, Sprachwechsler unter Konto          | Architekturänderung an F3 | Sie                        |
+| O4  | Freigabe für FD-3, Option B                          | Änderung an v1            | Sie                        |
+| O5  | Kommt Arabisch, und damit die Laufrichtung           | geschäftlich, aus F3      | Sie                        |
+| O6  | Wird der Desktop ausgebaut, und wann                 | geschäftlich              | Sie                        |
+| O7  | Benennung der sechs Abteilungen in Mehr, endgültig   | Formulierung              | ich, mit Ihrer Bestätigung |
 
 O1 ist der einzige, der die Umsetzung blockiert. Alle anderen sind Freigaben oder Formulierungen.
 
@@ -1031,12 +1031,12 @@ Alles andere in diesem Dokument ist ohne weitere Lieferung umsetzbar.
 
 ## Vier Freigaben, die ich brauche
 
-| # | Freigabe | Ohne Freigabe |
-|---|---|---|
-| Ä1 | Aktive Organisation nur bei mehreren Mitgliedschaften | ich setze die wörtliche Fassung aus F2 um |
-| Ä2 | Sprachwechsler unter Konto, Fallback-Kennzeichnung bleibt dauerhaft | ich setze die wörtliche Fassung aus F3 um |
-| FD-3 | Zweiter Token für tragende Grafikelemente | die Gegenmaßnahme aus v1 bleibt, Anforderung formal unerfüllt |
-| FD-7 | Tabellen erst ab weit | Listen und Tabellen mischen sich |
+| #    | Freigabe                                                            | Ohne Freigabe                                                 |
+| ---- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Ä1   | Aktive Organisation nur bei mehreren Mitgliedschaften               | ich setze die wörtliche Fassung aus F2 um                     |
+| Ä2   | Sprachwechsler unter Konto, Fallback-Kennzeichnung bleibt dauerhaft | ich setze die wörtliche Fassung aus F3 um                     |
+| FD-3 | Zweiter Token für tragende Grafikelemente                           | die Gegenmaßnahme aus v1 bleibt, Anforderung formal unerfüllt |
+| FD-7 | Tabellen erst ab weit                                               | Listen und Tabellen mischen sich                              |
 
 Ohne Ihre Freigabe weiche ich von F2, F3 und v1 nicht ab. Das ist die Arbeitsregel, und sie gilt auch dann, wenn ich die Abweichung für besser halte.
 

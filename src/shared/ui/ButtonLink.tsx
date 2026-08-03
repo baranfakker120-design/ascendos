@@ -19,10 +19,7 @@ export function ButtonLink({
   ...rest
 }: ButtonLinkProps) {
   return (
-    <Link
-      className={buttonClassName({ variant, size, fullWidth, className })}
-      {...rest}
-    >
+    <Link className={buttonClassName({ variant, size, fullWidth, className })} {...rest}>
       <span className="ui-btn__label">{children}</span>
     </Link>
   );

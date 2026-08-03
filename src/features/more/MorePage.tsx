@@ -29,7 +29,17 @@ export function MorePage() {
         .select('*')
         .order('completed_steps', { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []).map((row) => ({
+        user_id: row.user_id ?? '',
+        first_name: row.first_name ?? '',
+        username: row.username,
+        journey_id: row.journey_id,
+        journey_title: row.journey_title,
+        completed_steps: row.completed_steps ?? 0,
+        total_steps: row.total_steps ?? 0,
+        current_day: row.current_day ?? 0,
+        total_days: row.total_days ?? 0,
+      }));
     },
   });
 
@@ -38,7 +48,7 @@ export function MorePage() {
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ExternalTool[];
     },
   });
 
@@ -75,7 +85,16 @@ export function MorePage() {
     setCopied(true);
   };
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <Card>
+        <p className="font-medium">Profil wird geladen …</p>
+        <p className="mt-1 text-sm text-muted">
+          Wenn das hängen bleibt, prüfe deine Verbindung und öffne den Tab erneut.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -120,7 +139,9 @@ export function MorePage() {
               return (
                 <li key={fp.user_id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="min-w-0 truncate font-medium">{fp.first_name}</span>
-                  <span className={`shrink-0 ${done ? 'font-medium text-emerald-600' : 'text-muted'}`}>
+                  <span
+                    className={`shrink-0 ${done ? 'font-medium text-emerald-600' : 'text-muted'}`}
+                  >
                     {done ? 'Reise abgeschlossen ✓' : `Tag ${fp.current_day} von ${fp.total_days}`}
                   </span>
                 </li>
@@ -135,8 +156,8 @@ export function MorePage() {
       <Card>
         <p className="font-semibold">Invite Partner</p>
         <p className="mt-1 text-sm text-muted">
-          Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14 Tage
-          gültig, einmal verwendbar.
+          Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14
+          Tage gültig, einmal verwendbar.
         </p>
         {inviteError ? (
           <div className="mt-3">

@@ -67,7 +67,10 @@ export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' 
         <span className={`ap-badge__value font-bold tabular-nums ${valueClass(size)}`} aria-hidden>
           {display}
         </span>
-        <span className="ap-badge__unit mt-0.5 text-[10px] font-semibold uppercase tracking-wider" aria-hidden>
+        <span
+          className="ap-badge__unit mt-0.5 text-[10px] font-semibold uppercase tracking-wider"
+          aria-hidden
+        >
           AP
         </span>
       </div>

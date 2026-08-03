@@ -10,7 +10,7 @@
 
 **Ja, eine vollständige Migration auf Gemini ist ohne Schema-Migration möglich** — weil `gemini-embedding-001` über Matryoshka-Dimensionen exakt 1536-dimensionale Vektoren ausgeben kann. `vector(1536)`, der HNSW-Index und die Signatur von `match_knowledge()` bleiben unangetastet.
 
-**Aber:** Die vorhandenen Embedding-*Zeilen* müssen neu erzeugt werden. Das ist eine Daten-, keine Schemaänderung — und aktuell voraussichtlich kostenlos, weil die Wissensbasis leer ist. Details in Abschnitt 5.
+**Aber:** Die vorhandenen Embedding-_Zeilen_ müssen neu erzeugt werden. Das ist eine Daten-, keine Schemaänderung — und aktuell voraussichtlich kostenlos, weil die Wissensbasis leer ist. Details in Abschnitt 5.
 
 ---
 
@@ -20,13 +20,13 @@
 
 Nur **eine** Datei enthält noch OpenAI:
 
-| Datei | Zeilen | Inhalt |
-|---|---|---|
-| `supabase/functions/_shared/llm.ts` | 15–16 | `https://api.openai.com/v1/responses`, `.../v1/embeddings` |
-| | 20–21 | `text-embedding-3-small`, `EMBEDDING_DIMENSIONS = 1536` |
-| | 25–30 | `gpt-5.6`, `gpt-5.6-luna`, Fallback `gpt-4.1` |
-| | 101–110 | `OPENAI_MODEL`, `OPENAI_FAST_MODEL`, `ROUTER_MODEL` |
-| | 122–126 | `OPENAI_API_KEY` |
+| Datei                               | Zeilen  | Inhalt                                                     |
+| ----------------------------------- | ------- | ---------------------------------------------------------- |
+| `supabase/functions/_shared/llm.ts` | 15–16   | `https://api.openai.com/v1/responses`, `.../v1/embeddings` |
+|                                     | 20–21   | `text-embedding-3-small`, `EMBEDDING_DIMENSIONS = 1536`    |
+|                                     | 25–30   | `gpt-5.6`, `gpt-5.6-luna`, Fallback `gpt-4.1`              |
+|                                     | 101–110 | `OPENAI_MODEL`, `OPENAI_FAST_MODEL`, `ROUTER_MODEL`        |
+|                                     | 122–126 | `OPENAI_API_KEY`                                           |
 
 Es gibt **kein OpenAI-SDK** im Projekt. Die Anbindung erfolgt über `fetch` gegen die REST-Endpunkte. Das vereinfacht die Migration erheblich: keine Paketabhängigkeit, keine Lockfile-Änderung, kein `npm:`-Import zu entfernen.
 
@@ -38,10 +38,10 @@ Es gibt **kein OpenAI-SDK** im Projekt. Die Anbindung erfolgt über `fetch` gege
 
 Nach der Chat-Umstellung ist die Hälfte des Moduls unbenutzt:
 
-| Export | Status |
-|---|---|
-| `embed`, `embedBatch`, `LlmError`, `ChatMessage` | **in Gebrauch** |
-| `chatCompletion`, `fastModel`, `resolveModel`, `mapClaudeModel`, `ChatInput`, `ReasoningEffort`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` | toter Code |
+| Export                                                                                                                                     | Status          |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| `embed`, `embedBatch`, `LlmError`, `ChatMessage`                                                                                           | **in Gebrauch** |
+| `chatCompletion`, `fastModel`, `resolveModel`, `mapClaudeModel`, `ChatInput`, `ReasoningEffort`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` | toter Code      |
 
 Konsequenz: Die komplette OpenAI-Chat-Maschinerie (Responses API, Modell-Fallback, Reasoning-Budget) wird weiterhin in **beide** Dashboard-Bundles einkopiert — `coach-chat.ts` ist dadurch 1020 Zeilen groß. Die Migration entfernt das ersatzlos.
 
@@ -53,21 +53,21 @@ Konsequenz: Die komplette OpenAI-Chat-Maschinerie (Responses API, Modell-Fallbac
 
 ## 3. Betroffene Komponenten
 
-| Komponente | OpenAI-Nutzung | Betroffen |
-|---|---|---|
-| **Chat / Coach (Generierung)** | keine — bereits Gemini | nein |
-| **Router** (Agentenauswahl) | keine — bereits Gemini | nein |
-| **Themen-Anonymisierung** ([K-1]) | keine — bereits Gemini | nein |
-| **Embeddings** | `embed()`, `embedBatch()` | **ja, vollständig** |
-| **RAG / Retrieval** (`coach-chat`) | ein `embed(message)` pro Nachricht | **ja** |
-| **Wissensdatenbank-Ingestion** (`ingest-knowledge`) | `embedBatch()` pro Dokument | **ja** |
-| **Volltextsuche** | existiert nicht (kein `tsvector`, kein `pg_trgm`) | nein |
-| **Hintergrundprozesse** | existieren nicht (kein `pg_cron`, kein `pg_net`) | nein |
-| **Tagesplan / Regel-Engine** | rein SQL, keine KI | nein |
-| **`validate-invite`** | keine KI-Nutzung | nein |
-| **Frontend / UI** | **null Referenzen** auf Anbieter, Modelle oder Embeddings | nein |
-| **CI** | keine KI-Secrets | nein |
-| **DB-Tests** | keine Embedding-Tests | nein |
+| Komponente                                          | OpenAI-Nutzung                                            | Betroffen           |
+| --------------------------------------------------- | --------------------------------------------------------- | ------------------- |
+| **Chat / Coach (Generierung)**                      | keine — bereits Gemini                                    | nein                |
+| **Router** (Agentenauswahl)                         | keine — bereits Gemini                                    | nein                |
+| **Themen-Anonymisierung** ([K-1])                   | keine — bereits Gemini                                    | nein                |
+| **Embeddings**                                      | `embed()`, `embedBatch()`                                 | **ja, vollständig** |
+| **RAG / Retrieval** (`coach-chat`)                  | ein `embed(message)` pro Nachricht                        | **ja**              |
+| **Wissensdatenbank-Ingestion** (`ingest-knowledge`) | `embedBatch()` pro Dokument                               | **ja**              |
+| **Volltextsuche**                                   | existiert nicht (kein `tsvector`, kein `pg_trgm`)         | nein                |
+| **Hintergrundprozesse**                             | existieren nicht (kein `pg_cron`, kein `pg_net`)          | nein                |
+| **Tagesplan / Regel-Engine**                        | rein SQL, keine KI                                        | nein                |
+| **`validate-invite`**                               | keine KI-Nutzung                                          | nein                |
+| **Frontend / UI**                                   | **null Referenzen** auf Anbieter, Modelle oder Embeddings | nein                |
+| **CI**                                              | keine KI-Secrets                                          | nein                |
+| **DB-Tests**                                        | keine Embedding-Tests                                     | nein                |
 
 ### Befund zum Frontend
 
@@ -77,16 +77,16 @@ Eine gezielte Suche über `src/` nach `openai`, `gemini`, `embedding`, `model` e
 
 ## 4. Zu ändernde Dateien
 
-| # | Datei | Art der Änderung | Risiko |
-|---|---|---|---|
-| 1 | `supabase/functions/_shared/gemini.ts` | `geminiEmbed()` / `geminiEmbedBatch()` ergänzen | niedrig |
-| 2 | `supabase/functions/_shared/llm.ts` | **löschen** (alle Nutzer migriert) | mittel |
-| 3 | `supabase/functions/coach-chat/index.ts` | Import `embed`→`geminiEmbed`, `LlmError`→`GeminiError`, `ChatMessage`→`GeminiChatMessage`; `min_similarity` explizit übergeben | niedrig |
-| 4 | `supabase/functions/ingest-knowledge/index.ts` | Import auf `gemini.ts`, `taskType: RETRIEVAL_DOCUMENT` | mittel |
-| 5 | `scripts/bundle-functions.mjs` | `llm.ts` aus `SHARED_ORDER` entfernen | niedrig |
-| 6 | `setup/functions/*.ts` | **generiert** — `npm run generate` | keins |
-| 7 | `README.md`, `.env.example`, `setup/SETUP-ANLEITUNG.md` | Secrets-Doku | keins |
-| 8 | `docs/adr.md` | ADR-027 | keins |
+| #   | Datei                                                   | Art der Änderung                                                                                                               | Risiko  |
+| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| 1   | `supabase/functions/_shared/gemini.ts`                  | `geminiEmbed()` / `geminiEmbedBatch()` ergänzen                                                                                | niedrig |
+| 2   | `supabase/functions/_shared/llm.ts`                     | **löschen** (alle Nutzer migriert)                                                                                             | mittel  |
+| 3   | `supabase/functions/coach-chat/index.ts`                | Import `embed`→`geminiEmbed`, `LlmError`→`GeminiError`, `ChatMessage`→`GeminiChatMessage`; `min_similarity` explizit übergeben | niedrig |
+| 4   | `supabase/functions/ingest-knowledge/index.ts`          | Import auf `gemini.ts`, `taskType: RETRIEVAL_DOCUMENT`                                                                         | mittel  |
+| 5   | `scripts/bundle-functions.mjs`                          | `llm.ts` aus `SHARED_ORDER` entfernen                                                                                          | niedrig |
+| 6   | `setup/functions/*.ts`                                  | **generiert** — `npm run generate`                                                                                             | keins   |
+| 7   | `README.md`, `.env.example`, `setup/SETUP-ANLEITUNG.md` | Secrets-Doku                                                                                                                   | keins   |
+| 8   | `docs/adr.md`                                           | ADR-027                                                                                                                        | keins   |
 
 **Nicht zu ändern:** keine Migration, keine Tabelle, kein RLS-Policy, keine Frontend-Datei, kein `netlify.toml`, kein Routing, kein API-Endpunkt.
 
@@ -112,13 +112,13 @@ Drei Stellen sind auf 1536 Dimensionen festgelegt:
 
 Damit gilt:
 
-| Anforderung | Status |
-|---|---|
-| Keine Datenbankmigration | **erfüllt** — kein DDL nötig |
-| Keine Tabellenänderung | **erfüllt** |
-| `vector(1536)` unverändert | **erfüllt** |
-| Keine UI-Änderung | **erfüllt** — Frontend kennt den Anbieter nicht |
-| Keine Frontend-Änderung | **erfüllt** — JSON-Vertrag bleibt identisch |
+| Anforderung                | Status                                          |
+| -------------------------- | ----------------------------------------------- |
+| Keine Datenbankmigration   | **erfüllt** — kein DDL nötig                    |
+| Keine Tabellenänderung     | **erfüllt**                                     |
+| `vector(1536)` unverändert | **erfüllt**                                     |
+| Keine UI-Änderung          | **erfüllt** — Frontend kennt den Anbieter nicht |
+| Keine Frontend-Änderung    | **erfüllt** — JSON-Vertrag bleibt identisch     |
 
 ### 5.3 Die Einschränkung, die bleibt
 
@@ -202,20 +202,20 @@ Aus der Verteilung den neuen Wert ableiten und aus `coach-chat` explizit überge
 
 ### Phase 6 — Abnahme
 
-`docs/coach-eval-set.md` vollständig durchspielen. Bei einer RAG-Umstellung ist das keine Formalie: geprüft wird nicht die Antwortqualität des Modells, sondern ob die *richtigen* Dokumente gefunden werden. Konkret gegen Fragen testen, deren Antwort nur in einem Teamdokument steht.
+`docs/coach-eval-set.md` vollständig durchspielen. Bei einer RAG-Umstellung ist das keine Formalie: geprüft wird nicht die Antwortqualität des Modells, sondern ob die _richtigen_ Dokumente gefunden werden. Konkret gegen Fragen testen, deren Antwort nur in einem Teamdokument steht.
 
 ---
 
 ## 7. Risiken
 
-| Risiko | Schwere | Gegenmaßnahme |
-|---|---|---|
+| Risiko                                    | Schwere                                      | Gegenmaßnahme                                                                             |
+| ----------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Chunks im alten Vektorraum bleiben liegen | **hoch** — falsche Zitate ohne Fehlermeldung | Reihenfolge in Phase 3 strikt einhalten; Chunk-Zählung vor und nach dem Umbau vergleichen |
-| `min_similarity 0.25` passt nicht | mittel — RAG liefert nichts oder Müll | Phase 4, Wert vermessen statt schätzen |
-| Falscher/kein `taskType` | mittel — schleichend schlechtere Treffer | In `gemini.ts` als Pflichtparameter modellieren, nicht als Option mit Default |
-| Free-Tier-429 beim Import | niedrig — Import bricht ab | Backoff; der Rollback in `ingest-knowledge` löscht das halbe Dokument bereits |
-| Batch-Semantik weicht ab | niedrig | Im ersten Testlauf mit zwei Texten verifizieren |
-| Google ändert Free-Tier-Konditionen | mittel, extern | `llm.ts` ist per Git wiederherstellbar; Rückweg bleibt eine Codeänderung |
+| `min_similarity 0.25` passt nicht         | mittel — RAG liefert nichts oder Müll        | Phase 4, Wert vermessen statt schätzen                                                    |
+| Falscher/kein `taskType`                  | mittel — schleichend schlechtere Treffer     | In `gemini.ts` als Pflichtparameter modellieren, nicht als Option mit Default             |
+| Free-Tier-429 beim Import                 | niedrig — Import bricht ab                   | Backoff; der Rollback in `ingest-knowledge` löscht das halbe Dokument bereits             |
+| Batch-Semantik weicht ab                  | niedrig                                      | Im ersten Testlauf mit zwei Texten verifizieren                                           |
+| Google ändert Free-Tier-Konditionen       | mittel, extern                               | `llm.ts` ist per Git wiederherstellbar; Rückweg bleibt eine Codeänderung                  |
 
 ---
 
