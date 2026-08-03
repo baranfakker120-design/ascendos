@@ -3,7 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { phaseLabel } from '@shared/lib/pipeline';
 import { Alert } from '@shared/ui/Alert';
 import { Card } from '@shared/ui/Card';
+import { CoachBubble, UserBubble } from './CoachBubbles';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
+import './coach-chat.css';
 
 /** Kontext-Chips (Phase 3): zeigen, was der Coach kann — statt leerem Feld. */
 const CHIPS = [
@@ -14,17 +16,6 @@ const CHIPS = [
 
 /**
  * Erkennt bare URLs in einer Coach-Antwort und macht sie anklickbar.
- * Sprint 3, Punkt 7. Bewusst als lokale Funktion hier statt als eigenes
- * Modul: eine reine Anzeigefunktion fuer genau diese eine Stelle, kein
- * neues Modul im Sinne des Auftrags ("keine neuen Module"). Veraendert
- * die URL selbst NICHT -- trennt nur Text- von Link-Abschnitten fuer
- * die Darstellung, mechanisch geprueft gegen alle vier im Auftrag
- * genannten Adressen inklusive Satzzeichen am Ende.
- *
- * Der letzte Zeichenklassen-Ausschluss [^\s.,;:!?)\]"'] sorgt dafuer,
- * dass ein abschliessendes Satzzeichen ("...netlify.app.") NICHT Teil
- * des Links wird -- ohne ihn wuerde der Punkt versehentlich mit
- * angeklickt und die Adresse waere ungueltig.
  */
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 
@@ -47,10 +38,6 @@ function linkifyText(text: string): Array<string | JSX.Element> {
 }
 
 export function CoachPage() {
-
-  // [F-1] Konversation lebt in der URL (?c=...) und wird beim Öffnen
-  // aus der jüngsten passenden Konversation fortgesetzt — nie im
-  // flüchtigen Komponenten-State.
   const [searchParams, setSearchParams] = useSearchParams();
   const contactId = searchParams.get('kontakt');
   const conversationId = searchParams.get('c');
@@ -86,18 +73,25 @@ export function CoachPage() {
       setConversationId(result.conversationId);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ascent ist gerade nicht erreichbar.');
-      setInput(message); // Eingabe nicht verlieren
+      setInput(message);
     }
   };
 
   return (
     <div className="flex h-full flex-col">
       <div className="space-y-3 pb-3">
-        <img
-          src="/brand/ascendos-symbol-mono-v2.png"
-          alt="Ascent"
-          className="h-8 w-auto"
-        />
+        <div className="flex items-center gap-3">
+          <img
+            src="/brand/ascendos-symbol-mono-v2.png"
+            alt=""
+            className="h-8 w-auto"
+            aria-hidden
+          />
+          <div>
+            <p className="text-lg font-bold leading-tight">Ascent</p>
+            <p className="text-xs text-muted">Dein persönlicher Coach</p>
+          </div>
+        </div>
         {contact ? (
           <Card className="py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -117,35 +111,26 @@ export function CoachPage() {
         ) : null}
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pb-3">
+      <div className="flex-1 space-y-3.5 overflow-y-auto pb-3">
         {!messages?.length && !send.isPending ? (
-          <Card>
-            <p className="text-sm font-medium">Womit kann ich dich weiterbringen?</p>
+          <CoachBubble>
+            <p className="font-medium">Womit kann ich dich weiterbringen?</p>
             <p className="mt-1 text-sm text-muted">
               Ich arbeite mit deiner Pipeline und den Teamdokumenten — und ende immer mit einem
               konkreten nächsten Schritt.
             </p>
-          </Card>
+          </CoachBubble>
         ) : null}
 
-        {messages?.map((m) => (
-          <div
-            key={m.id}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm ${
-              m.role === 'user'
-                ? 'ml-auto bg-primary text-primary-ink'
-                : 'border border-line bg-surface'
-            }`}
-          >
-            {linkifyText(m.content)}
-          </div>
-        ))}
+        {messages?.map((m) =>
+          m.role === 'user' ? (
+            <UserBubble key={m.id}>{linkifyText(m.content)}</UserBubble>
+          ) : (
+            <CoachBubble key={m.id}>{linkifyText(m.content)}</CoachBubble>
+          ),
+        )}
 
-        {send.isPending ? (
-          <div className="max-w-[85%] rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-            Ascent denkt nach …
-          </div>
-        ) : null}
+        {send.isPending ? <CoachBubble pending>Ascent denkt nach …</CoachBubble> : null}
 
         {error ? <Alert tone="error">{error}</Alert> : null}
         <div ref={bottomRef} />
@@ -158,7 +143,7 @@ export function CoachPage() {
               <button
                 key={chip.label}
                 onClick={() => setInput(chip.text)}
-                className="whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink"
+                className="whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-transform active:scale-[0.97]"
               >
                 {chip.label}
               </button>
@@ -175,14 +160,14 @@ export function CoachPage() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={contact ? `Frage zu ${contact.name.split(' ')[0]} …` : 'Deine Frage …'}
+            placeholder={contact ? `Frage zu ${contact.name.split(' ')[0]} …` : 'Nachricht an Ascent …'}
             className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-base placeholder:text-muted focus:border-primary focus:outline-none"
           />
           <button
             type="submit"
             disabled={send.isPending || !input.trim()}
             aria-label="Senden"
-            className="h-12 shrink-0 rounded-xl bg-primary px-4 font-semibold text-primary-ink disabled:opacity-50"
+            className="h-12 shrink-0 rounded-xl bg-primary px-4 font-semibold text-primary-ink transition-transform enabled:active:scale-[0.97] disabled:opacity-50"
           >
             →
           </button>

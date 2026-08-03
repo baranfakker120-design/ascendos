@@ -123,13 +123,15 @@ export function resolveDisplayFrameKey(input: DisplayFrameInput): string | null 
   return input.rankFrameKey ?? null;
 }
 
-export type FrameDisplaySize = 'sm' | 'md' | 'lg';
+export type FrameDisplaySize = 'xs' | 'sm' | 'md' | 'lg';
 
 /**
  * Anzeigegröße des Gesamtrahmens in CSS-Pixeln.
  * Spezialrahmen (08–10) und AP-Rahmen nutzen dieselben Größen.
+ * xs = Chat / kompakte Identität (gleiche Geometrie, kleiner).
  */
 export const FRAME_DISPLAY_PX: Record<FrameDisplaySize, number> = {
+  xs: 52,
   sm: 112,
   md: 168,
   lg: 268,

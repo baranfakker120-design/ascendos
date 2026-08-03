@@ -1,7 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { PHASE_ORDER, activityLabel, daysSince, phaseLabel } from '@shared/lib/pipeline';
 import type { ContactPhase } from '@shared/types/domain';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Card } from '@shared/ui/Card';
 import { CONTACTS_PAGE_SIZE, useContacts, type ContactWithPhase } from './contactsApi';
 import { PhaseBadge } from './components/PhaseBadge';
@@ -131,12 +133,13 @@ function FilterChip({
 function ContactRow({ contact }: { contact: ContactWithPhase }) {
   const days = daysSince(contact.last_event_at);
   const overdue = days !== null && days >= 7 && contact.phase !== 'partner';
+  const rewardAp = scoreLeadPhase(contact.phase);
 
   return (
     <li>
       <Link
         to={`/kontakte/${contact.id}`}
-        className="block rounded-2xl border border-line bg-surface p-4 transition-colors hover:bg-bg"
+        className="block rounded-2xl border border-line bg-surface p-4 transition-transform hover:bg-bg active:scale-[0.995]"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -149,7 +152,10 @@ function ContactRow({ contact }: { contact: ContactWithPhase }) {
               <p className="mt-1 truncate text-sm text-ink">→ {contact.next_step}</p>
             ) : null}
           </div>
-          <PhaseBadge phase={contact.phase} />
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <PhaseBadge phase={contact.phase} />
+            <ApRewardSticker ap={rewardAp} size="sm" animate={false} />
+          </div>
         </div>
       </Link>
     </li>

@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { scorePipelineEvent } from '@shared/lib/apScoring';
 import { MANUAL_EVENT_TYPES, eventLabel } from '@shared/lib/pipeline';
 import type { PipelineEventType } from '@shared/types/domain';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 
-/** Manuelles Setzen eines Pipeline-Events (die Checkboxen aus Phase 2). */
+/** Manuelles Setzen eines Pipeline-Events inkl. Reward-Preview. */
 export function EventPicker({
   onSelect,
   busy,
@@ -35,9 +37,10 @@ export function EventPicker({
               onSelect(type);
               setOpen(false);
             }}
-            className="rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-bg disabled:opacity-50"
+            className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-transform hover:bg-bg active:scale-[0.99] disabled:opacity-50"
           >
-            {eventLabel(type)}
+            <span>{eventLabel(type)}</span>
+            <ApRewardSticker ap={scorePipelineEvent(type)} size="sm" animate={false} />
           </button>
         ))}
       </div>

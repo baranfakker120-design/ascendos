@@ -62,6 +62,12 @@ describe('frameAssets', () => {
     expect(layout.avatarPx / hole).toBeCloseTo(HOLE_DISPLAY_SCALE, 2);
   });
 
+  it('kennt xs für Chat-Avatare mit RankFrame', () => {
+    expect(FRAME_DISPLAY_PX.xs).toBe(52);
+    expect(resolveFrameSrc('frame-01', 'xs', 1)).toBe('/brand/frames/frame-01-96.webp');
+    expect(frameAvatarLayout('frame-01', 'xs').box).toBe(52);
+  });
+
   it('ordnet Sonderrahmen fest zu (08 Developer, 09 Super Admin, 10 Monat)', () => {
     expect(SPECIAL_FRAME.developer).toBe('frame-08');
     expect(SPECIAL_FRAME.super_admin).toBe('frame-09');

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { DailyPlanItem } from '@shared/types/domain';
+import { comboBonusAp, scoreMission } from '@shared/lib/apScoring';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import type { OrderedMissions } from '../missionOrder';
@@ -13,9 +15,7 @@ interface Props {
 }
 
 /**
- * Fokus-Modus (Phase 3): Führung durch Hierarchie, nicht durch
- * Verstecken — eine Mission dominant, der Rest sichtbar darunter.
- * Jede Mission hat drei Ausgänge; keiner blockiert den Tag.
+ * Fokus-Modus: eine Mission dominant, Reward-Sticker zeigen den Wert.
  */
 export function FocusMode({ ordered, progress, onStatus }: Props) {
   const { current, queue, resolved } = ordered;
@@ -23,22 +23,34 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
 
   if (!current) return null;
 
+  const missionAp = scoreMission(current.mission_type);
+  const combo = comboBonusAp(progress.done);
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">Dein Fokus</h1>
         <span className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted">
           {progress.done} / {progress.total} erledigt
         </span>
       </div>
 
+      {combo > 0 ? (
+        <div className="flex justify-end">
+          <ApRewardSticker ap={combo} size="sm" mark="⚡" />
+        </div>
+      ) : null}
+
       <Card className="space-y-4 border-accent/50">
         <div className="flex gap-3">
           <span aria-hidden className="text-2xl leading-none">
             {MISSION_ICONS[current.mission_type]}
           </span>
-          <div className="min-w-0">
-            <p className="text-lg font-bold leading-snug">{current.title}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-lg font-bold leading-snug">{current.title}</p>
+              <ApRewardSticker ap={missionAp} size="sm" />
+            </div>
             <p className="mt-1 text-sm text-muted">{current.reason}</p>
             {current.contact_id ? (
               <Link
@@ -63,7 +75,7 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
                   onStatus(current.id, 'skipped', reason);
                   setSkipPickerFor(null);
                 }}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-sm font-medium hover:bg-bg"
+                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-sm font-medium transition-transform hover:bg-bg active:scale-[0.99]"
               >
                 {reason}
               </button>
@@ -112,9 +124,14 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
                 className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm text-muted"
               >
                 <span aria-hidden>{item.status === 'done' ? '✓' : '–'}</span>
-                <span className={item.status === 'done' ? 'line-through' : ''}>{item.title}</span>
+                <span className={`min-w-0 flex-1 truncate ${item.status === 'done' ? 'line-through' : ''}`}>
+                  {item.title}
+                </span>
+                {item.status === 'done' ? (
+                  <ApRewardSticker ap={scoreMission(item.mission_type)} size="sm" animate={false} />
+                ) : null}
                 {item.status_reason ? (
-                  <span className="ml-auto text-xs">({item.status_reason})</span>
+                  <span className="shrink-0 text-xs">({item.status_reason})</span>
                 ) : null}
               </li>
             ))}
@@ -131,9 +148,10 @@ function QueueRow({ item }: { item: DailyPlanItem }) {
       <span aria-hidden className="text-base leading-none">
         {MISSION_ICONS[item.mission_type]}
       </span>
-      <span className="min-w-0 truncate text-sm font-medium">{item.title}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.title}</span>
+      <ApRewardSticker ap={scoreMission(item.mission_type)} size="sm" animate={false} />
       {item.status === 'deferred' ? (
-        <span className="ml-auto shrink-0 text-xs text-muted">verschoben</span>
+        <span className="shrink-0 text-xs text-muted">verschoben</span>
       ) : null}
     </li>
   );
