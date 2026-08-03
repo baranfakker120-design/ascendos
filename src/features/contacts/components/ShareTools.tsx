@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { scorePipelineEvent } from '@shared/lib/apScoring';
 import type { ExternalTool } from '@shared/types/domain';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 
 interface Props {
   tools: ExternalTool[];
@@ -8,9 +10,7 @@ interface Props {
 }
 
 /**
- * Teilt die Links der externen Tools (Generation 1) und dokumentiert
- * das Senden als Pipeline-Event. Nutzt den nativen Share-Dialog (PWA),
- * Fallback: Link in die Zwischenablage.
+ * Teilt die Links der externen Tools und zeigt den AP-Reward.
  */
 export function ShareTools({ tools, contactName, onShared }: Props) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function ShareTools({ tools, contactName, onShared }: Props) {
         await navigator.share({ title: tool.name, text, url: tool.url });
         shared = true;
       } catch {
-        return; // Nutzer hat den Dialog abgebrochen -> kein Event
+        return;
       }
     } else {
       await navigator.clipboard.writeText(text);
@@ -43,16 +43,23 @@ export function ShareTools({ tools, contactName, onShared }: Props) {
         <button
           key={tool.id}
           onClick={() => void share(tool)}
-          className="flex w-full items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:bg-bg"
+          className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-left transition-transform hover:bg-bg active:scale-[0.99]"
         >
-          <span>
+          <span className="min-w-0">
             <span className="block text-sm font-medium">{tool.name} teilen</span>
             {tool.description ? (
               <span className="block text-xs text-muted">{tool.description}</span>
             ) : null}
           </span>
-          <span className="text-xs font-medium text-primary">
-            {copiedKey === tool.key ? 'Link kopiert ✓' : '↗'}
+          <span className="flex shrink-0 items-center gap-2">
+            <ApRewardSticker
+              ap={scorePipelineEvent(tool.share_event_type)}
+              size="sm"
+              animate={false}
+            />
+            <span className="text-xs font-medium text-primary">
+              {copiedKey === tool.key ? '✓' : '↗'}
+            </span>
           </span>
         </button>
       ))}

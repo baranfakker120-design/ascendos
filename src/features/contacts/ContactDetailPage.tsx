@@ -1,6 +1,8 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { activityLabel, daysSince } from '@shared/lib/pipeline';
 import type { ExternalTool, PipelineEventType } from '@shared/types/domain';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { EventPicker } from './components/EventPicker';
@@ -62,7 +64,10 @@ export function ContactDetailPage() {
         </Link>
         <div className="mt-2 flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{contact.name}</h1>
-          <PhaseBadge phase={contact.phase} />
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <PhaseBadge phase={contact.phase} />
+            <ApRewardSticker ap={scoreLeadPhase(contact.phase)} size="sm" />
+          </div>
         </div>
         <p className={`mt-1 text-sm ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}>
           {activityLabel(contact.last_event_at)}

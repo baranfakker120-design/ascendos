@@ -6,20 +6,12 @@ import { Card } from '@shared/ui/Card';
 import { EnergyCore } from '@shared/ui/EnergyCore';
 import { RankChip } from '@shared/ui/RankChip';
 import { RankFrame } from '@shared/ui/RankFrame';
+import { RoleBadge } from '@shared/ui/RoleBadge';
 import { StatCard, formatStatNumber } from '@shared/ui/StatCard';
 import { useProfileDetail } from './profileApi';
 
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: 'Super-Admin',
-  admin: 'Admin',
-  leader: 'Leader',
-  berater: 'Berater',
-  developer: 'Developer',
-};
-
 /**
  * Eigenes Profil: Identität, Rang/AP, geschäftlicher Kontext.
- * Shared UI only — keine Animation, kein ProgressRing, kein Hero.
  */
 export function ProfilePage() {
   const { role: membershipRole } = useAuth();
@@ -35,8 +27,6 @@ export function ProfilePage() {
   const { profile, context, rank } = data;
   const displayName = `${profile.first_name} ${profile.last_name}`.trim();
   const currentLabel = rank.current?.label ?? null;
-  // Anzeige aus aktiver Mitgliedschaft — profiles.role ist nur Spiegel.
-  const roleLabel = ROLE_LABELS[membershipRole ?? ''] ?? membershipRole ?? '—';
   const displayFrameKey = resolveDisplayFrameKey({
     role: membershipRole,
     rankFrameKey: rank.current?.frame_asset ?? null,
@@ -58,13 +48,12 @@ export function ProfilePage() {
           <p className="text-xl font-semibold">{displayName}</p>
           <p className="text-sm text-muted">@{profile.username}</p>
         </div>
-        {currentLabel ? (
-          <RankChip
-            label={currentLabel}
-            frameKey={displayFrameKey}
-            variant="framed"
-          />
-        ) : null}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {currentLabel ? (
+            <RankChip label={currentLabel} frameKey={displayFrameKey} variant="framed" />
+          ) : null}
+          <RoleBadge role={membershipRole} />
+        </div>
       </Card>
 
       <Card>
@@ -81,7 +70,10 @@ export function ProfilePage() {
         <StatCard label="Aktuelle AP" value={formatStatNumber(rank.apTotal)} />
         <StatCard label="Aktueller Rang" value={currentLabel} />
         <StatCard label="Organisation" value={context.orgName} />
-        <StatCard label="Rolle" value={roleLabel} />
+        <StatCard
+          label="Rolle"
+          value={<RoleBadge role={membershipRole} className="mt-0.5" />}
+        />
       </div>
 
       <Card>

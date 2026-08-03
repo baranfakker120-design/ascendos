@@ -1,3 +1,9 @@
+/**
+ * AP-Badge: lebende Zahl über optionalem Sticker / goldener Chip-Fallback.
+ * Nur Präsentation — keine Features, kein Supabase.
+ */
+import './ap-badge.css';
+
 export type ApBadgeSize = 'sm' | 'md' | 'lg';
 
 /** Feste Außenmaße (Design Freeze Sprint 4.1) — kein Layout-Shift. */
@@ -24,18 +30,12 @@ export function apBadgeAriaLabel(value: number): string {
 }
 
 export interface ApBadgeProps {
-  /** AP-Betrag (Ganzzahl; Nachkommastellen werden abgeschnitten). */
   value: number;
   size?: ApBadgeSize;
-  /** Optionales Sticker-Asset; ohne → Fallback-Platte. */
   stickerSrc?: string | null;
   className?: string;
 }
 
-/**
- * AP-Badge: lebende Zahl über optionalem Sticker.
- * Nur Präsentation — keine Features, kein Supabase.
- */
 export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' }: ApBadgeProps) {
   const px = AP_BADGE_SIZE_PX[size];
   const hasSticker = !!stickerSrc;
@@ -44,7 +44,7 @@ export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' 
 
   return (
     <div
-      className={`relative inline-flex shrink-0 items-center justify-center ${className}`}
+      className={`ap-badge relative inline-flex shrink-0 items-center justify-center ${className}`}
       style={{ width: px, height: px }}
       role="img"
       aria-label={label}
@@ -58,20 +58,16 @@ export function ApBadge({ value, size = 'md', stickerSrc = null, className = '' 
           draggable={false}
         />
       ) : (
-        <div
-          className="absolute inset-0 rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgb(17_18_20_/_0.06)] ring-1 ring-accent/30"
-          aria-hidden
-        />
+        <div className="ap-badge__plate" aria-hidden>
+          <span className="ap-badge__sheen" />
+        </div>
       )}
 
       <div className="relative z-[1] flex flex-col items-center justify-center leading-none">
-        <span className={`font-bold tabular-nums text-ink ${valueClass(size)}`} aria-hidden>
+        <span className={`ap-badge__value font-bold tabular-nums ${valueClass(size)}`} aria-hidden>
           {display}
         </span>
-        <span
-          className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-deep"
-          aria-hidden
-        >
+        <span className="ap-badge__unit mt-0.5 text-[10px] font-semibold uppercase tracking-wider" aria-hidden>
           AP
         </span>
       </div>
