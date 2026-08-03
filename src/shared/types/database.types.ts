@@ -19,7 +19,6 @@ export type Database = {
         Returns: Json;
       };
     };
-
     Enums: {
       [_ in never]: never;
     };
@@ -275,7 +274,29 @@ export type Database = {
           status?: string;
           task_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'ap_task_completions_ledger_id_fkey';
+            columns: ['ledger_id'];
+            isOneToOne: false;
+            referencedRelation: 'ap_ledger';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ap_task_completions_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ap_task_completions_task_id_fkey';
+            columns: ['task_id'];
+            isOneToOne: false;
+            referencedRelation: 'ap_task_defs';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       ap_task_defs: {
         Row: {
@@ -323,7 +344,15 @@ export type Database = {
           sort_order?: number;
           title?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'ap_task_defs_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       coach_convos: {
         Row: {
@@ -1176,7 +1205,22 @@ export type Database = {
           owner_membership_id?: string;
           target_membership_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'leadership_favorites_owner_membership_id_fkey';
+            columns: ['owner_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'leadership_favorites_target_membership_id_fkey';
+            columns: ['target_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       leadership_notes: {
         Row: {
@@ -1200,7 +1244,22 @@ export type Database = {
           target_membership_id?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'leadership_notes_owner_membership_id_fkey';
+            columns: ['owner_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'leadership_notes_target_membership_id_fkey';
+            columns: ['target_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       membership_cosmetics: {
         Row: {
@@ -1961,7 +2020,6 @@ export type Database = {
         ];
       };
     };
-
     Views: {
       contact_phases: {
         Row: {
@@ -2160,7 +2218,10 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: undefined;
       };
-      count_active_firstlines: { Args: { p_membership: string }; Returns: number };
+      count_active_firstlines: {
+        Args: { p_membership: string };
+        Returns: number;
+      };
       create_invite: {
         Args: { invite_role?: string };
         Returns: {
@@ -2267,6 +2328,12 @@ export type Database = {
           sort_order: number;
           title: string;
         }[];
+        SetofOptions: {
+          from: '*';
+          to: 'ap_task_defs';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       match_knowledge: {
         Args: {
@@ -2400,7 +2467,6 @@ export type Database = {
         }[];
       };
     };
-
     Enums: {
       [_ in never]: never;
     };
