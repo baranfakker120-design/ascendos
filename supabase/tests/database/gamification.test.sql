@@ -772,6 +772,7 @@ select is(
 -- hier festgehalten, damit sie bewusst getroffen wird.
 -- ============================================================
 
+-- Regeln als postgres setzen (kein Admin-Schreiben noetig).
 reset role;
 
 update public.ap_rules set ap = 10
@@ -780,6 +781,11 @@ where org_id='a1000000-0000-0000-0000-000000000001'
 update public.ap_rules set ap = 10
 where org_id='a1000000-0000-0000-0000-000000000001'
   and event_type='contact_created' and source_kind='usage_event';
+
+-- track_usage prueft auth.uid(): ohne Sitzung als Clara wuerde der
+-- Usage-Strom abgewiesen (WARNUNG) und N2 faelschlich nur +10 zaehlen.
+select tests.authenticate_as('d1000000-0000-0000-0000-00000000000c'); -- Clara
+select tests.clear_org();
 
 select lives_ok(
   $$ select tests.make_contact('d1000000-0000-0000-0000-00000000000c',

@@ -5557,6 +5557,58 @@ as $$
 $$;
 
 -- ============================================================
+-- Gamification table privileges (Sprint 4 intent)
+--
+-- Migration 13 sets default ALL on future tables for anon and
+-- authenticated. Migration 18 then granted SELECT (+ limited UPDATE)
+-- but never revoked the inherited ALL. Result:
+--   - UPDATE ap_rules as berater updates 0 rows (RLS) with no error
+--     instead of 42501 (M8)
+--   - authenticated still has INSERT on ap_ledger (O5)
+--   - anon still has SELECT on payouts (O6)
+--
+-- RLS remains the row boundary; table privileges match the
+-- documented write surface: service_role writes catalogs/ledger;
+-- authenticated reads; limited UPDATE only where policies allow.
+-- ============================================================
+
+revoke all on table
+  public.seasons,
+  public.ap_rules,
+  public.ranks,
+  public.cosmetic_items,
+  public.ap_ledger,
+  public.membership_cosmetics,
+  public.payouts,
+  public.monthly_awards
+from anon, authenticated;
+
+grant select on
+  public.seasons,
+  public.ap_rules,
+  public.ranks,
+  public.cosmetic_items,
+  public.ap_ledger,
+  public.membership_cosmetics,
+  public.payouts,
+  public.monthly_awards
+to authenticated;
+
+grant update on public.membership_cosmetics to authenticated;
+grant update on public.payouts to authenticated;
+
+grant all on
+  public.seasons,
+  public.ap_rules,
+  public.ranks,
+  public.cosmetic_items,
+  public.ap_ledger,
+  public.membership_cosmetics,
+  public.payouts,
+  public.monthly_awards
+to service_role;
+
+-- ============================================================
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================
 
