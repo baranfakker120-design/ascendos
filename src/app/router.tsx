@@ -1,6 +1,7 @@
-import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
+import { Navigate, Outlet, createBrowserRouter, useLocation } from 'react-router-dom';
 import { AppShell } from '@app/layouts/AppShell';
 import { AuthLayout } from '@app/layouts/AuthLayout';
+import { RouteErrorBoundary } from '@app/RouteErrorBoundary';
 import { CoachPage } from '@features/coach/CoachPage';
 import { ContactDetailPage } from '@features/contacts/ContactDetailPage';
 import { ContactFormPage } from '@features/contacts/ContactFormPage';
@@ -24,6 +25,15 @@ function FullScreenSpinner() {
     <div className="flex h-full items-center justify-center">
       <p className="text-sm text-muted">AscendOS wird geladen …</p>
     </div>
+  );
+}
+
+function ShellOutlet() {
+  const { pathname } = useLocation();
+  return (
+    <RouteErrorBoundary resetKey={pathname}>
+      <Outlet />
+    </RouteErrorBoundary>
   );
 }
 
@@ -90,22 +100,27 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: '/', element: <TodayRoute /> },
-          { path: '/reise', element: <ProgressPage /> },
-          { path: '/kontakte', element: <ContactsPage /> },
-          { path: '/kontakte/neu', element: <ContactFormPage /> },
-          { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
-          { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
-          { path: '/coach', element: <CoachPage /> },
-          { path: '/team-seyda', element: <TeamSeydaPage /> },
-          { path: '/more', element: <MorePage /> },
-          { path: '/mehr', element: <Navigate to="/more" replace /> },
-          { path: '/settings', element: <SettingsPage /> },
-          { path: '/profil', element: <ProfilePage /> },
-          { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
           {
-            element: <RequireSuperAdmin />,
-            children: [{ path: '/wissen', element: <KnowledgePage /> }],
+            element: <ShellOutlet />,
+            children: [
+              { path: '/', element: <TodayRoute /> },
+              { path: '/reise', element: <ProgressPage /> },
+              { path: '/kontakte', element: <ContactsPage /> },
+              { path: '/kontakte/neu', element: <ContactFormPage /> },
+              { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
+              { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
+              { path: '/coach', element: <CoachPage /> },
+              { path: '/team-seyda', element: <TeamSeydaPage /> },
+              { path: '/more', element: <MorePage /> },
+              { path: '/mehr', element: <Navigate to="/more" replace /> },
+              { path: '/settings', element: <SettingsPage /> },
+              { path: '/profil', element: <ProfilePage /> },
+              { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
+              {
+                element: <RequireSuperAdmin />,
+                children: [{ path: '/wissen', element: <KnowledgePage /> }],
+              },
+            ],
           },
         ],
       },

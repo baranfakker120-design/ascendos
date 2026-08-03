@@ -34,6 +34,16 @@ export function TodayPage() {
 
   // Zustand 1: Morgen-Commit — Plan steht, noch nicht bestätigt.
   if (!data.plan.committed_at) {
+    if (data.items.length === 0) {
+      return (
+        <Card>
+          <p className="font-medium">Heute steht keine Mission an.</p>
+          <p className="mt-1 text-sm text-muted">
+            Deine Pipeline ist ruhig — schau bei Kontakten vorbei oder komm morgen wieder.
+          </p>
+        </Card>
+      );
+    }
     return (
       <MorningCommit
         items={data.items}
@@ -44,11 +54,15 @@ export function TodayPage() {
   }
 
   // Zustand 3: Tagesabschluss — nichts wartet mehr.
-  if (ordered.dayComplete) {
+  if (ordered.dayComplete || data.items.length === 0) {
     return <DayReview items={data.items} />;
   }
 
-  // Zustand 2: Fokus-Modus.
+  // Zustand 2: Fokus-Modus — nur wenn es eine aktuelle Mission gibt.
+  if (!ordered.current) {
+    return <DayReview items={data.items} />;
+  }
+
   return (
     <FocusMode
       ordered={ordered}

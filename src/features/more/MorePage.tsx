@@ -75,7 +75,16 @@ export function MorePage() {
     setCopied(true);
   };
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <Card>
+        <p className="font-medium">Profil wird geladen …</p>
+        <p className="mt-1 text-sm text-muted">
+          Wenn das hängen bleibt, prüfe deine Verbindung und öffne den Tab erneut.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
