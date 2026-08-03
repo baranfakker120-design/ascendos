@@ -9,14 +9,16 @@ import {
 } from '@features/leadership/leadershipApi';
 import { displayName, presenceLabel } from '../genealogyUtils';
 import type { GenealogyNode } from '../types';
+import './node-detail.css';
 
 interface NodeDetailSheetProps {
   node: GenealogyNode;
   directs: GenealogyNode[];
+  editable: boolean;
   onCoach: (node: GenealogyNode) => void;
 }
 
-export function NodeDetailContent({ node, directs, onCoach }: NodeDetailSheetProps) {
+export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDetailSheetProps) {
   const frameKey = resolveDisplayFrameKey({
     role: node.role,
     rankFrameKey: node.frameAsset,
@@ -33,9 +35,14 @@ export function NodeDetailContent({ node, directs, onCoach }: NodeDetailSheetPro
   const noteValue = note ?? existingNote;
 
   return (
-    <div className="space-y-4">
+    <div className="node-detail space-y-4">
       <div className="flex items-center gap-3">
-        <RankFrame frameKey={frameKey} src={node.avatarUrl} name={name} size="md" />
+        <div
+          className={['node-detail__avatar', editable ? 'is-editable' : 'is-readonly'].join(' ')}
+        >
+          <span className="node-detail__aura" aria-hidden />
+          <RankFrame frameKey={frameKey} src={node.avatarUrl} name={name} size="md" />
+        </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold tracking-tight">{name}</p>
           <p className="text-sm font-semibold text-accent-deep">{node.rankLabel ?? 'Newcomer'}</p>
@@ -44,9 +51,15 @@ export function NodeDetailContent({ node, directs, onCoach }: NodeDetailSheetPro
         {node.depth > 0 ? (
           <button
             type="button"
-            className="min-h-[40px] rounded-xl border border-line px-3 text-sm font-semibold"
-            onClick={() => void toggleFav.mutateAsync(node.membershipId)}
+            className="min-h-[40px] rounded-xl border border-line px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!editable || toggleFav.isPending}
             aria-pressed={node.isFavorite}
+            aria-disabled={!editable}
+            title={editable ? undefined : 'Nur in deiner Struktur verfügbar'}
+            onClick={() => {
+              if (!editable) return;
+              void toggleFav.mutateAsync(node.membershipId);
+            }}
           >
             {node.isFavorite ? '★ Favorit' : '☆ Anpinnen'}
           </button>
@@ -76,6 +89,38 @@ export function NodeDetailContent({ node, directs, onCoach }: NodeDetailSheetPro
         </div>
       </dl>
 
+      {/* Coach + contact sit high so they are visible without scrolling */}
+      <div className="node-detail__coach-block grid gap-2">
+        {wa ? (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
+          >
+            WhatsApp
+          </a>
+        ) : null}
+        {tel ? (
+          <a
+            href={tel}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
+          >
+            Anrufen
+          </a>
+        ) : null}
+        <Button
+          type="button"
+          disabled={!editable}
+          onClick={() => {
+            if (!editable) return;
+            onCoach(node);
+          }}
+        >
+          Coach fragen
+        </Button>
+      </div>
+
       {node.sponsorName ? (
         <p className="text-sm text-muted">
           Persönlicher Sponsor: <span className="font-semibold text-ink">{node.sponsorName}</span>
@@ -87,21 +132,29 @@ export function NodeDetailContent({ node, directs, onCoach }: NodeDetailSheetPro
           Notizen / Follow-up
         </span>
         <textarea
-          className="min-h-[88px] w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm"
+          className="min-h-[88px] w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           value={noteValue}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Was besprichst du als Nächstes?"
+          onChange={(e) => {
+            if (!editable) return;
+            setNote(e.target.value);
+          }}
+          placeholder={
+            editable ? 'Was besprichst du als Nächstes?' : 'Nur in deiner Struktur bearbeitbar'
+          }
+          readOnly={!editable}
+          disabled={!editable}
         />
         <Button
           type="button"
           variant="secondary"
-          disabled={upsertNote.isPending || !noteValue.trim()}
-          onClick={() =>
+          disabled={!editable || upsertNote.isPending || !noteValue.trim()}
+          onClick={() => {
+            if (!editable) return;
             void upsertNote.mutateAsync({
               targetMembershipId: node.membershipId,
               body: noteValue.trim(),
-            })
-          }
+            });
+          }}
         >
           Notiz speichern
         </Button>
@@ -122,30 +175,6 @@ export function NodeDetailContent({ node, directs, onCoach }: NodeDetailSheetPro
           </ul>
         </div>
       ) : null}
-
-      <div className="grid gap-2">
-        {wa ? (
-          <a
-            href={wa}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
-          >
-            WhatsApp
-          </a>
-        ) : null}
-        {tel ? (
-          <a
-            href={tel}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
-          >
-            Anrufen
-          </a>
-        ) : null}
-        <Button type="button" onClick={() => onCoach(node)}>
-          Coach fragen
-        </Button>
-      </div>
     </div>
   );
 }

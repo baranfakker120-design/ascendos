@@ -6,6 +6,7 @@ import {
   isNewPartner,
   isOnline,
   matchesSearch,
+  buildEditableMembershipIds,
 } from './genealogyUtils';
 import type { GenealogyNode } from './types';
 
@@ -107,5 +108,22 @@ describe('genealogyUtils', () => {
         stub({ membershipId: 'p1', depth: 1 }),
       ])
     ).toBe(false);
+  });
+
+  it('buildEditableMembershipIds markiert Viewer + Descendants', () => {
+    const root = stub({ membershipId: 'root', depth: 0 });
+    const a = stub({ membershipId: 'a', depth: 1, sponsorMembershipId: 'root' });
+    const b = stub({ membershipId: 'b', depth: 1, sponsorMembershipId: 'root' });
+    const a1 = stub({ membershipId: 'a1', depth: 2, sponsorMembershipId: 'a' });
+    const nodes = [root, a, b, a1];
+
+    const asA = buildEditableMembershipIds(nodes, 'a');
+    expect(asA.has('a')).toBe(true);
+    expect(asA.has('a1')).toBe(true);
+    expect(asA.has('root')).toBe(false);
+    expect(asA.has('b')).toBe(false);
+
+    const asRoot = buildEditableMembershipIds(nodes, 'root');
+    expect(asRoot.size).toBe(4);
   });
 });

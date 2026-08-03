@@ -10,6 +10,8 @@ interface TeamNodeCardProps {
   selected?: boolean;
   collapsed?: boolean;
   hasChildren?: boolean;
+  /** Self + descendants of the logged-in member. */
+  editable?: boolean;
   onSelect: (node: GenealogyNode) => void;
   onToggleCollapse?: (node: GenealogyNode) => void;
   style?: CSSProperties;
@@ -20,6 +22,7 @@ export function TeamNodeCard({
   selected,
   collapsed,
   hasChildren,
+  editable = true,
   onSelect,
   onToggleCollapse,
   style,
@@ -41,6 +44,7 @@ export function TeamNodeCard({
         gold ? 'team-node--gold' : '',
         online ? 'team-node--online' : '',
         node.isFavorite ? 'team-node--fav' : '',
+        editable ? 'team-node--editable' : 'team-node--readonly',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -54,11 +58,14 @@ export function TeamNodeCard({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`${displayName(node)}, ${node.rankLabel ?? 'Rang'}`}
+      aria-label={`${displayName(node)}, ${node.rankLabel ?? 'Rang'}${editable ? '' : ', nur Ansicht'}`}
     >
       <div className="team-node__glow" aria-hidden />
       <div className="team-node__head">
-        <div className="team-node__avatar-wrap">
+        <div
+          className={['team-node__avatar-wrap', editable ? 'is-editable' : 'is-readonly'].join(' ')}
+        >
+          <span className="team-node__aura" aria-hidden />
           <RankFrame frameKey={frameKey} src={node.avatarUrl} name={displayName(node)} size="sm" />
           <span
             className={['team-node__presence', online ? 'is-on' : 'is-off'].join(' ')}

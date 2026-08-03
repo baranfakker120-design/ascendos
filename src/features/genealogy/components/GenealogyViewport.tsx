@@ -18,6 +18,7 @@ interface GenealogyViewportProps {
   visibleIds: Set<string>;
   collapsed: Set<string>;
   selectedId: string | null;
+  editableIds: Set<string>;
   onSelect: (node: GenealogyNode) => void;
   onToggleCollapse: (node: GenealogyNode) => void;
 }
@@ -27,6 +28,7 @@ export function GenealogyViewport({
   visibleIds,
   collapsed,
   selectedId,
+  editableIds,
   onSelect,
   onToggleCollapse,
 }: GenealogyViewportProps) {
@@ -202,6 +204,7 @@ export function GenealogyViewport({
                 selected={selectedId === lp.id}
                 collapsed={collapsed.has(lp.id)}
                 hasChildren={node.directCount > 0}
+                editable={editableIds.has(lp.id)}
                 onSelect={onSelect}
                 onToggleCollapse={onToggleCollapse}
                 style={{ left: lp.x, top: lp.y }}
