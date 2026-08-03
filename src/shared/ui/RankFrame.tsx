@@ -6,6 +6,7 @@ import {
   resolveFrameSrcSet,
   type FrameDisplaySize,
 } from '@shared/lib/frameAssets';
+import { FrameSheenCanvas } from './FrameSheenCanvas';
 import './rank-frame.css';
 
 export interface RankFrameProps {
@@ -27,8 +28,7 @@ export interface RankFrameProps {
 /**
  * Avatar mit optionalem Rangrahmen.
  *
- * Layer: 1) Profilbild (füllt Alpha-Loch)  2) Rahmen  3) Metall-Glanz.
- * Kein absichtlicher Spalt — sonst scheint der Seitenhintergrund durch.
+ * Layer: 1) Profilbild (= Alpha-Loch)  2) Rahmen  3) Canvas-Metallglanz.
  */
 export function RankFrame({
   frameKey = null,
@@ -66,7 +66,7 @@ export function RankFrame({
         <div className="absolute inset-0 rounded-full border-2 border-accent/50" aria-hidden />
       ) : null}
 
-      {/* 1) Profilbild — Durchmesser = Alpha-Loch (+ leichter Overlap unters Metall) */}
+      {/* 1) Profilbild — exakt Alpha-Loch, kein Padding, kein Overlap über den Goldring */}
       <div
         className="absolute z-[1] overflow-hidden rounded-full"
         style={{
@@ -92,7 +92,7 @@ export function RankFrame({
         />
       </div>
 
-      {/* 2) Rahmen + 3) Glanz (Frame-PNG-Duplikat, kein mask-image) */}
+      {/* 2) Rahmen + 3) Canvas-Glanz (destination-in, kein mask-image) */}
       {showFrame ? (
         <div className="rank-frame-layer">
           <img
@@ -106,17 +106,7 @@ export function RankFrame({
             decoding="async"
             onError={() => setFrameFailed(true)}
           />
-          <div className="rank-frame-sheen" aria-hidden>
-            <img
-              src={frameSrc}
-              srcSet={frameSrcSet ?? undefined}
-              sizes={`${box}px`}
-              alt=""
-              className="rank-frame-sheen-asset"
-              draggable={false}
-              decoding="async"
-            />
-          </div>
+          <FrameSheenCanvas frameSrc={frameSrc} size={box} />
         </div>
       ) : null}
     </div>

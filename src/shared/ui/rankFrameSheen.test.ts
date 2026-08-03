@@ -1,34 +1,50 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest'
+import {
+  SHEEN_ANGLE_DEG,
+  SHEEN_BAND_RATIO,
+  SHEEN_CYCLE_MS,
+  SHEEN_SWEEP_MS,
+  sheenBandCenter,
+  sheenOpacityEnvelope,
+  sheenSweepProgress,
+} from './frameSheenMath'
 
-const dir = dirname(fileURLToPath(import.meta.url));
+describe('frameSheenMath', () => {
+  it('repeats every 6–8 seconds so the sweep is visible within a 10s glance', () => {
+    expect(SHEEN_CYCLE_MS).toBeGreaterThanOrEqual(6000)
+    expect(SHEEN_CYCLE_MS).toBeLessThanOrEqual(8000)
+    expect(SHEEN_SWEEP_MS).toBeGreaterThanOrEqual(1000)
+    expect(SHEEN_SWEEP_MS).toBeLessThan(SHEEN_CYCLE_MS)
+    expect(SHEEN_CYCLE_MS).toBeLessThanOrEqual(10000)
+  })
 
-describe('rank frame sheen contract', () => {
-  const css = readFileSync(join(dir, 'rank-frame.css'), 'utf8');
-  const tsx = readFileSync(join(dir, 'RankFrame.tsx'), 'utf8');
-  const cssProps = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  it('uses a narrow ~30° luxury-watch band', () => {
+    expect(SHEEN_ANGLE_DEG).toBeGreaterThanOrEqual(25)
+    expect(SHEEN_ANGLE_DEG).toBeLessThanOrEqual(35)
+    expect(SHEEN_BAND_RATIO).toBeGreaterThan(0.06)
+    expect(SHEEN_BAND_RATIO).toBeLessThan(0.18)
+  })
 
-  it('uses a brightened frame-PNG duplicate — not CSS mask-image (iOS)', () => {
-    expect(tsx).toContain('rank-frame-sheen-asset');
-    expect(tsx).not.toMatch(/maskImage|WebkitMaskImage/);
-    expect(cssProps).not.toMatch(/mask-image|mask-mode|-webkit-mask/i);
-    expect(cssProps).toMatch(/filter:\s*brightness/);
-    expect(cssProps).toMatch(/clip-path:\s*polygon/);
-  });
+  it('keeps the band off-canvas outside the active sweep window', () => {
+    expect(sheenSweepProgress(SHEEN_SWEEP_MS + 1)).toBeNull()
+    expect(sheenSweepProgress(SHEEN_CYCLE_MS - 1)).toBeNull()
+  })
 
-  it('keeps a soft angled metal catch with rest period', () => {
-    expect(css).toMatch(/animation:\s*rank-frame-sheen\s+7s/);
-    expect(css).toMatch(/62%/);
-    expect(css).toMatch(/83%/);
-    expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
-  });
+  it('moves the band across the frame during the sweep', () => {
+    const start = sheenSweepProgress(0)
+    const mid = sheenSweepProgress(SHEEN_SWEEP_MS / 2)
+    const late = sheenSweepProgress(SHEEN_SWEEP_MS * 0.9)
+    expect(start).toBe(0)
+    expect(mid).not.toBeNull()
+    expect(late).not.toBeNull()
+    expect(mid!).toBeGreaterThan(start!)
+    expect(late!).toBeGreaterThan(mid!)
+    expect(sheenBandCenter(mid!)).toBeGreaterThan(sheenBandCenter(start!))
+  })
 
-  it('keeps layer order avatar under frame under sheen', () => {
-    const avatarIdx = tsx.indexOf('z-[1]');
-    const layerIdx = tsx.indexOf('rank-frame-layer');
-    expect(avatarIdx).toBeGreaterThan(-1);
-    expect(layerIdx).toBeGreaterThan(avatarIdx);
-  });
-});
+  it('softens opacity at the edges of the sweep', () => {
+    expect(sheenOpacityEnvelope(0)).toBeLessThan(0.05)
+    expect(sheenOpacityEnvelope(0.5)).toBeGreaterThan(0.9)
+    expect(sheenOpacityEnvelope(1)).toBeLessThan(0.05)
+  })
+})
