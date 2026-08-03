@@ -103,12 +103,13 @@ export interface CoachShareVisionCapabilities {
 export class PendingShareVisionVerifier implements ShareVisionVerifier {
   readonly id = 'pending-vision-stub';
 
-  async analyzeScreenshot(_input: {
+  async analyzeScreenshot(input: {
     imageDataUrl: string;
     expectedOnboardingUrl: string;
     expectedPresentationUrl: string | null;
     contactName: string;
   }): Promise<ShareVisionDetection> {
+    void input;
     return {
       channel: 'unknown',
       detectedUrls: [],
@@ -128,8 +129,9 @@ export class PendingShareVisionVerifier implements ShareVisionVerifier {
 /** Stub coach vision — no model calls; returns empty / pending results. */
 export class PendingCoachShareVision implements CoachShareVisionCapabilities {
   async readScreenshot(
-    _imageDataUrl: string
+    imageDataUrl: string
   ): Promise<{ description: string; ocrText: string | null }> {
+    void imageDataUrl;
     return { description: 'Vision not configured yet.', ocrText: null };
   }
 
@@ -144,46 +146,52 @@ export class PendingCoachShareVision implements CoachShareVisionCapabilities {
     };
   }
 
-  async recognizeLinks(_input: { imageDataUrl?: string; text?: string }): Promise<string[]> {
+  async recognizeLinks(input: { imageDataUrl?: string; text?: string }): Promise<string[]> {
+    void input;
     return [];
   }
 
-  async recognizePresentations(_input: {
+  async recognizePresentations(input: {
     imageDataUrl?: string;
     text?: string;
     expectedUrl?: string | null;
   }): Promise<{ found: boolean; matchedUrl: string | null }> {
+    void input;
     return { found: false, matchedUrl: null };
   }
 
-  async recognizeOnboarding(_input: {
+  async recognizeOnboarding(input: {
     imageDataUrl?: string;
     text?: string;
     expectedUrl: string;
   }): Promise<{ found: boolean; matchedUrl: string | null }> {
+    void input;
     return { found: false, matchedUrl: null };
   }
 
-  async recognizeTimestamps(_input: { imageDataUrl?: string; text?: string }): Promise<string[]> {
+  async recognizeTimestamps(input: { imageDataUrl?: string; text?: string }): Promise<string[]> {
+    void input;
     return [];
   }
 
-  async recognizeContactNames(_input: {
+  async recognizeContactNames(input: {
     imageDataUrl?: string;
     text?: string;
     expectedName?: string;
   }): Promise<string[]> {
+    void input;
     return [];
   }
 
-  async summarizeConversation(_input: {
+  async summarizeConversation(input: {
     messages: string[];
     channel: ShareChannelHint;
   }): Promise<string> {
+    void input;
     return 'Vision summary not configured yet.';
   }
 
-  async determineTaskCompletion(_input: {
+  async determineTaskCompletion(input: {
     detection: ShareVisionDetection;
     expectedOnboardingUrl: string;
     expectedPresentationUrl: string | null;
@@ -192,6 +200,7 @@ export class PendingCoachShareVision implements CoachShareVisionCapabilities {
     completed: boolean;
     reason: string;
   }> {
+    void input;
     return {
       status: 'pending',
       completed: false,
