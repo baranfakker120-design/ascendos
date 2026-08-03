@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       agentKey = convo.agent_key;
       const { data: msgs } = await db.from('coach_messages')
         .select('role, content').eq('convo_id', convoId)
-        .order('created_at').limit(20);
+        .order('created_at').limit(30);
       history = (msgs ?? []) as ChatMessage[];
     } else {
       const { data: convo, error } = await db.from('coach_convos')
@@ -381,10 +381,24 @@ Deno.serve(async (req) => {
     mark('rag_ms', tRag);
 
     // ---------- Antwort ----------
+    // Gesprächskontinuität: History ist bereits in messages — zusätzlich
+    // ein klarer Mentor-Hinweis, damit das Modell nicht "neu startet".
+    const continuity =
+      history.length > 0
+        ? [
+            'GESPRÄCHSKONTINUITÄT:',
+            `Du sprichst weiter mit ${profile.first_name}. Es gibt bereits einen Verlauf.`,
+            'Baue darauf auf. Wiederhole keine abgeschlossenen Punkte.',
+            'Beziehe dich natürlich auf frühere Aussagen, wenn sie relevant sind.',
+            'Starte nicht bei null — du bist mitten in einem Mentor-Gespräch.',
+          ].join('\n')
+        : null;
+
     const system = [
       CORE_RULES,
       `DEINE SPEZIALISIERUNG:\n${agent.system_prompt}`,
       `NUTZER: ${profile.first_name} (Rolle: ${profile.role}).`,
+      continuity,
       contactContext || null,
       knowledgeBlock ||
         'HINWEIS: Zu dieser Frage wurden KEINE Teamdokumente gefunden. Beachte die Wissensbasis-Regel.',
