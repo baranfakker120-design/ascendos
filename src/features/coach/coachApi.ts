@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
+import { createTranslator } from '@shared/i18n';
+import { readStoredLocale } from '@shared/lib/locale';
 
 export interface CoachMessage {
   id: string;
@@ -55,16 +57,20 @@ export function useSendToCoach() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SendInput): Promise<SendResult> => {
+      // Resolve at send time so a language switch never leaves the mutation
+      // with a stale locale captured by an earlier render.
+      const locale = readStoredLocale();
       const { data, error } = await supabase.functions.invoke('coach-chat', {
         body: {
           message: input.message,
           conversationId: input.conversationId,
           contactId: input.contactId,
+          locale,
         },
       });
       if (error) {
         const context = await (error as { context?: Response }).context?.json?.().catch(() => null);
-        throw new Error(context?.error ?? 'Ascent ist gerade nicht erreichbar.');
+        throw new Error(context?.error ?? createTranslator(locale)('coach.unreachable'));
       }
       return data as SendResult;
     },

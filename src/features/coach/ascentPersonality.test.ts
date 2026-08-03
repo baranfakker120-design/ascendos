@@ -38,4 +38,21 @@ describe('Ascent mentor personality contract', () => {
     expect(rules).toMatch(/Gesprächsverlauf/);
     expect(rules).toMatch(/Starte nie bei null/);
   });
+
+  it('makes the selected output language absolute', () => {
+    expect(rules).toMatch(/LANGUAGE — ABSOLUTE, HIGHEST-PRIORITY OUTPUT RULE/);
+    expect(rules).toMatch(/Answer ONLY/);
+    expect(rules).toMatch(/knowledge documents may be written in ANY language/);
+    expect(rules).toMatch(/These exact labels override/);
+  });
+
+  it('defines localized mentor-card labels for every supported locale', () => {
+    for (const locale of ['de', 'tr', 'fr', 'en', 'it']) {
+      expect(rules).toMatch(new RegExp(`${locale}: \\{`));
+    }
+    expect(rules).toMatch(/Biggest mistake/);
+    expect(rules).toMatch(/En büyük hata/);
+    expect(rules).toMatch(/La plus grande erreur/);
+    expect(rules).toMatch(/Errore più grande/);
+  });
 });

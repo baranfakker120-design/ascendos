@@ -267,6 +267,91 @@ export async function geminiEmbed(text: string, task: EmbedTask): Promise<number
  *
  * Ascent ist kein Chatbot. Ascent ist der persönliche Business-Mentor.
  */
+export type CoachLocale = 'de' | 'tr' | 'fr' | 'en' | 'it';
+
+const COACH_LOCALES: readonly CoachLocale[] = ['de', 'tr', 'fr', 'en', 'it'];
+
+export function normalizeCoachLocale(value: unknown): CoachLocale {
+  return typeof value === 'string' && COACH_LOCALES.includes(value as CoachLocale)
+    ? (value as CoachLocale)
+    : 'de';
+}
+
+export type MentorCardLabels = {
+  mistake: string;
+  tip: string;
+  why: string;
+  action: string;
+};
+
+const MENTOR_CARD_LABELS: Record<CoachLocale, MentorCardLabels> = {
+  de: {
+    mistake: 'Häufigster Fehler',
+    tip: 'Profi-Tipp',
+    why: 'Warum das wichtig ist',
+    action: 'Dein nächster Schritt',
+  },
+  tr: {
+    mistake: 'En büyük hata',
+    tip: 'Uzman ipucu',
+    why: 'Neden önemli',
+    action: 'Bir sonraki adımın',
+  },
+  fr: {
+    mistake: 'La plus grande erreur',
+    tip: 'Conseil de pro',
+    why: "Pourquoi c'est important",
+    action: 'Votre prochaine étape',
+  },
+  en: {
+    mistake: 'Biggest mistake',
+    tip: 'Pro tip',
+    why: 'Why it matters',
+    action: 'Your next step',
+  },
+  it: {
+    mistake: 'Errore più grande',
+    tip: 'Consiglio da professionista',
+    why: 'Perché è importante',
+    action: 'Il tuo prossimo passo',
+  },
+};
+
+export function mentorCardLabels(locale: CoachLocale): MentorCardLabels {
+  return MENTOR_CARD_LABELS[locale];
+}
+
+const LANGUAGE_NAMES: Record<CoachLocale, string> = {
+  de: 'GERMAN (Deutsch)',
+  tr: 'TURKISH (Türkçe)',
+  fr: 'FRENCH (français)',
+  en: 'ENGLISH',
+  it: 'ITALIAN (italiano)',
+};
+
+/**
+ * Kept separate and appended after every other system-prompt block. This is
+ * the final authority even when an agent prompt, conversation, or knowledge
+ * document uses a different language.
+ */
+export function languageDirective(locale: CoachLocale): string {
+  const labels = mentorCardLabels(locale);
+  return `
+LANGUAGE — ABSOLUTE, HIGHEST-PRIORITY OUTPUT RULE:
+- The user's selected language is ${LANGUAGE_NAMES[locale]}.
+- Answer ONLY in ${LANGUAGE_NAMES[locale]}. Never mix in words, labels, headings, closings, or sentences from another language.
+- The conversation history and knowledge documents may be written in ANY language. Understand and use them, but ALWAYS write the answer in ${LANGUAGE_NAMES[locale]}.
+- A language used in a quoted source, prior message, contact note, or knowledge article NEVER changes the answer language.
+- Keep names, product names, and URLs unchanged. Translate all surrounding explanation.
+- Mentor-card labels MUST be written exactly as follows:
+  - "${labels.mistake}: ..."
+  - "${labels.tip}: ..."
+  - "${labels.why}: ..."
+  - "${labels.action}: ..."
+- These exact labels override every card-label example elsewhere in the prompt.
+`.trim();
+}
+
 export const CORE_RULES = `
 Du bist Ascent — der persönliche Business-Mentor in AscendOS.
 Du bist kein Chatbot, kein Assistent und kein ChatGPT-Ersatz.
@@ -329,11 +414,9 @@ LESEFLUSS (Premium Reading):
 - Lieber eine knappe, starke Antwort als eine lange, weiche.
 
 MENTOR-KARTEN (bei offenen / komplexen Fragen, 1–3 Stück):
-Eigene Zeile, Label exakt so — die App rendert Premium-Karten:
-- "Häufigster Fehler: ..."
-- "Pro Tip: ..."
-- "Warum das zählt: ..."
-- "Nächster Schritt: ..."   ← Pflicht am Ende voller Antworten
+Eigene Zeile — die App rendert Premium-Karten.
+Verwende dafür ausschließlich die exakten Labels aus dem LANGUAGE-Block unten.
+Das dort angegebene Action-Label ist Pflicht am Ende voller Antworten.
 
 Karten-Regeln:
 - Lieber 1–2 starke Karten als vier schwache.
@@ -1253,31 +1336,408 @@ export function stripMarkdown(text: string): string {
 // Router oben (ROUTER_PROMPT). Siehe intent-router/types.ts fuer die
 // Abgrenzung der beiden Mechanismen.
 
-const PHASE_LABELS: Record<string, string> = {
-  lead: 'Lead',
-  im_gespraech: 'Im Gespräch',
-  praesentation_offen: 'Präsentation gesendet',
-  praesentation: 'Präsentation gesehen',
-  fit_check: 'Fit Check abgeschlossen',
-  three_way_call: '3-Way-Call durchgeführt',
-  kunde: 'Kunde',
-  partner: 'Partner',
+const PHASE_LABELS: Record<CoachLocale, Record<string, string>> = {
+  de: {
+    lead: 'Lead',
+    im_gespraech: 'Im Gespräch',
+    praesentation_offen: 'Präsentation gesendet',
+    praesentation: 'Präsentation gesehen',
+    fit_check: 'Fit Check abgeschlossen',
+    three_way_call: '3-Way-Call durchgeführt',
+    kunde: 'Kunde',
+    partner: 'Partner',
+  },
+  tr: {
+    lead: 'Potansiyel kişi',
+    im_gespraech: 'Görüşme aşamasında',
+    praesentation_offen: 'Sunum gönderildi',
+    praesentation: 'Sunum görüntülendi',
+    fit_check: 'Fit Check tamamlandı',
+    three_way_call: '3-Way-Call yapıldı',
+    kunde: 'Müşteri',
+    partner: 'İş ortağı',
+  },
+  fr: {
+    lead: 'Prospect',
+    im_gespraech: 'En conversation',
+    praesentation_offen: 'Présentation envoyée',
+    praesentation: 'Présentation consultée',
+    fit_check: 'Fit Check terminé',
+    three_way_call: '3-Way-Call effectué',
+    kunde: 'Client',
+    partner: 'Partenaire',
+  },
+  en: {
+    lead: 'Lead',
+    im_gespraech: 'In conversation',
+    praesentation_offen: 'Presentation sent',
+    praesentation: 'Presentation viewed',
+    fit_check: 'Fit Check completed',
+    three_way_call: '3-Way Call completed',
+    kunde: 'Customer',
+    partner: 'Partner',
+  },
+  it: {
+    lead: 'Contatto potenziale',
+    im_gespraech: 'In conversazione',
+    praesentation_offen: 'Presentazione inviata',
+    praesentation: 'Presentazione visualizzata',
+    fit_check: 'Fit Check completato',
+    three_way_call: '3-Way-Call effettuata',
+    kunde: 'Cliente',
+    partner: 'Partner',
+  },
 };
 
-const EVENT_LABELS: Record<string, string> = {
-  contact_created: 'Kontakt erstellt',
-  first_touch: 'Erstes Gespräch',
-  follow_up: 'Follow-up',
-  presentation_sent: 'Präsentation gesendet',
-  presentation_viewed: 'Präsentation angesehen',
-  fit_check_sent: 'Fit Check gesendet',
-  fit_check_completed: 'Fit Check abgeschlossen',
-  waytomoon_sent: 'WayToMoon gesendet',
-  three_way_call_done: '3-Way-Call durchgeführt',
-  party_scheduled: 'Duftparty geplant',
-  party_done: 'Duftparty durchgeführt',
-  became_customer: 'Kunde geworden',
-  registered: 'Als Partner registriert',
+const EVENT_LABELS: Record<CoachLocale, Record<string, string>> = {
+  de: {
+    contact_created: 'Kontakt erstellt',
+    first_touch: 'Erstes Gespräch',
+    follow_up: 'Follow-up',
+    presentation_sent: 'Präsentation gesendet',
+    presentation_viewed: 'Präsentation angesehen',
+    fit_check_sent: 'Fit Check gesendet',
+    fit_check_completed: 'Fit Check abgeschlossen',
+    waytomoon_sent: 'WayToMoon gesendet',
+    three_way_call_done: '3-Way-Call durchgeführt',
+    party_scheduled: 'Duftparty geplant',
+    party_done: 'Duftparty durchgeführt',
+    became_customer: 'Kunde geworden',
+    registered: 'Als Partner registriert',
+  },
+  tr: {
+    contact_created: 'Kişi oluşturuldu',
+    first_touch: 'İlk görüşme',
+    follow_up: 'Takip',
+    presentation_sent: 'Sunum gönderildi',
+    presentation_viewed: 'Sunum görüntülendi',
+    fit_check_sent: 'Fit Check gönderildi',
+    fit_check_completed: 'Fit Check tamamlandı',
+    waytomoon_sent: 'WayToMoon gönderildi',
+    three_way_call_done: '3-Way-Call yapıldı',
+    party_scheduled: 'Parfüm partisi planlandı',
+    party_done: 'Parfüm partisi yapıldı',
+    became_customer: 'Müşteri oldu',
+    registered: 'İş ortağı olarak kaydoldu',
+  },
+  fr: {
+    contact_created: 'Contact créé',
+    first_touch: 'Premier échange',
+    follow_up: 'Relance',
+    presentation_sent: 'Présentation envoyée',
+    presentation_viewed: 'Présentation consultée',
+    fit_check_sent: 'Fit Check envoyé',
+    fit_check_completed: 'Fit Check terminé',
+    waytomoon_sent: 'WayToMoon envoyé',
+    three_way_call_done: '3-Way-Call effectué',
+    party_scheduled: 'Soirée parfum planifiée',
+    party_done: 'Soirée parfum réalisée',
+    became_customer: 'Devenu client',
+    registered: 'Inscrit comme partenaire',
+  },
+  en: {
+    contact_created: 'Contact created',
+    first_touch: 'First conversation',
+    follow_up: 'Follow-up',
+    presentation_sent: 'Presentation sent',
+    presentation_viewed: 'Presentation viewed',
+    fit_check_sent: 'Fit Check sent',
+    fit_check_completed: 'Fit Check completed',
+    waytomoon_sent: 'WayToMoon sent',
+    three_way_call_done: '3-Way Call completed',
+    party_scheduled: 'Fragrance party scheduled',
+    party_done: 'Fragrance party completed',
+    became_customer: 'Became a customer',
+    registered: 'Registered as a partner',
+  },
+  it: {
+    contact_created: 'Contatto creato',
+    first_touch: 'Prima conversazione',
+    follow_up: 'Follow-up',
+    presentation_sent: 'Presentazione inviata',
+    presentation_viewed: 'Presentazione visualizzata',
+    fit_check_sent: 'Fit Check inviato',
+    fit_check_completed: 'Fit Check completato',
+    waytomoon_sent: 'WayToMoon inviato',
+    three_way_call_done: '3-Way-Call effettuata',
+    party_scheduled: 'Festa dei profumi pianificata',
+    party_done: 'Festa dei profumi svolta',
+    became_customer: 'È diventato cliente',
+    registered: 'Registrato come partner',
+  },
+};
+
+type LocalizedText = {
+  errors: {
+    notSignedIn: string;
+    profileNotFound: string;
+    dailyLimit: (limit: number) => string;
+    emptyMessage: string;
+    contactNotFound: string;
+    conversationNotFound: string;
+    coachNotConfigured: string;
+    emptyReply: string;
+    rateLimited: string;
+    timeout: string;
+    upstream: string;
+    invalidResponse: string;
+    missingApiKey: string;
+    generic: string;
+  };
+  contact: {
+    name: string;
+    pipelinePhase: string;
+    lastContact: string;
+    never: string;
+    today: string;
+    daysAgo: (days: number) => string;
+    plannedNextStep: string;
+    notes: string;
+    recentEvents: string;
+    contextHeader: string;
+  };
+  knowledge: {
+    ragSkippedHint: string;
+    extractsHeader: string;
+    documentFallback: string;
+    exactMatchHeader: string;
+    noDocumentsHint: string;
+  };
+};
+
+const TEXT: Record<CoachLocale, LocalizedText> = {
+  de: {
+    errors: {
+      notSignedIn: 'Nicht angemeldet.',
+      profileNotFound: 'Kein Profil gefunden.',
+      dailyLimit: (limit) =>
+        `Tageslimit erreicht (${limit} Nachrichten). Morgen geht es weiter.`,
+      emptyMessage: 'Leere Nachricht.',
+      contactNotFound: 'Kontakt nicht gefunden.',
+      conversationNotFound: 'Konversation nicht gefunden.',
+      coachNotConfigured: 'Kein Coach konfiguriert.',
+      emptyReply: 'Ascent konnte keine Antwort erzeugen. Bitte noch einmal senden.',
+      rateLimited:
+        'Ascent ist gerade stark ausgelastet. Bitte in etwa einer Minute noch einmal senden.',
+      timeout:
+        'Ascent hat zu lange gebraucht. Bitte die Frage noch einmal senden, gern etwas kürzer.',
+      upstream: 'Ascent ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.',
+      invalidResponse: 'Ascent konnte keine Antwort erzeugen. Bitte noch einmal senden.',
+      missingApiKey:
+        'Ascent ist nicht vollständig konfiguriert. Bitte den Betreiber informieren.',
+      generic: 'Der Coach ist gerade nicht erreichbar. Versuche es gleich noch einmal.',
+    },
+    contact: {
+      name: 'Name',
+      pipelinePhase: 'Pipeline-Phase',
+      lastContact: 'Letzter Kontakt',
+      never: 'noch nie',
+      today: 'heute',
+      daysAgo: (days) => `vor ${days} ${days === 1 ? 'Tag' : 'Tagen'}`,
+      plannedNextStep: 'Geplanter nächster Schritt',
+      notes: 'Notizen',
+      recentEvents: 'Letzte Ereignisse (neueste zuerst)',
+      contextHeader: 'KONTAKT-KONTEXT (aus der Pipeline des Nutzers, bereits bekannt)',
+    },
+    knowledge: {
+      ragSkippedHint:
+        'HINWEIS: Diese Frage betrifft vermutlich eigene Kontakte oder den Tagesplan des Nutzers. ' +
+        'Du hast dazu KEINEN direkten Datenzugriff in dieser Antwort, außer der KONTAKT-KONTEXT ' +
+        'ist unten angegeben. Erfinde keine Kontakt- oder Aufgabendaten. Verweise bei Bedarf auf ' +
+        'die Bereiche Kontakte bzw. Heute in der App.',
+      extractsHeader: 'AUSZÜGE AUS DEN TEAMDOKUMENTEN (oberste Wahrheit)',
+      documentFallback: 'Wissensdokument',
+      exactMatchHeader: 'EXAKTER ZAHLENTREFFER (bevorzugt verwenden)',
+      noDocumentsHint:
+        'HINWEIS: Zu dieser Frage wurden KEINE Teamdokumente gefunden. Beachte die Wissensbasis-Regel.',
+    },
+  },
+  tr: {
+    errors: {
+      notSignedIn: 'Oturum açılmadı.',
+      profileNotFound: 'Profil bulunamadı.',
+      dailyLimit: (limit) =>
+        `Günlük sınıra ulaşıldı (${limit} mesaj). Yarın devam edebilirsin.`,
+      emptyMessage: 'Mesaj boş.',
+      contactNotFound: 'Kişi bulunamadı.',
+      conversationNotFound: 'Konuşma bulunamadı.',
+      coachNotConfigured: 'Yapılandırılmış bir koç yok.',
+      emptyReply: 'Ascent bir yanıt oluşturamadı. Lütfen tekrar gönder.',
+      rateLimited:
+        'Ascent şu anda çok yoğun. Lütfen yaklaşık bir dakika sonra tekrar gönder.',
+      timeout:
+        'Ascent yanıt vermek için çok uzun süre bekledi. Lütfen soruyu biraz kısaltıp tekrar gönder.',
+      upstream: 'Ascent şu anda kullanılamıyor. Lütfen biraz sonra tekrar dene.',
+      invalidResponse: 'Ascent bir yanıt oluşturamadı. Lütfen tekrar gönder.',
+      missingApiKey:
+        'Ascent tam olarak yapılandırılmamış. Lütfen sistem yöneticisine bildir.',
+      generic: 'Koç şu anda kullanılamıyor. Lütfen biraz sonra tekrar dene.',
+    },
+    contact: {
+      name: 'Ad',
+      pipelinePhase: 'Pipeline aşaması',
+      lastContact: 'Son iletişim',
+      never: 'henüz hiç',
+      today: 'bugün',
+      daysAgo: (days) => `${days} gün önce`,
+      plannedNextStep: 'Planlanan sonraki adım',
+      notes: 'Notlar',
+      recentEvents: 'Son olaylar (en yeniden eskiye)',
+      contextHeader: 'KİŞİ BAĞLAMI (kullanıcının pipeline verilerinden, zaten biliniyor)',
+    },
+    knowledge: {
+      ragSkippedHint:
+        'NOT: Bu soru muhtemelen kullanıcının kendi kişileri veya günlük planıyla ilgili. ' +
+        'Aşağıda KİŞİ BAĞLAMI verilmedikçe bu yanıtta bu verilere doğrudan erişimin YOK. ' +
+        'Kişi veya görev verileri uydurma. Gerekirse kullanıcıyı uygulamadaki Kişiler veya ' +
+        'Bugün bölümlerine yönlendir.',
+      extractsHeader: 'TAKIM BELGELERİNDEN ALINTILAR (en güvenilir kaynak)',
+      documentFallback: 'Bilgi belgesi',
+      exactMatchHeader: 'TAM SAYI EŞLEŞMESİ (öncelikli kullan)',
+      noDocumentsHint:
+        'NOT: Bu soru için HİÇBİR takım belgesi bulunamadı. Bilgi tabanı kuralına uy.',
+    },
+  },
+  fr: {
+    errors: {
+      notSignedIn: 'Non connecté.',
+      profileNotFound: 'Profil introuvable.',
+      dailyLimit: (limit) =>
+        `Limite quotidienne atteinte (${limit} messages). Tu pourras continuer demain.`,
+      emptyMessage: 'Message vide.',
+      contactNotFound: 'Contact introuvable.',
+      conversationNotFound: 'Conversation introuvable.',
+      coachNotConfigured: 'Aucun coach configuré.',
+      emptyReply: "Ascent n'a pas pu générer de réponse. Merci de renvoyer ton message.",
+      rateLimited:
+        'Ascent est très sollicité en ce moment. Merci de réessayer dans environ une minute.',
+      timeout:
+        'Ascent a mis trop de temps à répondre. Merci de renvoyer une question un peu plus courte.',
+      upstream: 'Ascent est indisponible pour le moment. Merci de réessayer bientôt.',
+      invalidResponse:
+        "Ascent n'a pas pu générer de réponse. Merci de renvoyer ton message.",
+      missingApiKey:
+        "Ascent n'est pas entièrement configuré. Merci d'en informer l'administrateur.",
+      generic: 'Le coach est indisponible pour le moment. Réessaie bientôt.',
+    },
+    contact: {
+      name: 'Nom',
+      pipelinePhase: 'Phase du pipeline',
+      lastContact: 'Dernier contact',
+      never: 'jamais',
+      today: "aujourd'hui",
+      daysAgo: (days) => `il y a ${days} ${days === 1 ? 'jour' : 'jours'}`,
+      plannedNextStep: 'Prochaine étape prévue',
+      notes: 'Notes',
+      recentEvents: 'Derniers événements (du plus récent au plus ancien)',
+      contextHeader: "CONTEXTE DU CONTACT (issu du pipeline de l'utilisateur, déjà connu)",
+    },
+    knowledge: {
+      ragSkippedHint:
+        "REMARQUE : cette question concerne probablement les contacts ou le planning quotidien de l'utilisateur. " +
+        "Tu n'as AUCUN accès direct à ces données dans cette réponse, sauf si un CONTEXTE DU CONTACT " +
+        "est fourni ci-dessous. N'invente aucune donnée de contact ou de tâche. Si nécessaire, " +
+        "renvoie l'utilisateur vers les sections Contacts ou Aujourd'hui de l'application.",
+      extractsHeader: "EXTRAITS DES DOCUMENTS DE L'ÉQUIPE (source prioritaire)",
+      documentFallback: 'Document de référence',
+      exactMatchHeader: 'CORRESPONDANCE NUMÉRIQUE EXACTE (à utiliser en priorité)',
+      noDocumentsHint:
+        "REMARQUE : AUCUN document d'équipe n'a été trouvé pour cette question. Respecte la règle de la base de connaissances.",
+    },
+  },
+  en: {
+    errors: {
+      notSignedIn: 'Not signed in.',
+      profileNotFound: 'Profile not found.',
+      dailyLimit: (limit) =>
+        `Daily limit reached (${limit} messages). You can continue tomorrow.`,
+      emptyMessage: 'Empty message.',
+      contactNotFound: 'Contact not found.',
+      conversationNotFound: 'Conversation not found.',
+      coachNotConfigured: 'No coach is configured.',
+      emptyReply: 'Ascent could not generate a response. Please send your message again.',
+      rateLimited:
+        'Ascent is under heavy load right now. Please send your message again in about a minute.',
+      timeout:
+        'Ascent took too long to respond. Please send the question again, preferably a little shorter.',
+      upstream: 'Ascent is unavailable right now. Please try again shortly.',
+      invalidResponse: 'Ascent could not generate a response. Please send your message again.',
+      missingApiKey:
+        'Ascent is not fully configured. Please inform the administrator.',
+      generic: 'The coach is unavailable right now. Please try again shortly.',
+    },
+    contact: {
+      name: 'Name',
+      pipelinePhase: 'Pipeline phase',
+      lastContact: 'Last contact',
+      never: 'never',
+      today: 'today',
+      daysAgo: (days) => `${days} ${days === 1 ? 'day' : 'days'} ago`,
+      plannedNextStep: 'Planned next step',
+      notes: 'Notes',
+      recentEvents: 'Recent events (newest first)',
+      contextHeader: "CONTACT CONTEXT (from the user's pipeline, already known)",
+    },
+    knowledge: {
+      ragSkippedHint:
+        "NOTE: This question probably concerns the user's own contacts or daily plan. You have " +
+        'NO direct access to that data in this response unless CONTACT CONTEXT is provided below. ' +
+        'Do not invent contact or task data. If needed, direct the user to the Contacts or Today ' +
+        'sections in the app.',
+      extractsHeader: 'EXCERPTS FROM TEAM DOCUMENTS (highest-priority source)',
+      documentFallback: 'Knowledge document',
+      exactMatchHeader: 'EXACT NUMBER MATCH (use first)',
+      noDocumentsHint:
+        'NOTE: NO team documents were found for this question. Follow the knowledge-base rule.',
+    },
+  },
+  it: {
+    errors: {
+      notSignedIn: 'Accesso non effettuato.',
+      profileNotFound: 'Profilo non trovato.',
+      dailyLimit: (limit) =>
+        `Limite giornaliero raggiunto (${limit} messaggi). Potrai continuare domani.`,
+      emptyMessage: 'Messaggio vuoto.',
+      contactNotFound: 'Contatto non trovato.',
+      conversationNotFound: 'Conversazione non trovata.',
+      coachNotConfigured: 'Nessun coach configurato.',
+      emptyReply: 'Ascent non è riuscito a generare una risposta. Invia di nuovo il messaggio.',
+      rateLimited:
+        'Ascent è molto occupato in questo momento. Invia di nuovo il messaggio tra circa un minuto.',
+      timeout:
+        'Ascent ha impiegato troppo tempo. Invia di nuovo la domanda, possibilmente un po’ più breve.',
+      upstream: 'Ascent non è disponibile al momento. Riprova tra poco.',
+      invalidResponse:
+        'Ascent non è riuscito a generare una risposta. Invia di nuovo il messaggio.',
+      missingApiKey:
+        "Ascent non è configurato completamente. Informa l'amministratore.",
+      generic: 'Il coach non è disponibile al momento. Riprova tra poco.',
+    },
+    contact: {
+      name: 'Nome',
+      pipelinePhase: 'Fase della pipeline',
+      lastContact: 'Ultimo contatto',
+      never: 'mai',
+      today: 'oggi',
+      daysAgo: (days) => `${days} ${days === 1 ? 'giorno' : 'giorni'} fa`,
+      plannedNextStep: 'Prossimo passo pianificato',
+      notes: 'Note',
+      recentEvents: 'Eventi recenti (dal più recente)',
+      contextHeader: "CONTESTO DEL CONTATTO (dalla pipeline dell'utente, già noto)",
+    },
+    knowledge: {
+      ragSkippedHint:
+        "NOTA: questa domanda riguarda probabilmente i contatti o il piano giornaliero dell'utente. " +
+        'NON hai accesso diretto a questi dati in questa risposta, a meno che non sia indicato qui ' +
+        'sotto un CONTESTO DEL CONTATTO. Non inventare dati su contatti o attività. Se necessario, ' +
+        "rimanda l'utente alle sezioni Contatti o Oggi dell'app.",
+      extractsHeader: 'ESTRATTI DAI DOCUMENTI DEL TEAM (fonte prioritaria)',
+      documentFallback: 'Documento informativo',
+      exactMatchHeader: 'CORRISPONDENZA NUMERICA ESATTA (da usare per prima)',
+      noDocumentsHint:
+        'NOTA: non è stato trovato ALCUN documento del team per questa domanda. Segui la regola della base di conoscenza.',
+    },
+  },
 };
 
 Deno.serve(async (req) => {
@@ -1287,7 +1747,20 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
   const timings: Record<string, number> = {};
   const mark = (key: string, since: number) => { timings[key] = Date.now() - since; };
+  let locale: CoachLocale = 'de';
   try {
+    // Read locale from a clone so auth/limit ordering and the later body
+    // parsing stay unchanged. Missing, malformed, or unsupported values use DE.
+    const localeBody: unknown = await req.clone().json().catch(() => ({}));
+    locale = normalizeCoachLocale(
+      localeBody && typeof localeBody === 'object'
+        ? (localeBody as Record<string, unknown>).locale
+        : undefined,
+    );
+    const text = TEXT[locale];
+    const phaseLabels = PHASE_LABELS[locale];
+    const eventLabels = EVENT_LABELS[locale];
+
     // User-Client mit dem JWT des Aufrufers: JEDE Datenbankoperation
     // in dieser Function läuft unter der RLS des Nutzers (ADR-002/014).
     const authHeader = req.headers.get('Authorization') ?? '';
@@ -1298,11 +1771,11 @@ Deno.serve(async (req) => {
     );
 
     const { data: userData, error: authError } = await db.auth.getUser();
-    if (authError || !userData.user) return json({ error: 'Nicht angemeldet.' }, 401);
+    if (authError || !userData.user) return json({ error: text.errors.notSignedIn }, 401);
     const userId = userData.user.id;
 
     const { data: profile } = await db.from('profiles').select('*').eq('id', userId).single();
-    if (!profile) return json({ error: 'Kein Profil gefunden.' }, 403);
+    if (!profile) return json({ error: text.errors.profileNotFound }, 403);
 
     // Kostenkontrolle: Tageslimit aus den Org-Einstellungen (ADR-007).
     const { data: org } = await db
@@ -1320,7 +1793,7 @@ Deno.serve(async (req) => {
     const { data: usedToday } = await db.rpc('coach_messages_today', { p_user: userId });
     if ((usedToday ?? 0) >= dailyLimit) {
       return json({
-        error: `Tageslimit erreicht (${dailyLimit} Nachrichten). Morgen geht es weiter.`,
+        error: text.errors.dailyLimit(dailyLimit),
       }, 429);
     }
 
@@ -1328,7 +1801,7 @@ Deno.serve(async (req) => {
     const message = String(body.message ?? '').trim();
     const contactId = body.contactId ? String(body.contactId) : null;
     let convoId = body.conversationId ? String(body.conversationId) : null;
-    if (!message) return json({ error: 'Leere Nachricht.' }, 400);
+    if (!message) return json({ error: text.errors.emptyMessage }, 400);
 
     // ---------- Kontext: Kontakt + Phase + letzte Events ----------
     const tContext = Date.now();
@@ -1342,7 +1815,7 @@ Deno.serve(async (req) => {
         db.from('effective_pipeline_events').select('event_type, occurred_at')
           .eq('contact_id', contactId).order('occurred_at', { ascending: false }).limit(6),
       ]);
-      if (!contact.data) return json({ error: 'Kontakt nicht gefunden.' }, 404);
+      if (!contact.data) return json({ error: text.errors.contactNotFound }, 404);
 
       const days = phase.data?.last_event_at
         ? Math.floor((Date.now() - new Date(phase.data.last_event_at).getTime()) / 86_400_000)
@@ -1354,18 +1827,22 @@ Deno.serve(async (req) => {
       const phaseKey: string = phase.data?.phase ?? 'lead';
 
       const lines = [
-        `Name: ${contact.data.name}`,
-        `Pipeline-Phase: ${PHASE_LABELS[phaseKey] ?? phaseKey}`,
-        `Letzter Kontakt: ${days === null ? 'noch nie' : days === 0 ? 'heute' : `vor ${days} Tag(en)`}`,
-        contact.data.next_step ? `Geplanter nächster Schritt: ${contact.data.next_step}` : null,
-        contact.data.notes ? `Notizen: ${contact.data.notes}` : null,
-        'Letzte Ereignisse (neueste zuerst):',
+        `${text.contact.name}: ${contact.data.name}`,
+        `${text.contact.pipelinePhase}: ${phaseLabels[phaseKey] ?? phaseKey}`,
+        `${text.contact.lastContact}: ${
+          days === null ? text.contact.never : days === 0 ? text.contact.today : text.contact.daysAgo(days)
+        }`,
+        contact.data.next_step
+          ? `${text.contact.plannedNextStep}: ${contact.data.next_step}`
+          : null,
+        contact.data.notes ? `${text.contact.notes}: ${contact.data.notes}` : null,
+        `${text.contact.recentEvents}:`,
         ...eventRows.map(
           (e) =>
-            `- ${EVENT_LABELS[e.event_type] ?? e.event_type} (${String(e.occurred_at).slice(0, 10)})`
+            `- ${eventLabels[e.event_type] ?? e.event_type} (${String(e.occurred_at).slice(0, 10)})`
         ),
       ].filter(Boolean);
-      contactContext = `KONTAKT-KONTEXT (aus der Pipeline des Nutzers, bereits bekannt):\n${lines.join('\n')}`;
+      contactContext = `${text.contact.contextHeader}:\n${lines.join('\n')}`;
     }
 
     mark('context_ms', tContext);
@@ -1375,7 +1852,7 @@ Deno.serve(async (req) => {
     let agentKey: string | null = null;
     if (convoId) {
       const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
-      if (!convo) return json({ error: 'Konversation nicht gefunden.' }, 404);
+      if (!convo) return json({ error: text.errors.conversationNotFound }, 404);
       agentKey = convo.agent_key;
       const { data: msgs } = await db.from('coach_messages')
         .select('role, content').eq('convo_id', convoId)
@@ -1416,7 +1893,7 @@ Deno.serve(async (req) => {
 
     const { data: agent } = await db.from('agents')
       .select('*').eq('org_id', profile.org_id).eq('key', agentKey).single();
-    if (!agent) return json({ error: 'Kein Coach konfiguriert.' }, 500);
+    if (!agent) return json({ error: text.errors.coachNotConfigured }, 500);
 
     // ---------- Intent-Router (Sprint 3.1): pro Nachricht neu ----------
     // Bestimmt NUR die Wissenskategorie fuer DIESEN Turn. Bei niedriger
@@ -1468,12 +1945,7 @@ Deno.serve(async (req) => {
       // Hinweis: das Modell soll NICHT so tun, als saehe es Kontakt-
       // oder Tagesplandaten, die es hier nicht bekommen hat.
       ragSkipped = true;
-      knowledgeBlock =
-        'HINWEIS: Diese Frage betrifft vermutlich eigene Kontakte oder den ' +
-        'Tagesplan des Nutzers. Du hast dazu KEINEN direkten Datenzugriff ' +
-        'in dieser Antwort, außer der KONTAKT-KONTEXT ist unten angegeben. ' +
-        'Erfinde keine Kontakt- oder Aufgabendaten. Verweise bei Bedarf auf ' +
-        'die Bereiche Kontakte bzw. Heute in der App.';
+      knowledgeBlock = text.knowledge.ragSkippedHint;
     } else {
     try {
       // RETRIEVAL_QUERY, nicht RETRIEVAL_DOCUMENT: Gemini kodiert Fragen
@@ -1511,7 +1983,7 @@ Deno.serve(async (req) => {
           }),
         );
         knowledgeBlock =
-          'AUSZÜGE AUS DEN TEAMDOKUMENTEN (oberste Wahrheit):\n' +
+          `${text.knowledge.extractsHeader}:\n` +
           matches.map((m: { doc_title: string; content: string }) =>
             `[${m.doc_title}]\n${m.content}`).join('\n---\n');
       }
@@ -1558,13 +2030,13 @@ Deno.serve(async (req) => {
               );
               const exactBlock = treffer.map(
                 (c: { doc_id: string; content: string }) =>
-                  `[${titelNachId.get(c.doc_id) ?? 'Wissensdokument'}]\n${c.content}`,
+                  `[${titelNachId.get(c.doc_id) ?? text.knowledge.documentFallback}]\n${c.content}`,
               ).join('\n---\n');
               // Exakter Treffer zuerst: eine konkrete Ziffer ist eine
               // staerkere Aussage als semantische Naehe.
               knowledgeBlock = knowledgeBlock
-                ? `EXAKTER ZAHLENTREFFER (bevorzugt verwenden):\n${exactBlock}\n\n${knowledgeBlock}`
-                : `EXAKTER ZAHLENTREFFER (bevorzugt verwenden):\n${exactBlock}`;
+                ? `${text.knowledge.exactMatchHeader}:\n${exactBlock}\n\n${knowledgeBlock}`
+                : `${text.knowledge.exactMatchHeader}:\n${exactBlock}`;
             }
           }
         } catch (_e) {
@@ -1627,7 +2099,10 @@ Deno.serve(async (req) => {
       continuity,
       contactContext || null,
       knowledgeBlock ||
-        'HINWEIS: Zu dieser Frage wurden KEINE Teamdokumente gefunden. Beachte die Wissensbasis-Regel.',
+        text.knowledge.noDocumentsHint,
+      // Last block wins over German CORE_RULES, agent prompts, multilingual
+      // history, contact notes, and source documents.
+      languageDirective(locale),
     ].filter(Boolean).join('\n\n');
 
     const tLlm = Date.now();
@@ -1651,7 +2126,7 @@ Deno.serve(async (req) => {
     // Nie eine leere Assistant-Nachricht persistieren: sie wuerde bei jedem
     // Folge-Turn als History mitgeschickt und den Verlauf vergiften.
     if (!reply) {
-      return json({ error: 'Ascent konnte keine Antwort erzeugen. Bitte noch einmal senden.' }, 502);
+      return json({ error: text.errors.emptyReply }, 502);
     }
 
     await db.from('coach_messages').insert([
@@ -1698,6 +2173,7 @@ Deno.serve(async (req) => {
     }));
     return json({ conversationId: convoId, agentKey, reply, timings });
   } catch (e) {
+    const text = TEXT[locale];
     // AllProvidersFailedError traegt die vollstaendige Versuchsliste --
     // im Log steht damit, welcher Anbieter wann aus welchem Grund
     // gescheitert ist, nicht nur der letzte. Jeder einzelne Versuch wurde
@@ -1740,29 +2216,27 @@ Deno.serve(async (req) => {
         ? {
             rate_limited: {
               status: 429,
-              text: 'Ascent ist gerade stark ausgelastet. Bitte in etwa einer Minute ' +
-                    'noch einmal senden.',
+              text: text.errors.rateLimited,
               retryAfter: 60,
             },
             timeout: {
               status: 504,
-              text: 'Ascent hat zu lange gebraucht. Bitte die Frage noch einmal senden, ' +
-                    'gern etwas kuerzer.',
+              text: text.errors.timeout,
             },
             upstream: {
               status: 503,
-              text: 'Ascent ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.',
+              text: text.errors.upstream,
             },
             invalid_response: {
               status: 502,
-              text: 'Ascent konnte keine Antwort erzeugen. Bitte noch einmal senden.',
+              text: text.errors.invalidResponse,
             },
             missing_api_key: {
               status: 500,
-              text: 'Ascent ist nicht vollstaendig konfiguriert. Bitte den Betreiber informieren.',
+              text: text.errors.missingApiKey,
             },
           }[e.lastCode]
-        : { status: 500, text: 'Der Coach ist gerade nicht erreichbar. Versuche es gleich noch einmal.' };
+        : { status: 500, text: text.errors.generic };
 
     const kopf: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
     if (fehler.retryAfter) kopf['Retry-After'] = String(fehler.retryAfter);
