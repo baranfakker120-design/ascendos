@@ -12,10 +12,10 @@ import { missionProgress, orderMissions } from './missionOrder';
  * ist hier der Normalfall; Begründungen kommen aus der Regel-Engine).
  */
 export function TodayPage() {
-  const { data, isLoading, isError } = useDailyPlan();
+  const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
 
-  if (isLoading) {
+  if (isPending) {
     return <p className="text-sm text-muted">Dein Tag wird vorbereitet …</p>;
   }
   if (isError || !data) {
@@ -67,6 +67,7 @@ export function TodayPage() {
     <FocusMode
       ordered={ordered}
       progress={progress}
+      busy={setMissionStatus.isPending}
       onStatus={(itemId, status, reason) =>
         void setMissionStatus.mutateAsync({ itemId, status, reason })
       }

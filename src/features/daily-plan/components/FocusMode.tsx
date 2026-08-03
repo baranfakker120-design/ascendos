@@ -11,13 +11,14 @@ import { MISSION_ICONS } from './missionMeta';
 interface Props {
   ordered: OrderedMissions;
   progress: { done: number; total: number };
+  busy?: boolean;
   onStatus: (itemId: string, status: 'done' | 'deferred' | 'skipped', reason?: string) => void;
 }
 
 /**
  * Fokus-Modus: eine Mission dominant, Reward-Sticker zeigen den Wert.
  */
-export function FocusMode({ ordered, progress, onStatus }: Props) {
+export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) {
   const { current, queue, resolved } = ordered;
   const [skipPickerFor, setSkipPickerFor] = useState<string | null>(null);
 
@@ -75,6 +76,7 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
               <Button
                 key={reason}
                 variant="secondary"
+                disabled={busy}
                 onClick={() => {
                   onStatus(current.id, 'skipped', reason);
                   setSkipPickerFor(null);
@@ -83,18 +85,28 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
                 {reason}
               </Button>
             ))}
-            <Button variant="ghost" onClick={() => setSkipPickerFor(null)}>
+            <Button variant="ghost" disabled={busy} onClick={() => setSkipPickerFor(null)}>
               Zurück
             </Button>
           </div>
         ) : (
           <div className="space-y-2">
-            <Button onClick={() => onStatus(current.id, 'done')}>✓ Erledigt</Button>
+            <Button disabled={busy} aria-busy={busy} onClick={() => onStatus(current.id, 'done')}>
+              {busy ? 'Wird gespeichert …' : '✓ Erledigt'}
+            </Button>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="secondary" onClick={() => onStatus(current.id, 'deferred')}>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => onStatus(current.id, 'deferred')}
+              >
                 Später heute
               </Button>
-              <Button variant="secondary" onClick={() => setSkipPickerFor(current.id)}>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setSkipPickerFor(current.id)}
+              >
                 Heute nicht möglich
               </Button>
             </div>

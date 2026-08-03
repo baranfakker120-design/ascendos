@@ -82,6 +82,7 @@ export function useDailyPlanMutations() {
                   ? {
                       ...i,
                       status: input.status,
+                      status_reason: input.reason ?? null,
                       resolved_at:
                         input.status === 'done' || input.status === 'skipped'
                           ? new Date().toISOString()
