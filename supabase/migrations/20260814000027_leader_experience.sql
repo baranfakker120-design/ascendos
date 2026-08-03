@@ -271,6 +271,11 @@ as $$
   where d.sponsor_membership_id = p_membership
     and d.status = 'active'
     and (
+      public.current_org_id() is null
+      or d.org_id = public.current_org_id()
+      or public.is_super_admin()
+    )
+    and (
       d.last_app_opened_at >= now() - interval '30 days'
       or d.joined_at >= now() - interval '30 days'
     );
@@ -294,6 +299,13 @@ begin
   from public.memberships where id = p_membership;
 
   if v_org is null then return false; end if;
+
+  -- JWT path: only same org (or super-admin). Triggers may run without org header.
+  if auth.uid() is not null and public.current_org_id() is not null then
+    if v_org is distinct from public.current_org_id() and not public.is_super_admin() then
+      return false;
+    end if;
+  end if;
 
   v_count := public.count_active_firstlines(p_membership);
 
@@ -841,7 +853,7 @@ declare
   v_owner uuid := public.active_membership_id();
   v_exists boolean;
 begin
-  if v_owner is null then
+  if auth.uid() is null or v_owner is null then
     raise exception 'AscendOS: Nicht angemeldet.';
   end if;
   if p_target_membership = v_owner then
@@ -885,7 +897,9 @@ declare
   v_owner uuid := public.active_membership_id();
   v_id uuid;
 begin
-  if v_owner is null then raise exception 'AscendOS: Nicht angemeldet.'; end if;
+  if auth.uid() is null or v_owner is null then
+    raise exception 'AscendOS: Nicht angemeldet.';
+  end if;
   if not exists (
     select 1 from public.get_genealogy_tree(null) t where t.membership_id = p_target_membership
   ) then
