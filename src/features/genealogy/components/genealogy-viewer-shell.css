@@ -27,19 +27,26 @@
   overflow: hidden;
 }
 
-/* —— Compact: ~42–45% of the screen —— */
+/* —— Compact: genealogy stage ~42–45% of the screen —— */
 .genealogy-viewer-shell--compact .genealogy-viewer-shell__panel {
-  height: 45dvh;
-  min-height: 42dvh;
-  max-height: 48dvh;
   flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+}
+
+.genealogy-viewer-shell--compact .genealogy-viewer-shell__chrome {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .genealogy-viewer-shell--compact .genealogy-viewer-shell__body {
   position: relative;
   display: flex;
-  min-height: 0;
-  flex: 1;
+  height: 45dvh;
+  min-height: 42dvh;
+  max-height: 48dvh;
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--gvs-radius);
