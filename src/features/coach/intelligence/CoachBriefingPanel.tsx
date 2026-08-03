@@ -5,6 +5,7 @@ import {
   syncApprovedKnowledgeFromArticles,
 } from './approvedKnowledge';
 import { filterManagerMessagesByMemory, recordCeoRecommendation } from './ceoMemory';
+import { ExecutiveIntelligencePanel } from './ExecutiveIntelligencePanel';
 import type {
   BranchHealthGrade,
   CoachOrgIntelligence,
@@ -174,6 +175,8 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
               ))}
             </div>
           ) : null}
+
+          <ExecutiveIntelligencePanel executive={intelligence.executive} />
         </div>
       ) : null}
     </section>

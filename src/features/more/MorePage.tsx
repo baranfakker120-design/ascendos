@@ -247,6 +247,9 @@ export function MorePage() {
             <ButtonLink to="/live-coaching" variant="secondary">
               Live Coaching Center
             </ButtonLink>
+            <ButtonLink to="/stories" variant="secondary">
+              Ascend Stories
+            </ButtonLink>
             {isSuperAdmin ? (
               <ButtonLink to="/wissen" variant="ghost">
                 Wissensdatenbank (RAG)

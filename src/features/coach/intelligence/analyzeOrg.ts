@@ -15,6 +15,7 @@ import type {
   OnboardingLifecycleItem,
   PersonCoachInsight,
 } from './types';
+import { buildExecutiveIntelligence } from './executiveIntelligence';
 
 const DAY_MS = 86_400_000;
 
@@ -902,6 +903,7 @@ export function buildCoachOrgIntelligence(input: CoachOrgInput): CoachOrgIntelli
     followUps,
     managerMessages,
     surfaceInsights: selectSurfaceInsights(priorities),
+    executive: buildExecutiveIntelligence(input, teamHealth, priorities),
   };
 }
 
