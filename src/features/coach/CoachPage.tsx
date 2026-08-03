@@ -8,6 +8,12 @@ import { Input } from '@shared/ui/Input';
 import { CoachBubble, UserBubble } from './CoachBubbles';
 import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
+import {
+  CoachBriefingPanel,
+  buildMessageDraft,
+  findPersonInsight,
+  useCoachOrgIntelligence,
+} from './intelligence';
 import './coach-chat.css';
 
 const CHIPS = [
@@ -52,6 +58,8 @@ export function CoachPage() {
   const partnerMid = searchParams.get('mid');
   const conversationId = searchParams.get('c');
   const { data: contact } = useCoachContact(contactId);
+  const { intelligence, isMorning, isLoading: intelLoading } = useCoachOrgIntelligence(true);
+  const partnerInsight = findPersonInsight(intelligence, partnerMid);
 
   const setConversationId = useCallback(
     (id: string) => {
@@ -148,9 +156,58 @@ export function CoachPage() {
           <img src="/brand/ascendos-symbol-mono-v2.png" alt="" className="h-8 w-auto" aria-hidden />
           <div>
             <p className="text-lg font-bold leading-tight">Ascent</p>
-            <p className="text-xs text-muted">Dein persönlicher Mentor</p>
+            <p className="text-xs text-muted">Dein virtueller Geschäftsführer</p>
           </div>
         </div>
+
+        <CoachBriefingPanel
+          intelligence={intelligence}
+          isMorning={isMorning}
+          isLoading={intelLoading}
+          onAskAbout={(text) => setInput(text)}
+        />
+
+        {partnerInsight ? (
+          <Card padding="sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              Analyse · {partnerInsight.name}
+            </p>
+            <p className="mt-0.5 text-sm font-semibold">{partnerInsight.headline}</p>
+            <ul className="mt-1 space-y-0.5 text-xs text-muted">
+              {partnerInsight.bullets.slice(0, 3).map((b) => (
+                <li key={b}>· {b}</li>
+              ))}
+            </ul>
+            {partnerInsight.recommendation ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  const kind =
+                    partnerInsight.recommendation === 'onboarding'
+                      ? 'onboarding'
+                      : partnerInsight.recommendation === 'reactivation'
+                        ? 'reactivation'
+                        : partnerInsight.recommendation === 'recognition' ||
+                            partnerInsight.recommendation === 'congratulation'
+                          ? 'recognition'
+                          : 'follow_up';
+                  const draft = buildMessageDraft(kind, {
+                    firstName: partnerInsight.name.split(' ')[0] ?? partnerInsight.name,
+                  });
+                  setInput(
+                    `Bitte prüfe und verbessere diese Nachricht an ${partnerInsight.name} bevor ich sende:\n\n${draft.body}`
+                  );
+                }}
+              >
+                Nachricht vorbereiten
+              </Button>
+            ) : null}
+          </Card>
+        ) : null}
+
         {contact ? (
           <Card padding="sm">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
