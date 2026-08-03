@@ -370,7 +370,9 @@
     "energyBody": "Un regard sur votre {pipeline} vaut toujours le coup — ou profitez de la soirée. Demain matin, votre nouveau plan sera prêt.",
     "loadErrorHint": "Vérifiez votre connexion et rouvrez l’onglet — votre plan attend en base.",
     "emptyHint": "Votre pipeline est calme — jetez un œil aux contacts ou revenez demain.",
-    "saving": "Enregistrement …"
+    "saving": "Enregistrement …",
+    "energyBodyBefore": "Un regard sur votre",
+    "energyBodyAfter": "vaut toujours le coup — ou profitez de la soirée. Demain matin, votre nouveau plan sera prêt."
   },
   "journey": {
     "title": "Ton parcours",
@@ -458,7 +460,23 @@
     "leadership": "Leadership",
     "askAboutPerson": "Demander à Ascent sur {name}",
     "personAnalysis": "Analyse Ascent {name}",
-    "contactPlaceholder": "Question sur {name}…"
+    "contactPlaceholder": "Question sur {name}…",
+    "execTitle": "Intelligence Executive",
+    "ask": "Demander",
+    "whyPrefix": "Pourquoi : {reason}",
+    "teamGrade": "Équipe : {grade} · {score}/100",
+    "knowledgeCount": "{count} articles de connaissance approuvés",
+    "whatsappSuggestion": "Suggestion WhatsApp",
+    "regShort": "Inscr.",
+    "inactiveShort": "Inactif",
+    "riskShort": "Risque",
+    "sponsor": "Sponsor :",
+    "possibleObjectionLabel": "Objection possible",
+    "strengthsPrefix": "Forces : {list}",
+    "weaknessesPrefix": "Faiblesses : {list}",
+    "askAboutPriorityFull": "En tant que mon directeur : priorise et donne-moi la prochaine étape pour « {title} ». Pourquoi : {why}",
+    "you": "Vous",
+    "gradeNeedsAttention": "Nécessite attention"
   },
   "profile": {
     "title": "Profil",
@@ -488,7 +506,15 @@
     "pickImage": "Veuillez choisir une image (JPEG, PNG ou WebP).",
     "imageTooLarge": "L’image est trop grande (max. 8 Mo avant recadrage).",
     "uploadFailed": "Échec du téléversement. Réessayez.",
-    "savingImage": "Enregistrement de l’image …"
+    "savingImage": "Enregistrement de l’image …",
+    "loading": "Chargement du profil …",
+    "loadError": "Le profil n’a pas pu être chargé.",
+    "team": "Équipe",
+    "sponsor": "Sponsor",
+    "cropHint": "Recadrage circulaire avec zoom — enregistrer seulement après confirmation.",
+    "photo": "Photo de profil",
+    "cropGesture": "Pincez ou faites défiler pour zoomer · Faites glisser pour déplacer",
+    "previewFrame": "Aperçu avec cadre"
   },
   "team": {
     "title": "Ton équipe",
@@ -536,7 +562,8 @@
     "treeHintAria": "Arbre d’équipe. Zoomez et faites glisser.",
     "minimap": "Mini-carte — toucher pour centrer",
     "expandTree": "Agrandir l’arbre d’équipe",
-    "partner": "Partenaire"
+    "partner": "Partenaire",
+    "migrationTitle": "Les fonctions équipe ne sont pas encore activées en base."
   },
   "leadership": {
     "activeToday": "Actifs aujourd’hui",
@@ -685,6 +712,9 @@
   "teamSeyda": {
     "loadError": "Impossible de charger le guide.",
     "openGuide": "Ouvrir le guide ↗",
-    "title": "Guide Team Seyda"
+    "title": "Guide Team Seyda",
+    "eyebrow": "Team Seyda",
+    "guide": "Guide",
+    "loadHint": "Ouvrez-le dans un nouvel onglet, puis revenez."
   }
 }

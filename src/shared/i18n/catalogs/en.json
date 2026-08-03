@@ -370,7 +370,9 @@
     "energyBody": "A look at your {pipeline} always pays off — or enjoy the evening. Tomorrow morning your new plan will be ready.",
     "loadErrorHint": "Check your connection and open the tab again — your plan is waiting in the database.",
     "emptyHint": "Your pipeline is quiet — check contacts or come back tomorrow.",
-    "saving": "Saving …"
+    "saving": "Saving …",
+    "energyBodyBefore": "A look at your",
+    "energyBodyAfter": "always pays off — or enjoy the evening. Tomorrow morning your new plan will be ready."
   },
   "journey": {
     "title": "Your journey",
@@ -458,7 +460,23 @@
     "leadership": "Leadership",
     "askAboutPerson": "Ask Ascent about {name}",
     "personAnalysis": "Ascent analysis {name}",
-    "contactPlaceholder": "Question about {name}…"
+    "contactPlaceholder": "Question about {name}…",
+    "execTitle": "Executive Intelligence",
+    "ask": "Ask",
+    "whyPrefix": "Why: {reason}",
+    "teamGrade": "Team: {grade} · {score}/100",
+    "knowledgeCount": "{count} approved knowledge articles",
+    "whatsappSuggestion": "WhatsApp suggestion",
+    "regShort": "Reg.",
+    "inactiveShort": "Inactive",
+    "riskShort": "Risk",
+    "sponsor": "Sponsor:",
+    "possibleObjectionLabel": "Possible objection",
+    "strengthsPrefix": "Strengths: {list}",
+    "weaknessesPrefix": "Weaknesses: {list}",
+    "askAboutPriorityFull": "As my managing director: Prioritize and give me the next step on “{title}”. Why: {why}",
+    "you": "You",
+    "gradeNeedsAttention": "Needs Attention"
   },
   "profile": {
     "title": "Profile",
@@ -488,7 +506,15 @@
     "pickImage": "Please choose an image file (JPEG, PNG or WebP).",
     "imageTooLarge": "Image is too large (max. 8 MB before cropping).",
     "uploadFailed": "Upload failed. Please try again.",
-    "savingImage": "Saving image …"
+    "savingImage": "Saving image …",
+    "loading": "Loading profile …",
+    "loadError": "Profile could not be loaded.",
+    "team": "Team",
+    "sponsor": "Sponsor",
+    "cropHint": "Circular crop with zoom — save only after confirming.",
+    "photo": "Profile photo",
+    "cropGesture": "Pinch or scroll to zoom · Drag to move",
+    "previewFrame": "Preview with frame"
   },
   "team": {
     "title": "Your team",
@@ -536,7 +562,8 @@
     "treeHintAria": "Team tree. Pinch to zoom, drag to pan.",
     "minimap": "Minimap — tap to focus",
     "expandTree": "Expand team tree",
-    "partner": "Partner"
+    "partner": "Partner",
+    "migrationTitle": "Team features are not enabled on the database yet."
   },
   "leadership": {
     "activeToday": "Active today",
@@ -685,6 +712,9 @@
   "teamSeyda": {
     "loadError": "Guide could not be loaded.",
     "openGuide": "Open guide ↗",
-    "title": "Team Seyda Guide"
+    "title": "Team Seyda Guide",
+    "eyebrow": "Team Seyda",
+    "guide": "Guide",
+    "loadHint": "Open it in a new tab and come back afterwards."
   }
 }

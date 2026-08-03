@@ -370,7 +370,9 @@
     "energyBody": "Uno sguardo alla tua {pipeline} vale sempre — oppure goditi la sera. Domani mattina il nuovo piano sarà pronto.",
     "loadErrorHint": "Controlla la connessione e riapri la scheda — il piano ti aspetta nel database.",
     "emptyHint": "La pipeline è tranquilla — guarda i contatti o torna domani.",
-    "saving": "Salvataggio …"
+    "saving": "Salvataggio …",
+    "energyBodyBefore": "Uno sguardo alla tua",
+    "energyBodyAfter": "vale sempre — oppure goditi la sera. Domani mattina il nuovo piano sarà pronto."
   },
   "journey": {
     "title": "Il tuo percorso",
@@ -458,7 +460,23 @@
     "leadership": "Leadership",
     "askAboutPerson": "Chiedi ad Ascent su {name}",
     "personAnalysis": "Analisi Ascent {name}",
-    "contactPlaceholder": "Domanda su {name}…"
+    "contactPlaceholder": "Domanda su {name}…",
+    "execTitle": "Executive Intelligence",
+    "ask": "Chiedi",
+    "whyPrefix": "Perché: {reason}",
+    "teamGrade": "Team: {grade} · {score}/100",
+    "knowledgeCount": "{count} articoli di conoscenza approvati",
+    "whatsappSuggestion": "Suggerimento WhatsApp",
+    "regShort": "Reg.",
+    "inactiveShort": "Inattivo",
+    "riskShort": "Rischio",
+    "sponsor": "Sponsor:",
+    "possibleObjectionLabel": "Possibile obiezione",
+    "strengthsPrefix": "Punti di forza: {list}",
+    "weaknessesPrefix": "Punti deboli: {list}",
+    "askAboutPriorityFull": "Come mio amministratore: prioritizza e dammi il prossimo passo su “{title}”. Perché: {why}",
+    "you": "Tu",
+    "gradeNeedsAttention": "Richiede attenzione"
   },
   "profile": {
     "title": "Profilo",
@@ -488,7 +506,15 @@
     "pickImage": "Scegli un file immagine (JPEG, PNG o WebP).",
     "imageTooLarge": "L’immagine è troppo grande (max. 8 MB prima del ritaglio).",
     "uploadFailed": "Caricamento non riuscito. Riprova.",
-    "savingImage": "Salvataggio immagine …"
+    "savingImage": "Salvataggio immagine …",
+    "loading": "Caricamento profilo …",
+    "loadError": "Il profilo non è stato caricato.",
+    "team": "Team",
+    "sponsor": "Sponsor",
+    "cropHint": "Ritaglio circolare con zoom — salva solo dopo conferma.",
+    "photo": "Foto profilo",
+    "cropGesture": "Pizzica o scorri per zoom · Trascina per spostare",
+    "previewFrame": "Anteprima con cornice"
   },
   "team": {
     "title": "Il tuo team",
@@ -536,7 +562,8 @@
     "treeHintAria": "Albero team. Zoom e trascina.",
     "minimap": "Minimappa — tocca per focalizzare",
     "expandTree": "Ingrandisci albero team",
-    "partner": "Partner"
+    "partner": "Partner",
+    "migrationTitle": "Le funzioni team non sono ancora abilitate sul database."
   },
   "leadership": {
     "activeToday": "Attivi oggi",
@@ -685,6 +712,9 @@
   "teamSeyda": {
     "loadError": "Impossibile caricare la guida.",
     "openGuide": "Apri guida ↗",
-    "title": "Guida Team Seyda"
+    "title": "Guida Team Seyda",
+    "eyebrow": "Team Seyda",
+    "guide": "Guida",
+    "loadHint": "Apri in una nuova scheda e poi torna qui."
   }
 }

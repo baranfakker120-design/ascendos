@@ -367,10 +367,12 @@
     "reviewAll": "Tüm görevler tamam — daha tutarlısı yok.",
     "reviewPartial": "{done} / {total} görev tamam.",
     "reviewSkipped": "— yarınki plana yeniden girer.",
-    "energyBody": "{pipeline}ine bir bakmak her zaman değer — ya da akşamın tadını çıkar. Yarın sabah yeni planın hazır.",
+    "energyBody": "{pipeline}  her zaman değer — ya da akşamın tadını çıkar. Yarın sabah yeni planın hazır.",
     "loadErrorHint": "Bağlantını kontrol et ve sekmeyi yeniden aç — planın veritabanında bekliyor.",
     "emptyHint": "Pipeline’ın sakin — kişilere bak veya yarın tekrar gel.",
-    "saving": "Kaydediliyor …"
+    "saving": "Kaydediliyor …",
+    "energyBodyBefore": "",
+    "energyBodyAfter": " her zaman değer — ya da akşamın tadını çıkar. Yarın sabah yeni planın hazır."
   },
   "journey": {
     "title": "Yolculuğun",
@@ -458,7 +460,23 @@
     "leadership": "Liderlik",
     "askAboutPerson": "Ascent’e {name} hakkında sor",
     "personAnalysis": "Ascent analizi {name}",
-    "contactPlaceholder": "{name} hakkında soru…"
+    "contactPlaceholder": "{name} hakkında soru…",
+    "execTitle": "Yönetici Zekâsı",
+    "ask": "Sor",
+    "whyPrefix": "Neden: {reason}",
+    "teamGrade": "Takım: {grade} · {score}/100",
+    "knowledgeCount": "{count} onaylı bilgi makalesi",
+    "whatsappSuggestion": "WhatsApp önerisi",
+    "regShort": "Kayıt",
+    "inactiveShort": "Pasif",
+    "riskShort": "Risk",
+    "sponsor": "Sponsor:",
+    "possibleObjectionLabel": "Olası itiraz",
+    "strengthsPrefix": "Güçlü yanlar: {list}",
+    "weaknessesPrefix": "Zayıf yanlar: {list}",
+    "askAboutPriorityFull": "Genel müdürüm olarak: “{title}” için önceliklendir ve sonraki adımı ver. Neden: {why}",
+    "you": "Sen",
+    "gradeNeedsAttention": "Dikkat gerekli"
   },
   "profile": {
     "title": "Profil",
@@ -488,7 +506,15 @@
     "pickImage": "Lütfen bir görsel seç (JPEG, PNG veya WebP).",
     "imageTooLarge": "Görsel çok büyük (kırpmadan önce maks. 8 MB).",
     "uploadFailed": "Yükleme başarısız. Lütfen tekrar dene.",
-    "savingImage": "Görsel kaydediliyor …"
+    "savingImage": "Görsel kaydediliyor …",
+    "loading": "Profil yükleniyor …",
+    "loadError": "Profil yüklenemedi.",
+    "team": "Takım",
+    "sponsor": "Sponsor",
+    "cropHint": "Yakınlaştırmalı daire kırpma — yalnızca onaydan sonra kaydet.",
+    "photo": "Profil fotoğrafı",
+    "cropGesture": "Yakınlaştırmak için sıkıştır veya kaydır · Taşımak için sürükle",
+    "previewFrame": "Çerçeveli önizleme"
   },
   "team": {
     "title": "Takımın",
@@ -536,7 +562,8 @@
     "treeHintAria": "Takım ağacı. Yakınlaştır ve sürükle.",
     "minimap": "Minikart — odaklamak için dokun",
     "expandTree": "Takım ağacını büyüt",
-    "partner": "Partner"
+    "partner": "Partner",
+    "migrationTitle": "Takım özellikleri henüz veritabanında açılmadı."
   },
   "leadership": {
     "activeToday": "Bugün aktif",
@@ -685,6 +712,9 @@
   "teamSeyda": {
     "loadError": "Rehber yüklenemedi.",
     "openGuide": "Rehberi aç ↗",
-    "title": "Team Seyda Rehberi"
+    "title": "Team Seyda Rehberi",
+    "eyebrow": "Team Seyda",
+    "guide": "Rehber",
+    "loadHint": "Yeni sekmede aç ve sonra geri dön."
   }
 }

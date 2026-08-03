@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@shared/i18n';
 import { recordCeoRecommendation } from './ceoMemory';
 import type { PersonCoachInsight } from './types';
 
@@ -12,8 +13,10 @@ interface Props {
 /**
  * Thought-bubble icon for a single genealogy/team member.
  * Popover uses a portal so tree card overflow does not clip it.
+ * Chrome labels only — insight body text comes from the engine.
  */
 export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
+  const { t } = useI18n();
   const titleId = useId();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -44,7 +47,7 @@ export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
         className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-accent/40 bg-accent/15 px-1 text-[11px] leading-none text-accent-deep"
         aria-expanded={open}
         aria-controls={open ? titleId : undefined}
-        title={`Ascent zu ${insight.name}`}
+        title={t('coach.askAboutPerson', { name: insight.name })}
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
@@ -58,19 +61,19 @@ export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
             <div
               id={titleId}
               role="dialog"
-              aria-label={`Ascent Analyse ${insight.name}`}
+              aria-label={t('coach.personAnalysis', { name: insight.name })}
               className="fixed z-[90] w-[272px] rounded-xl border border-line bg-surface p-3 shadow-lg"
               style={{ top: pos.top, left: pos.left }}
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-xs font-semibold">{insight.name}</p>
               <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-muted">
-                Aktuelle Lage
+                {t('coach.personLage')}
               </p>
               <p className="text-xs text-ink">{insight.currentSituation}</p>
 
               <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted">
-                Nächster Schritt
+                {t('coach.personNext')}
               </p>
               <p className="text-xs font-medium text-ink">{insight.nextBestAction}</p>
               <p className="mt-0.5 text-[11px] text-muted">{insight.nextBestActionWhy}</p>
@@ -78,14 +81,14 @@ export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
               {insight.possibleObjection ? (
                 <>
                   <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted">
-                    Möglicher Einwand
+                    {t('coach.possibleObjectionLabel')}
                   </p>
                   <p className="text-xs text-ink">{insight.possibleObjection}</p>
                 </>
               ) : null}
 
               <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted">
-                WhatsApp-Vorschlag
+                {t('coach.whatsappSuggestion')}
               </p>
               <p className="whitespace-pre-wrap text-[11px] text-ink">
                 {insight.suggestedWhatsApp}
@@ -94,31 +97,31 @@ export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
               <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px]">
                 <div className="rounded-lg bg-bg px-1 py-1">
                   <p className="font-semibold text-ink">{insight.probabilityOfRegistration}%</p>
-                  <p className="text-muted">Reg.</p>
+                  <p className="text-muted">{t('coach.regShort')}</p>
                 </div>
                 <div className="rounded-lg bg-bg px-1 py-1">
                   <p className="font-semibold text-ink">{insight.probabilityOfInactivity}%</p>
-                  <p className="text-muted">Inaktiv</p>
+                  <p className="text-muted">{t('coach.inactiveShort')}</p>
                 </div>
                 <div className="rounded-lg bg-bg px-1 py-1">
                   <p className="font-semibold text-ink">{insight.riskScore}</p>
-                  <p className="text-muted">Risiko</p>
+                  <p className="text-muted">{t('coach.riskShort')}</p>
                 </div>
               </div>
 
               {insight.strengths.length > 0 ? (
                 <p className="mt-2 text-[11px] text-muted">
-                  Stärken: {insight.strengths.join(' · ')}
+                  {t('coach.strengthsPrefix', { list: insight.strengths.join(' · ') })}
                 </p>
               ) : null}
               {insight.weaknesses.length > 0 ? (
                 <p className="text-[11px] text-muted">
-                  Schwächen: {insight.weaknesses.join(' · ')}
+                  {t('coach.weaknessesPrefix', { list: insight.weaknesses.join(' · ') })}
                 </p>
               ) : null}
 
               <p className="mt-2 text-[11px] text-ink">
-                <span className="font-semibold">Sponsor: </span>
+                <span className="font-semibold">{t('coach.sponsor')} </span>
                 {insight.sponsorRecommendation}
               </p>
 
@@ -134,11 +137,15 @@ export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
                         'shown'
                       );
                       onAsk(
-                        `Als Geschäftsführer zu ${insight.name}: ${insight.nextBestActionWhy} Nächster Schritt: ${insight.nextBestAction}`
+                        t('coach.personAsk', {
+                          name: insight.name,
+                          why: insight.nextBestActionWhy,
+                          action: insight.nextBestAction,
+                        })
                       );
                     }}
                   >
-                    Ascent fragen
+                    {t('coach.askAscent')}
                   </button>
                 ) : (
                   <span />
@@ -148,7 +155,7 @@ export function CoachPersonInsightBubble({ insight, onAsk }: Props) {
                   className="text-[11px] font-semibold text-muted"
                   onClick={() => setOpen(false)}
                 >
-                  Schließen
+                  {t('common.close')}
                 </button>
               </div>
             </div>,

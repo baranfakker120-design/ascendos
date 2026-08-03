@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { AvatarCropModal } from './AvatarCropModal';
 import { uploadAvatarImage } from './profileApi';
@@ -18,6 +19,7 @@ export interface AvatarUploadProps {
  * Datei wählen → Kreiszuschnitt (Pinch/Pan, Rahmen-Vorschau) → erst dann Upload.
  */
 export function AvatarUpload({ userId, frameKey = null, name, onUploaded }: AvatarUploadProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,11 +32,11 @@ export function AvatarUpload({ userId, frameKey = null, name, onUploaded }: Avat
 
     setError(null);
     if (!file.type.startsWith('image/')) {
-      setError('Bitte eine Bilddatei wählen (JPEG, PNG oder WebP).');
+      setError(t('profile.pickImage'));
       return;
     }
     if (file.size > MAX_SOURCE_BYTES) {
-      setError('Das Bild ist zu groß (max. 8 MB vor dem Zuschneiden).');
+      setError(t('profile.imageTooLarge'));
       return;
     }
     setPicked(file);
@@ -48,7 +50,7 @@ export function AvatarUpload({ userId, frameKey = null, name, onUploaded }: Avat
       setPicked(null);
       onUploaded(url);
     } catch {
-      setError('Upload fehlgeschlagen. Bitte erneut versuchen.');
+      setError(t('profile.uploadFailed'));
     } finally {
       setBusy(false);
     }
@@ -69,12 +71,10 @@ export function AvatarUpload({ userId, frameKey = null, name, onUploaded }: Avat
         disabled={busy}
         onClick={() => inputRef.current?.click()}
       >
-        {busy ? 'Bild wird gespeichert …' : 'Profilbild wählen'}
+        {busy ? t('profile.savingImage') : t('profile.avatarChoose')}
       </Button>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <p className="text-xs text-muted">
-        Kreisförmiger Zuschnitt mit Zoom — Speichern erst nach Bestätigung.
-      </p>
+      <p className="text-xs text-muted">{t('profile.cropHint')}</p>
 
       {picked
         ? createPortal(

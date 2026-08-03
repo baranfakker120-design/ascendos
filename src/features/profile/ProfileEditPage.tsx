@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
@@ -17,6 +18,7 @@ import { useProfileDetail, useUpdateProfile } from './profileApi';
  * Goals: bewusst nicht in dieser Phase.
  */
 export function ProfileEditPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { refreshProfile, role: membershipRole } = useAuth();
@@ -44,10 +46,10 @@ export function ProfileEditPage() {
   }, [data, hydrated]);
 
   if (isError) {
-    return <p className="text-sm text-muted">Profil konnte nicht geladen werden.</p>;
+    return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
   }
   if (isPending || !data || !hydrated) {
-    return <p className="text-sm text-muted">Profil wird geladen …</p>;
+    return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
 
   const displayName = `${firstName} ${lastName}`.trim() || data.profile.username;
@@ -58,7 +60,7 @@ export function ProfileEditPage() {
     const first = firstName.trim();
     const last = lastName.trim();
     if (!first || !last) {
-      setError('Vor- und Nachname sind Pflichtfelder.');
+      setError(t('profile.nameRequired'));
       return;
     }
     try {
@@ -71,16 +73,16 @@ export function ProfileEditPage() {
       });
       navigate('/profil');
     } catch {
-      setError('Speichern fehlgeschlagen. Bitte versuche es erneut.');
+      setError(t('profile.saveFailed'));
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Profil bearbeiten</h1>
+        <h1 className="text-2xl font-bold">{t('profile.editTitle')}</h1>
         <Link to="/profil" className="text-sm font-semibold text-accent-deep hover:underline">
-          Zurück
+          {t('common.back')}
         </Link>
       </div>
 
@@ -115,51 +117,51 @@ export function ProfileEditPage() {
 
       <form onSubmit={submit} className="space-y-4">
         <Input
-          label="Benutzername"
+          label={t('profile.username')}
           value={data.profile.username}
           readOnly
           disabled
-          hint="Der Benutzername ist fest und kann nicht geändert werden."
+          hint={t('profile.usernameFixed')}
         />
         <Input
-          label="Vorname"
+          label={t('profile.firstName')}
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           required
           autoComplete="given-name"
         />
         <Input
-          label="Nachname"
+          label={t('profile.lastName')}
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           required
           autoComplete="family-name"
         />
         <Input
-          label="Telefon (optional)"
+          label={t('profile.phoneOptional')}
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           autoComplete="tel"
         />
         <Input
-          label="Land (optional)"
+          label={t('profile.countryOptional')}
           value={country}
           onChange={(e) => setCountry(e.target.value)}
           autoComplete="country-name"
         />
         <Input
-          label="Sprache"
+          label={t('profile.language')}
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
-          hint="Einfacher Textcode, z. B. de oder tr."
+          hint={t('profile.languageHint')}
           autoComplete="language"
         />
 
         {error ? <Alert tone="error">{error}</Alert> : null}
 
         <Button type="submit" disabled={updateProfile.isPending}>
-          {updateProfile.isPending ? 'Wird gespeichert …' : 'Speichern'}
+          {updateProfile.isPending ? t('common.saving') : t('common.save')}
         </Button>
       </form>
     </div>

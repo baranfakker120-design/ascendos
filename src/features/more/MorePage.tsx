@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { ButtonLink } from '@shared/ui/ButtonLink';
@@ -16,6 +17,7 @@ import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
  */
 export function MorePage() {
   const { profile, isSuperAdmin, canManageCoachContent, membership, needsOrgSelection } = useAuth();
+  const { t } = useI18n();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -61,20 +63,18 @@ export function MorePage() {
 
     if (needsOrgSelection || !membership) {
       setBusy(false);
-      setInviteError(
-        'Keine aktive Mitgliedschaft. Bitte Organisation wählen oder Support kontaktieren.'
-      );
+      setInviteError(t('more.inviteNoMembership'));
       return;
     }
 
     const { data, error } = await supabase.rpc('create_invite', {});
     setBusy(false);
     if (error) {
-      setInviteError(error.message || 'Einladung konnte nicht erstellt werden.');
+      setInviteError(error.message || t('more.inviteFailed'));
       return;
     }
     if (!data?.[0]?.invite_code) {
-      setInviteError('Einladung wurde nicht zurückgegeben. Bitte erneut versuchen.');
+      setInviteError(t('more.inviteMissing'));
       return;
     }
     setInviteLink(`${window.location.origin}/registrieren?code=${data[0].invite_code}`);
@@ -89,10 +89,8 @@ export function MorePage() {
   if (!profile) {
     return (
       <Card>
-        <p className="font-medium">Profil wird geladen …</p>
-        <p className="mt-1 text-sm text-muted">
-          Wenn das hängen bleibt, prüfe deine Verbindung und öffne den Tab erneut.
-        </p>
+        <p className="font-medium">{t('more.loadingProfile')}</p>
+        <p className="mt-1 text-sm text-muted">{t('more.loadingHint')}</p>
       </Card>
     );
   }
@@ -100,15 +98,17 @@ export function MorePage() {
   return (
     <div className="space-y-4">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Business</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Mehr</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
+          {t('more.eyebrow')}
+        </p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('more.title')}</h1>
       </header>
 
       <Link to="/team" className="block">
         <Card className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">Führungszentrum</p>
-            <p className="mt-0.5 text-sm text-muted">Dashboard, Insights, Teambaum</p>
+            <p className="font-semibold">{t('more.leadership')}</p>
+            <p className="mt-0.5 text-sm text-muted">{t('more.leadershipSub')}</p>
           </div>
           <span className="text-primary" aria-hidden>
             →
@@ -119,8 +119,8 @@ export function MorePage() {
       <Link to="/qualifikationen" className="block">
         <Card className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">Qualifikationen</p>
-            <p className="mt-0.5 text-sm text-muted">Rang, TeamLeader, 100 € Bonus</p>
+            <p className="font-semibold">{t('more.qualifications')}</p>
+            <p className="mt-0.5 text-sm text-muted">{t('more.qualificationsSub')}</p>
           </div>
           <span className="text-primary" aria-hidden>
             →
@@ -131,8 +131,8 @@ export function MorePage() {
       <Link to="/team-seyda" className="block">
         <Card className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">Team Seyda</p>
-            <p className="mt-0.5 text-sm text-muted">Guide — Way to Moon</p>
+            <p className="font-semibold">{t('more.teamSeyda')}</p>
+            <p className="mt-0.5 text-sm text-muted">{t('more.teamSeydaSub')}</p>
           </div>
           <span className="text-primary" aria-hidden>
             →
@@ -143,8 +143,8 @@ export function MorePage() {
       <Link to="/reise" className="block">
         <Card className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">Journey</p>
-            <p className="mt-0.5 text-sm text-muted">Meilensteine und Wochenrhythmus</p>
+            <p className="font-semibold">{t('more.journey')}</p>
+            <p className="mt-0.5 text-sm text-muted">{t('more.journeySub')}</p>
           </div>
           <span className="text-primary" aria-hidden>
             →
@@ -153,10 +153,8 @@ export function MorePage() {
       </Link>
 
       <Card>
-        <p className="font-semibold">Firstline</p>
-        <p className="mt-0.5 text-xs text-muted">
-          Du siehst den Fortschritt — Inhalte und Daten bleiben privat.
-        </p>
+        <p className="font-semibold">{t('more.firstline')}</p>
+        <p className="mt-0.5 text-xs text-muted">{t('more.firstlinePrivacy')}</p>
         {firstlineProgress && firstlineProgress.length > 0 ? (
           <ul className="mt-3 space-y-2">
             {firstlineProgress.map((fp) => {
@@ -167,23 +165,25 @@ export function MorePage() {
                   <span
                     className={`shrink-0 ${done ? 'font-medium text-emerald-600' : 'text-muted'}`}
                   >
-                    {done ? 'Reise abgeschlossen ✓' : `Tag ${fp.current_day} von ${fp.total_days}`}
+                    {done
+                      ? t('more.firstlineDone')
+                      : t('more.firstlineDays', {
+                          current: fp.current_day,
+                          total: fp.total_days,
+                        })}
                   </span>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-muted">Noch keine Firstline auf der Reise.</p>
+          <p className="mt-3 text-sm text-muted">{t('more.firstlineEmpty')}</p>
         )}
       </Card>
 
       <Card>
-        <p className="font-semibold">Invite Partner</p>
-        <p className="mt-1 text-sm text-muted">
-          Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14
-          Tage gültig, einmal verwendbar.
-        </p>
+        <p className="font-semibold">{t('more.invite')}</p>
+        <p className="mt-1 text-sm text-muted">{t('more.inviteBody')}</p>
         {inviteError ? (
           <div className="mt-3">
             <Alert tone="error">{inviteError}</Alert>
@@ -193,21 +193,21 @@ export function MorePage() {
           <div className="mt-3 space-y-2">
             <p className="break-all rounded-xl bg-bg px-3 py-2 font-mono text-xs">{inviteLink}</p>
             <Button variant="secondary" onClick={copyLink}>
-              {copied ? 'Kopiert ✓' : 'Link kopieren'}
+              {copied ? t('common.copied') : t('more.copyLink')}
             </Button>
           </div>
         ) : (
           <div className="mt-3">
             <Button onClick={createInvite} disabled={busy || needsOrgSelection || !membership}>
-              {busy ? 'Wird erstellt …' : 'Einladungslink erstellen'}
+              {busy ? t('more.inviteBusy') : t('more.inviteCta')}
             </Button>
           </div>
         )}
       </Card>
 
       <Card>
-        <p className="font-semibold">Tools</p>
-        <p className="mt-0.5 text-sm text-muted">Externe Werkzeuge für Gespräche und Follow-ups.</p>
+        <p className="font-semibold">{t('more.tools')}</p>
+        <p className="mt-0.5 text-sm text-muted">{t('more.toolsSub')}</p>
         {tools && tools.length > 0 ? (
           <ul className="mt-3 space-y-2">
             {tools.map((raw) => {
@@ -230,39 +230,37 @@ export function MorePage() {
             })}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-muted">Keine Tools hinterlegt.</p>
+          <p className="mt-3 text-sm text-muted">{t('more.toolsEmpty')}</p>
         )}
       </Card>
 
       <Card>
-        <p className="font-semibold">Resources</p>
-        <p className="mt-1 text-sm text-muted">
-          Wissen, Guides und Materialien für dein Leadership.
-        </p>
+        <p className="font-semibold">{t('more.resources')}</p>
+        <p className="mt-1 text-sm text-muted">{t('more.resourcesSub')}</p>
         {canManageCoachContent ? (
           <div className="mt-3 flex flex-col gap-2">
             <ButtonLink to="/knowledge-center" variant="secondary">
-              Coach Knowledge Center
+              {t('more.adminKnowledge')}
             </ButtonLink>
             <ButtonLink to="/live-coaching" variant="secondary">
-              Live Coaching Center
+              {t('more.adminLive')}
             </ButtonLink>
             <ButtonLink to="/stories" variant="secondary">
-              Ascend Stories
+              {t('more.adminStories')}
             </ButtonLink>
             {isSuperAdmin ? (
               <ButtonLink to="/wissen" variant="ghost">
-                Wissensdatenbank (RAG)
+                {t('more.adminKnowledgeRag')}
               </ButtonLink>
             ) : null}
           </div>
         ) : isSuperAdmin ? (
           <ButtonLink to="/wissen" variant="secondary" className="mt-3">
-            Wissensdatenbank
+            {t('more.adminKnowledgeShort')}
           </ButtonLink>
         ) : (
           <ButtonLink to="/team-seyda" variant="secondary" className="mt-3">
-            Team Seyda Guide
+            {t('more.teamSeydaGuide')}
           </ButtonLink>
         )}
       </Card>

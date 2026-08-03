@@ -370,7 +370,9 @@
     "energyBody": "Ein Blick in deine {pipeline} lohnt immer — oder genieß den Feierabend. Morgen früh steht dein neuer Plan bereit.",
     "loadErrorHint": "Prüfe deine Verbindung und öffne den Tab erneut — dein Plan wartet in der Datenbank.",
     "emptyHint": "Deine Pipeline ist ruhig — schau bei Kontakten vorbei oder komm morgen wieder.",
-    "saving": "Wird gespeichert …"
+    "saving": "Wird gespeichert …",
+    "energyBodyBefore": "Ein Blick in deine",
+    "energyBodyAfter": "lohnt immer — oder genieß den Feierabend. Morgen früh steht dein neuer Plan bereit."
   },
   "journey": {
     "title": "Deine Reise",
@@ -458,7 +460,23 @@
     "leadership": "Leadership",
     "askAboutPerson": "Ascent zu {name}",
     "personAnalysis": "Ascent Analyse {name}",
-    "contactPlaceholder": "Frage zu {name}…"
+    "contactPlaceholder": "Frage zu {name}…",
+    "execTitle": "Executive Intelligence",
+    "ask": "Fragen",
+    "whyPrefix": "Warum: {reason}",
+    "teamGrade": "Team: {grade} · {score}/100",
+    "knowledgeCount": "{count} freigegebene Knowledge-Artikel",
+    "whatsappSuggestion": "WhatsApp-Vorschlag",
+    "regShort": "Reg.",
+    "inactiveShort": "Inaktiv",
+    "riskShort": "Risiko",
+    "sponsor": "Sponsor:",
+    "possibleObjectionLabel": "Möglicher Einwand",
+    "strengthsPrefix": "Stärken: {list}",
+    "weaknessesPrefix": "Schwächen: {list}",
+    "askAboutPriorityFull": "Als mein Geschäftsführer: Priorisiere und gib mir den nächsten Schritt zu „{title}\". Warum: {why}",
+    "you": "Du",
+    "gradeNeedsAttention": "Braucht Aufmerksamkeit"
   },
   "profile": {
     "title": "Profil",
@@ -488,7 +506,15 @@
     "pickImage": "Bitte eine Bilddatei wählen (JPEG, PNG oder WebP).",
     "imageTooLarge": "Das Bild ist zu groß (max. 8 MB vor dem Zuschneiden).",
     "uploadFailed": "Upload fehlgeschlagen. Bitte erneut versuchen.",
-    "savingImage": "Bild wird gespeichert …"
+    "savingImage": "Bild wird gespeichert …",
+    "loading": "Profil wird geladen …",
+    "loadError": "Profil konnte nicht geladen werden.",
+    "team": "Team",
+    "sponsor": "Sponsor",
+    "cropHint": "Kreisförmiger Zuschnitt mit Zoom — Speichern erst nach Bestätigung.",
+    "photo": "Profilbild",
+    "cropGesture": "Zum Zoomen kneifen oder scrollen · Zum Verschieben ziehen",
+    "previewFrame": "Vorschau mit Rahmen"
   },
   "team": {
     "title": "Dein Team",
@@ -536,7 +562,8 @@
     "treeHintAria": "Teambaum. Zoomen und ziehen.",
     "minimap": "Minikarte — Tippen zum Fokussieren",
     "expandTree": "Teambaum vergrößern",
-    "partner": "Partner"
+    "partner": "Partner",
+    "migrationTitle": "Team-Funktionen sind noch nicht auf der Datenbank freigeschaltet."
   },
   "leadership": {
     "activeToday": "Aktiv heute",
@@ -685,6 +712,9 @@
   "teamSeyda": {
     "loadError": "Guide konnte nicht geladen werden.",
     "openGuide": "Guide öffnen ↗",
-    "title": "Team Seyda Guide"
+    "title": "Team Seyda Guide",
+    "eyebrow": "Team Seyda",
+    "guide": "Guide",
+    "loadHint": "Öffne ihn in einem neuen Tab und komm danach zurück."
   }
 }

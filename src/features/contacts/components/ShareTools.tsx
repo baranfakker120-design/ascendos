@@ -1,10 +1,8 @@
 import { useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { scorePipelineEvent } from '@shared/lib/apScoring';
 import { displayShareTool, isProofRequiredShareTool } from '@shared/lib/shareToolsDisplay';
-import {
-  ALREADY_CONFIRMED_MESSAGE,
-  type ShareVerificationRecord,
-} from '@shared/lib/shareVerification';
+import type { ShareVerificationRecord } from '@shared/lib/shareVerification';
 import type { ExternalTool } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
@@ -36,12 +34,17 @@ export function ShareTools({
   pendingToolKeys,
   awardedToolKeys,
 }: Props) {
+  const { t } = useI18n();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [verifyTool, setVerifyTool] = useState<ExternalTool | null>(null);
 
   const shareSimple = async (tool: ExternalTool) => {
     const firstName = contactName.split(' ')[0];
-    const text = `Hallo ${firstName}, wie besprochen: ${tool.name} — ${tool.url}`;
+    const text = t('contacts.shareTemplateFull', {
+      firstName,
+      toolName: tool.name,
+      url: tool.url,
+    });
     let shared = false;
     if (navigator.share) {
       try {
@@ -90,17 +93,19 @@ export function ShareTools({
             className="h-auto min-h-12 justify-between py-3 text-left [&_.ui-btn__label]:w-full [&_.ui-btn__label]:justify-between"
           >
             <span className="min-w-0">
-              <span className="block text-sm font-medium">{tool.name} teilen</span>
+              <span className="block text-sm font-medium">
+                {t('contacts.shareTool', { name: tool.name })}
+              </span>
               {tool.description ? (
                 <span className="block text-xs font-normal text-muted">{tool.description}</span>
               ) : null}
               {awarded ? (
                 <span className="mt-1 block text-xs font-semibold text-muted">
-                  {ALREADY_CONFIRMED_MESSAGE}
+                  {t('contacts.shareAlreadyConfirmed')}
                 </span>
               ) : waiting ? (
                 <span className="mt-1 block text-xs font-semibold text-accent-deep">
-                  Warte auf Nachweis
+                  {t('contacts.shareWaiting')}
                 </span>
               ) : null}
             </span>
