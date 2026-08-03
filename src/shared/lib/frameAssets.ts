@@ -140,10 +140,14 @@ export const FRAME_ASSET_PX = [96, 128, 160, 320, 480] as const;
 export type FrameAssetPx = (typeof FRAME_ASSET_PX)[number];
 
 /**
- * Anteil des inneren Kreises, den das Profilbild ausfüllt (82–85 %).
- * Schmaler Spalt zum Rahmen — Instagram/LinkedIn-Niveau.
+ * Flächenanteil der inneren Kreisöffnung, den der Avatar ausfüllt (84–86 %).
+ * Durchmesser = sqrt(Fläche) → schmaler Spalt, dominantes Profilbild.
+ * Rahmengröße (FRAME_DISPLAY_PX) bleibt unverändert.
  */
-export const AVATAR_FILL_RATIO = 0.84;
+export const AVATAR_AREA_FILL = 0.85;
+
+/** Durchmesser-Anteil abgeleitet aus AVATAR_AREA_FILL. */
+export const AVATAR_FILL_RATIO = Math.sqrt(AVATAR_AREA_FILL);
 
 /** Geometrie zu einem Rahmen-Schlüssel, oder null wenn unbekannt. */
 export function getFrameGeometry(frameKey: string | null | undefined): FrameGeometry | null {
@@ -202,7 +206,8 @@ export function resolveFrameSrcSet(frameKey: string | null | undefined): string 
 
 /**
  * Avatar- und Öffnungsmaße in CSS-Pixeln für eine Anzeigegröße.
- * Avatar füllt AVATAR_FILL_RATIO der inneren Kreisfläche — Rahmen skaliert mit.
+ * Avatar füllt 84–86 % der inneren Kreis*fläche* (Durchmesser = √Fläche).
+ * Rahmen-Box bleibt FRAME_DISPLAY_PX — nur der Avatar wird größer.
  */
 export function frameAvatarLayout(
   frameKey: string | null | undefined,
@@ -216,8 +221,9 @@ export function frameAvatarLayout(
   const box = FRAME_DISPLAY_PX[size];
   const geometry = getFrameGeometry(frameKey);
   if (!geometry) {
-    const avatarPx = Math.round(box * 0.84);
-    return { box, holePx: avatarPx, avatarPx, offsetY: 0 };
+    const holePx = box * 0.72;
+    const avatarPx = Math.round(holePx * AVATAR_FILL_RATIO);
+    return { box, holePx, avatarPx, offsetY: 0 };
   }
   const layout = openingLayout(geometry);
   const holePx = box * layout.holeRatio;

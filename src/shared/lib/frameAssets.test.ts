@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AVATAR_AREA_FILL,
   AVATAR_FILL_RATIO,
   FRAME_ASSET_PX,
   FRAME_DISPLAY_PX,
@@ -52,13 +53,15 @@ describe('frameAssets', () => {
     expect(resolveFrameSrcSet('frame-09')).toContain('frame-09-480.webp 480w');
   });
 
-  it('füllt das Profilbild zu ~84 % der inneren Kreisfläche', () => {
-    expect(AVATAR_FILL_RATIO).toBeGreaterThanOrEqual(0.82);
-    expect(AVATAR_FILL_RATIO).toBeLessThanOrEqual(0.85);
+  it('füllt das Profilbild zu 84–86 % der inneren Kreisfläche', () => {
+    expect(AVATAR_AREA_FILL).toBeGreaterThanOrEqual(0.84);
+    expect(AVATAR_AREA_FILL).toBeLessThanOrEqual(0.86);
+    expect(AVATAR_FILL_RATIO).toBeCloseTo(Math.sqrt(AVATAR_AREA_FILL), 10);
     const layout = frameAvatarLayout('frame-09', 'lg');
     expect(layout.box).toBe(FRAME_DISPLAY_PX.lg);
+    // Durchmesser-Anteil = √Fläche → schmaler Spalt, Rahmen unverändert
     expect(layout.avatarPx / layout.holePx).toBeCloseTo(AVATAR_FILL_RATIO, 2);
-    // Crest-Rahmen: Loch = max(Achsen), nicht die untermaßige Höhe
+    expect((layout.avatarPx / layout.holePx) ** 2).toBeCloseTo(AVATAR_AREA_FILL, 2);
     const opening = openingLayout(FRAME_GEOMETRY['frame-09']);
     expect(opening.holeRatio).toBe(opening.widthRatio);
   });

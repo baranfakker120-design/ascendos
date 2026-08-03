@@ -27,8 +27,8 @@ export interface RankFrameProps {
 /**
  * Avatar mit optionalem Rangrahmen.
  *
- * Layer: 1) Profilbild  2) Rahmen  3) Glanz (nur Rahmen-Asset).
- * Avatar füllt ~84 % der inneren Kreisfläche — schmaler Spalt, object-fit cover.
+ * Layer: 1) Profilbild  2) Rahmen  3) Glanz (maskiert auf Rahmen-Alpha).
+ * Avatar füllt 84–86 % der inneren Kreisfläche; Rahmengröße bleibt fix.
  */
 export function RankFrame({
   frameKey = null,
@@ -90,7 +90,7 @@ export function RankFrame({
         />
       </div>
 
-      {/* 2) Rahmen + 3) Glanz nur über dem Rahmen-Asset */}
+      {/* 2) Rahmen + 3) Glanz — Maske = Frame-Alpha, Beam nur dort sichtbar */}
       {showFrame ? (
         <div className="rank-frame-layer">
           <img
@@ -104,16 +104,15 @@ export function RankFrame({
             decoding="async"
             onError={() => setFrameFailed(true)}
           />
-          <div className="rank-frame-sheen" aria-hidden>
-            <img
-              src={frameSrc}
-              srcSet={frameSrcSet ?? undefined}
-              sizes={`${box}px`}
-              alt=""
-              className="rank-frame-sheen-asset"
-              draggable={false}
-              decoding="async"
-            />
+          <div
+            className="rank-frame-sheen"
+            aria-hidden
+            style={{
+              maskImage: `url(${frameSrc})`,
+              WebkitMaskImage: `url(${frameSrc})`,
+            }}
+          >
+            <div className="rank-frame-sheen-beam" />
           </div>
         </div>
       ) : null}

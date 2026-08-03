@@ -10,31 +10,33 @@ describe('rank frame sheen contract', () => {
   const tsx = readFileSync(join(dir, 'RankFrame.tsx'), 'utf8');
   const cssProps = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  it('mounts sheen as duplicate frame asset above the base frame', () => {
+  it('mounts a masked sheen host with an animated beam child', () => {
     expect(tsx).toContain('rank-frame-sheen');
-    expect(tsx).toContain('rank-frame-sheen-asset');
+    expect(tsx).toContain('rank-frame-sheen-beam');
     expect(tsx).toContain('rank-frame-layer');
-    expect(tsx).toMatch(/showFrame\s*\?/);
+    expect(tsx).toMatch(/maskImage:\s*`url\(\$\{frameSrc\}\)`/);
+    expect(tsx).toMatch(/WebkitMaskImage:\s*`url\(\$\{frameSrc\}\)`/);
     expect(cssProps).not.toMatch(/::before|::after/);
   });
 
-  it('uses clip-path/opacity only — no mask-image, blend, or backdrop-filter', () => {
-    expect(cssProps).not.toMatch(
-      /mask-image|mask-size|mask-mode|-webkit-mask|mix-blend-mode|background-blend-mode|backdrop-filter|\bfilter\b/i,
-    );
-    expect(tsx).not.toMatch(
-      /maskImage|WebkitMaskImage|mixBlendMode|backgroundBlendMode|webkitMask/i,
-    );
-    expect(cssProps).toMatch(/clip-path:\s*polygon/);
+  it('masks the static host; only the beam transforms (no card leak)', () => {
+    expect(cssProps).toMatch(/mask-size:\s*contain/);
+    expect(cssProps).toMatch(/mask-mode:\s*alpha/);
+    expect(cssProps).toMatch(/-webkit-mask-size:\s*contain/);
     expect(cssProps).toMatch(/overflow:\s*hidden/);
+    expect(cssProps).toMatch(/isolation:\s*isolate/);
+    expect(cssProps).not.toMatch(/mix-blend-mode|background-blend-mode|backdrop-filter/i);
+    // Beam is the only animated transforming layer
+    expect(cssProps).toMatch(/\.rank-frame-sheen-beam[\s\S]*will-change:\s*transform,\s*opacity/);
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
 
   it('matches design-sheet timing (6.5s, 45° sweep, pause, reset)', () => {
     expect(css).toMatch(/animation:\s*rank-frame-sheen\s+6\.5s\s+linear\s+infinite/);
-    expect(css).toMatch(/30\.8%/); // ~2s peak
-    expect(css).toMatch(/53\.8%/); // ~3.5s exit → pause
-    expect(css).toMatch(/76\.9%/); // ~5s end pause
+    expect(css).toMatch(/rotate\(45deg\)/);
+    expect(css).toMatch(/30\.8%/);
+    expect(css).toMatch(/53\.8%/);
+    expect(css).toMatch(/76\.9%/);
   });
 
   it('keeps layer order avatar under frame under sheen', () => {
