@@ -136,7 +136,3 @@ export function buildEditableMembershipIds(
   }
   return editable;
 }
-
-export function isEditableMembership(editableIds: Set<string>, membershipId: string): boolean {
-  return editableIds.has(membershipId);
-}
