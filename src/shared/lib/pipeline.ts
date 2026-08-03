@@ -31,7 +31,7 @@ export const EVENT_LABELS: Record<PipelineEventType, string> = {
   presentation_viewed: 'Präsentation angesehen',
   fit_check_sent: 'Fit Check gesendet',
   fit_check_completed: 'Fit Check abgeschlossen',
-  waytomoon_sent: 'WayToMoon gesendet',
+  waytomoon_sent: 'Onboarding gesendet',
   three_way_call_done: '3-Way-Call durchgeführt',
   party_scheduled: 'Duftparty geplant',
   party_done: 'Duftparty durchgeführt',

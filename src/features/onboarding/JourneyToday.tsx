@@ -3,6 +3,7 @@ import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
 import { scoreJourneyStep } from '@shared/lib/apScoring';
+import { displayShareTool } from '@shared/lib/shareToolsDisplay';
 import type { ExternalTool, JourneyStep, JourneyStepContent } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button, buttonClassName } from '@shared/ui/Button';
@@ -127,19 +128,24 @@ function JourneyStepCard({
   onComplete: () => void;
 }) {
   const content = (step.content ?? {}) as JourneyStepContent;
-  const tool = content.tool_key ? tools.find((t) => t.key === content.tool_key) : null;
+  const rawTool = content.tool_key ? tools.find((t) => t.key === content.tool_key) : null;
+  const tool = rawTool ? displayShareTool(rawTool) : null;
   const ap = scoreJourneyStep(step.content_type, step.day_number, doneToday);
+  const visibleTitle = step.title.replace(/MyWayToMoon|WayToMoon/gi, 'Onboarding');
+  const visibleBody = content.body
+    ? content.body.replace(/MyWayToMoon|WayToMoon/gi, 'Onboarding')
+    : null;
 
   return (
     <li>
       <Card className={done ? 'opacity-60' : ''}>
         <div className="flex items-start justify-between gap-2">
           <p className={`min-w-0 flex-1 font-semibold ${done ? 'line-through' : ''}`}>
-            {step.title}
+            {visibleTitle}
           </p>
           <ApRewardSticker ap={ap} size="sm" animate={!done} />
         </div>
-        {content.body ? <p className="mt-1 text-sm text-muted">{content.body}</p> : null}
+        {visibleBody ? <p className="mt-1 text-sm text-muted">{visibleBody}</p> : null}
 
         {!done ? (
           <div className="mt-3 space-y-2">
