@@ -1,17 +1,59 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Input } from '@shared/ui/Input';
 import { TextArea } from '@shared/ui/TextArea';
 import { useContact, useContactMutations } from './contactsApi';
+import type { Contact } from '@shared/types/domain';
 
 /** Ein Formular für beide Fälle: /kontakte/neu und /kontakte/:id/bearbeiten */
 export function ContactFormPage() {
   const { contactId } = useParams();
   const isEdit = !!contactId;
+  const { data: existing, isPending, isError } = useContact(contactId ?? '');
+
+  if (isEdit && isPending) {
+    return <p className="text-sm text-muted">Kontakt wird geladen …</p>;
+  }
+
+  if (isEdit && (isError || !existing)) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted">
+          {isError
+            ? 'Kontakt konnte nicht geladen werden.'
+            : 'Dieser Kontakt existiert nicht (mehr).'}
+        </p>
+        <Link to="/kontakte" className="text-sm font-medium text-primary">
+          Zurück zu den Kontakten
+        </Link>
+      </div>
+    );
+  }
+
+  // Remount when the loaded contact identity changes so local state
+  // initializes from server data once — no setState-during-render hydrate.
+  return (
+    <ContactForm
+      key={existing?.id ?? 'new'}
+      isEdit={isEdit}
+      contactId={contactId}
+      existing={existing ?? null}
+    />
+  );
+}
+
+function ContactForm({
+  isEdit,
+  contactId,
+  existing,
+}: {
+  isEdit: boolean;
+  contactId?: string;
+  existing: Contact | null;
+}) {
   const navigate = useNavigate();
-  const { data: existing } = useContact(contactId ?? '');
   const { createContact, updateContact } = useContactMutations();
 
   const [name, setName] = useState(existing?.name ?? '');
@@ -21,18 +63,6 @@ export function ContactFormPage() {
   const [nextStepDue, setNextStepDue] = useState(existing?.next_step_due ?? '');
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
-
-  // Bearbeiten: sobald der Kontakt geladen ist, Felder einmalig befüllen.
-  const [hydrated, setHydrated] = useState(false);
-  if (isEdit && existing && !hydrated) {
-    setName(existing.name);
-    setPhone(existing.phone ?? '');
-    setEmail(existing.email ?? '');
-    setNextStep(existing.next_step ?? '');
-    setNextStepDue(existing.next_step_due ?? '');
-    setNotes(existing.notes ?? '');
-    setHydrated(true);
-  }
 
   const busy = createContact.isPending || updateContact.isPending;
 
@@ -49,7 +79,7 @@ export function ContactFormPage() {
     };
     try {
       if (isEdit) {
-        await updateContact.mutateAsync({ id: contactId, ...input });
+        await updateContact.mutateAsync({ id: contactId!, ...input });
         navigate(`/kontakte/${contactId}`);
       } else {
         const created = await createContact.mutateAsync(input);

@@ -115,6 +115,7 @@ interface ContactInput {
   email?: string | null;
   notes?: string | null;
   next_step?: string | null;
+  next_step_due?: string | null;
 }
 
 export function useContactMutations() {
