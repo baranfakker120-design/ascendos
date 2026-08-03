@@ -15,14 +15,25 @@ describe('rank frame sheen contract', () => {
     expect(tsx).not.toMatch(/maskImage|WebkitMaskImage/);
     expect(cssProps).not.toMatch(/mask-image|mask-mode|-webkit-mask/i);
     expect(cssProps).toMatch(/filter:\s*brightness/);
-    expect(cssProps).toMatch(/clip-path:\s*polygon/);
+    expect(cssProps).toMatch(/clip-path:\s*ellipse/);
   });
 
-  it('keeps a soft angled metal catch with rest period', () => {
-    expect(css).toMatch(/animation:\s*rank-frame-sheen\s+7s/);
-    expect(css).toMatch(/62%/);
-    expect(css).toMatch(/83%/);
+  it('keeps continuous soft metal specular without rest / scanner bar', () => {
+    expect(css).toMatch(/animation:[\s\S]*rank-frame-metal-primary/);
+    expect(css).toMatch(/rank-frame-metal-secondary/);
+    expect(css).toMatch(/rank-frame-metal-breathe/);
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
+    // No long idle rest keyed as the old laser sweep
+    expect(css).not.toMatch(/62%/);
+    expect(css).not.toMatch(/83%/);
+    expect(css).not.toMatch(/rank-frame-sheen\s+7s/);
+    expect(cssProps).not.toMatch(/clip-path:\s*polygon/);
+  });
+
+  it('renders dual specular lobes on frame pixels only', () => {
+    expect(tsx).toContain('rank-frame-sheen-asset--secondary');
+    const sheenCount = (tsx.match(/rank-frame-sheen-asset/g) ?? []).length;
+    expect(sheenCount).toBeGreaterThanOrEqual(2);
   });
 
   it('keeps layer order avatar under frame under sheen', () => {

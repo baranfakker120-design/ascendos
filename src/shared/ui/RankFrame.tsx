@@ -116,6 +116,16 @@ export function RankFrame({
               draggable={false}
               decoding="async"
             />
+            {/* Second soft specular lobe — continuous living metal, not a single sweep */}
+            <img
+              src={frameSrc}
+              srcSet={frameSrcSet ?? undefined}
+              sizes={`${box}px`}
+              alt=""
+              className="rank-frame-sheen-asset rank-frame-sheen-asset--secondary"
+              draggable={false}
+              decoding="async"
+            />
           </div>
         </div>
       ) : null}

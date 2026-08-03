@@ -1,6 +1,9 @@
-/* Luxury watch specular — white-metal catch on FRAME PIXELS ONLY.
+/* AAA cinematic metal — FRAME PIXELS ONLY.
    Root cause of invisible shimmer: CSS mask-image + WebP → transparent mask on iOS.
-   Fix: animate a brightened duplicate of the frame asset (alpha keeps the hole clean). */
+   Fix: animate brightened duplicates of the frame asset (alpha keeps the hole clean).
+
+   Not a scanner / laser / light-bar with rest — continuous soft specular lobes
+   (Apple stainless / Vision Pro / luxury-watch language). GPU: opacity + clip-path. */
 
 .rank-frame-layer {
   pointer-events: none;
@@ -9,6 +12,8 @@
   z-index: 2;
   overflow: hidden;
   isolation: isolate;
+  /* Promote compositing layer once — avoids paint thrash on mobile */
+  transform: translateZ(0);
 }
 
 .rank-frame-asset {
@@ -41,39 +46,89 @@
   height: 100%;
   object-fit: contain;
   object-position: center;
-  opacity: 0;
   /* Soft specular boost — only opaque frame metal/ornament paints */
-  filter: brightness(1.85) contrast(1.05);
-  /* ~30° diagonal band via polygon (image stays registered) */
-  clip-path: polygon(-35% -10%, -12% -10%, 8% 110%, -15% 110%);
-  animation: rank-frame-sheen 7s ease-in-out infinite;
+  filter: brightness(1.72) contrast(1.06) saturate(0.92);
+  /* Soft studio catch — never a hard laser edge */
+  clip-path: ellipse(42% 58% at 18% 28%);
+  opacity: 0.28;
+  will-change: clip-path, opacity;
+  animation:
+    rank-frame-metal-primary 5.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite,
+    rank-frame-metal-breathe 3.8s ease-in-out infinite;
+}
+
+/* Second specular lobe — offset phase, softer, different path → living metal */
+.rank-frame-sheen-asset--secondary {
+  filter: brightness(1.95) contrast(1.04) saturate(0.88);
+  clip-path: ellipse(28% 40% at 78% 62%);
+  opacity: 0.18;
+  animation:
+    rank-frame-metal-secondary 7.2s cubic-bezier(0.4, 0.05, 0.6, 0.95) infinite,
+    rank-frame-metal-breathe-soft 4.6s ease-in-out infinite;
+  animation-delay: -2.4s, -1.1s;
 }
 
 /*
-  Narrow light catch sweeps the metal, then rests.
-  No scanner fill, no glow bloom, no card paint (PNG alpha).
+  Continuous soft specular drift — always some catch visible.
+  Ellipse lobes read as brushed metal under studio light, not a sweep bar.
 */
-@keyframes rank-frame-sheen {
-  0%,
-  62% {
-    opacity: 0;
-    clip-path: polygon(-40% -10%, -16% -10%, 4% 110%, -20% 110%);
+@keyframes rank-frame-metal-primary {
+  0% {
+    clip-path: ellipse(42% 58% at 16% 26%);
   }
-  68% {
-    opacity: 0.7;
+  25% {
+    clip-path: ellipse(46% 52% at 62% 18%);
   }
-  74% {
-    opacity: 0.55;
-    clip-path: polygon(28% -10%, 52% -10%, 72% 110%, 48% 110%);
+  50% {
+    clip-path: ellipse(40% 60% at 86% 58%);
   }
-  82% {
-    opacity: 0;
-    clip-path: polygon(88% -10%, 112% -10%, 132% 110%, 108% 110%);
+  75% {
+    clip-path: ellipse(44% 54% at 38% 84%);
   }
-  83%,
   100% {
-    opacity: 0;
-    clip-path: polygon(-40% -10%, -16% -10%, 4% 110%, -20% 110%);
+    clip-path: ellipse(42% 58% at 16% 26%);
+  }
+}
+
+@keyframes rank-frame-metal-secondary {
+  0% {
+    clip-path: ellipse(28% 40% at 82% 68%);
+  }
+  33% {
+    clip-path: ellipse(32% 36% at 24% 72%);
+  }
+  66% {
+    clip-path: ellipse(26% 42% at 48% 22%);
+  }
+  100% {
+    clip-path: ellipse(28% 40% at 82% 68%);
+  }
+}
+
+/* Light intensity — gentle, never off, never flash */
+@keyframes rank-frame-metal-breathe {
+  0%,
+  100% {
+    opacity: 0.24;
+  }
+  40% {
+    opacity: 0.42;
+  }
+  70% {
+    opacity: 0.32;
+  }
+}
+
+@keyframes rank-frame-metal-breathe-soft {
+  0%,
+  100% {
+    opacity: 0.14;
+  }
+  45% {
+    opacity: 0.3;
+  }
+  75% {
+    opacity: 0.2;
   }
 }
 
