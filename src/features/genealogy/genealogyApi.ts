@@ -168,8 +168,3 @@ export function useGenealogyTree(rootIdentityId?: string | null) {
     },
   });
 }
-
-/** True when the tree has no downline partners (only self / empty). */
-export function hasNoTeamPartners(nodes: GenealogyNode[]): boolean {
-  return nodes.every((n) => n.depth === 0) || nodes.filter((n) => n.depth > 0).length === 0;
-}

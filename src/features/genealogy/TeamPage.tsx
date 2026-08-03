@@ -16,7 +16,8 @@ import {
   useTeamInsights,
   useTeamLeaderProgress,
 } from '@features/leadership/leadershipApi';
-import { hasNoTeamPartners, useGenealogyTree } from './genealogyApi';
+import { useGenealogyTree } from './genealogyApi';
+import { hasNoTeamPartners } from './genealogyUtils';
 import { filterTreeNodes } from './genealogyUtils';
 import { GenealogyList } from './components/GenealogyList';
 import { GenealogyToolbar } from './components/GenealogyToolbar';

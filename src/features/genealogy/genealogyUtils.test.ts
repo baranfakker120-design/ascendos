@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   filterTreeNodes,
+  hasNoTeamPartners,
   isInactive,
   isNewPartner,
   isOnline,
@@ -91,6 +92,20 @@ describe('genealogyUtils', () => {
         stub({ membershipId: '1', joinedAt: new Date(now - 30 * 86400000).toISOString() }),
         now
       )
+    ).toBe(false);
+  });
+
+  it('hasNoTeamPartners ist true bei leerem Array oder nur Root', () => {
+    expect(hasNoTeamPartners([])).toBe(true);
+    expect(hasNoTeamPartners([stub({ membershipId: 'me', depth: 0 })])).toBe(true);
+  });
+
+  it('hasNoTeamPartners ist false sobald Downline existiert', () => {
+    expect(
+      hasNoTeamPartners([
+        stub({ membershipId: 'me', depth: 0 }),
+        stub({ membershipId: 'p1', depth: 1 }),
+      ])
     ).toBe(false);
   });
 });
