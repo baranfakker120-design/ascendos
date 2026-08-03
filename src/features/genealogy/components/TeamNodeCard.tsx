@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
+import type { CSSProperties } from 'react';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { displayName, isNewPartner, isOnline, presenceLabel } from '../genealogyUtils';
 import type { GenealogyNode } from '../types';
@@ -40,6 +40,7 @@ export function TeamNodeCard({
         selected ? 'team-node--selected' : '',
         gold ? 'team-node--gold' : '',
         online ? 'team-node--online' : '',
+        node.isFavorite ? 'team-node--fav' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -63,8 +64,14 @@ export function TeamNodeCard({
             className={['team-node__presence', online ? 'is-on' : 'is-off'].join(' ')}
             title={presenceLabel(node)}
           />
+          {node.messageBadge > 0 ? (
+            <span className="team-node__msg" aria-label={`${node.messageBadge} Nachrichten`}>
+              {node.messageBadge > 9 ? '9+' : node.messageBadge}
+            </span>
+          ) : null}
         </div>
         {isNew ? <span className="team-node__badge">NEW</span> : null}
+        {node.isFavorite ? <span className="team-node__pin">★</span> : null}
       </div>
 
       <h3 className="team-node__name">{displayName(node)}</h3>
@@ -76,14 +83,20 @@ export function TeamNodeCard({
           <dd>{node.apTotal.toLocaleString('de-DE')}</dd>
         </div>
         <div>
-          <dt>Team</dt>
-          <dd>{node.teamCount}</dd>
+          <dt>ICP</dt>
+          <dd>{node.icpMonth.toLocaleString('de-DE')}</dd>
         </div>
         <div>
           <dt>Direkt</dt>
           <dd>{node.directCount}</dd>
         </div>
       </dl>
+
+      <p className="team-node__activity">
+        {presenceLabel(node)}
+        {node.streakDays > 0 ? ` · ${node.streakDays}d` : ''}
+      </p>
+      {node.sponsorName ? <p className="team-node__sponsor">Sponsor: {node.sponsorName}</p> : null}
 
       {hasChildren ? (
         <button

@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(94);
+select plan(96);
 
 -- ============================================================
 -- Aufbau
@@ -412,46 +412,63 @@ select lives_ok(
      values (tests.mid('s4bert'), 30000, 'Testaufladung', 'manual') $$,
   'G1 Grossbuchung ueber die Team-Leader-Schwelle laeuft durch');
 
+-- Sprint 4.2: team_leader_bonus wird NICHT mehr per AP freigeschaltet,
+-- sondern nur bei 5 aktiven Firstlines (evaluate_team_leader_qualification).
+select is(
+  (select count(*)::int from public.payouts
+   where identity_id='d1000000-0000-0000-0000-00000000000b' and kind='team_leader_bonus'),
+  0, 'G2 AP allein erzeugt keinen TeamLeader-Bonus mehr');
+
 select is(
   (select count(*)::int from public.payouts
    where identity_id='d1000000-0000-0000-0000-00000000000b'),
-  1, 'G2 Genau EIN Auszahlungsanspruch entstanden');
+  0, 'G3 Kein Auszahlungsanspruch allein durch AP-Schwelle team_leader');
+
+-- Qualifikation erzeugt den einmaligen Anspruch
+select ok(
+  public.evaluate_team_leader_qualification(tests.mid('s4bert')) = false
+  or public.count_active_firstlines(tests.mid('s4bert')) < 5,
+  'G4 Ohne 5 Firstlines bleibt Qualifikation aus');
+
+-- Manueller Anspruch (wie Admin/Qualification) — UNIQUE bleibt die Einmaligkeit
+select lives_ok(
+  $$ insert into public.payouts (identity_id, kind, amount_cents, awarded_for_membership_id, note)
+     values ('d1000000-0000-0000-0000-00000000000b','team_leader_bonus',10000,
+             tests.mid('s4bert'), 'Test: TeamLeader Bonus') $$,
+  'G5 Anspruch kann einmalig angelegt werden');
 
 select is(
-  (select kind from public.payouts where identity_id='d1000000-0000-0000-0000-00000000000b'),
-  'team_leader_bonus', 'G3 Anspruch tragt die richtige Art');
-
-select is(
-  (select amount_cents from public.payouts where identity_id='d1000000-0000-0000-0000-00000000000b'),
-  10000, 'G4 Betrag stammt aus dem Rangkatalog');
+  (select amount_cents from public.payouts where identity_id='d1000000-0000-0000-0000-00000000000b'
+     and kind='team_leader_bonus'),
+  10000, 'G6 Betrag 10000 Cent');
 
 select is(
   (select confirmed_paid_at from public.payouts
-   where identity_id='d1000000-0000-0000-0000-00000000000b'),
-  null, 'G5 KEINE automatische Auszahlung: confirmed_paid_at ist leer');
+   where identity_id='d1000000-0000-0000-0000-00000000000b' and kind='team_leader_bonus'),
+  null, 'G7 KEINE automatische Auszahlung: confirmed_paid_at ist leer');
 
 -- Weitere Buchung darf keinen zweiten Anspruch erzeugen.
 select lives_ok(
   $$ insert into public.ap_ledger (membership_id, delta, reason, source_kind)
      values (tests.mid('s4bert'), 500, 'Weitere Buchung', 'manual') $$,
-  'G6 Weitere Buchung oberhalb der Schwelle laeuft durch');
+  'G8 Weitere Buchung oberhalb der Schwelle laeuft durch');
 
 select is(
   (select count(*)::int from public.payouts
-   where identity_id='d1000000-0000-0000-0000-00000000000b'),
-  1, 'G7 ... und erzeugt KEINEN zweiten Anspruch');
+   where identity_id='d1000000-0000-0000-0000-00000000000b' and kind='team_leader_bonus'),
+  1, 'G9 ... und erzeugt KEINEN zweiten Anspruch');
 
 select throws_ok(
   $$ insert into public.payouts (identity_id, kind, amount_cents)
      values ('d1000000-0000-0000-0000-00000000000b','team_leader_bonus',10000) $$,
   '23505', null,
-  'G8 Zweiter Anspruch derselben Art wird von UNIQUE abgewiesen');
+  'G10 Zweiter Anspruch derselben Art wird von UNIQUE abgewiesen');
 
 -- Ein Anspruch ANDERER Art bleibt moeglich (kuenftige Belohnungen).
 select lives_ok(
   $$ insert into public.payouts (identity_id, kind, amount_cents)
      values ('d1000000-0000-0000-0000-00000000000b','mentor_bonus',20000) $$,
-  'G9 Anspruch anderer Art ist erlaubt');
+  'G11 Anspruch anderer Art ist erlaubt');
 
 
 -- ============================================================

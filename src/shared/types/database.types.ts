@@ -19,6 +19,7 @@ export type Database = {
         Returns: Json;
       };
     };
+
     Enums: {
       [_ in never]: never;
     };
@@ -236,6 +237,93 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      ap_task_completions: {
+        Row: {
+          ap_awarded: number;
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          ledger_id: string | null;
+          membership_id: string;
+          note: string | null;
+          started_at: string | null;
+          status: string;
+          task_id: string;
+        };
+        Insert: {
+          ap_awarded?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          ledger_id?: string | null;
+          membership_id: string;
+          note?: string | null;
+          started_at?: string | null;
+          status?: string;
+          task_id: string;
+        };
+        Update: {
+          ap_awarded?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          ledger_id?: string | null;
+          membership_id?: string;
+          note?: string | null;
+          started_at?: string | null;
+          status?: string;
+          task_id?: string;
+        };
+        Relationships: [];
+      };
+      ap_task_defs: {
+        Row: {
+          ap: number;
+          category: string;
+          cooldown_hours: number | null;
+          created_at: string;
+          description: string | null;
+          difficulty: string;
+          id: string;
+          is_active: boolean;
+          key: string;
+          org_id: string;
+          repeatable: boolean;
+          sort_order: number;
+          title: string;
+        };
+        Insert: {
+          ap: number;
+          category?: string;
+          cooldown_hours?: number | null;
+          created_at?: string;
+          description?: string | null;
+          difficulty?: string;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          org_id: string;
+          repeatable?: boolean;
+          sort_order?: number;
+          title: string;
+        };
+        Update: {
+          ap?: number;
+          category?: string;
+          cooldown_hours?: number | null;
+          created_at?: string;
+          description?: string | null;
+          difficulty?: string;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          org_id?: string;
+          repeatable?: boolean;
+          sort_order?: number;
+          title?: string;
+        };
+        Relationships: [];
       };
       coach_convos: {
         Row: {
@@ -1072,6 +1160,48 @@ export type Database = {
           },
         ];
       };
+      leadership_favorites: {
+        Row: {
+          created_at: string;
+          owner_membership_id: string;
+          target_membership_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          owner_membership_id: string;
+          target_membership_id: string;
+        };
+        Update: {
+          created_at?: string;
+          owner_membership_id?: string;
+          target_membership_id?: string;
+        };
+        Relationships: [];
+      };
+      leadership_notes: {
+        Row: {
+          body: string;
+          id: string;
+          owner_membership_id: string;
+          target_membership_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          id?: string;
+          owner_membership_id: string;
+          target_membership_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          id?: string;
+          owner_membership_id?: string;
+          target_membership_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       membership_cosmetics: {
         Row: {
           is_equipped: boolean;
@@ -1126,7 +1256,10 @@ export type Database = {
           role: string;
           sponsor_membership_id: string | null;
           status: string;
+          streak_days: number;
+          streak_updated_on: string | null;
           team_id: string;
+          team_leader_qualified_at: string | null;
           updated_at: string;
         };
         Insert: {
@@ -1143,7 +1276,10 @@ export type Database = {
           role?: string;
           sponsor_membership_id?: string | null;
           status?: string;
+          streak_days?: number;
+          streak_updated_on?: string | null;
           team_id: string;
+          team_leader_qualified_at?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -1160,7 +1296,10 @@ export type Database = {
           role?: string;
           sponsor_membership_id?: string | null;
           status?: string;
+          streak_days?: number;
+          streak_updated_on?: string | null;
           team_id?: string;
+          team_leader_qualified_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -1822,6 +1961,7 @@ export type Database = {
         ];
       };
     };
+
     Views: {
       contact_phases: {
         Row: {
@@ -2007,11 +2147,20 @@ export type Database = {
       check_achievements: { Args: never; Returns: string[] };
       coach_messages_today: { Args: { p_user: string }; Returns: number };
       commit_daily_plan: { Args: { p_plan_id: string }; Returns: undefined };
+      complete_ap_task: {
+        Args: { p_note?: string; p_task_key: string };
+        Returns: {
+          ap_awarded: number;
+          completion_id: string;
+          new_ap_total: number;
+        }[];
+      };
       complete_journey_step: { Args: { p_step_id: string }; Returns: undefined };
       correct_pipeline_event: {
         Args: { p_event_id: string };
         Returns: undefined;
       };
+      count_active_firstlines: { Args: { p_membership: string }; Returns: number };
       create_invite: {
         Args: { invite_role?: string };
         Returns: {
@@ -2022,6 +2171,10 @@ export type Database = {
       current_org_id: { Args: never; Returns: string };
       current_team_id: { Args: never; Returns: string };
       current_user_role: { Args: never; Returns: string };
+      evaluate_team_leader_qualification: {
+        Args: { p_membership: string };
+        Returns: boolean;
+      };
       event_phase_rank: { Args: { p_event_type: string }; Returns: number };
       generate_daily_plan: { Args: { p_date: string }; Returns: string };
       get_downline: {
@@ -2040,23 +2193,81 @@ export type Database = {
           direct_count: number;
           first_name: string;
           frame_asset: string;
+          icp_month: number;
           identity_id: string;
           is_berater_des_monats: boolean;
+          is_favorite: boolean;
           joined_at: string;
           last_app_opened_at: string;
           last_name: string;
           membership_id: string;
+          message_badge: number;
           phone: string;
           rank_key: string;
           rank_label: string;
           role: string;
           sponsor_membership_id: string;
+          sponsor_name: string;
+          streak_days: number;
           team_count: number;
           username: string;
         }[];
       };
+      get_leader_dashboard: { Args: never; Returns: Json };
+      get_qualification_progress: {
+        Args: { p_membership?: string };
+        Returns: Json;
+      };
+      get_smart_warnings: { Args: never; Returns: Json };
+      get_team_insights: { Args: never; Returns: Json };
+      get_team_leader_progress: {
+        Args: { p_membership?: string };
+        Returns: {
+          active_firstlines: number;
+          bonus_amount_cents: number;
+          bonus_entitled: boolean;
+          bonus_paid: boolean;
+          membership_id: string;
+          qualified: boolean;
+          qualified_at: string;
+          required_firstlines: number;
+        }[];
+      };
+      get_team_leaderboard: {
+        Args: { p_period?: string; p_sort?: string };
+        Returns: {
+          ap_total: number;
+          avatar_url: string;
+          direct_count: number;
+          first_name: string;
+          frame_asset: string;
+          identity_id: string;
+          last_name: string;
+          membership_id: string;
+          metric: number;
+          rank_label: string;
+        }[];
+      };
       is_ancestor_of: { Args: { p_target: string }; Returns: boolean };
       is_super_admin: { Args: never; Returns: boolean };
+      list_ap_tasks: {
+        Args: never;
+        Returns: {
+          ap: number;
+          category: string;
+          cooldown_hours: number | null;
+          created_at: string;
+          description: string | null;
+          difficulty: string;
+          id: string;
+          is_active: boolean;
+          key: string;
+          org_id: string;
+          repeatable: boolean;
+          sort_order: number;
+          title: string;
+        }[];
+      };
       match_knowledge: {
         Args: {
           match_categories?: string[];
@@ -2164,6 +2375,10 @@ export type Database = {
           org_name: string;
         }[];
       };
+      toggle_leadership_favorite: {
+        Args: { p_target_membership: string };
+        Returns: boolean;
+      };
       track_usage: {
         Args: { p_event: string; p_meta?: Json; p_user: string };
         Returns: undefined;
@@ -2171,6 +2386,10 @@ export type Database = {
       update_mission_status: {
         Args: { p_item_id: string; p_reason?: string; p_status: string };
         Returns: undefined;
+      };
+      upsert_leadership_note: {
+        Args: { p_body: string; p_target_membership: string };
+        Returns: string;
       };
       validate_invite: {
         Args: { invite_code: string };
@@ -2181,6 +2400,7 @@ export type Database = {
         }[];
       };
     };
+
     Enums: {
       [_ in never]: never;
     };

@@ -16,6 +16,7 @@ import { ProfileEditPage } from '@features/profile/ProfileEditPage';
 import { ProfilePage } from '@features/profile/ProfilePage';
 import { SettingsPage } from '@features/settings/SettingsPage';
 import { TeamPage } from '@features/genealogy/TeamPage';
+import { QualificationsPage } from '@features/leadership/QualificationsPage';
 import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
@@ -125,6 +126,7 @@ export const router = createBrowserRouter([
               { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
               { path: '/coach', element: <CoachPage /> },
               { path: '/team', element: <TeamPage /> },
+              { path: '/qualifikationen', element: <QualificationsPage /> },
               { path: '/team-seyda', element: <TeamSeydaPage /> },
               { path: '/more', element: <MorePage /> },
               { path: '/mehr', element: <Navigate to="/more" replace /> },

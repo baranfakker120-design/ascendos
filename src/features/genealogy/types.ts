@@ -22,6 +22,12 @@ export interface GenealogyNode {
   lastAppOpenedAt: string | null;
   isBeraterDesMonats: boolean;
   joinedAt: string;
+  /** Period AP this calendar month (ICP proxy). */
+  icpMonth: number;
+  streakDays: number;
+  isFavorite: boolean;
+  sponsorName: string | null;
+  messageBadge: number;
 }
 
 export type GenealogyFilter = 'all' | 'leaders' | 'berater' | 'new' | 'inactive' | 'high_ap';
@@ -60,7 +66,7 @@ export interface CameraState {
 }
 
 export const NODE_WIDTH = 172;
-export const NODE_HEIGHT = 204;
+export const NODE_HEIGHT = 228;
 export const NODE_GAP_X = 28;
 export const NODE_GAP_Y = 88;
 export const MIN_SCALE = 0.35;
