@@ -27,7 +27,7 @@ export interface RankFrameProps {
 /**
  * Avatar mit optionalem Rangrahmen.
  *
- * Layer: 1) Profilbild (füllt Alpha-Loch)  2) Rahmen  3) Metall-Glanz.
+ * Layer: 1) Profilbild (füllt Alpha-Loch)  2) Rahmen  3) kontinuierlicher Metall-Specular.
  * Kein absichtlicher Spalt — sonst scheint der Seitenhintergrund durch.
  */
 export function RankFrame({
