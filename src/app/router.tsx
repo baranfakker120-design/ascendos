@@ -19,6 +19,8 @@ import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { Button } from '@shared/ui/Button';
+import { Card } from '@shared/ui/Card';
 
 function FullScreenSpinner() {
   return (
@@ -44,8 +46,19 @@ function ShellOutlet() {
  * läuft, wird generate_daily_plan gar nicht erst aufgerufen.
  */
 function TodayRoute() {
-  const { data: state, isLoading } = useJourneyState();
-  if (isLoading) return <FullScreenSpinner />;
+  const { data: state, isPending, isError, refetch } = useJourneyState();
+  if (isPending) return <FullScreenSpinner />;
+  if (isError) {
+    return (
+      <Card className="mt-4 space-y-3 text-center">
+        <p className="font-medium">Dein Heute-Tab konnte nicht geladen werden.</p>
+        <p className="text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+        <Button fullWidth={false} variant="secondary" onClick={() => void refetch()}>
+          Erneut versuchen
+        </Button>
+      </Card>
+    );
+  }
   if (state && state.journey && !state.isComplete) return <JourneyToday />;
   return <TodayPage />;
 }

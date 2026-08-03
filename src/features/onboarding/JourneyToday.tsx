@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -17,8 +18,10 @@ import { useCompleteStep, useJourneyState } from './journeyApi';
  */
 export function JourneyToday() {
   const { profile } = useAuth();
-  const { data: state, isLoading } = useJourneyState();
+  const { data: state, isPending, isError, refetch } = useJourneyState();
   const complete = useCompleteStep();
+  const pendingStepId = complete.isPending ? (complete.variables ?? null) : null;
+  const [stepError, setStepError] = useState<string | null>(null);
   const { data: tools } = useQuery({
     queryKey: ['external-tools-journey'],
     queryFn: async (): Promise<ExternalTool[]> => {
@@ -29,8 +32,20 @@ export function JourneyToday() {
     staleTime: 5 * 60_000,
   });
 
-  if (isLoading || !state?.journey) {
+  if (isPending) {
     return <p className="text-sm text-muted">Deine Reise wird geladen …</p>;
+  }
+
+  if (isError || !state?.journey) {
+    return (
+      <Card>
+        <p className="font-medium">Deine Reise konnte nicht geladen werden.</p>
+        <p className="mt-1 text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+        <Button className="mt-3" variant="secondary" onClick={() => void refetch()}>
+          Erneut versuchen
+        </Button>
+      </Card>
+    );
   }
 
   const daySteps = state.steps.filter((s) => s.day_number === state.currentDay);
@@ -57,6 +72,12 @@ export function JourneyToday() {
         />
       </div>
 
+      {stepError ? (
+        <Card>
+          <p className="text-sm text-muted">{stepError}</p>
+        </Card>
+      ) : null}
+
       <ol className="space-y-3">
         {daySteps.map((step) => (
           <JourneyStepCard
@@ -65,8 +86,13 @@ export function JourneyToday() {
             done={state.completedStepIds.has(step.id)}
             doneToday={doneToday}
             tools={tools ?? []}
-            busy={complete.isPending}
-            onComplete={() => void complete.mutateAsync(step.id)}
+            busy={pendingStepId === step.id}
+            onComplete={() => {
+              setStepError(null);
+              void complete.mutateAsync(step.id).catch(() => {
+                setStepError('Speichern fehlgeschlagen — bitte erneut versuchen.');
+              });
+            }}
           />
         ))}
       </ol>
@@ -132,8 +158,12 @@ function JourneyStepCard({
                 {content.cta ?? 'Öffnen'}
               </ButtonLink>
             ) : null}
-            <Button onClick={onComplete} disabled={busy}>
-              {step.content_type === 'info' ? 'Verstanden ✓' : 'Erledigt ✓'}
+            <Button onClick={onComplete} disabled={busy} aria-busy={busy}>
+              {busy
+                ? 'Wird gespeichert …'
+                : step.content_type === 'info'
+                  ? 'Verstanden ✓'
+                  : 'Erledigt ✓'}
             </Button>
           </div>
         ) : null}

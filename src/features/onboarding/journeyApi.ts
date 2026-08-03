@@ -79,7 +79,28 @@ export function useCompleteStep() {
         () => undefined
       );
     },
-    onSuccess: () => {
+    onMutate: async (stepId) => {
+      await qc.cancelQueries({ queryKey: ['journey-state'] });
+      const snapshots = qc.getQueriesData<JourneyState>({ queryKey: ['journey-state'] });
+      qc.setQueriesData<JourneyState>({ queryKey: ['journey-state'] }, (old) => {
+        if (!old) return old;
+        const completedStepIds = new Set(old.completedStepIds);
+        completedStepIds.add(stepId);
+        const firstOpen = old.steps.find((s) => !completedStepIds.has(s.id));
+        const currentDay = firstOpen ? firstOpen.day_number : old.totalDays + 1;
+        return {
+          ...old,
+          completedStepIds,
+          currentDay,
+          isComplete: old.steps.length > 0 && !firstOpen,
+        };
+      });
+      return { snapshots };
+    },
+    onError: (_err, _stepId, ctx) => {
+      for (const [key, data] of ctx?.snapshots ?? []) qc.setQueryData(key, data);
+    },
+    onSettled: () => {
       void qc.invalidateQueries({ queryKey: ['journey-state'] });
       void qc.invalidateQueries({ queryKey: ['progression'] });
     },
