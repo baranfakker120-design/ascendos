@@ -14,7 +14,7 @@ import { CONTACTS_PAGE_SIZE, useContacts, type ContactWithPhase } from './contac
 export function ContactsPage() {
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(CONTACTS_PAGE_SIZE);
-  const { data, isLoading } = useContacts({ search, limit });
+  const { data, isPending, isError, refetch } = useContacts({ search, limit });
   const contacts = data?.items;
   const [filter, setFilter] = useState<ContactPhase | 'alle'>('alle');
 
@@ -66,8 +66,16 @@ export function ContactsPage() {
         })}
       </div>
 
-      {isLoading ? (
+      {isPending ? (
         <p className="text-sm text-muted">Kontakte werden geladen …</p>
+      ) : isError ? (
+        <Card>
+          <p className="font-medium">Kontakte konnten nicht geladen werden.</p>
+          <p className="mt-1 text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+          <Button className="mt-3" variant="secondary" onClick={() => void refetch()}>
+            Erneut versuchen
+          </Button>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <p className="font-medium">
@@ -90,7 +98,7 @@ export function ContactsPage() {
               <ContactRow key={contact.id} contact={contact} />
             ))}
           </ul>
-          {data?.hasMore && filter === 'alle' ? (
+          {data?.hasMore ? (
             <Button
               variant="secondary"
               onClick={() => setLimit((l) => l + CONTACTS_PAGE_SIZE)}

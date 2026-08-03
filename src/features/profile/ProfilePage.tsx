@@ -15,9 +15,9 @@ import { useProfileDetail } from './profileApi';
  */
 export function ProfilePage() {
   const { role: membershipRole } = useAuth();
-  const { data, isLoading, isError } = useProfileDetail();
+  const { data, isPending, isError } = useProfileDetail();
 
-  if (isLoading) {
+  if (isPending) {
     return <p className="text-sm text-muted">Profil wird geladen …</p>;
   }
   if (isError || !data) {

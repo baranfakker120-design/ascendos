@@ -25,10 +25,15 @@ export function ShareTools({ tools, contactName, onShared }: Props) {
         await navigator.share({ title: tool.name, text, url: tool.url });
         shared = true;
       } catch {
+        // User cancelled share sheet — do not log a pipeline event.
         return;
       }
     } else {
-      await navigator.clipboard.writeText(text);
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        return;
+      }
       setCopiedKey(tool.key);
       setTimeout(() => setCopiedKey(null), 2500);
       shared = true;
