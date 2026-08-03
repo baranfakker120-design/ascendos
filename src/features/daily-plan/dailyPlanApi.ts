@@ -34,7 +34,7 @@ export function useDailyPlan() {
       ]);
       if (plan.error) throw plan.error;
       if (items.error) throw items.error;
-      return { plan: plan.data, items: items.data };
+      return { plan: plan.data, items: items.data as DailyPlanItem[] };
     },
   });
 }
@@ -60,7 +60,7 @@ export function useDailyPlanMutations() {
       const { error } = await supabase.rpc('update_mission_status', {
         p_item_id: input.itemId,
         p_status: input.status,
-        p_reason: input.reason ?? null,
+        p_reason: input.reason,
       });
       if (error) throw error;
     },

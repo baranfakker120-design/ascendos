@@ -29,7 +29,17 @@ export function MorePage() {
         .select('*')
         .order('completed_steps', { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []).map((row) => ({
+        user_id: row.user_id ?? '',
+        first_name: row.first_name ?? '',
+        username: row.username,
+        journey_id: row.journey_id,
+        journey_title: row.journey_title,
+        completed_steps: row.completed_steps ?? 0,
+        total_steps: row.total_steps ?? 0,
+        current_day: row.current_day ?? 0,
+        total_days: row.total_days ?? 0,
+      }));
     },
   });
 
@@ -38,7 +48,7 @@ export function MorePage() {
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ExternalTool[];
     },
   });
 

@@ -160,7 +160,10 @@ export function useCoachContact(contactId: string | null) {
         supabase.from('contact_phases').select('phase').eq('contact_id', contactId!).single(),
       ]);
       if (contact.error) throw contact.error;
-      return { ...contact.data, phase: phase.data?.phase ?? 'lead' };
+      return {
+        ...contact.data,
+        phase: (phase.data?.phase ?? 'lead') as import('@shared/types/domain').ContactPhase,
+      };
     },
   });
 }

@@ -44,9 +44,17 @@ jobs:
       # [A-1] Typen-Drift-Schutz: generierte Typen müssen dem Commit
       # entsprechen. Einmalig lokal `npm run db:types` ausführen und
       # committen — ab dann erzwingt dieser Schritt die Konsistenz.
+      # Prettier-Formatierung wie in `npm run db:types`, damit
+      # format:check und dieser Diff dieselbe kanonische Form teilen.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
       - name: Check generated database types
         run: |
           supabase gen types typescript --local > /tmp/database.types.ts
+          npx prettier --write /tmp/database.types.ts
           diff -u src/shared/types/database.types.ts /tmp/database.types.ts \
             || (echo '::error::database.types.ts weicht vom Schema ab. Lokal `npm run db:types` ausführen und committen.' && exit 1)
 

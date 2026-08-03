@@ -49,7 +49,7 @@ export function useContacts(options: { search?: string; limit?: number } = {}) {
       return {
         items: items.map((c) => ({
           ...c,
-          phase: phaseById.get(c.id)?.phase ?? 'lead',
+          phase: (phaseById.get(c.id)?.phase ?? 'lead') as ContactWithPhase['phase'],
           last_event_at: phaseById.get(c.id)?.last_event_at ?? null,
         })),
         hasMore,
@@ -72,7 +72,7 @@ export function useContact(contactId: string) {
       if (!contact.data) return null;
       return {
         ...contact.data,
-        phase: phase.data?.phase ?? 'lead',
+        phase: (phase.data?.phase ?? 'lead') as ContactWithPhase['phase'],
         last_event_at: phase.data?.last_event_at ?? null,
       };
     },
@@ -89,7 +89,7 @@ export function useContactEvents(contactId: string) {
         .eq('contact_id', contactId)
         .order('occurred_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as PipelineEvent[];
     },
   });
 }
@@ -100,7 +100,7 @@ export function useExternalTools() {
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*').order('sort_order');
       if (error) throw error;
-      return data;
+      return data as ExternalTool[];
     },
     staleTime: 5 * 60_000, // Tool-Liste ändert sich selten
   });

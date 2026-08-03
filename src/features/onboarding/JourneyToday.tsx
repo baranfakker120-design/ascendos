@@ -27,7 +27,7 @@ export function JourneyToday() {
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*');
       if (error) throw error;
-      return data;
+      return (data ?? []) as ExternalTool[];
     },
     staleTime: 5 * 60_000,
   });

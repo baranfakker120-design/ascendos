@@ -1,596 +1,2284 @@
-/**
- * Datenbank-Typen für den Supabase-Client.
- *
- * TEMPORÄR ERWEITERT (Sprint 4 Phase 2 / Migrationen 15–19):
- * Supabase CLI war in dieser Umgebung nicht verfügbar — daher keine
- * Regeneration via `npm run db:types`. Die Tabellen `memberships`,
- * `ranks` und die Rank-RPCs sowie die Korrektur an `profiles_public`
- * (ohne `role`, Migration 17) wurden von Hand nachgezogen.
- *
- * Sobald lokal `supabase start` läuft: `npm run db:types` ausführen und
- * committen. Die CI erzwingt danach wieder Schema-Identität (ADR-012 / A-1).
- *
- * Generator-Format bleibt 1:1, damit der Wechsel keine Feature-Änderungen braucht.
- */
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater' | 'developer';
-
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
-      organizations: {
+      achievements: {
         Row: {
-          id: string;
-          name: string;
-          branding: Json;
-          settings: Json;
+          condition: Json;
           created_at: string;
+          description: string;
+          icon: string;
+          id: string;
+          is_active: boolean;
+          key: string;
+          org_id: string;
+          sort_order: number;
+          title: string;
         };
-        Insert: never;
-        Update: { name?: string; branding?: Json; settings?: Json };
-        Relationships: [];
+        Insert: {
+          condition: Json;
+          created_at?: string;
+          description: string;
+          icon?: string;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          org_id: string;
+          sort_order?: number;
+          title: string;
+        };
+        Update: {
+          condition?: Json;
+          created_at?: string;
+          description?: string;
+          icon?: string;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          org_id?: string;
+          sort_order?: number;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'achievements_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      teams: {
+      agents: {
         Row: {
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          key: string;
+          model: string;
+          name: string;
+          org_id: string;
+          retrieval_categories: string[];
+          system_prompt: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          model?: string;
+          name: string;
+          org_id: string;
+          retrieval_categories?: string[];
+          system_prompt: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          model?: string;
+          name?: string;
+          org_id?: string;
+          retrieval_categories?: string[];
+          system_prompt?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'agents_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ap_ledger: {
+        Row: {
+          created_at: string;
+          delta: number;
+          id: string;
+          membership_id: string;
+          reason: string;
+          rule_id: string | null;
+          season_id: string | null;
+          source_event_id: string | null;
+          source_kind: string;
+        };
+        Insert: {
+          created_at?: string;
+          delta: number;
+          id?: string;
+          membership_id: string;
+          reason: string;
+          rule_id?: string | null;
+          season_id?: string | null;
+          source_event_id?: string | null;
+          source_kind: string;
+        };
+        Update: {
+          created_at?: string;
+          delta?: number;
+          id?: string;
+          membership_id?: string;
+          reason?: string;
+          rule_id?: string | null;
+          season_id?: string | null;
+          source_event_id?: string | null;
+          source_kind?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ap_ledger_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ap_ledger_rule_id_fkey';
+            columns: ['rule_id'];
+            isOneToOne: false;
+            referencedRelation: 'ap_rules';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ap_ledger_season_id_fkey';
+            columns: ['season_id'];
+            isOneToOne: false;
+            referencedRelation: 'seasons';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ap_rules: {
+        Row: {
+          ap: number;
+          created_at: string;
+          event_type: string;
+          id: string;
+          is_active: boolean;
+          note: string | null;
+          org_id: string;
+          season_id: string | null;
+          source_kind: string;
+          updated_at: string;
+          valid_from: string;
+          valid_until: string | null;
+        };
+        Insert: {
+          ap?: number;
+          created_at?: string;
+          event_type: string;
+          id?: string;
+          is_active?: boolean;
+          note?: string | null;
+          org_id: string;
+          season_id?: string | null;
+          source_kind: string;
+          updated_at?: string;
+          valid_from?: string;
+          valid_until?: string | null;
+        };
+        Update: {
+          ap?: number;
+          created_at?: string;
+          event_type?: string;
+          id?: string;
+          is_active?: boolean;
+          note?: string | null;
+          org_id?: string;
+          season_id?: string | null;
+          source_kind?: string;
+          updated_at?: string;
+          valid_from?: string;
+          valid_until?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ap_rules_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ap_rules_season_id_fkey';
+            columns: ['season_id'];
+            isOneToOne: false;
+            referencedRelation: 'seasons';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coach_convos: {
+        Row: {
+          agent_key: string | null;
+          contact_id: string | null;
+          created_at: string;
           id: string;
           org_id: string;
-          name: string;
-          parent_team_id: string | null;
-          created_at: string;
+          user_id: string;
         };
-        Insert: { org_id: string; name: string; parent_team_id?: string | null };
-        Update: { name?: string; parent_team_id?: string | null };
-        Relationships: [];
-      };
-      profiles: {
-        Row: {
-          id: string;
+        Insert: {
+          agent_key?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          id?: string;
           org_id: string;
-          team_id: string;
-          sponsor_id: string | null;
-          role: UserRole;
-          first_name: string;
-          last_name: string;
-          username: string;
+          user_id: string;
+        };
+        Update: {
+          agent_key?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          id?: string;
+          org_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coach_convos_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contact_phases';
+            referencedColumns: ['contact_id'];
+          },
+          {
+            foreignKeyName: 'coach_convos_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contacts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_convos_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_convos_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'coach_convos_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_convos_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coach_messages: {
+        Row: {
+          content: string;
+          convo_id: string;
+          created_at: string;
+          id: string;
+          role: string;
+        };
+        Insert: {
+          content: string;
+          convo_id: string;
+          created_at?: string;
+          id?: string;
+          role: string;
+        };
+        Update: {
+          content?: string;
+          convo_id?: string;
+          created_at?: string;
+          id?: string;
+          role?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coach_messages_convo_id_fkey';
+            columns: ['convo_id'];
+            isOneToOne: false;
+            referencedRelation: 'coach_convos';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      contacts: {
+        Row: {
+          created_at: string;
+          email: string | null;
+          id: string;
+          name: string;
+          next_step: string | null;
+          next_step_due: string | null;
+          notes: string | null;
+          org_id: string;
+          owner_id: string;
           phone: string | null;
-          country: string | null;
-          language: string;
-          avatar_url: string | null;
-          goals: Json;
-          created_at: string;
           updated_at: string;
         };
-        Insert: never; // Profile entstehen nur über den Registrierungs-Trigger
-        Update: {
-          first_name?: string;
-          last_name?: string;
+        Insert: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          name: string;
+          next_step?: string | null;
+          next_step_due?: string | null;
+          notes?: string | null;
+          org_id: string;
+          owner_id: string;
           phone?: string | null;
-          country?: string | null;
-          language?: string;
-          avatar_url?: string | null;
-          goals?: Json;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          name?: string;
+          next_step?: string | null;
+          next_step_due?: string | null;
+          notes?: string | null;
+          org_id?: string;
+          owner_id?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'contacts_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      cosmetic_items: {
+        Row: {
+          asset_path: string | null;
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          key: string;
+          kind: string;
+          label: string;
+          org_id: string;
+          rank_key: string | null;
+          season_id: string | null;
+          sort_order: number;
+          unlock_condition: Json | null;
+        };
+        Insert: {
+          asset_path?: string | null;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          kind: string;
+          label: string;
+          org_id: string;
+          rank_key?: string | null;
+          season_id?: string | null;
+          sort_order?: number;
+          unlock_condition?: Json | null;
+        };
+        Update: {
+          asset_path?: string | null;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          kind?: string;
+          label?: string;
+          org_id?: string;
+          rank_key?: string | null;
+          season_id?: string | null;
+          sort_order?: number;
+          unlock_condition?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cosmetic_items_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cosmetic_items_season_id_fkey';
+            columns: ['season_id'];
+            isOneToOne: false;
+            referencedRelation: 'seasons';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      daily_plan_items: {
+        Row: {
+          contact_id: string | null;
+          created_at: string;
+          id: string;
+          mission_type: string;
+          plan_id: string;
+          position: number;
+          reason: string;
+          resolved_at: string | null;
+          score: number;
+          status: string;
+          status_reason: string | null;
+          title: string;
+        };
+        Insert: {
+          contact_id?: string | null;
+          created_at?: string;
+          id?: string;
+          mission_type: string;
+          plan_id: string;
+          position: number;
+          reason: string;
+          resolved_at?: string | null;
+          score: number;
+          status?: string;
+          status_reason?: string | null;
+          title: string;
+        };
+        Update: {
+          contact_id?: string | null;
+          created_at?: string;
+          id?: string;
+          mission_type?: string;
+          plan_id?: string;
+          position?: number;
+          reason?: string;
+          resolved_at?: string | null;
+          score?: number;
+          status?: string;
+          status_reason?: string | null;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'daily_plan_items_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contact_phases';
+            referencedColumns: ['contact_id'];
+          },
+          {
+            foreignKeyName: 'daily_plan_items_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contacts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'daily_plan_items_plan_id_fkey';
+            columns: ['plan_id'];
+            isOneToOne: false;
+            referencedRelation: 'daily_plans';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      daily_plans: {
+        Row: {
+          committed_at: string | null;
+          created_at: string;
+          id: string;
+          org_id: string;
+          plan_date: string;
+          user_id: string;
+        };
+        Insert: {
+          committed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          org_id: string;
+          plan_date: string;
+          user_id: string;
+        };
+        Update: {
+          committed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          org_id?: string;
+          plan_date?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'daily_plans_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'daily_plans_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'daily_plans_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'daily_plans_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      external_tools: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          is_active: boolean;
+          key: string;
+          name: string;
+          org_id: string;
+          result_event_type: string | null;
+          share_event_type: string;
+          sort_order: number;
+          url: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          name: string;
+          org_id: string;
+          result_event_type?: string | null;
+          share_event_type: string;
+          sort_order?: number;
+          url: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          name?: string;
+          org_id?: string;
+          result_event_type?: string | null;
+          share_event_type?: string;
+          sort_order?: number;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'external_tools_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      invite_validation_attempts: {
+        Row: {
+          created_at: string;
+          id: string;
+          ip: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          ip: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          ip?: string;
         };
         Relationships: [];
       };
       invites: {
         Row: {
-          id: string;
           code: string;
-          org_id: string;
-          team_id: string;
-          sponsor_id: string | null;
-          role: UserRole;
-          expires_at: string;
-          used_by: string | null;
-          used_at: string | null;
+          created_at: string;
           created_by: string | null;
-          created_at: string;
-        };
-        Insert: never; // nur über create_invite()
-        Update: never; // nur über den Registrierungs-Trigger
-        Relationships: [];
-      };
-      contacts: {
-        Row: {
+          expires_at: string;
           id: string;
-          owner_id: string;
           org_id: string;
-          name: string;
-          phone: string | null;
-          email: string | null;
-          notes: string | null;
-          next_step: string | null;
-          next_step_due: string | null;
-          created_at: string;
-          updated_at: string;
+          role: string;
+          sponsor_id: string | null;
+          team_id: string;
+          used_at: string | null;
+          used_by: string | null;
         };
         Insert: {
-          owner_id: string;
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
           org_id: string;
-          name: string;
-          phone?: string | null;
-          email?: string | null;
-          notes?: string | null;
-          next_step?: string | null;
-          next_step_due?: string | null;
+          role?: string;
+          sponsor_id?: string | null;
+          team_id: string;
+          used_at?: string | null;
+          used_by?: string | null;
         };
         Update: {
-          name?: string;
-          phone?: string | null;
-          email?: string | null;
-          notes?: string | null;
-          next_step?: string | null;
-          next_step_due?: string | null;
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
+          org_id?: string;
+          role?: string;
+          sponsor_id?: string | null;
+          team_id?: string;
+          used_at?: string | null;
+          used_by?: string | null;
         };
-        Relationships: [];
-      };
-      pipeline_events: {
-        Row: {
-          id: string;
-          contact_id: string;
-          org_id: string;
-          event_type: PipelineEventType;
-          source: string;
-          payload: Json;
-          created_by: string;
-          occurred_at: string;
-          created_at: string;
-        };
-        Insert: {
-          contact_id: string;
-          org_id: string;
-          event_type: PipelineEventType;
-          source?: string;
-          payload?: Json;
-          created_by: string;
-          occurred_at?: string;
-        };
-        Update: never; // Events sind unveränderlich (ADR-003)
-        Relationships: [];
-      };
-      external_tools: {
-        Row: {
-          id: string;
-          org_id: string;
-          key: string;
-          name: string;
-          description: string | null;
-          url: string;
-          share_event_type: PipelineEventType;
-          result_event_type: PipelineEventType | null;
-          sort_order: number;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: never; // Verwaltung nur durch super_admin (späterer Admin-Sprint)
-        Update: never;
-        Relationships: [];
-      };
-      daily_plans: {
-        Row: {
-          id: string;
-          user_id: string;
-          org_id: string;
-          plan_date: string;
-          committed_at: string | null;
-          created_at: string;
-        };
-        Insert: never; // nur über generate_daily_plan()
-        Update: never; // nur über commit_daily_plan()
-        Relationships: [];
-      };
-      daily_plan_items: {
-        Row: {
-          id: string;
-          plan_id: string;
-          contact_id: string | null;
-          mission_type: MissionType;
-          title: string;
-          reason: string;
-          score: number;
-          position: number;
-          status: MissionStatus;
-          status_reason: string | null;
-          resolved_at: string | null;
-          created_at: string;
-        };
-        Insert: never; // nur über generate_daily_plan()
-        Update: never; // nur über update_mission_status()
-        Relationships: [];
-      };
-      coach_convos: {
-        Row: {
-          id: string;
-          user_id: string;
-          org_id: string;
-          contact_id: string | null;
-          agent_key: string | null;
-          created_at: string;
-        };
-        Insert: {
-          user_id: string;
-          org_id: string;
-          contact_id?: string | null;
-          agent_key?: string | null;
-        };
-        Update: { agent_key?: string | null };
-        Relationships: [];
-      };
-      coach_messages: {
-        Row: {
-          id: string;
-          convo_id: string;
-          role: 'user' | 'assistant';
-          content: string;
-          created_at: string;
-        };
-        Insert: { convo_id: string; role: 'user' | 'assistant'; content: string };
-        Update: never;
-        Relationships: [];
-      };
-      agents: {
-        Row: {
-          id: string;
-          org_id: string;
-          key: string;
-          name: string;
-          system_prompt: string;
-          retrieval_categories: string[];
-          model: string;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: never;
-        Update: {
-          name?: string;
-          system_prompt?: string;
-          retrieval_categories?: string[];
-          model?: string;
-          is_active?: boolean;
-        };
-        Relationships: [];
-      };
-      knowledge_docs: {
-        Row: {
-          id: string;
-          org_id: string;
-          team_id: string | null;
-          title: string;
-          category: string;
-          language: string;
-          version: number;
-          author_id: string | null;
-          status: 'draft' | 'approved' | 'archived';
-          source_type: 'document' | 'transcript' | 'faq' | 'guideline' | 'best_practice';
-          valid_from: string;
-          valid_until: string | null;
-          tags: string[];
-          supersedes_doc_id: string | null;
-          created_at: string;
-        };
-        /** Anlegen läuft ausschließlich über die Edge Function
-         *  `ingest-knowledge` (Chunking + Einbettung gehören dazu). */
-        Insert: never;
-        Update: {
-          title?: string;
-          category?: string;
-          status?: 'draft' | 'approved' | 'archived';
-          valid_until?: string | null;
-          tags?: string[];
-        };
-        Relationships: [];
-      };
-      knowledge_chunks: {
-        Row: {
-          id: string;
-          doc_id: string;
-          org_id: string;
-          chunk_index: number;
-          content: string;
-          /** vector(1536); im Client nie als Zahlenfeld benötigt. */
-          embedding: unknown | null;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      knowledge_gaps: {
-        Row: {
-          id: string;
-          org_id: string;
-          user_id: string | null;
-          agent_key: string;
-          question: string;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      usage_events: {
-        Row: {
-          id: string;
-          user_id: string;
-          org_id: string;
-          event_type: string;
-          metadata: Json;
-          created_at: string;
-        };
-        Insert: {
-          user_id: string;
-          org_id: string;
-          event_type: string;
-          metadata?: Json;
-        };
-        Update: never;
-        Relationships: [];
-      };
-      journeys: {
-        Row: {
-          id: string;
-          org_id: string;
-          team_id: string | null;
-          title: string;
-          description: string | null;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'invites_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'invites_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_sponsor_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'invites_sponsor_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_sponsor_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_used_by_fkey';
+            columns: ['used_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'invites_used_by_fkey';
+            columns: ['used_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invites_used_by_fkey';
+            columns: ['used_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       journey_steps: {
         Row: {
+          content: Json;
+          content_type: string;
+          created_at: string;
+          day_number: number;
           id: string;
           journey_id: string;
-          day_number: number;
           step_order: number;
           title: string;
-          content_type: 'info' | 'task' | 'tool';
-          content: Json;
-          created_at: string;
         };
-        Insert: never;
-        Update: never;
-        Relationships: [];
+        Insert: {
+          content?: Json;
+          content_type?: string;
+          created_at?: string;
+          day_number: number;
+          id?: string;
+          journey_id: string;
+          step_order?: number;
+          title: string;
+        };
+        Update: {
+          content?: Json;
+          content_type?: string;
+          created_at?: string;
+          day_number?: number;
+          id?: string;
+          journey_id?: string;
+          step_order?: number;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'journey_steps_journey_id_fkey';
+            columns: ['journey_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['journey_id'];
+          },
+          {
+            foreignKeyName: 'journey_steps_journey_id_fkey';
+            columns: ['journey_id'];
+            isOneToOne: false;
+            referencedRelation: 'journeys';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      user_progress: {
-        Row: { user_id: string; step_id: string; completed_at: string };
-        Insert: never; // nur über complete_journey_step()
-        Update: never;
-        Relationships: [];
-      };
-      achievements: {
+      journeys: {
         Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          is_active: boolean;
+          org_id: string;
+          team_id: string | null;
+          title: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          org_id: string;
+          team_id?: string | null;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          org_id?: string;
+          team_id?: string | null;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'journeys_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'journeys_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      knowledge_chunks: {
+        Row: {
+          chunk_index: number;
+          content: string;
+          created_at: string;
+          doc_id: string;
+          embedding: string | null;
           id: string;
           org_id: string;
-          key: string;
-          title: string;
-          description: string;
-          icon: string;
-          condition: Json;
-          sort_order: number;
-          is_active: boolean;
-          created_at: string;
         };
-        Insert: never;
-        Update: never;
-        Relationships: [];
+        Insert: {
+          chunk_index: number;
+          content: string;
+          created_at?: string;
+          doc_id: string;
+          embedding?: string | null;
+          id?: string;
+          org_id: string;
+        };
+        Update: {
+          chunk_index?: number;
+          content?: string;
+          created_at?: string;
+          doc_id?: string;
+          embedding?: string | null;
+          id?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'knowledge_chunks_doc_id_fkey';
+            columns: ['doc_id'];
+            isOneToOne: false;
+            referencedRelation: 'knowledge_docs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_chunks_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      user_achievements: {
-        Row: { user_id: string; achievement_id: string; unlocked_at: string };
-        Insert: never; // nur über check_achievements()
-        Update: never;
-        Relationships: [];
+      knowledge_docs: {
+        Row: {
+          author_id: string | null;
+          category: string;
+          created_at: string;
+          id: string;
+          language: string;
+          org_id: string;
+          source_type: string;
+          status: string;
+          supersedes_doc_id: string | null;
+          tags: string[];
+          team_id: string | null;
+          title: string;
+          valid_from: string;
+          valid_until: string | null;
+          version: number;
+        };
+        Insert: {
+          author_id?: string | null;
+          category: string;
+          created_at?: string;
+          id?: string;
+          language?: string;
+          org_id: string;
+          source_type?: string;
+          status?: string;
+          supersedes_doc_id?: string | null;
+          tags?: string[];
+          team_id?: string | null;
+          title: string;
+          valid_from?: string;
+          valid_until?: string | null;
+          version?: number;
+        };
+        Update: {
+          author_id?: string | null;
+          category?: string;
+          created_at?: string;
+          id?: string;
+          language?: string;
+          org_id?: string;
+          source_type?: string;
+          status?: string;
+          supersedes_doc_id?: string | null;
+          tags?: string[];
+          team_id?: string | null;
+          title?: string;
+          valid_from?: string;
+          valid_until?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'knowledge_docs_author_id_fkey';
+            columns: ['author_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'knowledge_docs_author_id_fkey';
+            columns: ['author_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_docs_author_id_fkey';
+            columns: ['author_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_docs_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_docs_supersedes_doc_id_fkey';
+            columns: ['supersedes_doc_id'];
+            isOneToOne: false;
+            referencedRelation: 'knowledge_docs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_docs_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      // --- ab Migration 15 / 18 (handnachgezogen, siehe Dateikopf) ---
+      knowledge_gaps: {
+        Row: {
+          agent_key: string;
+          created_at: string;
+          id: string;
+          org_id: string;
+          question: string;
+          user_id: string | null;
+        };
+        Insert: {
+          agent_key: string;
+          created_at?: string;
+          id?: string;
+          org_id: string;
+          question: string;
+          user_id?: string | null;
+        };
+        Update: {
+          agent_key?: string;
+          created_at?: string;
+          id?: string;
+          org_id?: string;
+          question?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'knowledge_gaps_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_gaps_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'knowledge_gaps_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_gaps_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      membership_cosmetics: {
+        Row: {
+          is_equipped: boolean;
+          item_id: string;
+          kind: string;
+          membership_id: string;
+          unlocked_at: string;
+        };
+        Insert: {
+          is_equipped?: boolean;
+          item_id: string;
+          kind: string;
+          membership_id: string;
+          unlocked_at?: string;
+        };
+        Update: {
+          is_equipped?: boolean;
+          item_id?: string;
+          kind?: string;
+          membership_id?: string;
+          unlocked_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'membership_cosmetics_item_id_fkey';
+            columns: ['item_id'];
+            isOneToOne: false;
+            referencedRelation: 'cosmetic_items';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'membership_cosmetics_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       memberships: {
         Row: {
+          ap_total: number;
+          country: string | null;
+          created_at: string;
+          goals: Json;
           id: string;
           identity_id: string;
-          org_id: string;
-          team_id: string;
-          sponsor_membership_id: string | null;
-          role: UserRole;
-          status: 'pending' | 'active' | 'suspended' | 'ended';
-          country: string | null;
-          goals: Json;
-          ap_total: number;
           joined_at: string;
           left_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: never;
-        Update: {
-          country?: string | null;
-          goals?: Json;
-        };
-        Relationships: [];
-      };
-      ranks: {
-        Row: {
-          id: string;
           org_id: string;
-          key: string;
-          label: string;
-          threshold_ap: number;
-          frame_asset: string | null;
-          payout_cents: number | null;
-          payout_kind: string | null;
-          sort_order: number;
-          is_active: boolean;
-          created_at: string;
+          role: string;
+          sponsor_membership_id: string | null;
+          status: string;
+          team_id: string;
           updated_at: string;
         };
-        Insert: never;
-        Update: never;
-        Relationships: [];
+        Insert: {
+          ap_total?: number;
+          country?: string | null;
+          created_at?: string;
+          goals?: Json;
+          id?: string;
+          identity_id: string;
+          joined_at?: string;
+          left_at?: string | null;
+          org_id: string;
+          role?: string;
+          sponsor_membership_id?: string | null;
+          status?: string;
+          team_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          ap_total?: number;
+          country?: string | null;
+          created_at?: string;
+          goals?: Json;
+          id?: string;
+          identity_id?: string;
+          joined_at?: string;
+          left_at?: string | null;
+          org_id?: string;
+          role?: string;
+          sponsor_membership_id?: string | null;
+          status?: string;
+          team_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'memberships_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'memberships_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_sponsor_membership_id_fkey';
+            columns: ['sponsor_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       monthly_awards: {
         Row: {
+          ap_in_period: number;
+          created_at: string;
           id: string;
+          membership_id: string;
           org_id: string;
           period: string;
           place: number;
-          membership_id: string;
-          ap_in_period: number;
-          created_at: string;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          ap_in_period: number;
+          created_at?: string;
+          id?: string;
+          membership_id: string;
+          org_id: string;
+          period: string;
+          place: number;
+        };
+        Update: {
+          ap_in_period?: number;
+          created_at?: string;
+          id?: string;
+          membership_id?: string;
+          org_id?: string;
+          period?: string;
+          place?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'monthly_awards_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'monthly_awards_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      organizations: {
+        Row: {
+          branding: Json;
+          created_at: string;
+          id: string;
+          name: string;
+          settings: Json;
+        };
+        Insert: {
+          branding?: Json;
+          created_at?: string;
+          id?: string;
+          name: string;
+          settings?: Json;
+        };
+        Update: {
+          branding?: Json;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          settings?: Json;
+        };
         Relationships: [];
+      };
+      payouts: {
+        Row: {
+          amount_cents: number;
+          awarded_for_membership_id: string | null;
+          confirmed_by: string | null;
+          confirmed_paid_at: string | null;
+          created_at: string;
+          currency: string;
+          entitled_at: string;
+          id: string;
+          identity_id: string;
+          kind: string;
+          note: string | null;
+        };
+        Insert: {
+          amount_cents: number;
+          awarded_for_membership_id?: string | null;
+          confirmed_by?: string | null;
+          confirmed_paid_at?: string | null;
+          created_at?: string;
+          currency?: string;
+          entitled_at?: string;
+          id?: string;
+          identity_id: string;
+          kind: string;
+          note?: string | null;
+        };
+        Update: {
+          amount_cents?: number;
+          awarded_for_membership_id?: string | null;
+          confirmed_by?: string | null;
+          confirmed_paid_at?: string | null;
+          created_at?: string;
+          currency?: string;
+          entitled_at?: string;
+          id?: string;
+          identity_id?: string;
+          kind?: string;
+          note?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payouts_awarded_for_membership_id_fkey';
+            columns: ['awarded_for_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payouts_confirmed_by_fkey';
+            columns: ['confirmed_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'payouts_confirmed_by_fkey';
+            columns: ['confirmed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payouts_confirmed_by_fkey';
+            columns: ['confirmed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payouts_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'payouts_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payouts_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      pipeline_events: {
+        Row: {
+          contact_id: string;
+          created_at: string;
+          created_by: string | null;
+          event_type: string;
+          id: string;
+          occurred_at: string;
+          org_id: string;
+          payload: Json;
+          source: string;
+        };
+        Insert: {
+          contact_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          event_type: string;
+          id?: string;
+          occurred_at?: string;
+          org_id: string;
+          payload?: Json;
+          source?: string;
+        };
+        Update: {
+          contact_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          event_type?: string;
+          id?: string;
+          occurred_at?: string;
+          org_id?: string;
+          payload?: Json;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'pipeline_events_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contact_phases';
+            referencedColumns: ['contact_id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contacts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      profiles: {
+        Row: {
+          avatar_url: string | null;
+          country: string | null;
+          created_at: string;
+          first_name: string;
+          goals: Json;
+          id: string;
+          language: string;
+          last_name: string;
+          org_id: string;
+          phone: string | null;
+          role: string;
+          sponsor_id: string | null;
+          team_id: string;
+          updated_at: string;
+          username: string;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          country?: string | null;
+          created_at?: string;
+          first_name: string;
+          goals?: Json;
+          id: string;
+          language?: string;
+          last_name: string;
+          org_id: string;
+          phone?: string | null;
+          role?: string;
+          sponsor_id?: string | null;
+          team_id: string;
+          updated_at?: string;
+          username: string;
+        };
+        Update: {
+          avatar_url?: string | null;
+          country?: string | null;
+          created_at?: string;
+          first_name?: string;
+          goals?: Json;
+          id?: string;
+          language?: string;
+          last_name?: string;
+          org_id?: string;
+          phone?: string | null;
+          role?: string;
+          sponsor_id?: string | null;
+          team_id?: string;
+          updated_at?: string;
+          username?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profiles_sponsor_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'profiles_sponsor_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profiles_sponsor_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profiles_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ranks: {
+        Row: {
+          created_at: string;
+          frame_asset: string | null;
+          id: string;
+          is_active: boolean;
+          key: string;
+          label: string;
+          org_id: string;
+          payout_cents: number | null;
+          payout_kind: string | null;
+          sort_order: number;
+          threshold_ap: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          frame_asset?: string | null;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          label: string;
+          org_id: string;
+          payout_cents?: number | null;
+          payout_kind?: string | null;
+          sort_order?: number;
+          threshold_ap: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          frame_asset?: string | null;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          label?: string;
+          org_id?: string;
+          payout_cents?: number | null;
+          payout_kind?: string | null;
+          sort_order?: number;
+          threshold_ap?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ranks_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      seasons: {
+        Row: {
+          created_at: string;
+          ends_at: string | null;
+          id: string;
+          is_active: boolean;
+          key: string;
+          label: string;
+          org_id: string;
+          starts_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          ends_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          key: string;
+          label: string;
+          org_id: string;
+          starts_at: string;
+        };
+        Update: {
+          created_at?: string;
+          ends_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          key?: string;
+          label?: string;
+          org_id?: string;
+          starts_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'seasons_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      teams: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          parent_team_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          parent_team_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          parent_team_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'teams_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'teams_parent_team_id_fkey';
+            columns: ['parent_team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      usage_events: {
+        Row: {
+          created_at: string;
+          event_type: string;
+          id: string;
+          metadata: Json;
+          org_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          event_type: string;
+          id?: string;
+          metadata?: Json;
+          org_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          event_type?: string;
+          id?: string;
+          metadata?: Json;
+          org_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'usage_events_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'usage_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      user_achievements: {
+        Row: {
+          achievement_id: string;
+          unlocked_at: string;
+          user_id: string;
+        };
+        Insert: {
+          achievement_id: string;
+          unlocked_at?: string;
+          user_id: string;
+        };
+        Update: {
+          achievement_id?: string;
+          unlocked_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_achievements_achievement_id_fkey';
+            columns: ['achievement_id'];
+            isOneToOne: false;
+            referencedRelation: 'achievements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_achievements_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'user_achievements_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_achievements_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      user_progress: {
+        Row: {
+          completed_at: string;
+          step_id: string;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string;
+          step_id: string;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string;
+          step_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_progress_step_id_fkey';
+            columns: ['step_id'];
+            isOneToOne: false;
+            referencedRelation: 'journey_steps';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_progress_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'user_progress_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_progress_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: {
+      contact_phases: {
+        Row: {
+          contact_id: string | null;
+          last_event_at: string | null;
+          owner_id: string | null;
+          phase: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      effective_pipeline_events: {
+        Row: {
+          contact_id: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          event_type: string | null;
+          id: string | null;
+          occurred_at: string | null;
+          org_id: string | null;
+          payload: Json | null;
+          source: string | null;
+        };
+        Insert: {
+          contact_id?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          event_type?: string | null;
+          id?: string | null;
+          occurred_at?: string | null;
+          org_id?: string | null;
+          payload?: Json | null;
+          source?: string | null;
+        };
+        Update: {
+          contact_id?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          event_type?: string | null;
+          id?: string | null;
+          occurred_at?: string | null;
+          org_id?: string | null;
+          payload?: Json | null;
+          source?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'pipeline_events_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contact_phases';
+            referencedColumns: ['contact_id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'contacts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pipeline_events_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       firstline_journey_progress: {
         Row: {
-          user_id: string;
-          first_name: string;
-          username: string;
-          journey_id: string;
-          journey_title: string;
-          total_steps: number;
-          completed_steps: number;
-          current_day: number;
-          total_days: number;
+          completed_steps: number | null;
+          current_day: number | null;
+          first_name: string | null;
+          journey_id: string | null;
+          journey_title: string | null;
+          total_days: number | null;
+          total_steps: number | null;
+          user_id: string | null;
+          username: string | null;
         };
         Relationships: [];
       };
       profiles_public: {
-        // Migration 17 / F2 Ä2: OHNE Spalte role
         Row: {
-          id: string;
-          org_id: string;
-          team_id: string;
-          sponsor_id: string | null;
-          first_name: string;
-          last_name: string;
-          username: string;
           avatar_url: string | null;
+          first_name: string | null;
+          id: string | null;
+          last_name: string | null;
+          org_id: string | null;
+          sponsor_id: string | null;
+          team_id: string | null;
+          username: string | null;
         };
-        Relationships: [];
-      };
-      contact_phases: {
-        Row: {
-          contact_id: string;
-          owner_id: string;
-          phase: ContactPhase;
-          last_event_at: string | null;
-        };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'memberships_identity_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'memberships_identity_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_identity_id_fkey';
+            columns: ['sponsor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'memberships_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Functions: {
-      create_invite: {
-        Args: { invite_role?: UserRole };
-        Returns: { invite_code: string; invite_expires_at: string }[];
+      active_membership_id: { Args: never; Returns: string };
+      ap_design_score_mission: {
+        Args: { p_mission_type: string };
+        Returns: number;
       };
-      validate_invite: {
-        Args: { invite_code: string };
-        Returns: { org_name: string; team_name: string; sponsor_first_name: string | null }[];
-      };
-      generate_daily_plan: {
-        Args: { p_date: string };
-        Returns: string;
-      };
-      commit_daily_plan: {
-        Args: { p_plan_id: string };
-        Returns: undefined;
-      };
-      update_mission_status: {
-        Args: { p_item_id: string; p_status: MissionStatus; p_reason?: string | null };
-        Returns: undefined;
-      };
-      complete_journey_step: {
-        Args: { p_step_id: string };
-        Returns: undefined;
-      };
-      check_achievements: {
-        Args: Record<string, never>;
-        Returns: string[];
-      };
+      ap_recalculate: { Args: { p_membership_id: string }; Returns: number };
+      check_achievements: { Args: never; Returns: string[] };
+      coach_messages_today: { Args: { p_user: string }; Returns: number };
+      commit_daily_plan: { Args: { p_plan_id: string }; Returns: undefined };
+      complete_journey_step: { Args: { p_step_id: string }; Returns: undefined };
       correct_pipeline_event: {
         Args: { p_event_id: string };
         Returns: undefined;
       };
+      create_invite: {
+        Args: { invite_role?: string };
+        Returns: {
+          invite_code: string;
+          invite_expires_at: string;
+        }[];
+      };
+      current_org_id: { Args: never; Returns: string };
+      current_team_id: { Args: never; Returns: string };
+      current_user_role: { Args: never; Returns: string };
+      event_phase_rank: { Args: { p_event_type: string }; Returns: number };
+      generate_daily_plan: { Args: { p_date: string }; Returns: string };
       get_downline: {
         Args: { root_user_id: string };
-        Returns: { user_id: string; depth: number }[];
-      };
-      rank_for_ap: {
-        Args: { p_org_id: string; p_ap: number };
         Returns: {
-          key: string;
-          label: string;
-          threshold_ap: number;
-          frame_asset: string | null;
-          sort_order: number;
+          depth: number;
+          user_id: string;
+        }[];
+      };
+      is_ancestor_of: { Args: { p_target: string }; Returns: boolean };
+      is_super_admin: { Args: never; Returns: boolean };
+      match_knowledge: {
+        Args: {
+          match_categories?: string[];
+          match_count?: number;
+          min_similarity?: number;
+          p_org_id: string;
+          query_embedding: string;
+        };
+        Returns: {
+          category: string;
+          content: string;
+          doc_id: string;
+          doc_title: string;
+          similarity: number;
         }[];
       };
       next_rank_for_ap: {
-        Args: { p_org_id: string; p_ap: number };
+        Args: { p_ap: number; p_org_id: string };
         Returns: {
           key: string;
           label: string;
           threshold_ap: number;
         }[];
       };
-      active_membership_id: {
-        Args: Record<string, never>;
-        Returns: string | null;
+      plan_contact_state: {
+        Args: never;
+        Returns: {
+          fit_check_done: boolean;
+          id: string;
+          last_event_at: string;
+          max_rank: number;
+          name: string;
+          next_step: string;
+          next_step_due: string;
+          presentation_sent_at: string;
+          presentation_viewed: boolean;
+          three_way_done: boolean;
+        }[];
+      };
+      plan_signal_fit_check: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_follow_up: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_next_step: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_presentation: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_reactivate: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      rank_for_ap: {
+        Args: { p_ap: number; p_org_id: string };
+        Returns: {
+          frame_asset: string;
+          key: string;
+          label: string;
+          sort_order: number;
+          threshold_ap: number;
+        }[];
+      };
+      redeem_invite: {
+        Args: { invite_code: string };
+        Returns: {
+          membership_id: string;
+          org_id: string;
+          org_name: string;
+        }[];
+      };
+      track_usage: {
+        Args: { p_event: string; p_meta?: Json; p_user: string };
+        Returns: undefined;
+      };
+      update_mission_status: {
+        Args: { p_item_id: string; p_reason?: string; p_status: string };
+        Returns: undefined;
+      };
+      validate_invite: {
+        Args: { invite_code: string };
+        Returns: {
+          org_name: string;
+          sponsor_first_name: string;
+          team_name: string;
+        }[];
       };
     };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
+};
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+      Row: infer R;
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
+      }
+      ? R
+      : never
+    : never;
 
-export type PipelineEventType =
-  | 'contact_created'
-  | 'first_touch'
-  | 'follow_up'
-  | 'presentation_sent'
-  | 'presentation_viewed'
-  | 'fit_check_sent'
-  | 'fit_check_completed'
-  | 'waytomoon_sent'
-  | 'three_way_call_done'
-  | 'party_scheduled'
-  | 'party_done'
-  | 'became_customer'
-  | 'registered'
-  | 'correction';
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Insert: infer I;
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I;
+      }
+      ? I
+      : never
+    : never;
 
-export type ContactPhase =
-  | 'lead'
-  | 'im_gespraech'
-  | 'praesentation_offen'
-  | 'praesentation'
-  | 'fit_check'
-  | 'three_way_call'
-  | 'kunde'
-  | 'partner';
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Update: infer U;
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U;
+      }
+      ? U
+      : never
+    : never;
 
-export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type Contact = Database['public']['Tables']['contacts']['Row'];
-export type PipelineEvent = Database['public']['Tables']['pipeline_events']['Row'];
-export type ContactPhaseRow = Database['public']['Views']['contact_phases']['Row'];
-export type ExternalTool = Database['public']['Tables']['external_tools']['Row'];
-export type DailyPlan = Database['public']['Tables']['daily_plans']['Row'];
-export type DailyPlanItem = Database['public']['Tables']['daily_plan_items']['Row'];
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+    : never;
 
-export type MissionType =
-  | 'fit_check_next_step'
-  | 'next_step_due'
-  | 'presentation_pending'
-  | 'follow_up_overdue'
-  | 'reactivate_contact'
-  | 'new_contacts';
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    keyof DefaultSchema['CompositeTypes'] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+    : never;
 
-export type MissionStatus = 'pending' | 'done' | 'deferred' | 'skipped';
-export type Team = Database['public']['Tables']['teams']['Row'];
-export type Organization = Database['public']['Tables']['organizations']['Row'];
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const;
