@@ -15,7 +15,7 @@ import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
  * System preferences live on Settings.
  */
 export function MorePage() {
-  const { profile, isSuperAdmin, membership, needsOrgSelection } = useAuth();
+  const { profile, isSuperAdmin, canManageCoachContent, membership, needsOrgSelection } = useAuth();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -239,7 +239,21 @@ export function MorePage() {
         <p className="mt-1 text-sm text-muted">
           Wissen, Guides und Materialien für dein Leadership.
         </p>
-        {isSuperAdmin ? (
+        {canManageCoachContent ? (
+          <div className="mt-3 flex flex-col gap-2">
+            <ButtonLink to="/knowledge-center" variant="secondary">
+              Coach Knowledge Center
+            </ButtonLink>
+            <ButtonLink to="/live-coaching" variant="secondary">
+              Live Coaching Center
+            </ButtonLink>
+            {isSuperAdmin ? (
+              <ButtonLink to="/wissen" variant="ghost">
+                Wissensdatenbank (RAG)
+              </ButtonLink>
+            ) : null}
+          </div>
+        ) : isSuperAdmin ? (
           <ButtonLink to="/wissen" variant="secondary" className="mt-3">
             Wissensdatenbank
           </ButtonLink>

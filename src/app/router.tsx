@@ -7,6 +7,9 @@ import { ContactDetailPage } from '@features/contacts/ContactDetailPage';
 import { ContactFormPage } from '@features/contacts/ContactFormPage';
 import { ContactsPage } from '@features/contacts/ContactsPage';
 import { KnowledgePage } from '@features/knowledge/KnowledgePage';
+import { KnowledgeCenterPage } from '@features/knowledge-center/KnowledgeCenterPage';
+import { LiveCoachingAdminPage } from '@features/live-coaching/LiveCoachingAdminPage';
+import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayPage } from '@features/daily-plan/TodayPage';
 import { MorePage } from '@features/more/MorePage';
 import { JourneyToday } from '@features/onboarding/JourneyToday';
@@ -46,6 +49,8 @@ function ShellOutlet() {
  * ist — danach dem Daily Plan. Die Entscheidung lebt bewusst im
  * App-Layer (Features bleiben isoliert, ADR-012); solange die Journey
  * läuft, wird generate_daily_plan gar nicht erst aufgerufen.
+ *
+ * Sprint 5.1: Live Coaching sits above both surfaces (additive).
  */
 function TodayRoute() {
   const { data: state, isPending, isError, refetch } = useJourneyState();
@@ -61,8 +66,17 @@ function TodayRoute() {
       </Card>
     );
   }
-  if (state && state.journey && !state.isComplete) return <JourneyToday />;
-  return <TodayPage />;
+  const body = state && state.journey && !state.isComplete ? <JourneyToday /> : <TodayPage />;
+  // TodayPage already embeds the coaching slot; Journey needs the sibling wrapper.
+  if (state && state.journey && !state.isComplete) {
+    return (
+      <div className="space-y-4">
+        <TodayLiveCoachingSlot />
+        {body}
+      </div>
+    );
+  }
+  return body;
 }
 
 /** Nur mit Session erreichbar; sonst -> Login. */
@@ -85,6 +99,15 @@ function RequireSuperAdmin() {
   if (session === null) return <Navigate to="/login" replace />;
   // Rolle kommt ausschließlich aus der aktiven Mitgliedschaft.
   if (!isSuperAdmin) return <Navigate to="/more" replace />;
+  return <Outlet />;
+}
+
+/** Sprint 5.1 — SuperAdmin oder Developer (Knowledge Center / Live Coaching). */
+function RequireCoachContentManager() {
+  const { session, canManageCoachContent } = useAuth();
+  if (session === undefined) return <FullScreenSpinner />;
+  if (session === null) return <Navigate to="/login" replace />;
+  if (!canManageCoachContent) return <Navigate to="/more" replace />;
   return <Outlet />;
 }
 
@@ -136,6 +159,13 @@ export const router = createBrowserRouter([
               {
                 element: <RequireSuperAdmin />,
                 children: [{ path: '/wissen', element: <KnowledgePage /> }],
+              },
+              {
+                element: <RequireCoachContentManager />,
+                children: [
+                  { path: '/knowledge-center', element: <KnowledgeCenterPage /> },
+                  { path: '/live-coaching', element: <LiveCoachingAdminPage /> },
+                ],
               },
             ],
           },
