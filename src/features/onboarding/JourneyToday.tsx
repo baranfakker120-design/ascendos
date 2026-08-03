@@ -3,7 +3,7 @@ import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
 import { scoreJourneyStep } from '@shared/lib/apScoring';
-import { displayShareTool } from '@shared/lib/shareToolsDisplay';
+import { displayShareTool, renameWayToMoonLabel } from '@shared/lib/shareToolsDisplay';
 import type { ExternalTool, JourneyStep, JourneyStepContent } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button, buttonClassName } from '@shared/ui/Button';
@@ -131,10 +131,8 @@ function JourneyStepCard({
   const rawTool = content.tool_key ? tools.find((t) => t.key === content.tool_key) : null;
   const tool = rawTool ? displayShareTool(rawTool) : null;
   const ap = scoreJourneyStep(step.content_type, step.day_number, doneToday);
-  const visibleTitle = step.title.replace(/MyWayToMoon|WayToMoon/gi, 'Onboarding');
-  const visibleBody = content.body
-    ? content.body.replace(/MyWayToMoon|WayToMoon/gi, 'Onboarding')
-    : null;
+  const visibleTitle = renameWayToMoonLabel(step.title);
+  const visibleBody = content.body ? renameWayToMoonLabel(content.body) : null;
 
   return (
     <li>

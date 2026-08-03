@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  ALREADY_CONFIRMED_MESSAGE,
   PendingCoachShareVision,
   PendingShareVisionVerifier,
   attachScreenshot,
   canConfirmShareVerification,
   confirmShareVerification,
+  findVerifiedShareAction,
+  getOrCreatePendingShareVerification,
+  isShareActionAlreadyAwarded,
   listPendingShareVerifications,
   markShareCompleted,
   rejectShareVerification,
@@ -45,36 +49,45 @@ describe('shareVerification', () => {
   });
 
   it('creates pending proofs without awarding verification', () => {
-    const row = upsertShareVerification({
+    const row = getOrCreatePendingShareVerification({
       contactId: 'c1',
       toolKey: 'waytomoon',
       toolName: 'Onboarding',
       shareUrl: 'http://waytomoon.netlify.app',
       shareEventType: 'waytomoon_sent',
-      status: 'pending',
-      shareCompleted: false,
-      screenshotDataUrl: null,
-      screenshotFileName: null,
-      channelHint: 'unknown',
-    });
+    })!;
     expect(row.status).toBe('pending');
     expect(canConfirmShareVerification(row)).toBe(false);
     expect(listPendingShareVerifications('c1')).toHaveLength(1);
   });
 
-  it('allows confirm only after native share_completed', () => {
-    const row = upsertShareVerification({
+  it('reuses the same pending row for contact+tool (no farming via reopen)', () => {
+    const a = getOrCreatePendingShareVerification({
       contactId: 'c1',
       toolKey: 'waytomoon',
       toolName: 'Onboarding',
       shareUrl: 'http://waytomoon.netlify.app',
       shareEventType: 'waytomoon_sent',
-      status: 'pending',
-      shareCompleted: false,
-      screenshotDataUrl: null,
-      screenshotFileName: null,
-      channelHint: 'unknown',
-    });
+    })!;
+    const b = getOrCreatePendingShareVerification({
+      contactId: 'c1',
+      toolKey: 'waytomoon',
+      toolName: 'Onboarding',
+      shareUrl: 'http://waytomoon.netlify.app',
+      shareEventType: 'waytomoon_sent',
+    })!;
+    expect(a.id).toBe(b.id);
+    expect(listPendingShareVerifications('c1')).toHaveLength(1);
+  });
+
+  it('allows confirm only after native share_completed', () => {
+    const row = getOrCreatePendingShareVerification({
+      contactId: 'c1',
+      toolKey: 'waytomoon',
+      toolName: 'Onboarding',
+      shareUrl: 'http://waytomoon.netlify.app',
+      shareEventType: 'waytomoon_sent',
+    })!;
     const shared = markShareCompleted(row.id)!;
     expect(shared.shareCompleted).toBe(true);
     expect(canConfirmShareVerification(shared)).toBe(true);
@@ -83,22 +96,52 @@ describe('shareVerification', () => {
     expect(listPendingShareVerifications('c1')).toHaveLength(0);
   });
 
-  it('allows confirm via screenshot upload fallback', () => {
-    const row = upsertShareVerification({
+  it('keeps screenshot uploads pending and never auto-verifies', () => {
+    const row = getOrCreatePendingShareVerification({
       contactId: 'c1',
       toolKey: 'presentation',
       toolName: 'Firmenpräsentation',
       shareUrl: 'https://mywaytomoon.netlify.app',
       shareEventType: 'presentation_sent',
-      status: 'pending',
-      shareCompleted: false,
-      screenshotDataUrl: null,
-      screenshotFileName: null,
-      channelHint: 'unknown',
-    });
-    const withShot = attachScreenshot(row.id, 'data:image/png;base64,abc', 'chat.png')!;
+    })!;
+    const withShot = attachScreenshot(
+      row.id,
+      'data:image/png;base64,aaaaaaaaaaaaaaaaaaaaaaaa',
+      'chat.png'
+    )!;
+    expect(withShot.status).toBe('pending');
     expect(canConfirmShareVerification(withShot)).toBe(true);
     expect(withShot.screenshotFileName).toBe('chat.png');
+  });
+
+  it('blocks duplicate AP for the same contact + action', () => {
+    const row = getOrCreatePendingShareVerification({
+      contactId: 'dogukan',
+      toolKey: 'presentation',
+      toolName: 'Firmenpräsentation',
+      shareUrl: 'https://mywaytomoon.netlify.app',
+      shareEventType: 'presentation_sent',
+    })!;
+    markShareCompleted(row.id);
+    const first = confirmShareVerification(row.id)!;
+    expect(first.status).toBe('verified');
+    expect(findVerifiedShareAction('dogukan', 'presentation')).toBeTruthy();
+    expect(confirmShareVerification(row.id)).toBeNull();
+    expect(isShareActionAlreadyAwarded('dogukan', 'presentation', 'presentation_sent')).toBe(true);
+    expect(isShareActionAlreadyAwarded('dogukan', 'waytomoon', 'waytomoon_sent')).toBe(false);
+    expect(
+      isShareActionAlreadyAwarded('dogukan', 'waytomoon', 'waytomoon_sent', ['waytomoon_sent'])
+    ).toBe(true);
+    expect(ALREADY_CONFIRMED_MESSAGE).toBe('Bereits für diesen Kontakt bestätigt.');
+    expect(
+      getOrCreatePendingShareVerification({
+        contactId: 'dogukan',
+        toolKey: 'presentation',
+        toolName: 'Firmenpräsentation',
+        shareUrl: 'https://mywaytomoon.netlify.app',
+        shareEventType: 'presentation_sent',
+      })
+    ).toBeNull();
   });
 
   it('supports rejected status for future AI review', () => {
@@ -118,7 +161,7 @@ describe('shareVerification', () => {
     expect(rejected.status).toBe('rejected');
   });
 
-  it('exposes pending vision stubs without calling OpenAI', async () => {
+  it('exposes pending vision stubs that never auto-verify', async () => {
     const vision = new PendingShareVisionVerifier();
     const detection = await vision.analyzeScreenshot({
       imageDataUrl: 'data:image/png;base64,x',
@@ -128,6 +171,7 @@ describe('shareVerification', () => {
     });
     expect(detection.taskAppearsCompleted).toBeNull();
     expect(detection.confidence).toBe(0);
+    expect(detection.suggestedStatus).toBe('pending_review');
 
     const coach = new PendingCoachShareVision();
     const decision = await coach.determineTaskCompletion({
@@ -135,7 +179,15 @@ describe('shareVerification', () => {
       expectedOnboardingUrl: 'http://waytomoon.netlify.app',
       expectedPresentationUrl: null,
     });
-    expect(decision.status).toBe('pending');
+    expect(decision.status).toBe('pending_review');
     expect(decision.completed).toBe(false);
+
+    const answers = await coach.answerShareReviewQuestions({
+      detection,
+      toolKey: 'waytomoon',
+      contactName: 'Anna',
+    });
+    expect(answers.wasOnboardingReallySent).toBeNull();
+    expect(answers.shouldCreateFollowUpReminder).toBeNull();
   });
 });

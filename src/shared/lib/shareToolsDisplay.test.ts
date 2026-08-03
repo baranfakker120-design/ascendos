@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { ExternalTool } from '@shared/types/domain';
 import {
   ONBOARDING_DESCRIPTION,
+  ONBOARDING_DETAIL,
   ONBOARDING_NAME,
   ONBOARDING_URL,
+  PRESENTATION_NAME,
   displayShareTool,
+  isOnboardingShareTool,
   isProofRequiredShareTool,
+  renameWayToMoonLabel,
 } from './shareToolsDisplay';
 
 function tool(partial: Partial<ExternalTool> & Pick<ExternalTool, 'key' | 'name'>): ExternalTool {
@@ -25,7 +29,7 @@ function tool(partial: Partial<ExternalTool> & Pick<ExternalTool, 'key' | 'name'
 }
 
 describe('displayShareTool', () => {
-  it('renames WayToMoon to Onboarding and pins http URL', () => {
+  it('renames WayToMoon to Onboarding with post-registration copy and http URL', () => {
     const display = displayShareTool(
       tool({
         key: 'waytomoon',
@@ -36,11 +40,14 @@ describe('displayShareTool', () => {
     );
     expect(display.name).toBe(ONBOARDING_NAME);
     expect(display.description).toBe(ONBOARDING_DESCRIPTION);
+    expect(display.description).toContain('nach der Registrierung');
+    expect(ONBOARDING_DETAIL).toContain('Austauschgruppe');
+    expect(ONBOARDING_DETAIL).toContain('Nina-Informationsgruppe');
     expect(display.url).toBe(ONBOARDING_URL);
-    expect(display.url).toBe('http://waytomoon.netlify.app');
+    expect(isOnboardingShareTool(display)).toBe(true);
   });
 
-  it('keeps Firmenpräsentation as a separate action', () => {
+  it('keeps Firmenpräsentation as a separate prospect action', () => {
     const display = displayShareTool(
       tool({
         key: 'presentation',
@@ -51,9 +58,10 @@ describe('displayShareTool', () => {
         sort_order: 2,
       })
     );
-    expect(display.name).toBe('Firmenpräsentation');
+    expect(display.name).toBe(PRESENTATION_NAME);
     expect(display.key).toBe('presentation');
     expect(display.url).toContain('mywaytomoon');
+    expect(isOnboardingShareTool(display)).toBe(false);
   });
 
   it('requires proof for onboarding and presentation only', () => {
@@ -62,5 +70,10 @@ describe('displayShareTool', () => {
       isProofRequiredShareTool(tool({ key: 'presentation', name: 'Firmenpräsentation' }))
     ).toBe(true);
     expect(isProofRequiredShareTool(tool({ key: 'fitcheck', name: 'Fit Check' }))).toBe(false);
+  });
+
+  it('renames legacy WayToMoon labels in free text', () => {
+    expect(renameWayToMoonLabel('WayToMoon öffnen')).toBe('Onboarding öffnen');
+    expect(renameWayToMoonLabel('MyWayToMoon')).toBe('Onboarding');
   });
 });

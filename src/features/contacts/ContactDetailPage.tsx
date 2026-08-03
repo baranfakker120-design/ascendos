@@ -2,7 +2,12 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { activityLabel, daysSince } from '@shared/lib/pipeline';
-import { listPendingShareVerifications } from '@shared/lib/shareVerification';
+import { isProofRequiredShareTool } from '@shared/lib/shareToolsDisplay';
+import {
+  findVerifiedShareAction,
+  isShareActionAlreadyAwarded,
+  listPendingShareVerifications,
+} from '@shared/lib/shareVerification';
 import type { ExternalTool, PipelineEventType } from '@shared/types/domain';
 import { Alert } from '@shared/ui/Alert';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
@@ -34,6 +39,31 @@ export function ContactDetailPage() {
     () => new Set(pendingProofs.map((p) => p.toolKey)),
     [pendingProofs]
   );
+
+  const pipelineEventTypes = useMemo(
+    () => new Set((events ?? []).map((e) => e.event_type)),
+    [events]
+  );
+
+  const awardedToolKeys = useMemo(() => {
+    void proofTick;
+    const keys = new Set<string>();
+    for (const tool of tools ?? []) {
+      if (!isProofRequiredShareTool(tool)) continue;
+      if (
+        isShareActionAlreadyAwarded(
+          contactId ?? '',
+          tool.key,
+          tool.share_event_type,
+          pipelineEventTypes
+        ) ||
+        findVerifiedShareAction(contactId ?? '', tool.key)
+      ) {
+        keys.add(tool.key);
+      }
+    }
+    return keys;
+  }, [contactId, tools, pipelineEventTypes, proofTick]);
 
   if (isPending) return <p className="text-sm text-muted">Kontakt wird geladen …</p>;
   if (isError) {
@@ -72,6 +102,12 @@ export function ContactDetailPage() {
   };
 
   const onToolShared = (tool: ExternalTool) => {
+    if (
+      isShareActionAlreadyAwarded(contact.id, tool.key, tool.share_event_type, pipelineEventTypes)
+    ) {
+      setProofTick((t) => t + 1);
+      return;
+    }
     void logEvent(tool.share_event_type, tool.key)
       .then(() => setProofTick((t) => t + 1))
       .catch(() => undefined);
@@ -158,6 +194,7 @@ export function ContactDetailPage() {
           onShared={onToolShared}
           onProofChange={() => setProofTick((t) => t + 1)}
           pendingToolKeys={pendingToolKeys}
+          awardedToolKeys={awardedToolKeys}
         />
         <EventPicker onSelect={(type) => logEvent(type)} busy={addEvent.isPending} />
       </section>
