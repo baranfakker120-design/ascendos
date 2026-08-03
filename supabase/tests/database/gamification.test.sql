@@ -683,6 +683,10 @@ select throws_like(
 -- M. Zeilenrechte
 -- ============================================================
 
+-- Setup-Buchung als postgres (ap_ledger hat keine INSERT-Policy fuer
+-- authenticated — geschrieben wird sonst nur vom Award-Trigger).
+reset role;
+
 -- Clara bekommt eine eigene Buchung, damit M3 ein ECHTER Test wird:
 -- ohne sie waere "sieht 0 Buchungen" auch dann erfuellt, wenn die
 -- Policy gar nicht greift -- sie hat naemlich schlicht keine.
