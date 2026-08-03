@@ -55,6 +55,29 @@ export {
 } from './approvedKnowledge';
 export type { ApprovedKnowledgeSnapshot } from './approvedKnowledge';
 export {
+  buildBottlenecks,
+  buildExecutiveIntelligence,
+  buildFutureForecast,
+  buildLeadershipDna,
+  buildLeadershipScore,
+  buildMomentumScore,
+  buildRoiRecommendations,
+  buildWhatHappened,
+  buildWhatNext,
+  buildWhatToday,
+} from './executiveIntelligence';
+export { ExecutiveIntelligencePanel } from './ExecutiveIntelligencePanel';
+export type {
+  BottleneckInsight,
+  ExecutiveInsight,
+  ExecutiveIntelligence,
+  ForecastItem,
+  LeadershipDnaTrait,
+  RoiRecommendation,
+  ScoredDimension,
+  TimelineEvent,
+} from './types';
+export {
   filterManagerMessagesByMemory,
   listCeoRecommendationMemory,
   recordCeoRecommendation,

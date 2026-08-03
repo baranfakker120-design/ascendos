@@ -10,6 +10,8 @@ import { KnowledgePage } from '@features/knowledge/KnowledgePage';
 import { KnowledgeCenterPage } from '@features/knowledge-center/KnowledgeCenterPage';
 import { LiveCoachingAdminPage } from '@features/live-coaching/LiveCoachingAdminPage';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
+import { StoriesAdminPage } from '@features/stories/StoriesAdminPage';
+import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
 import { TodayPage } from '@features/daily-plan/TodayPage';
 import { MorePage } from '@features/more/MorePage';
 import { JourneyToday } from '@features/onboarding/JourneyToday';
@@ -51,6 +53,7 @@ function ShellOutlet() {
  * läuft, wird generate_daily_plan gar nicht erst aufgerufen.
  *
  * Sprint 5.1: Live Coaching sits above both surfaces (additive).
+ * Sprint 5.2: Ascend Stories at the very top (additive).
  */
 function TodayRoute() {
   const { data: state, isPending, isError, refetch } = useJourneyState();
@@ -66,17 +69,17 @@ function TodayRoute() {
       </Card>
     );
   }
-  const body = state && state.journey && !state.isComplete ? <JourneyToday /> : <TodayPage />;
-  // TodayPage already embeds the coaching slot; Journey needs the sibling wrapper.
-  if (state && state.journey && !state.isComplete) {
+  const isJourney = !!(state && state.journey && !state.isComplete);
+  if (isJourney) {
     return (
       <div className="space-y-4">
+        <TodayStoriesSlot />
         <TodayLiveCoachingSlot />
-        {body}
+        <JourneyToday />
       </div>
     );
   }
-  return body;
+  return <TodayPage />;
 }
 
 /** Nur mit Session erreichbar; sonst -> Login. */
@@ -165,6 +168,7 @@ export const router = createBrowserRouter([
                 children: [
                   { path: '/knowledge-center', element: <KnowledgeCenterPage /> },
                   { path: '/live-coaching', element: <LiveCoachingAdminPage /> },
+                  { path: '/stories', element: <StoriesAdminPage /> },
                 ],
               },
             ],

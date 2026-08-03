@@ -354,6 +354,115 @@ export type Database = {
           },
         ];
       };
+      ascend_stories: {
+        Row: {
+          active: boolean;
+          author_label: string;
+          body: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          id: string;
+          media_kind: string;
+          media_path: string | null;
+          media_url: string | null;
+          published_at: string;
+          source: string;
+          story_type: string;
+          subject_membership_id: string | null;
+          subject_name: string | null;
+          title: string;
+          tone: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          active?: boolean;
+          author_label?: string;
+          body: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at: string;
+          id?: string;
+          media_kind?: string;
+          media_path?: string | null;
+          media_url?: string | null;
+          published_at?: string;
+          source?: string;
+          story_type: string;
+          subject_membership_id?: string | null;
+          subject_name?: string | null;
+          title: string;
+          tone?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          active?: boolean;
+          author_label?: string;
+          body?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
+          media_kind?: string;
+          media_path?: string | null;
+          media_url?: string | null;
+          published_at?: string;
+          source?: string;
+          story_type?: string;
+          subject_membership_id?: string | null;
+          subject_name?: string | null;
+          title?: string;
+          tone?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ascend_stories_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'ascend_stories_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ascend_stories_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ascend_stories_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'ascend_stories_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ascend_stories_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       coach_convos: {
         Row: {
           agent_key: string | null;

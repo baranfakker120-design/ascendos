@@ -262,6 +262,73 @@ export interface CeoRecommendationMemory {
   updatedAt: string;
 }
 
+export interface ExecutiveInsight {
+  id: string;
+  headline: string;
+  why: string;
+  severity: InsightSeverity;
+}
+
+export interface ScoredDimension {
+  score: number;
+  label: string;
+  why: string[];
+  drivers: string[];
+}
+
+export interface BottleneckInsight {
+  id: string;
+  area: string;
+  title: string;
+  why: string;
+  unlock: string;
+}
+
+export interface RoiRecommendation {
+  id: string;
+  action: string;
+  why: string;
+  expectedLift: string;
+}
+
+export interface LeadershipDnaTrait {
+  id: string;
+  trait: string;
+  evidence: string;
+  why: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  at: string;
+  title: string;
+  why: string;
+  kind: 'win' | 'risk' | 'opportunity' | 'system';
+}
+
+export interface ForecastItem {
+  id: string;
+  horizon: '7d' | '30d' | '90d';
+  title: string;
+  why: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface ExecutiveIntelligence {
+  whatHappened: ExecutiveInsight[];
+  whyItMatters: ExecutiveInsight[];
+  whatHappensNext: ExecutiveInsight[];
+  whatToDoToday: ExecutiveInsight[];
+  momentum: ScoredDimension;
+  leadership: ScoredDimension;
+  branchHealth: BranchHealthAssessment;
+  bottlenecks: BottleneckInsight[];
+  roiRecommendations: RoiRecommendation[];
+  leadershipDna: LeadershipDnaTrait[];
+  timeline: TimelineEvent[];
+  forecast: ForecastItem[];
+}
+
 export interface CoachOrgIntelligence {
   generatedAt: string;
   briefing: DailyCeoBriefing;
@@ -275,4 +342,6 @@ export interface CoachOrgIntelligence {
   managerMessages: ManagerMessage[];
   /** High-value only — max handful for UI. */
   surfaceInsights: CoachPriorityInsight[];
+  /** Virtual COO — scores always paired with WHY. */
+  executive: ExecutiveIntelligence;
 }
