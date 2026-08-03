@@ -84,8 +84,12 @@
   padding: 0.7rem 0.7rem 0.55rem;
   border-radius: calc(var(--gvs-radius) + 0.15rem);
   border: 1px solid rgb(255 255 255 / 0.62);
-  background:
-    linear-gradient(165deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.78) 48%, rgb(248 247 245 / 0.88));
+  background: linear-gradient(
+    165deg,
+    rgb(255 255 255 / 0.92),
+    rgb(255 255 255 / 0.78) 48%,
+    rgb(248 247 245 / 0.88)
+  );
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.9) inset,
     0 28px 64px rgb(17 18 20 / 0.18),
