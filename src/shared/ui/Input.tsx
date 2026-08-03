@@ -10,14 +10,7 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
   hideLabel?: boolean;
 }
 
-export function Input({
-  label,
-  hint,
-  hideLabel = false,
-  id,
-  className = '',
-  ...rest
-}: Props) {
+export function Input({ label, hint, hideLabel = false, id, className = '', ...rest }: Props) {
   const autoId = useId();
   const inputId = id ?? autoId;
   return (
@@ -25,11 +18,7 @@ export function Input({
       {label ? (
         <label
           htmlFor={inputId}
-          className={
-            hideLabel
-              ? 'sr-only'
-              : 'block text-sm font-medium text-ink'
-          }
+          className={hideLabel ? 'sr-only' : 'block text-sm font-medium text-ink'}
         >
           {label}
         </label>

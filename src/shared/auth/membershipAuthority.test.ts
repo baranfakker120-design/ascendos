@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isSuperAdminRole,
-  pickActiveMembership,
-  resolveActiveOrgId,
-} from './membershipAuthority';
+import { isSuperAdminRole, pickActiveMembership, resolveActiveOrgId } from './membershipAuthority';
 
 describe('membershipAuthority', () => {
   it('treats only super_admin as super admin', () => {
@@ -22,9 +18,7 @@ describe('membershipAuthority', () => {
     expect(resolveActiveOrgId(many, { storedOrgId: 'org-b' })).toBe('org-b');
     expect(resolveActiveOrgId(many, { mirrorOrgId: 'org-a' })).toBe('org-a');
     expect(resolveActiveOrgId(many)).toBe('org-a');
-    expect(resolveActiveOrgId(many, { storedOrgId: 'org-x', mirrorOrgId: 'org-b' })).toBe(
-      'org-b'
-    );
+    expect(resolveActiveOrgId(many, { storedOrgId: 'org-x', mirrorOrgId: 'org-b' })).toBe('org-b');
   });
 
   it('picks the active membership for the selected org', () => {

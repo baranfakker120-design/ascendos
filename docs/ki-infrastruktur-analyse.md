@@ -34,13 +34,13 @@ Zur Genauigkeit: Der bezahlte Gemini-Zugang enthält diese Klausel **nicht**. De
 
 ## 0.3 Was der Wechsel technisch kostet
 
-| Bestandteil | Betroffen |
-|---|---|
-| `_shared/gemini.ts` | ja, Client und Modellabbildung |
-| Wiederholungslogik, Fehlerbehandlung | wiederverwendbar, anbieterunabhängig |
-| `agents.model` als Datensatz | keine Migration nötig, Laufzeitabbildung besteht |
-| **Einbettungen** | **nicht betroffen**, siehe unten |
-| `pgvector`, 1536 Dimensionen, `match_knowledge` | nicht betroffen |
+| Bestandteil                                     | Betroffen                                        |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `_shared/gemini.ts`                             | ja, Client und Modellabbildung                   |
+| Wiederholungslogik, Fehlerbehandlung            | wiederverwendbar, anbieterunabhängig             |
+| `agents.model` als Datensatz                    | keine Migration nötig, Laufzeitabbildung besteht |
+| **Einbettungen**                                | **nicht betroffen**, siehe unten                 |
+| `pgvector`, 1536 Dimensionen, `match_knowledge` | nicht betroffen                                  |
 
 **Wichtig zur Trennung:** Der Chat und die Einbettungen sind zwei getrennte Aufrufe. Ein Wechsel des Chat-Anbieters erfordert **keinen** Wechsel des Einbettungsmodells. Das ist wesentlich, weil ein Wechsel des Einbettungsmodells eine andere Dimensionszahl und damit eine Neuberechnung des gesamten Korpus bedeuten würde. Groq und Cerebras bieten ohnehin keine Einbettungen an.
 
@@ -52,22 +52,22 @@ Alle unten empfohlenen Anbieter sprechen das **OpenAI-kompatible** Format. Der A
 
 Bewertung der Eignung ausdrücklich **für AscendOS**, nicht allgemein.
 
-| Anbieter | Free Tier | Karte | Sofort nutzbar | Grenzen kostenlos | Trainiert auf Daten | OpenAI-Format | Kommerziell | Eignung |
-|---|---|---|---|---|---|---|---|---|
-| **Google Gemini** | ja, dauerhaft | nein | ja | Flash 10–15 RPM, 1.500/Tag, 250k–1M TPM. Pro seit April 2026 **nicht mehr** kostenlos | **ja, im Free Tier** | über Hülle | ja | **heute im Einsatz.** Free Tier untragbar, Tier 1 gut |
-| **Groq** | ja, dauerhaft | nein | ja, ~30 Sekunden | 30 RPM, 6k–30k TPM, RPD modellabhängig 1.000–14.400 | **nein** | ja | ja | **stärkster Kandidat** |
-| **Cerebras** | ja, dauerhaft | nein | ja | ~30 RPM, 14.400/Tag, 60–64k TPM, 1M Token/Tag | nicht dokumentiert | ja | ja | starker Zweitkandidat |
-| **OpenRouter** | ja | nein für Gratismodelle | ja | 20 RPM, **50 Anfragen/Tag** bis 10 USD Guthaben, danach 1.000/Tag | je Anbieter | ja | je Modell | gut als Ausweichweg |
-| **Mistral AI** | ja, „Experiment" | nein | ja | ~1 Mrd. Token/Monat, aber **2 RPM** | **Zustimmung zum Training ist Voraussetzung** | ja | ja | 2 RPM disqualifiziert für Chat |
-| **Cloudflare Workers AI** | ja | nein | ja | 10.000 „Neuronen"/Tag, nicht in Anfragen umrechenbar | nein | teils | ja | nur sinnvoll bei Betrieb auf Workers |
-| **DeepSeek** | Probeguthaben, Flash teils ohne Obergrenze | ja für Aufladung | ja | uneinheitlich dokumentiert | unklar | ja | ja | **Datenlage China, für DSGVO problematisch** |
-| **Cohere** | Testschlüssel | nein | ja | ~100 Anfragen/Tag | nein | teils | **nein, ausdrücklich nicht kommerziell** | **disqualifiziert** |
-| **Together AI** | nur Startguthaben | ja | ja | kein dauerhaftes Kontingent | nein | ja | ja | ungeeignet als Basis |
-| **Hugging Face Inference** | ja | nein | ja | strenge Grenzen, nicht klar dokumentiert | modellabhängig | teils | modellabhängig | ungeeignet für interaktiven Chat |
-| **Fireworks AI** | schmal | ja | ja | kleines Kontingent | nein | ja | ja | kein Vorteil gegenüber Groq |
-| **SambaNova** | schmal | teils | ja | kleines Kontingent | nein | ja | ja | kein Vorteil gegenüber Groq |
-| **GitHub Models** | ja | nein | ja | Tageskontingente | Azure-Bedingungen | ja | eingeschränkt | interessant, aber an GitHub-Konto gebunden |
-| **NVIDIA NIM** | 1.000 Guthaben | nein | ja | einmalig | nein | ja | ja | Probeguthaben, keine Basis |
+| Anbieter                   | Free Tier                                  | Karte                  | Sofort nutzbar   | Grenzen kostenlos                                                                     | Trainiert auf Daten                           | OpenAI-Format | Kommerziell                              | Eignung                                               |
+| -------------------------- | ------------------------------------------ | ---------------------- | ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- | ------------- | ---------------------------------------- | ----------------------------------------------------- |
+| **Google Gemini**          | ja, dauerhaft                              | nein                   | ja               | Flash 10–15 RPM, 1.500/Tag, 250k–1M TPM. Pro seit April 2026 **nicht mehr** kostenlos | **ja, im Free Tier**                          | über Hülle    | ja                                       | **heute im Einsatz.** Free Tier untragbar, Tier 1 gut |
+| **Groq**                   | ja, dauerhaft                              | nein                   | ja, ~30 Sekunden | 30 RPM, 6k–30k TPM, RPD modellabhängig 1.000–14.400                                   | **nein**                                      | ja            | ja                                       | **stärkster Kandidat**                                |
+| **Cerebras**               | ja, dauerhaft                              | nein                   | ja               | ~30 RPM, 14.400/Tag, 60–64k TPM, 1M Token/Tag                                         | nicht dokumentiert                            | ja            | ja                                       | starker Zweitkandidat                                 |
+| **OpenRouter**             | ja                                         | nein für Gratismodelle | ja               | 20 RPM, **50 Anfragen/Tag** bis 10 USD Guthaben, danach 1.000/Tag                     | je Anbieter                                   | ja            | je Modell                                | gut als Ausweichweg                                   |
+| **Mistral AI**             | ja, „Experiment"                           | nein                   | ja               | ~1 Mrd. Token/Monat, aber **2 RPM**                                                   | **Zustimmung zum Training ist Voraussetzung** | ja            | ja                                       | 2 RPM disqualifiziert für Chat                        |
+| **Cloudflare Workers AI**  | ja                                         | nein                   | ja               | 10.000 „Neuronen"/Tag, nicht in Anfragen umrechenbar                                  | nein                                          | teils         | ja                                       | nur sinnvoll bei Betrieb auf Workers                  |
+| **DeepSeek**               | Probeguthaben, Flash teils ohne Obergrenze | ja für Aufladung       | ja               | uneinheitlich dokumentiert                                                            | unklar                                        | ja            | ja                                       | **Datenlage China, für DSGVO problematisch**          |
+| **Cohere**                 | Testschlüssel                              | nein                   | ja               | ~100 Anfragen/Tag                                                                     | nein                                          | teils         | **nein, ausdrücklich nicht kommerziell** | **disqualifiziert**                                   |
+| **Together AI**            | nur Startguthaben                          | ja                     | ja               | kein dauerhaftes Kontingent                                                           | nein                                          | ja            | ja                                       | ungeeignet als Basis                                  |
+| **Hugging Face Inference** | ja                                         | nein                   | ja               | strenge Grenzen, nicht klar dokumentiert                                              | modellabhängig                                | teils         | modellabhängig                           | ungeeignet für interaktiven Chat                      |
+| **Fireworks AI**           | schmal                                     | ja                     | ja               | kleines Kontingent                                                                    | nein                                          | ja            | ja                                       | kein Vorteil gegenüber Groq                           |
+| **SambaNova**              | schmal                                     | teils                  | ja               | kleines Kontingent                                                                    | nein                                          | ja            | ja                                       | kein Vorteil gegenüber Groq                           |
+| **GitHub Models**          | ja                                         | nein                   | ja               | Tageskontingente                                                                      | Azure-Bedingungen                             | ja            | eingeschränkt                            | interessant, aber an GitHub-Konto gebunden            |
+| **NVIDIA NIM**             | 1.000 Guthaben                             | nein                   | ja               | einmalig                                                                              | nein                                          | ja            | ja                                       | Probeguthaben, keine Basis                            |
 
 Nicht in der Liste, weil ohne kostenlosen Zugang: OpenAI und Anthropic verlangen für den API-Zugang eine Zahlungsmethode.
 
@@ -109,15 +109,15 @@ Gegen deine sieben Prioritäten geprüft.
 
 **Zahlungsmethode bei Google hinterlegen und auf Tier 1 wechseln.**
 
-| Priorität | Erfüllt |
-|---|---|
-| 1 Zuverlässigkeit | **ja**, Nachrangigkeit endet, 150–300 RPM |
-| 2 Kostenloser Einstieg | nein, aber Kosten im Centbereich |
-| 3 Keine Karte | **nein** |
-| 4 Deutsche Antworten | **ja**, beste der Kandidaten |
-| 5 Antwortzeiten | gut |
-| 6 Skalierbarkeit | ja, Tier 2 ab 250 USD Umsatz |
-| 7 Einfache Integration | **ja, kein Code** |
+| Priorität              | Erfüllt                                   |
+| ---------------------- | ----------------------------------------- |
+| 1 Zuverlässigkeit      | **ja**, Nachrangigkeit endet, 150–300 RPM |
+| 2 Kostenloser Einstieg | nein, aber Kosten im Centbereich          |
+| 3 Keine Karte          | **nein**                                  |
+| 4 Deutsche Antworten   | **ja**, beste der Kandidaten              |
+| 5 Antwortzeiten        | gut                                       |
+| 6 Skalierbarkeit       | ja, Tier 2 ab 250 USD Umsatz              |
+| 7 Einfache Integration | **ja, kein Code**                         |
 
 Begründung: Es behebt das Verfügbarkeitsproblem **und** das Datenschutzproblem aus 0.2 in einem Schritt, ohne eine Zeile Code. Priorität 1 ist deine wichtigste, Priorität 3 die drittwichtigste.
 
@@ -131,14 +131,14 @@ Groq ist der einzige Kandidat, der kein Training auf Kundendaten betreibt, keine
 
 ## 3.3 Was ich nicht empfehle
 
-| Anbieter | Grund |
-|---|---|
-| **Mistral** | 2 Anfragen pro Minute im kostenlosen Zugang, und Zustimmung zum Training ist Voraussetzung. Beides disqualifiziert, obwohl der europäische Sitz für die DSGVO attraktiv wäre |
-| **Cohere** | kommerzielle Nutzung ausdrücklich untersagt |
-| **DeepSeek** | Datenlage und Serverstandort für einen deutschen Mandanten mit Kontaktdaten Dritter nicht vertretbar |
-| **Together, Fireworks, SambaNova, NVIDIA NIM** | Startguthaben statt dauerhaftem Kontingent |
-| **Hugging Face** | Grenzen für interaktiven Chat zu unsicher |
-| **OpenRouter als Basis** | 50 Anfragen pro Tag ohne Guthaben. Als Ausweichweg interessant, als Grundlage zu knapp |
+| Anbieter                                       | Grund                                                                                                                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mistral**                                    | 2 Anfragen pro Minute im kostenlosen Zugang, und Zustimmung zum Training ist Voraussetzung. Beides disqualifiziert, obwohl der europäische Sitz für die DSGVO attraktiv wäre |
+| **Cohere**                                     | kommerzielle Nutzung ausdrücklich untersagt                                                                                                                                  |
+| **DeepSeek**                                   | Datenlage und Serverstandort für einen deutschen Mandanten mit Kontaktdaten Dritter nicht vertretbar                                                                         |
+| **Together, Fireworks, SambaNova, NVIDIA NIM** | Startguthaben statt dauerhaftem Kontingent                                                                                                                                   |
+| **Hugging Face**                               | Grenzen für interaktiven Chat zu unsicher                                                                                                                                    |
+| **OpenRouter als Basis**                       | 50 Anfragen pro Tag ohne Guthaben. Als Ausweichweg interessant, als Grundlage zu knapp                                                                                       |
 
 ---
 
@@ -177,13 +177,13 @@ Teil 0.2 hat gezeigt: Ohne Zahlungsmethode bleibt Googles Trainingsklausel beste
 
 Die verbliebenen Anbieter zerfallen bei genauerer Prüfung der Vertragsdokumente, nicht nur der Werbeaussagen, in ein Muster, das die ganze Bewertung prägt:
 
-| Anbieter | Trainiert auf Daten | DPA im kostenlosen Zugang |
-|---|---|---|
-| Groq | nein, dokumentiert | **ja**, mit EU-Standardvertragsklauseln, auch ohne Karte |
-| Cerebras | nein, dokumentiert | **nein**, in den Bedingungen ausdrücklich ausgeschlossen. Cerebras verarbeitet dort als unabhängiger Verantwortlicher, nicht als Auftragsverarbeiter |
-| Mistral, Free-Tier „Experiment" | **ja, Voraussetzung für den Zugang** | entfällt, weil bereits die Trainingsklausel disqualifiziert |
-| OpenRouter | je nach durchgereichtem Modell | **nein**, ein rechtsverbindliches DPA ist ausdrücklich Enterprise-Kunden vorbehalten |
-| Cloudflare Workers AI | nicht dokumentiert gefunden | nicht verifiziert, siehe 6.5 |
+| Anbieter                        | Trainiert auf Daten                  | DPA im kostenlosen Zugang                                                                                                                            |
+| ------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Groq                            | nein, dokumentiert                   | **ja**, mit EU-Standardvertragsklauseln, auch ohne Karte                                                                                             |
+| Cerebras                        | nein, dokumentiert                   | **nein**, in den Bedingungen ausdrücklich ausgeschlossen. Cerebras verarbeitet dort als unabhängiger Verantwortlicher, nicht als Auftragsverarbeiter |
+| Mistral, Free-Tier „Experiment" | **ja, Voraussetzung für den Zugang** | entfällt, weil bereits die Trainingsklausel disqualifiziert                                                                                          |
+| OpenRouter                      | je nach durchgereichtem Modell       | **nein**, ein rechtsverbindliches DPA ist ausdrücklich Enterprise-Kunden vorbehalten                                                                 |
+| Cloudflare Workers AI           | nicht dokumentiert gefunden          | nicht verifiziert, siehe 6.5                                                                                                                         |
 
 Der zentrale Befund: **Mistral ist als Unternehmen der DSGVO-freundlichste Standort aller Kandidaten, aber sein kostenloser Zugang ist der DSGVO-unfreundlichste**, weil er die Trainingszustimmung zur Bedingung macht. Die Firmenlage sagt hier nichts über den tatsächlichen Vertrag. Das ist der wichtigste Einzelbefund dieses Abschnitts.
 
@@ -191,58 +191,58 @@ Der zentrale Befund: **Mistral ist als Unternehmen der DSGVO-freundlichste Stand
 
 ### Groq
 
-| Kriterium | Bewertung |
-|---|---|
-| Risiko künftiger Einschränkung | **mittel.** Die Quellen widersprechen sich beim Tageskontingent, 1.000 gegen 14.400 Anfragen. Eine Klärung an der Quelle ist vor jeder Festlegung nötig |
-| Wahrscheinlichkeit 429 | **mittel.** 30 Anfragen pro Minute sind für einen Coach mit wenigen gleichzeitigen Nutzern ausreichend, bei mehreren Beratern gleichzeitig eng. Gilt organisationsweit, nicht je Schlüssel |
-| Wahrscheinlichkeit 503 | **niedrig.** Eigene Rechenhardware, keine Berichte über lastbedingte Zurückstufung wie bei Google. Das kostenlose Kontingent ist ein harter Zähler, keine nachrangige Behandlung |
-| Eignung als produktiver Coach | **gut**, unter Vorbehalt der ungeklärten Tagesgrenze und einer noch ausstehenden Prüfung der deutschen Antwortqualität |
+| Kriterium                      | Bewertung                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Risiko künftiger Einschränkung | **mittel.** Die Quellen widersprechen sich beim Tageskontingent, 1.000 gegen 14.400 Anfragen. Eine Klärung an der Quelle ist vor jeder Festlegung nötig                                    |
+| Wahrscheinlichkeit 429         | **mittel.** 30 Anfragen pro Minute sind für einen Coach mit wenigen gleichzeitigen Nutzern ausreichend, bei mehreren Beratern gleichzeitig eng. Gilt organisationsweit, nicht je Schlüssel |
+| Wahrscheinlichkeit 503         | **niedrig.** Eigene Rechenhardware, keine Berichte über lastbedingte Zurückstufung wie bei Google. Das kostenlose Kontingent ist ein harter Zähler, keine nachrangige Behandlung           |
+| Eignung als produktiver Coach  | **gut**, unter Vorbehalt der ungeklärten Tagesgrenze und einer noch ausstehenden Prüfung der deutschen Antwortqualität                                                                     |
 
 ### Cerebras
 
-| Kriterium | Bewertung |
-|---|---|
-| Risiko künftiger Einschränkung | **mittel bis hoch.** Bedingungen für den Selbstbedienungszugang sind ausdrücklich als frei änderbar formuliert, ohne die Zusagen eines Vertragsverhältnisses |
-| Wahrscheinlichkeit 429 | **niedrig.** 14.400 Anfragen und rund eine Million Token pro Tag sind das großzügigste Kontingent im Feld |
-| Wahrscheinlichkeit 503 | **niedrig bis mittel.** Technisch für hohen Durchsatz gebaut, aber weniger unabhängige Betriebsberichte als bei Groq |
-| Eignung als produktiver Coach | **technisch gut, rechtlich offen.** Das fehlende DPA im Selbstbedienungszugang ist der Punkt, der vor einem Einsatz mit echten Kontaktdaten schriftlich zu klären ist |
+| Kriterium                      | Bewertung                                                                                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Risiko künftiger Einschränkung | **mittel bis hoch.** Bedingungen für den Selbstbedienungszugang sind ausdrücklich als frei änderbar formuliert, ohne die Zusagen eines Vertragsverhältnisses          |
+| Wahrscheinlichkeit 429         | **niedrig.** 14.400 Anfragen und rund eine Million Token pro Tag sind das großzügigste Kontingent im Feld                                                             |
+| Wahrscheinlichkeit 503         | **niedrig bis mittel.** Technisch für hohen Durchsatz gebaut, aber weniger unabhängige Betriebsberichte als bei Groq                                                  |
+| Eignung als produktiver Coach  | **technisch gut, rechtlich offen.** Das fehlende DPA im Selbstbedienungszugang ist der Punkt, der vor einem Einsatz mit echten Kontaktdaten schriftlich zu klären ist |
 
 ### OpenRouter
 
-| Kriterium | Bewertung |
-|---|---|
-| Risiko künftiger Einschränkung | **hoch.** Das Tageskontingent wurde bereits verschärft, 50 Anfragen ohne Guthaben |
-| Wahrscheinlichkeit 429 | **hoch.** 50 Anfragen am Tag sind für einen täglich genutzten Coach binnen Stunden aufgebraucht |
-| Wahrscheinlichkeit 503 | **mittel.** Zwei Stationen zwischen Anfrage und Modell, OpenRouter selbst und der durchgereichte Anbieter. Automatisches Ausweichen senkt Gesamtausfälle, erhöht aber die Komplexität der Fehlersuche |
-| Eignung als produktiver Coach | **schwach als alleinige Grundlage.** Als Werkzeug für den Qualitätsvergleich aus Teil 4 dagegen gut geeignet, weil viele Modelle über einen Zugang erreichbar sind |
+| Kriterium                      | Bewertung                                                                                                                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Risiko künftiger Einschränkung | **hoch.** Das Tageskontingent wurde bereits verschärft, 50 Anfragen ohne Guthaben                                                                                                                     |
+| Wahrscheinlichkeit 429         | **hoch.** 50 Anfragen am Tag sind für einen täglich genutzten Coach binnen Stunden aufgebraucht                                                                                                       |
+| Wahrscheinlichkeit 503         | **mittel.** Zwei Stationen zwischen Anfrage und Modell, OpenRouter selbst und der durchgereichte Anbieter. Automatisches Ausweichen senkt Gesamtausfälle, erhöht aber die Komplexität der Fehlersuche |
+| Eignung als produktiver Coach  | **schwach als alleinige Grundlage.** Als Werkzeug für den Qualitätsvergleich aus Teil 4 dagegen gut geeignet, weil viele Modelle über einen Zugang erreichbar sind                                    |
 
 ### Mistral, kostenloser Zugang
 
-| Kriterium | Bewertung |
-|---|---|
-| Risiko künftiger Einschränkung | **hoch.** Ein Zugang, der bereits die Zustimmung zum Training verlangt, wirkt wie eine Übergangslösung, keine dauerhafte Zusage |
-| Wahrscheinlichkeit 429 | **sehr hoch.** Zwei Anfragen pro Minute bedeuten, dass eine zweite Coach-Nachricht binnen derselben Minute bereits scheitert |
-| Wahrscheinlichkeit 503 | **niedrig bis mittel**, nicht der begrenzende Faktor |
-| Eignung als produktiver Coach | **ungeeignet im kostenlosen Zugang.** Der bezahlte Zugang wäre datenschutzrechtlich der stärkste Kandidat im gesamten Vergleich, fällt aber unter diesem Szenario durch die Kartenpflicht heraus |
+| Kriterium                      | Bewertung                                                                                                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Risiko künftiger Einschränkung | **hoch.** Ein Zugang, der bereits die Zustimmung zum Training verlangt, wirkt wie eine Übergangslösung, keine dauerhafte Zusage                                                                  |
+| Wahrscheinlichkeit 429         | **sehr hoch.** Zwei Anfragen pro Minute bedeuten, dass eine zweite Coach-Nachricht binnen derselben Minute bereits scheitert                                                                     |
+| Wahrscheinlichkeit 503         | **niedrig bis mittel**, nicht der begrenzende Faktor                                                                                                                                             |
+| Eignung als produktiver Coach  | **ungeeignet im kostenlosen Zugang.** Der bezahlte Zugang wäre datenschutzrechtlich der stärkste Kandidat im gesamten Vergleich, fällt aber unter diesem Szenario durch die Kartenpflicht heraus |
 
 ### Cloudflare Workers AI
 
-| Kriterium | Bewertung |
-|---|---|
-| Risiko künftiger Einschränkung | **mittel.** Finanziell stabiles Unternehmen, geringes Risiko einer plötzlichen Abschaltung, aber die Einheit „Neuronen pro Tag" ist nicht in Anfragen umrechenbar und damit für uns schwer zu planen |
-| Wahrscheinlichkeit 429 | **mittel**, abhängig vom Modell und von der Länge der Systemanweisung, nicht verlässlich vorhersagbar |
-| Wahrscheinlichkeit 503 | **niedrig.** Ausgereiftes, weltweites Netzwerk mit belegtem Verfügbarkeitsruf |
-| Eignung als produktiver Coach | **mittel.** Kleinere Kontextfenster als die übrigen Kandidaten, engere Modellauswahl. Der Vorteil wäre am größten, wenn AscendOS bereits auf Cloudflare liefe, was nicht der Fall ist. Der Umgang mit personenbezogenen Daten war in dieser Recherche nicht abschließend zu klären |
+| Kriterium                      | Bewertung                                                                                                                                                                                                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Risiko künftiger Einschränkung | **mittel.** Finanziell stabiles Unternehmen, geringes Risiko einer plötzlichen Abschaltung, aber die Einheit „Neuronen pro Tag" ist nicht in Anfragen umrechenbar und damit für uns schwer zu planen                                                                               |
+| Wahrscheinlichkeit 429         | **mittel**, abhängig vom Modell und von der Länge der Systemanweisung, nicht verlässlich vorhersagbar                                                                                                                                                                              |
+| Wahrscheinlichkeit 503         | **niedrig.** Ausgereiftes, weltweites Netzwerk mit belegtem Verfügbarkeitsruf                                                                                                                                                                                                      |
+| Eignung als produktiver Coach  | **mittel.** Kleinere Kontextfenster als die übrigen Kandidaten, engere Modellauswahl. Der Vorteil wäre am größten, wenn AscendOS bereits auf Cloudflare liefe, was nicht der Fall ist. Der Umgang mit personenbezogenen Daten war in dieser Recherche nicht abschließend zu klären |
 
 ## 6.3 Rangliste
 
-| Rang | Anbieter | Ausschlaggebend |
-|---|---|---|
-| **1** | **Groq** | einziger Kandidat mit dokumentiertem DPA samt EU-Klauseln **ohne** Zahlungsmethode, kein Training, geringstes Risiko für 503 |
-| **2** | **Cerebras** | größtes Kontingent, kein Training, aber ohne vertragliche Zusicherung im Selbstbedienungszugang |
-| **3** | **Cloudflare Workers AI** | solide Verfügbarkeit, aber unklare Kontingentgröße und ungeprüfte Datenschutzlage speziell für Workers AI |
-| **4** | **OpenRouter** | zu enges Tageskontingent für den täglichen Einsatz, DPA nur für Enterprise-Kunden |
-| **5** | **Mistral, kostenloser Zugang** | 2 Anfragen pro Minute schließen einen Chat-Coach aus, Trainingszustimmung ist Voraussetzung |
+| Rang  | Anbieter                        | Ausschlaggebend                                                                                                              |
+| ----- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **Groq**                        | einziger Kandidat mit dokumentiertem DPA samt EU-Klauseln **ohne** Zahlungsmethode, kein Training, geringstes Risiko für 503 |
+| **2** | **Cerebras**                    | größtes Kontingent, kein Training, aber ohne vertragliche Zusicherung im Selbstbedienungszugang                              |
+| **3** | **Cloudflare Workers AI**       | solide Verfügbarkeit, aber unklare Kontingentgröße und ungeprüfte Datenschutzlage speziell für Workers AI                    |
+| **4** | **OpenRouter**                  | zu enges Tageskontingent für den täglichen Einsatz, DPA nur für Enterprise-Kunden                                            |
+| **5** | **Mistral, kostenloser Zugang** | 2 Anfragen pro Minute schließen einen Chat-Coach aus, Trainingszustimmung ist Voraussetzung                                  |
 
 ## 6.4 Empfehlung für dieses Szenario
 

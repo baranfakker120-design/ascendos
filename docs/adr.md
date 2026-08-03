@@ -330,6 +330,7 @@ Jede neue wesentliche Entscheidung erhält einen neuen ADR (fortlaufende Nummer)
 **Kontext:** Der Audit (docs/audit-2026-07.md) fand 2 P0- und mehrere P1-Schwächen. Diese ADR dokumentiert die verbindlichen Korrekturen.
 
 **Entscheidungen:**
+
 1. **Wissenslücken-Logging [K-1]:** Rohfragen werden NIE gespeichert. Vor dem Logging generalisiert ein günstiger LLM-Aufruf die Frage zu einem anonymen Wissensthema (ohne Namen/persönliche Details); schlägt die Generalisierung fehl, wird nicht geloggt — Privacy vor Metrik. Ergänzt ADR-022.
 2. **Nutzungs-Tracking [P-2]:** `usage_events` gemäß ADR-016, serverseitig geloggt wo Serverpfade existieren (`plan_committed`, `mission_completed/skipped`, `coach_message_sent`, `contact_created`); nur `app_opened` kommt vom Client. Tracking-Fehler brechen nie Kernfunktionen. Auswertung: docs/beta-metriken.sql.
 3. **Regel-Engine [A-3]:** zerlegt in `plan_contact_state()` + eine Funktion pro Signal; `generate_daily_plan` ist nur noch UNION + Ranking. Neue Signalquellen (Journey, Sprint 5) sind eine Funktion + eine Zeile.
@@ -377,7 +378,6 @@ Jede neue wesentliche Entscheidung erhält einen neuen ADR (fortlaufende Nummer)
 **Bewusst NICHT geändert:** Migration 6 enthält weiterhin `default 'claude-sonnet-4-6'`. Angewendete Migrationen werden nicht editiert (ADR-018); Migration 10/11 korrigieren den Default vor jedem `agents`-Insert, und `resolveModel()` fängt Altbestand zur Laufzeit ab. Zwei unabhängige Sicherungen sind hier besser als eine Geschichtsfälschung. Ebenso bleibt die Erwähnung von `ANTHROPIC_API_KEY` in ADR-024 stehen — ein ADR dokumentiert die Entscheidung, dass der Schlüssel entfällt; ihn zu löschen würde die Begründung unlesbar machen. Im Code existiert er nirgends.
 
 **Akzeptierte Nachteile:** Reasoning-Modelle sind teurer und langsamer pro Antwort als `gpt-4.1`; das Eval-Set (docs/coach-eval-set.md) MUSS nach dem Wechsel einmal vollständig durchlaufen — Ton- und Guardrail-Verhalten sind modellabhängig. Der Fallback-Pfad kann stillschweigend auf ein schwächeres Modell wechseln; er wird deshalb per `console.warn` protokolliert.
-
 
 ---
 

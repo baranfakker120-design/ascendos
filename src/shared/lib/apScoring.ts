@@ -279,7 +279,7 @@ export function scoreMission(missionType: string): ApRewardTier {
  */
 export function scoreDailyMission(
   missionType: string,
-  ctx: DailyMissionContext = {},
+  ctx: DailyMissionContext = {}
 ): ApRewardTier {
   const base = PROFILE[`mission:${missionType}`] ?? {
     difficulty: 0.35,
@@ -321,7 +321,7 @@ export function scoreDailyMission(
 export function scoreJourneyStep(
   contentType: 'info' | 'task' | 'tool' | string,
   dayNumber: number,
-  stepsDoneToday = 0,
+  stepsDoneToday = 0
 ): ApRewardTier {
   const byType: Record<string, ApScoreDimensions> = {
     info: {

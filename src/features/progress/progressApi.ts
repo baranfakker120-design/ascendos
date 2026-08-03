@@ -42,9 +42,7 @@ export function useProgression() {
       if (defs.error) throw defs.error;
       if (unlocked.error) throw unlocked.error;
 
-      const activeDays = new Set(
-        (opens.data ?? []).map((o) => o.created_at.slice(0, 10))
-      );
+      const activeDays = new Set((opens.data ?? []).map((o) => o.created_at.slice(0, 10)));
       return {
         achievements: defs.data,
         unlockedById: new Map(

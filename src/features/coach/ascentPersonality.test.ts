@@ -7,10 +7,7 @@ import { join } from 'node:path';
  * mentor contract from the source file so personality regressions fail CI.
  */
 describe('Ascent mentor personality contract', () => {
-  const rules = readFileSync(
-    join(process.cwd(), 'supabase/functions/_shared/prompts.ts'),
-    'utf8',
-  );
+  const rules = readFileSync(join(process.cwd(), 'supabase/functions/_shared/prompts.ts'), 'utf8');
 
   it('defines Ascent as a mentor, not a chatbot', () => {
     expect(rules).toMatch(/Business-Mentor/);

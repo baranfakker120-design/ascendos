@@ -96,9 +96,7 @@ export function useSendToCoach() {
 
       const fromSource = qc.getQueryData<CoachMessage[]>(sourceKey) ?? [];
       const withoutTemp = fromSource.filter((m) => !m.id.startsWith('temp-'));
-      const hasUser = withoutTemp.some(
-        (m) => m.role === 'user' && m.content === input.message,
-      );
+      const hasUser = withoutTemp.some((m) => m.role === 'user' && m.content === input.message);
       const next: CoachMessage[] = [
         ...withoutTemp,
         ...(hasUser

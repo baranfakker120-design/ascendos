@@ -9,14 +9,14 @@ Datum: 25. Juli 2026. Nichts auf Produktion angewendet.
 
 Von sechs Aufgaben sind zwei erledigt, eine teilweise, drei in dieser Umgebung nicht ausführbar.
 
-| Aufgabe | Status | Grund |
-|---|---|---|
-| `package-lock.json` erstellen | **nicht möglich** | npm-Registry antwortet mit 403 Forbidden |
-| CI reparieren | **teilweise** | CI selbst ist korrekt. Dem Repository fehlen zwei generierte Dateien |
+| Aufgabe                             | Status            | Grund                                                                      |
+| ----------------------------------- | ----------------- | -------------------------------------------------------------------------- |
+| `package-lock.json` erstellen       | **nicht möglich** | npm-Registry antwortet mit 403 Forbidden                                   |
+| CI reparieren                       | **teilweise**     | CI selbst ist korrekt. Dem Repository fehlen zwei generierte Dateien       |
 | Migration auf Entwicklungsdatenbank | **nicht möglich** | Anlegen eines Zweigs ist gesperrt, auch die Kostenabfrage wurde abgewiesen |
-| Komplette Test-Suite ausführen | **nicht möglich** | keine Supabase-CLI, kein Docker, kein Zweig |
-| 94 Sicherheitstests ausführen | **nicht möglich** | dito |
-| Smoke Tests | **nicht möglich** | benötigt ausgerollte Anwendung und Browser |
+| Komplette Test-Suite ausführen      | **nicht möglich** | keine Supabase-CLI, kein Docker, kein Zweig                                |
+| 94 Sicherheitstests ausführen       | **nicht möglich** | dito                                                                       |
+| Smoke Tests                         | **nicht möglich** | benötigt ausgerollte Anwendung und Browser                                 |
 
 Der Ertrag dieses Meilensteins liegt trotzdem nicht bei null. Die Verifikationsarbeit hat **einen echten Fehler in meiner eigenen Arbeit der letzten Runde** aufgedeckt und **zwei meiner früheren Behauptungen widerlegt**. Genau dafür ist ein solcher Schritt da.
 
@@ -32,12 +32,12 @@ alter table auth.users disable trigger on_auth_user_created;
 
 Geprüft in der Live-Datenbank:
 
-| Prüfung | Ergebnis |
-|---|---|
-| Eigentümer von `auth.users` | `supabase_auth_admin` |
-| Verbindungsrolle | `postgres` |
-| Ist `postgres` Superuser? | **nein** (`rolsuper = false`) |
-| Ist `postgres` Mitglied von `supabase_auth_admin`? | **nein** |
+| Prüfung                                            | Ergebnis                      |
+| -------------------------------------------------- | ----------------------------- |
+| Eigentümer von `auth.users`                        | `supabase_auth_admin`         |
+| Verbindungsrolle                                   | `postgres`                    |
+| Ist `postgres` Superuser?                          | **nein** (`rolsuper = false`) |
+| Ist `postgres` Mitglied von `supabase_auth_admin`? | **nein**                      |
 
 `ALTER TABLE` verlangt Eigentum an der Tabelle. Die Rolle `postgres` hat es nicht.
 
@@ -94,10 +94,10 @@ Eine handgeschriebene Datei stimmt praktisch nie zeichengenau mit der Generatora
 
 **Die CI ist nicht defekt.** Sie ist korrekt konfiguriert. Dem Repository fehlen zwei generierte Artefakte:
 
-| Fehlendes Artefakt | Blockiert | Behebung |
-|---|---|---|
-| `package-lock.json` | Job `quality` ab `npm ci` | `npm install` auf einer Maschine, Datei committen |
-| aktuelle `database.types.ts` | Job `database`, letzter Schritt | `npm run db:types`, Datei committen |
+| Fehlendes Artefakt           | Blockiert                       | Behebung                                          |
+| ---------------------------- | ------------------------------- | ------------------------------------------------- |
+| `package-lock.json`          | Job `quality` ab `npm ci`       | `npm install` auf einer Maschine, Datei committen |
+| aktuelle `database.types.ts` | Job `database`, letzter Schritt | `npm run db:types`, Datei committen               |
 
 Ich habe die CI **nicht** verändert, und zwar aus einem Grund, der Ihre eigene Prioritätenordnung betrifft.
 
@@ -105,11 +105,11 @@ Die naheliegende „Reparatur" wäre, `npm ci` durch `npm install` zu ersetzen. 
 
 **Das ist eine Entscheidung, die ich nach den neuen Arbeitsregeln nicht allein treffe.**
 
-| Option | Nutzen | Kosten und Risiko | Empfehlung |
-|---|---|---|---|
-| A: Lockfile erzeugen und committen, `npm ci` bleibt | Reproduzierbare Builds, CI vollständig grün | benötigt einmalig eine Maschine, etwa 2 Minuten | **empfohlen** |
-| B: CI auf `npm install` umstellen | sofort grün ohne Maschine | Versionsdrift möglich, Lieferkettenrisiko, widerspricht Priorität 1 | nicht empfohlen |
-| C: Job `quality` vorläufig aussetzen | Ehrlicher als B, verdeckt nichts | Lint, Typecheck und Build laufen nicht mehr | Notlösung |
+| Option                                              | Nutzen                                      | Kosten und Risiko                                                   | Empfehlung      |
+| --------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------- | --------------- |
+| A: Lockfile erzeugen und committen, `npm ci` bleibt | Reproduzierbare Builds, CI vollständig grün | benötigt einmalig eine Maschine, etwa 2 Minuten                     | **empfohlen**   |
+| B: CI auf `npm install` umstellen                   | sofort grün ohne Maschine                   | Versionsdrift möglich, Lieferkettenrisiko, widerspricht Priorität 1 | nicht empfohlen |
+| C: Job `quality` vorläufig aussetzen                | Ehrlicher als B, verdeckt nichts            | Lint, Typecheck und Build laufen nicht mehr                         | Notlösung       |
 
 ---
 
@@ -117,15 +117,15 @@ Die naheliegende „Reparatur" wäre, `npm ci` durch `npm install` zu ersetzen. 
 
 **Ausgeführt: null von 94.** Das ist die zentrale Aussage dieses Berichts.
 
-| Prüfart | Umfang | Ergebnis |
-|---|---|---|
-| `plan()` gegen tatsächliche Zusicherungen | 6 Dateien | 6 von 6 stimmen |
-| `$$`-Begrenzer paarweise | 6 Dateien | alle gerade |
-| Reihenfolge `replica` → Auth-Insert → `origin` → Profile | 6 Dateien | 6 von 6 korrekt |
-| Keine Reste des fehlerhaften Ansatzes | 6 Dateien | keine |
-| Rechteprüfung `session_replication_role` | Live-Datenbank | ausführbar für `postgres` |
-| Syntax und Semantik beider Rekursionen mit `CYCLE` | Live-Datenbank, lesend | korrekt in beide Richtungen |
-| Semantik `coach_messages_today` unverändert | Vergleich gegen Original | beide Filterbedingungen erhalten |
+| Prüfart                                                  | Umfang                   | Ergebnis                         |
+| -------------------------------------------------------- | ------------------------ | -------------------------------- |
+| `plan()` gegen tatsächliche Zusicherungen                | 6 Dateien                | 6 von 6 stimmen                  |
+| `$$`-Begrenzer paarweise                                 | 6 Dateien                | alle gerade                      |
+| Reihenfolge `replica` → Auth-Insert → `origin` → Profile | 6 Dateien                | 6 von 6 korrekt                  |
+| Keine Reste des fehlerhaften Ansatzes                    | 6 Dateien                | keine                            |
+| Rechteprüfung `session_replication_role`                 | Live-Datenbank           | ausführbar für `postgres`        |
+| Syntax und Semantik beider Rekursionen mit `CYCLE`       | Live-Datenbank, lesend   | korrekt in beide Richtungen      |
+| Semantik `coach_messages_today` unverändert              | Vergleich gegen Original | beide Filterbedingungen erhalten |
 
 Das ist statische und punktuelle Prüfung, **kein Testlauf**. Sie kann Syntaxfehler nicht ausschließen, die erst der Parser findet, und sie sagt nichts über Laufzeitverhalten.
 
@@ -133,25 +133,25 @@ Das ist statische und punktuelle Prüfung, **kein Testlauf**. Sie kann Syntaxfeh
 
 ## 7. Testabdeckung
 
-| Bereich | Prüfungen | Art |
-|---|---|---|
-Funktionssicherheit F1 | 34 | Angriff von außen: Berater, Leader, Super-Admin, fremde Organisation, `anon`, ungültige und manipulierte Kennung |
-| Regression Kernfunktionen | 23 | Registrierung über echten Trigger-Pfad, Invites, Pipeline, Tagesplan, Coach, Wissen, Retrieval, Struktur, Aktivitäten, Rechte, Mandanten |
-| RLS-Grenzen | 13 | Eigentümer, gleiche Organisation, fremde Organisation |
-| Tagesplan-Regeln | 10 | Signalerzeugung und Missionsstatus |
-| Journey | 8 | Schrittfolge und Sponsorensicht |
-| Pipeline-Phasen | 6 | Phasenableitung inklusive Korrekturen |
-| **Summe** | **94** | |
+| Bereich                   | Prüfungen | Art                                                                                                                                      |
+| ------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Funktionssicherheit F1    | 34        | Angriff von außen: Berater, Leader, Super-Admin, fremde Organisation, `anon`, ungültige und manipulierte Kennung                         |
+| Regression Kernfunktionen | 23        | Registrierung über echten Trigger-Pfad, Invites, Pipeline, Tagesplan, Coach, Wissen, Retrieval, Struktur, Aktivitäten, Rechte, Mandanten |
+| RLS-Grenzen               | 13        | Eigentümer, gleiche Organisation, fremde Organisation                                                                                    |
+| Tagesplan-Regeln          | 10        | Signalerzeugung und Missionsstatus                                                                                                       |
+| Journey                   | 8         | Schrittfolge und Sponsorensicht                                                                                                          |
+| Pipeline-Phasen           | 6         | Phasenableitung inklusive Korrekturen                                                                                                    |
+| **Summe**                 | **94**    |                                                                                                                                          |
 
 **Nicht abgedeckt und auf Datenbankebene nicht abdeckbar:**
 
-| Bereich | Warum | Ersatz |
-|---|---|---|
-| Login | Supabase Auth, keine Datenbanklogik | manuell |
-| Dashboard | existiert noch nicht | entfällt |
-| Coach-Antwortqualität | benötigt Gemini und Netzwerk | Eval-Set, manuell |
-| Oberflächen | keine Testinfrastruktur für Frontend vorhanden | manuell |
-| Leaderfunktionen | existieren noch nicht (F2) | geprüft wird der korrekte Istzustand: keine erweiterten Rechte |
+| Bereich               | Warum                                          | Ersatz                                                         |
+| --------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
+| Login                 | Supabase Auth, keine Datenbanklogik            | manuell                                                        |
+| Dashboard             | existiert noch nicht                           | entfällt                                                       |
+| Coach-Antwortqualität | benötigt Gemini und Netzwerk                   | Eval-Set, manuell                                              |
+| Oberflächen           | keine Testinfrastruktur für Frontend vorhanden | manuell                                                        |
+| Leaderfunktionen      | existieren noch nicht (F2)                     | geprüft wird der korrekte Istzustand: keine erweiterten Rechte |
 
 Eine ehrliche Einordnung: Es gibt **keine** Frontend-Testinfrastruktur im Projekt. `npm run test` deckt nur das ab, was an Unit-Tests existiert. Für Priorität 4, Testbarkeit, ist das eine offene Flanke, aber kein F1-Thema.
 
@@ -159,15 +159,15 @@ Eine ehrliche Einordnung: Es gibt **keine** Frontend-Testinfrastruktur im Projek
 
 ## 8. Offene Risiken
 
-| # | Risiko | Schwere | Bewertung |
-|---|---|---|---|
-| R1 | Die Migration wurde nie angewendet. Kein Nachweis, dass sie durchläuft | **hoch** | Drei eigene Fehler in zwei Runden zeigen, dass Durchlesen nicht genügt |
-| R2 | `CYCLE` innerhalb `RETURN QUERY` in PL/pgSQL ist unverifiziert | mittel | Eigenständig gegen PostgreSQL 17.6 validiert, nicht im Funktionskontext |
-| R3 | Die `revoke`-Anweisungen mit `extensions.vector` in der Signatur sind unverifiziert | mittel | Typauflösung sollte greifen, ungeprüft |
-| R4 | `session_replication_role` in der CI-Umgebung unverifiziert | niedrig | Dort ist `postgres` Superuser, also unkritischer als gehostet |
-| R5 | Umlaute in den `throws_like`-Mustern müssen zur Kodierung passen | niedrig | Muster stammt unverändert aus `rls.test.sql` |
-| R6 | `match_knowledge` verliert durch PL/pgSQL das Inlining | niedrig | Auswirkung als vernachlässigbar bewertet, nicht gemessen |
-| R7 | Keine Frontend-Testinfrastruktur | mittel | Betrifft Priorität 4, nicht F1 |
+| #   | Risiko                                                                              | Schwere  | Bewertung                                                               |
+| --- | ----------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| R1  | Die Migration wurde nie angewendet. Kein Nachweis, dass sie durchläuft              | **hoch** | Drei eigene Fehler in zwei Runden zeigen, dass Durchlesen nicht genügt  |
+| R2  | `CYCLE` innerhalb `RETURN QUERY` in PL/pgSQL ist unverifiziert                      | mittel   | Eigenständig gegen PostgreSQL 17.6 validiert, nicht im Funktionskontext |
+| R3  | Die `revoke`-Anweisungen mit `extensions.vector` in der Signatur sind unverifiziert | mittel   | Typauflösung sollte greifen, ungeprüft                                  |
+| R4  | `session_replication_role` in der CI-Umgebung unverifiziert                         | niedrig  | Dort ist `postgres` Superuser, also unkritischer als gehostet           |
+| R5  | Umlaute in den `throws_like`-Mustern müssen zur Kodierung passen                    | niedrig  | Muster stammt unverändert aus `rls.test.sql`                            |
+| R6  | `match_knowledge` verliert durch PL/pgSQL das Inlining                              | niedrig  | Auswirkung als vernachlässigbar bewertet, nicht gemessen                |
+| R7  | Keine Frontend-Testinfrastruktur                                                    | mittel   | Betrifft Priorität 4, nicht F1                                          |
 
 ---
 
@@ -202,14 +202,14 @@ Bei roten Prüfungen bitte die vollständige Ausgabe von `supabase test db` schi
 
 **Danach Smoke Tests, manuell, gegen einen Entwicklungszweig:**
 
-| # | Ablauf | Erwartung |
-|---|---|---|
-| 1 | Registrierung mit einem Einladungscode | Profil entsteht, Code als verbraucht markiert |
-| 2 | Anmeldung | `current_org_id()` und `is_super_admin()` liefern Werte, Organisation wird geladen |
-| 3 | Coach-Nachricht senden | Antwort kommt, `coach_messages` erhält zwei Zeilen |
-| 4 | Tagesplan erzeugen | Plan mit mindestens einer Mission |
-| 5 | Teamstruktur öffnen | eigene Downline sichtbar, keine Sideline |
-| 6 | Wissensdokument hochladen und freigeben | `knowledge_chunks` wächst, Coach zitiert daraus |
+| #   | Ablauf                                  | Erwartung                                                                          |
+| --- | --------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | Registrierung mit einem Einladungscode  | Profil entsteht, Code als verbraucht markiert                                      |
+| 2   | Anmeldung                               | `current_org_id()` und `is_super_admin()` liefern Werte, Organisation wird geladen |
+| 3   | Coach-Nachricht senden                  | Antwort kommt, `coach_messages` erhält zwei Zeilen                                 |
+| 4   | Tagesplan erzeugen                      | Plan mit mindestens einer Mission                                                  |
+| 5   | Teamstruktur öffnen                     | eigene Downline sichtbar, keine Sideline                                           |
+| 6   | Wissensdokument hochladen und freigeben | `knowledge_chunks` wächst, Coach zitiert daraus                                    |
 
 Ablauf 2 ist besonders zu beachten: Ich habe die Ausführungsrechte von `current_org_id`, `is_super_admin` und `current_user_role` für `anon` ausdrücklich **nicht** angetastet, weil sie in 51 Policies aufgerufen werden. Sollte die Anmeldung dennoch Probleme zeigen, ist das der erste Ort zum Nachsehen.
 
@@ -225,13 +225,13 @@ Ihre eigenen Abschlusskriterien lauteten: sämtliche Tests erfolgreich, keine Re
 
 ### Verbleibende Blocker
 
-| # | Blocker | Behebung | Wer |
-|---|---|---|---|
-| **B1** | `package-lock.json` fehlt. npm-Registry hier gesperrt (403) | `npm install`, committen | Maschine nötig |
-| **B2** | `database.types.ts` ist handgepflegt und bricht den Typen-Drift-Schritt der CI | `npm run db:types`, committen | Maschine nötig |
+| #      | Blocker                                                                                                 | Behebung                                              | Wer                    |
+| ------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------- |
+| **B1** | `package-lock.json` fehlt. npm-Registry hier gesperrt (403)                                             | `npm install`, committen                              | Maschine nötig         |
+| **B2** | `database.types.ts` ist handgepflegt und bricht den Typen-Drift-Schritt der CI                          | `npm run db:types`, committen                         | Maschine nötig         |
 | **B3** | Migration nie angewendet. Anlegen eines Entwicklungszweigs über mich gesperrt, Kostenabfrage abgewiesen | `supabase db start` lokal, oder Zweig manuell anlegen | Maschine oder Freigabe |
-| **B4** | 94 Prüfungen nie ausgeführt | `supabase test db` nach B2 und B3 | Maschine nötig |
-| **B5** | Smoke Tests nicht ausgeführt | sechs Abläufe aus Abschnitt 9 | Maschine und Browser |
+| **B4** | 94 Prüfungen nie ausgeführt                                                                             | `supabase test db` nach B2 und B3                     | Maschine nötig         |
+| **B5** | Smoke Tests nicht ausgeführt                                                                            | sechs Abläufe aus Abschnitt 9                         | Maschine und Browser   |
 
 Keiner dieser Blocker verlangt eine Änderung an der Migration. Alle fünf sind Verifikationsschritte.
 

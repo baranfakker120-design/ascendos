@@ -2,8 +2,7 @@
   position: absolute;
   inset: 0;
   border-radius: 1rem;
-  background:
-    linear-gradient(165deg, #f6e2a8 0%, #d4af37 42%, #b8935a 70%, #8a6c3c 100%);
+  background: linear-gradient(165deg, #f6e2a8 0%, #d4af37 42%, #b8935a 70%, #8a6c3c 100%);
   border: 1px solid rgb(255 255 255 / 0.45);
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.5) inset,
@@ -15,12 +14,7 @@
 .ap-badge__sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent 35%,
-    rgb(255 255 255 / 0.5) 50%,
-    transparent 65%
-  );
+  background: linear-gradient(120deg, transparent 35%, rgb(255 255 255 / 0.5) 50%, transparent 65%);
   transform: translateX(-120%);
   animation: ap-badge-sheen 5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }

@@ -23,17 +23,17 @@ export function useJourneyState() {
     queryKey: ['journey-state', profile?.id],
     enabled: !!profile,
     queryFn: async (): Promise<JourneyState> => {
-      const journeys = await supabase
-        .from('journeys')
-        .select('*')
-        .order('created_at')
-        .limit(1);
+      const journeys = await supabase.from('journeys').select('*').order('created_at').limit(1);
       if (journeys.error) throw journeys.error;
       const journey = journeys.data[0] ?? null;
       if (!journey) {
         return {
-          journey: null, steps: [], completedStepIds: new Set(),
-          currentDay: 1, totalDays: 0, isComplete: true,
+          journey: null,
+          steps: [],
+          completedStepIds: new Set(),
+          currentDay: 1,
+          totalDays: 0,
+          isComplete: true,
         };
       }
       const [steps, progress] = await Promise.all([
@@ -48,9 +48,7 @@ export function useJourneyState() {
       if (steps.error) throw steps.error;
       if (progress.error) throw progress.error;
 
-      const completedStepIds = new Set(
-        (progress.data as UserProgress[]).map((p) => p.step_id)
-      );
+      const completedStepIds = new Set((progress.data as UserProgress[]).map((p) => p.step_id));
       const totalDays = Math.max(...steps.data.map((s) => s.day_number), 0);
       const firstOpen = steps.data.find((s) => !completedStepIds.has(s.id));
       const currentDay = firstOpen ? firstOpen.day_number : totalDays + 1;

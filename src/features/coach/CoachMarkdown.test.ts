@@ -8,7 +8,9 @@ describe('CoachMarkdown preparation exports', () => {
   });
 
   it('promotes tip and important lines', () => {
-    expect(promoteCalloutLines('Tipp: Kurz und persönlich bleiben.')).toContain('> **🔥 Pro Tip:**');
+    expect(promoteCalloutLines('Tipp: Kurz und persönlich bleiben.')).toContain(
+      '> **🔥 Pro Tip:**'
+    );
     expect(promoteCalloutLines('Wichtig: Keine Heilversprechen.')).toContain('> **✦ Wichtig:**');
   });
 

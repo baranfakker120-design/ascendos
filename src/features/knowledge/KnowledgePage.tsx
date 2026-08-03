@@ -17,7 +17,11 @@ import {
 
 /** Dateiname ohne Endung als Vorschlag für den Dokumenttitel. */
 function titleFromFile(name: string): string {
-  return name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 200);
+  return name
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .slice(0, 200);
 }
 
 let jobCounter = 0;
@@ -110,8 +114,8 @@ export function KnowledgePage() {
       <header>
         <h1 className="text-2xl font-semibold text-ink">Wissensdatenbank</h1>
         <p className="mt-1 text-sm text-muted">
-          Teamdokumente sind für Ascent die oberste Wahrheit. Was hier fehlt, behandelt der
-          Coach als Wissenslücke.
+          Teamdokumente sind für Ascent die oberste Wahrheit. Was hier fehlt, behandelt der Coach
+          als Wissenslücke.
         </p>
       </header>
 
@@ -120,7 +124,9 @@ export function KnowledgePage() {
           id="kb-category"
           label="Kategorie"
           value={category}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => setCategory(e.target.value as CategoryValue)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setCategory(e.target.value as CategoryValue)
+          }
           disabled={busy}
           hint={selected ? `Wird abgefragt von: ${selected.agents}` : undefined}
         >
@@ -135,7 +141,9 @@ export function KnowledgePage() {
           id="kb-source"
           label="Art des Dokuments"
           value={sourceType}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => setSourceType(e.target.value as SourceTypeValue)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setSourceType(e.target.value as SourceTypeValue)
+          }
           disabled={busy}
         >
           {SOURCE_TYPES.map((s) => (

@@ -98,10 +98,7 @@ export function useExternalTools() {
   return useQuery({
     queryKey: ['external-tools'],
     queryFn: async (): Promise<ExternalTool[]> => {
-      const { data, error } = await supabase
-        .from('external_tools')
-        .select('*')
-        .order('sort_order');
+      const { data, error } = await supabase.from('external_tools').select('*').order('sort_order');
       if (error) throw error;
       return data;
     },

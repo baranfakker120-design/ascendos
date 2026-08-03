@@ -33,17 +33,17 @@ Konkret unterscheide ich drei Klassen:
 
 Neun Funktionen sind `security definer`, umgehen also RLS. Sieben davon nehmen eine fremde Nutzerkennung als Parameter, prüfen den Aufrufer nicht und sind für die Rolle `anon` ausführbar.
 
-| Funktion | Parameter | Aufruferprüfung | Ausführbar von |
-|---|---|---|---|
-| `plan_signal_follow_up` | p_user, p_date | NEIN | anon, authenticated, PUBLIC |
-| `plan_signal_fit_check` | p_user, p_date | NEIN | anon, authenticated, PUBLIC |
-| `plan_signal_next_step` | p_user, p_date | NEIN | anon, authenticated, PUBLIC |
-| `plan_signal_presentation` | p_user, p_date | NEIN | anon, authenticated, PUBLIC |
-| `plan_signal_reactivate` | p_user, p_date | NEIN | anon, authenticated, PUBLIC |
-| `plan_contact_state` | p_user | NEIN | anon, authenticated, PUBLIC |
-| `get_downline` | root_user_id | NEIN | anon, authenticated, PUBLIC |
-| `coach_messages_today` | p_user | NEIN | anon, authenticated, PUBLIC |
-| `track_usage` | p_user, p_event, p_meta | NEIN, **schreibend** | PUBLIC |
+| Funktion                   | Parameter               | Aufruferprüfung      | Ausführbar von              |
+| -------------------------- | ----------------------- | -------------------- | --------------------------- |
+| `plan_signal_follow_up`    | p_user, p_date          | NEIN                 | anon, authenticated, PUBLIC |
+| `plan_signal_fit_check`    | p_user, p_date          | NEIN                 | anon, authenticated, PUBLIC |
+| `plan_signal_next_step`    | p_user, p_date          | NEIN                 | anon, authenticated, PUBLIC |
+| `plan_signal_presentation` | p_user, p_date          | NEIN                 | anon, authenticated, PUBLIC |
+| `plan_signal_reactivate`   | p_user, p_date          | NEIN                 | anon, authenticated, PUBLIC |
+| `plan_contact_state`       | p_user                  | NEIN                 | anon, authenticated, PUBLIC |
+| `get_downline`             | root_user_id            | NEIN                 | anon, authenticated, PUBLIC |
+| `coach_messages_today`     | p_user                  | NEIN                 | anon, authenticated, PUBLIC |
+| `track_usage`              | p_user, p_event, p_meta | NEIN, **schreibend** | PUBLIC                      |
 
 Der Rückgabetyp von `plan_signal_follow_up` lautet `(contact_id, mission_type, title, reason, score)`, und `title` wird gebildet als `name || ' kontaktieren'`. Die Funktion gibt also **Klarnamen von Kontakten** zurück.
 
@@ -70,11 +70,11 @@ Drei Schritte, in dieser Reihenfolge, als eine Migration:
 
 Zusätzlich als Dauerregel: Jede neue `security definer`-Funktion mit einem Nutzerparameter braucht eine Aufruferprüfung. Das gehört als Prüfschritt in den Auslieferungsablauf, weil dieser Fehler nicht auffällt, solange man die Anwendung normal benutzt.
 
-| | |
-|---|---|
-| Priorität | höchste, blockierend |
-| Aufwand | eine Migration, etwa ein Tag inklusive Tests |
-| Roadmap anpassen | **Ja.** Neue Phase 0.0 vor allem anderen. |
+|                  |                                              |
+| ---------------- | -------------------------------------------- |
+| Priorität        | höchste, blockierend                         |
+| Aufwand          | eine Migration, etwa ein Tag inklusive Tests |
+| Roadmap anpassen | **Ja.** Neue Phase 0.0 vor allem anderen.    |
 
 ## F2. Die Rolle `leader` hat keine Wirkung, die Roadmap baut aber auf ihr auf
 
@@ -107,11 +107,11 @@ Diese Funktion wird die einzige Sichtbarkeitsregel für Personendaten. Jede Poli
 
 Wichtig: Sichtbarkeit sollte an der **Beziehung** hängen, nicht an der Rolle. Ein Berater mit Downline ist für seine Downline die Teamleitung, unabhängig davon, ob in `profiles.role` `leader` steht. Die Wissensdatenbank definiert Upline Manager über den erreichten Rang, nicht über eine zugewiesene Rolle. Eine reine Rollenprüfung würde das falsch abbilden.
 
-| | |
-|---|---|
-| Priorität | hoch, blockiert Phase 3.3 und alles danach |
-| Aufwand | eine Migration plus Policy-Durchsicht, etwa zwei Tage |
-| Roadmap anpassen | **Ja.** Als 0.5 aufnehmen, vor Phase 3. |
+|                  |                                                       |
+| ---------------- | ----------------------------------------------------- |
+| Priorität        | hoch, blockiert Phase 3.3 und alles danach            |
+| Aufwand          | eine Migration plus Policy-Durchsicht, etwa zwei Tage |
+| Roadmap anpassen | **Ja.** Als 0.5 aufnehmen, vor Phase 3.               |
 
 ## F3. `admin_secrets` ist schwächer als das eigene dokumentierte Sicherheitsmuster
 
@@ -133,10 +133,10 @@ Tabelle streichen. Die Geheimnisse werden bei der Redaktion aus der Wissensbasis
 
 Falls später doch ein Geheimnis in AscendOS gebraucht wird, etwa ein Schlüssel für eine Fremdschnittstelle: RLS ohne Policies plus Zugriff ausschließlich über eine Edge Function, wie die Wissensdatenbank es beschreibt. Nie über die Client-API.
 
-| | |
-|---|---|
-| Priorität | hoch |
-| Aufwand | gering, es entfällt Arbeit |
+|                  |                                                                      |
+| ---------------- | -------------------------------------------------------------------- |
+| Priorität        | hoch                                                                 |
+| Aufwand          | gering, es entfällt Arbeit                                           |
 | Roadmap anpassen | **Ja.** Phase 0.1 ändern, Tabelle aus der Übersicht in C2 entfernen. |
 
 ---
@@ -163,10 +163,10 @@ Die Funktion ist die Wahrheit, die Tabelle höchstens ein Zwischenspeicher.
 
 Dasselbe für `license_status`: Der Stand der Sechs-Monats-Frist ist eine Berechnung über `member_points`, kein zu pflegender Zustand.
 
-| | |
-|---|---|
-| Priorität | hoch |
-| Aufwand | mittel, betrifft die Kernlogik von Phase 2 |
+|                  |                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| Priorität        | hoch                                                                                  |
+| Aufwand          | mittel, betrifft die Kernlogik von Phase 2                                            |
 | Roadmap anpassen | **Ja.** Phase 2.2 und 2.4 präzisieren, zwei Tabellen aus C2 möglicherweise entfernen. |
 
 ## F5. Zwei Quellen für dieselbe Größe, ohne Konsistenzregel
@@ -187,10 +187,10 @@ Damit bleibt in `member_points` nur, was wirklich eigen ist: `ap`, `cp`, `icp`. 
 
 Zusatzregel: Wer keine Linien erfasst, hat 0 PT und damit Rang Member. Das ist korrekt und braucht keine Sonderbehandlung.
 
-| | |
-|---|---|
-| Priorität | hoch |
-| Aufwand | gering, wenn jetzt entschieden |
+|                  |                                 |
+| ---------------- | ------------------------------- |
+| Priorität        | hoch                            |
+| Aufwand          | gering, wenn jetzt entschieden  |
 | Roadmap anpassen | **Ja.** Phase 2.3 überarbeiten. |
 
 ## F6. Mehrsprachigkeit fehlt im Datenmodell vollständig
@@ -201,15 +201,15 @@ Die Wissensdatenbank dokumentiert bis zu zwölf Sprachen in bestehenden Werkzeug
 
 Meine Roadmap enthält kein einziges Sprachfeld. Betroffen sind mindestens sechs neue Tabellen mit übersetzbarem Text:
 
-| Tabelle | Übersetzbare Felder | Nicht übersetzbar |
-|---|---|---|
-| `catalog_products` | description, application, benefits | code, name, price_eur, size |
-| `events` | title, description | starts_at, url |
-| `news_posts` | title, body | publish_at |
-| `notification_templates` | Nachrichtentext | kind |
-| `achievements` | Titel, Beschreibung | key |
-| `comp_plan_ranks` | eventuell Rangbezeichnung | rank_key, alle Zahlen |
-| `coach_fallback_scenarios` | response, follow_up | agent_key |
+| Tabelle                    | Übersetzbare Felder                | Nicht übersetzbar           |
+| -------------------------- | ---------------------------------- | --------------------------- |
+| `catalog_products`         | description, application, benefits | code, name, price_eur, size |
+| `events`                   | title, description                 | starts_at, url              |
+| `news_posts`               | title, body                        | publish_at                  |
+| `notification_templates`   | Nachrichtentext                    | kind                        |
+| `achievements`             | Titel, Beschreibung                | key                         |
+| `comp_plan_ranks`          | eventuell Rangbezeichnung          | rank_key, alle Zahlen       |
+| `coach_fallback_scenarios` | response, follow_up                | agent_key                   |
 
 **Auswirkung**
 
@@ -235,10 +235,10 @@ Mindestens jetzt festzulegen, auch wenn v1 einsprachig bleibt:
 2. Nicht übersetzbare Felder werden explizit benannt, nach der Regel der Wissensdatenbank: Codes, Namen, Preise.
 3. `match_knowledge` erhält einen Sprachparameter, auch wenn er zunächst immer `de` ist. Nachträglich einen Parameter in eine Funktionssignatur einzufügen, die von Edge Functions aufgerufen wird, ist unnötige Nacharbeit.
 
-| | |
-|---|---|
-| Priorität | hoch |
-| Aufwand | Entscheidung jetzt nahezu kostenlos, Nachrüstung später hoch |
+|                  |                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| Priorität        | hoch                                                                                |
+| Aufwand          | Entscheidung jetzt nahezu kostenlos, Nachrüstung später hoch                        |
 | Roadmap anpassen | **Ja.** Eigener Querschnittsabschnitt in Teil C, plus Sprachparameter in Phase 0.2. |
 
 ## F7. Navigation nicht geplant, entgegen der ausdrücklichen Lehre der Wissensdatenbank
@@ -267,10 +267,10 @@ Grundsätze, abgeleitet aus der Wissensdatenbank:
 4. **Alles Administrative bleibt unter Mehr.** Wissenspflege, Produktpflege, Events.
 5. **Jede neue Oberfläche verdrängt eine bestehende oder wird kontextuell eingehängt.** Nichts wird nur hinzugefügt.
 
-| | |
-|---|---|
-| Priorität | hoch |
-| Aufwand | Konzept etwa zwei Tage, spart später Umbauten |
+|                  |                                                            |
+| ---------------- | ---------------------------------------------------------- |
+| Priorität        | hoch                                                       |
+| Aufwand          | Konzept etwa zwei Tage, spart später Umbauten              |
 | Roadmap anpassen | **Ja.** Neue Position vor Phase 5, plus Auflage in Teil C. |
 
 ---
@@ -286,7 +286,7 @@ Grundsätze, abgeleitet aus der Wissensdatenbank:
 **Lösung** `goals` als allgemeine Tabelle mit `kind`. Das Monatsziel ist ein Zieltyp darin, die abgeleiteten Tageszahlen sind eine Berechnung, keine Speicherung. `activity_targets` entfällt.
 
 | Priorität | mittel | Aufwand | gering | Roadmap anpassen | **Ja**, Phase 3.1 und 8.1 zusammenführen |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | ---------------------------------------- |
 
 ## F9. Redundante Tabelle: `rank_history`
 
@@ -295,7 +295,7 @@ Grundsätze, abgeleitet aus der Wissensdatenbank:
 **Lösung** Streichen. Der Verlauf ist eine Abfrage, keine Tabelle. Ein Beförderungsereignis, das eine Benachrichtigung auslöst, gehört in `notifications`, nicht in eine eigene Verlaufstabelle.
 
 | Priorität | mittel | Aufwand | gering | Roadmap anpassen | **Ja**, Tabelle aus C2 entfernen |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | -------------------------------- |
 
 ## F10. Fragwürdige Tabelle: `structure_snapshots`
 
@@ -304,7 +304,7 @@ Grundsätze, abgeleitet aus der Wissensdatenbank:
 **Lösung** Nur nötig, wenn die Struktur rückdatiert korrigiert werden kann, also wenn ein Sponsor nachträglich geändert wird. Das ist über `protect_profile_columns()` heute nur Super-Admins erlaubt. Wenn solche Korrekturen selten sind, entfällt die Tabelle. Zu klären, dann entscheiden.
 
 | Priorität | mittel | Aufwand | gering | Roadmap anpassen | **Ja**, als offene Entscheidung aufnehmen |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | ----------------------------------------- |
 
 ## F11. Neue Berechtigungen fallen aus dem Schutz vor Selbstbeförderung
 
@@ -317,7 +317,7 @@ Grundsätze, abgeleitet aus der Wissensdatenbank:
 Falls Spalten auf `profiles` bevorzugt werden: `protect_profile_columns()` muss zwingend erweitert werden, und zwar in derselben Migration, in der die Spalte entsteht.
 
 | Priorität | mittel bis hoch, Sicherheit | Aufwand | gering | Roadmap anpassen | **Ja**, Teil C1 präzisieren |
-|---|---|---|---|---|---|
+| --------- | --------------------------- | ------- | ------ | ---------------- | --------------------------- |
 
 ## F12. Performanceproblem bei der Leaderansicht
 
@@ -330,7 +330,7 @@ Falls Spalten auf `profiles` bevorzugt werden: `protect_profile_columns()` muss 
 Positiv anzumerken: `profiles_sponsor_id_idx` existiert bereits, die Rekursion selbst ist also nicht das Problem.
 
 | Priorität | mittel | Aufwand | mittel | Roadmap anpassen | **Ja**, in Phase 2.2 und 6.3 vermerken |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | -------------------------------------- |
 
 ## F13. `notifications` wächst unbegrenzt
 
@@ -341,7 +341,7 @@ Positiv anzumerken: `profiles_sponsor_id_idx` existiert bereits, die Rekursion s
 **Lösung** Aufbewahrung 90 Tage für gelesene, 1 Jahr für ungelesene, danach Löschung. Als geplante Funktion. Dauerhaft aufzubewahrende Ereignisse, etwa eine Rangerreichung, gehören nicht in `notifications`, sondern sind aus den Fachdaten ableitbar.
 
 | Priorität | mittel | Aufwand | gering | Roadmap anpassen | **Ja**, Phase 7.2 ergänzen |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | -------------------------- |
 
 ## F14. Architekturwiderspruch zwischen Wissensdatenbank und AscendOS
 
@@ -358,7 +358,7 @@ Aber mit einer Auflage, die F1 belegt: RLS-first funktioniert nur bei Disziplin 
 Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverändert weiter. Sie haben keine Konten und keine RLS, dort ist der Backend-Weg richtig.
 
 | Priorität | mittel | Aufwand | Dokumentation | Roadmap anpassen | **Ja**, als Architekturentscheidung in Teil C |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------------- | ---------------- | --------------------------------------------- |
 
 ## F15. Phase 0.3 macht die bereits gebaute Upload-Oberfläche unpassend
 
@@ -369,7 +369,7 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 **Lösung** Die Redaktion in Phase 0.3 erzeugt fertige Einzeldateien mit einem Kopfblock für Kategorie, Status und Zielgruppe. Die Upload-Seite liest diesen Kopfblock, statt die Auswahl vom Nutzer zu verlangen. Das ist eine kleine Erweiterung und macht den Upload zugleich wiederholbar, was für Nachpflege wichtig ist.
 
 | Priorität | mittel | Aufwand | gering bis mittel | Roadmap anpassen | **Ja**, Phase 0.3 um den Kopfblock ergänzen |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ----------------- | ---------------- | ------------------------------------------- |
 
 ## F16. Fehlende Beziehung: Smartlink zur Pipeline
 
@@ -380,7 +380,7 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 **Lösung** `smartlinks.contact_id` als optionale Fremdbeziehung. Bei `converted_at` ein `pipeline_event` mit `source = 'smartlink'`. Das nutzt die vorhandene Korrekturlogik in `effective_pipeline_events` mit.
 
 | Priorität | mittel | Aufwand | gering | Roadmap anpassen | **Ja**, Phase 4.2 ergänzen |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | -------------------------- |
 
 ## F17. `recognitions.metric` als Freitext ist nicht auditierbar
 
@@ -391,7 +391,7 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 **Lösung** Erlaubte Metriken als Tabelle `recognition_metrics` mit Fremdbeziehung, gefüllt ausschließlich mit den in 06_RECRUITING.md dokumentierten Aktivitätsgrößen. Ergänzend eine CHECK-Bedingung. Damit ist die Auflage in der Datenbank verankert und nicht im Dokument.
 
 | Priorität | mittel | Aufwand | gering | Roadmap anpassen | **Ja**, Phase 8.3 präzisieren |
-|---|---|---|---|---|---|
+| --------- | ------ | ------- | ------ | ---------------- | ----------------------------- |
 
 ---
 
@@ -406,7 +406,7 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 **Lösung** Vier SVG-Symbole ersetzen die Emojis. Nebeneffekt: konsistente Darstellung über Geräte, was Emojis nicht leisten.
 
 | Priorität | niedrig | Aufwand | gering | Roadmap anpassen | Nein, als Aufgabe in Phase 7 der Informationsarchitektur |
-|---|---|---|---|---|---|
+| --------- | ------- | ------- | ------ | ---------------- | -------------------------------------------------------- |
 
 ## F19. `comp_plan_ranks.org_id` nullable ohne Auflösungsregel
 
@@ -415,7 +415,7 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 **Lösung** Explizite Regel: Existiert eine Zeile mit passender `org_id` und `rank_key`, gewinnt sie. Sonst greift die Zeile mit `org_id is null`. Als Sicht `effective_comp_plan` implementieren, damit keine Abfrage die Regel selbst nachbaut. Das entspricht dem Muster von `effective_pipeline_events`, das im Projekt bereits existiert und sich bewährt hat.
 
 | Priorität | niedrig, aber jetzt festzulegen | Aufwand | gering | Roadmap anpassen | **Ja**, Phase 2.1 ergänzen |
-|---|---|---|---|---|---|
+| --------- | ------------------------------- | ------- | ------ | ---------------- | -------------------------- |
 
 ## F20. Ambassador-Programm fehlt ohne dokumentierte Begründung
 
@@ -426,7 +426,7 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 **Lösung** Als bewusste Auslassung dokumentieren, mit Bedingung für die Aufnahme: Sobald die Stufenleiter vorliegt, ist es eine Erweiterung von `comp_plan_ranks` um eine zweite Leiter, keine neue Struktur.
 
 | Priorität | niedrig | Aufwand | Dokumentation | Roadmap anpassen | **Ja**, in die offenen Punkte |
-|---|---|---|---|---|---|
+| --------- | ------- | ------- | ------------- | ---------------- | ----------------------------- |
 
 ---
 
@@ -434,18 +434,18 @@ Für die bestehenden Werkzeuge gilt die Empfehlung der Wissensdatenbank unverän
 
 Damit der Review nicht nur Mängel listet, hier die Punkte, die ich geprüft und für tragfähig befunden habe.
 
-| Geprüft | Befund |
-|---|---|
-| Mandantenfähigkeit im Datenmodell | `org_id` auf allen 22 bestehenden Tabellen, `current_org_id()` in jeder Policy. Solide Grundlage. Einzige Ausnahme ist F1. |
-| RLS-Abdeckung | Alle 22 AscendOS-Tabellen haben RLS aktiv, alle bis auf `invite_validation_attempts` haben Policies, und dort ist die Policy-Freiheit dokumentierte Absicht. |
-| `match_knowledge` Sicherheitsmodell | `stable`, `security invoker`. RLS greift durch, Entwürfe bleiben für Berater unsichtbar. Korrekt. |
-| Migrationsdisziplin | Angewendete Migrationen werden nicht editiert, Korrekturen sind neue Migrationen. Konsequent über 12 Migrationen durchgehalten. |
-| Provider-Abstraktion | `_shared/gemini.ts` als einzige Stelle mit Schlüssel und Endpunkt. Der Wechsel von Anthropic über OpenAI zu Gemini hat das bestätigt. |
-| Agenten als Daten | Sieben neue Agenten sind sieben Zeilen, kein Code. Trägt in Phase 9. |
-| Korrekturfähige Ereignisse | `effective_pipeline_events` rechnet Korrekturen heraus. Richtige Grundlage für Phase 6.2. |
-| Deterministische Kernlogik | Rangberechnung und Codelogik bewusst ohne Sprachmodell. Genau richtig. |
-| Generierte Setup-Artefakte | `npm run generate:check` verhindert Drift zwischen Quellen und Dashboard-Dateien. |
-| Freigabepflicht für Wissen | Entwurf bis Freigabe, erzwungen über RLS statt über die Oberfläche. |
+| Geprüft                             | Befund                                                                                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mandantenfähigkeit im Datenmodell   | `org_id` auf allen 22 bestehenden Tabellen, `current_org_id()` in jeder Policy. Solide Grundlage. Einzige Ausnahme ist F1.                                   |
+| RLS-Abdeckung                       | Alle 22 AscendOS-Tabellen haben RLS aktiv, alle bis auf `invite_validation_attempts` haben Policies, und dort ist die Policy-Freiheit dokumentierte Absicht. |
+| `match_knowledge` Sicherheitsmodell | `stable`, `security invoker`. RLS greift durch, Entwürfe bleiben für Berater unsichtbar. Korrekt.                                                            |
+| Migrationsdisziplin                 | Angewendete Migrationen werden nicht editiert, Korrekturen sind neue Migrationen. Konsequent über 12 Migrationen durchgehalten.                              |
+| Provider-Abstraktion                | `_shared/gemini.ts` als einzige Stelle mit Schlüssel und Endpunkt. Der Wechsel von Anthropic über OpenAI zu Gemini hat das bestätigt.                        |
+| Agenten als Daten                   | Sieben neue Agenten sind sieben Zeilen, kein Code. Trägt in Phase 9.                                                                                         |
+| Korrekturfähige Ereignisse          | `effective_pipeline_events` rechnet Korrekturen heraus. Richtige Grundlage für Phase 6.2.                                                                    |
+| Deterministische Kernlogik          | Rangberechnung und Codelogik bewusst ohne Sprachmodell. Genau richtig.                                                                                       |
+| Generierte Setup-Artefakte          | `npm run generate:check` verhindert Drift zwischen Quellen und Dashboard-Dateien.                                                                            |
+| Freigabepflicht für Wissen          | Entwurf bis Freigabe, erzwungen über RLS statt über die Oberfläche.                                                                                          |
 
 ---
 
@@ -459,33 +459,33 @@ Grund ist ausschließlich F1. Sieben Datenbankfunktionen geben personenbezogene 
 
 **Vor Phase 0, zwingend:**
 
-| Befund | Inhalt | Aufwand |
-|---|---|---|
-| F1 | Aufruferprüfung, Ausführungsrechte, `org_id`-Filter | etwa 1 Tag |
-| F3 | `admin_secrets` streichen | Streichung |
+| Befund | Inhalt                                              | Aufwand    |
+| ------ | --------------------------------------------------- | ---------- |
+| F1     | Aufruferprüfung, Ausführungsrechte, `org_id`-Filter | etwa 1 Tag |
+| F3     | `admin_secrets` streichen                           | Streichung |
 
 **Vor Phase 2, zwingend, weil sonst das Datenmodell falsch entsteht:**
 
-| Befund | Inhalt | Aufwand |
-|---|---|---|
-| F4 | Abgeleitete Daten als Funktion, nicht als Tabelle | etwa 1 Tag Entscheidung |
-| F5 | `line_volumes` als einzige PT-Quelle | Entscheidung |
-| F6 | Übersetzungsmuster festlegen, Sprachparameter in `match_knowledge` | etwa 1 Tag |
-| F11 | Berechtigungen in eigene Tabelle | etwa 1 Tag |
-| F19 | Auflösungsregel für den Karriereplan | Entscheidung |
+| Befund | Inhalt                                                             | Aufwand                 |
+| ------ | ------------------------------------------------------------------ | ----------------------- |
+| F4     | Abgeleitete Daten als Funktion, nicht als Tabelle                  | etwa 1 Tag Entscheidung |
+| F5     | `line_volumes` als einzige PT-Quelle                               | Entscheidung            |
+| F6     | Übersetzungsmuster festlegen, Sprachparameter in `match_knowledge` | etwa 1 Tag              |
+| F11    | Berechtigungen in eigene Tabelle                                   | etwa 1 Tag              |
+| F19    | Auflösungsregel für den Karriereplan                               | Entscheidung            |
 
 **Vor Phase 3, zwingend:**
 
-| Befund | Inhalt | Aufwand |
-|---|---|---|
-| F2 | `can_see_user()` als einzige Sichtbarkeitsregel | etwa 2 Tage |
+| Befund | Inhalt                                          | Aufwand     |
+| ------ | ----------------------------------------------- | ----------- |
+| F2     | `can_see_user()` als einzige Sichtbarkeitsregel | etwa 2 Tage |
 
 **Vor Phase 5:**
 
-| Befund | Inhalt |
-|---|---|
-| F7 | Informationsarchitektur als Konzept |
-| F12 | Mengenbasierte Berechnung |
+| Befund | Inhalt                              |
+| ------ | ----------------------------------- |
+| F7     | Informationsarchitektur als Konzept |
+| F12    | Mengenbasierte Berechnung           |
 
 **Laufend, ohne Blockade:** F8, F9, F10, F13, F14, F15, F16, F17, F18, F20.
 

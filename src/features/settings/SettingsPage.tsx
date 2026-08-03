@@ -74,14 +74,11 @@ export function SettingsPage() {
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
           <div>
             <span className="font-medium">Push & Erinnerungen</span>
-            <p className="mt-0.5 text-xs text-muted">Demnächst verfügbar — noch nicht speicherbar.</p>
+            <p className="mt-0.5 text-xs text-muted">
+              Demnächst verfügbar — noch nicht speicherbar.
+            </p>
           </div>
-          <Toggle
-            checked={false}
-            onChange={() => undefined}
-            disabled
-            label="Push & Erinnerungen"
-          />
+          <Toggle checked={false} onChange={() => undefined} disabled label="Push & Erinnerungen" />
         </div>
       </Card>
 
@@ -95,14 +92,16 @@ export function SettingsPage() {
       <Card>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Privacy</p>
         <p className="mt-2 text-sm text-muted">
-          Profil- und Aktivitätsdaten bleiben in deiner Organisation. Firstline sieht nur Fortschritt,
-          keine privaten Inhalte.
+          Profil- und Aktivitätsdaten bleiben in deiner Organisation. Firstline sieht nur
+          Fortschritt, keine privaten Inhalte.
         </p>
       </Card>
 
       <Card>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Support</p>
-        <p className="mt-2 text-sm text-muted">Hilfe und technische Fragen über dein Leadership-Team.</p>
+        <p className="mt-2 text-sm text-muted">
+          Hilfe und technische Fragen über dein Leadership-Team.
+        </p>
         <a
           href="mailto:support@ascendos.app"
           className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline"
@@ -128,7 +127,10 @@ export function SettingsPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">About AscendOS</p>
         <p className="mt-2 text-sm text-ink">AscendOS · Build a better tomorrow.</p>
         <p className="mt-1 text-xs text-muted">Version 0.1.0</p>
-        <Link to="/profil" className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline">
+        <Link
+          to="/profil"
+          className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline"
+        >
           Zum Profil
         </Link>
       </Card>

@@ -39,8 +39,8 @@ export function DocumentList() {
   if (!docs || docs.length === 0) {
     return (
       <Card className="px-4 py-6 text-center text-sm text-muted">
-        Noch keine Dokumente. Lade das erste hoch — ohne Wissensbasis behandelt Ascent
-        jede Teamfrage als Wissenslücke.
+        Noch keine Dokumente. Lade das erste hoch — ohne Wissensbasis behandelt Ascent jede
+        Teamfrage als Wissenslücke.
       </Card>
     );
   }
@@ -51,9 +51,9 @@ export function DocumentList() {
     <div className="space-y-3">
       {drafts > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {drafts === 1 ? 'Ein Dokument ist' : `${drafts} Dokumente sind`} noch nicht
-          freigegeben. Für dein Team {drafts === 1 ? 'ist es' : 'sind sie'} damit unsichtbar
-          — du selbst siehst {drafts === 1 ? 'es' : 'sie'} als Super-Admin trotzdem im Coach.
+          {drafts === 1 ? 'Ein Dokument ist' : `${drafts} Dokumente sind`} noch nicht freigegeben.
+          Für dein Team {drafts === 1 ? 'ist es' : 'sind sie'} damit unsichtbar — du selbst siehst{' '}
+          {drafts === 1 ? 'es' : 'sie'} als Super-Admin trotzdem im Coach.
         </div>
       )}
 
@@ -80,8 +80,8 @@ export function DocumentList() {
 
               {!isRetrievable(doc.category) && (
                 <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-                  Die Kategorie „{doc.category}" wird von keinem Agenten abgefragt. Dieses
-                  Dokument wird nie gefunden, auch nach Freigabe nicht.
+                  Die Kategorie „{doc.category}" wird von keinem Agenten abgefragt. Dieses Dokument
+                  wird nie gefunden, auch nach Freigabe nicht.
                 </p>
               )}
 

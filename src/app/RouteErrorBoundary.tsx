@@ -31,7 +31,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: unknown) {
     console.error(
       'AscendOS RouteErrorBoundary:',
-      error instanceof Error ? error.message : 'unknown',
+      error instanceof Error ? error.message : 'unknown'
     );
   }
 

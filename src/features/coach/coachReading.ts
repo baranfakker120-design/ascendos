@@ -58,7 +58,10 @@ function metaFromChromeLabel(label: string): TeachingMeta | null {
 }
 
 export function matchTeachingLine(line: string): { meta: TeachingMeta; body: string } | null {
-  const trimmed = line.replace(/^[-*]\s+/, '').replace(/^>\s?/, '').trim();
+  const trimmed = line
+    .replace(/^[-*]\s+/, '')
+    .replace(/^>\s?/, '')
+    .trim();
 
   const chrome = trimmed.match(CHROME_LINE_RE);
   if (chrome) {
@@ -68,7 +71,10 @@ export function matchTeachingLine(line: string): { meta: TeachingMeta; body: str
 
   for (const p of TEACHING_PATTERNS) {
     if (p.re.test(trimmed)) {
-      const body = trimmed.replace(p.re, '').replace(/^\*\*|\*\*$/g, '').trim();
+      const body = trimmed
+        .replace(p.re, '')
+        .replace(/^\*\*|\*\*$/g, '')
+        .trim();
       return { meta: p.meta, body };
     }
   }

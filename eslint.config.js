@@ -37,11 +37,19 @@ export default tseslint.config(
         {
           zones: [
             { target: './src/features/auth', from: './src/features', except: ['./auth'] },
-            { target: './src/features/daily-plan', from: './src/features', except: ['./daily-plan'] },
+            {
+              target: './src/features/daily-plan',
+              from: './src/features',
+              except: ['./daily-plan'],
+            },
             { target: './src/features/contacts', from: './src/features', except: ['./contacts'] },
             { target: './src/features/coach', from: './src/features', except: ['./coach'] },
             { target: './src/features/more', from: './src/features', except: ['./more'] },
-            { target: './src/features/onboarding', from: './src/features', except: ['./onboarding'] },
+            {
+              target: './src/features/onboarding',
+              from: './src/features',
+              except: ['./onboarding'],
+            },
             { target: './src/features/progress', from: './src/features', except: ['./progress'] },
             { target: './src/features/knowledge', from: './src/features', except: ['./knowledge'] },
             { target: './src/features/profile', from: './src/features', except: ['./profile'] },

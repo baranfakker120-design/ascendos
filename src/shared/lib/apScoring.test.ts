@@ -30,7 +30,9 @@ describe('apScoring', () => {
 
   it('values fit-check and appointments higher than messages', () => {
     expect(scoreMission('fit_check_next_step')).toBeGreaterThanOrEqual(100);
-    expect(scorePipelineEvent('first_touch')).toBeLessThan(scorePipelineEvent('fit_check_completed'));
+    expect(scorePipelineEvent('first_touch')).toBeLessThan(
+      scorePipelineEvent('fit_check_completed')
+    );
   });
 
   it('snaps raw scores onto the reward ladder', () => {

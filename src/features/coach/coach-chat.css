@@ -85,8 +85,7 @@
   flex-shrink: 0;
   border-radius: 999px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 30% 22%, #ffffff 0%, #f3f1eb 48%, #e4e1da 100%);
+  background: radial-gradient(circle at 30% 22%, #ffffff 0%, #f3f1eb 48%, #e4e1da 100%);
   box-shadow:
     0 0 0 1.5px rgb(184 147 90 / 0.6),
     0 6px 16px rgb(17 18 20 / 0.1),

@@ -8,7 +8,7 @@ describe('resolveDisplayFrameKey', () => {
         role: 'super_admin',
         rankFrameKey: 'frame-01',
         isBeraterDesMonats: true,
-      }),
+      })
     ).toBe(SPECIAL_FRAME.super_admin);
   });
 
@@ -17,7 +17,7 @@ describe('resolveDisplayFrameKey', () => {
       resolveDisplayFrameKey({
         role: 'developer',
         rankFrameKey: 'frame-03',
-      }),
+      })
     ).toBe(SPECIAL_FRAME.developer);
   });
 
@@ -27,7 +27,7 @@ describe('resolveDisplayFrameKey', () => {
         role: 'berater',
         rankFrameKey: 'frame-02',
         isBeraterDesMonats: true,
-      }),
+      })
     ).toBe(SPECIAL_FRAME.berater_des_monats);
   });
 
@@ -36,7 +36,7 @@ describe('resolveDisplayFrameKey', () => {
       resolveDisplayFrameKey({
         role: 'leader',
         rankFrameKey: 'frame-05',
-      }),
+      })
     ).toBe('frame-05');
     expect(resolveDisplayFrameKey({ role: 'berater', rankFrameKey: null })).toBeNull();
   });

@@ -133,12 +133,7 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(
-    112deg,
-    transparent 30%,
-    rgb(255 255 255 / 0.8) 47%,
-    transparent 62%
-  );
+  background: linear-gradient(112deg, transparent 30%, rgb(255 255 255 / 0.8) 47%, transparent 62%);
   transform: translate3d(-135%, 0, 0);
   animation: ap-reward-sheen 4.4s cubic-bezier(0.22, 1.2, 0.36, 1) infinite;
 }

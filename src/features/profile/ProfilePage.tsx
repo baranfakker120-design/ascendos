@@ -70,10 +70,7 @@ export function ProfilePage() {
         <StatCard label="Aktuelle AP" value={formatStatNumber(rank.apTotal)} />
         <StatCard label="Aktueller Rang" value={currentLabel} />
         <StatCard label="Organisation" value={context.orgName} />
-        <StatCard
-          label="Rolle"
-          value={<RoleBadge role={membershipRole} className="mt-0.5" />}
-        />
+        <StatCard label="Rolle" value={<RoleBadge role={membershipRole} className="mt-0.5" />} />
       </div>
 
       <Card>

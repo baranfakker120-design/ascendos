@@ -57,7 +57,10 @@ export function ContactsIcon({ active, burst, className = '' }: NavIconProps) {
       fill="none"
       aria-hidden
     >
-      <g className={burst ? 'nav-contacts-left' : undefined} style={{ transformOrigin: '8px 12px' }}>
+      <g
+        className={burst ? 'nav-contacts-left' : undefined}
+        style={{ transformOrigin: '8px 12px' }}
+      >
         <circle cx="8.2" cy="8.2" r="2.15" stroke="currentColor" strokeWidth="1.5" />
         <path
           d="M4.4 17.6c.55-2.7 2.15-4.1 3.8-4.1s3.25 1.4 3.8 4.1"
@@ -66,7 +69,10 @@ export function ContactsIcon({ active, burst, className = '' }: NavIconProps) {
           strokeLinecap="round"
         />
       </g>
-      <g className={burst ? 'nav-contacts-right' : undefined} style={{ transformOrigin: '16px 12px' }}>
+      <g
+        className={burst ? 'nav-contacts-right' : undefined}
+        style={{ transformOrigin: '16px 12px' }}
+      >
         <circle cx="15.8" cy="8.2" r="2.15" stroke="currentColor" strokeWidth="1.5" />
         <path
           d="M12 17.6c.55-2.7 2.15-4.1 3.8-4.1s3.25 1.4 3.8 4.1"
@@ -136,8 +142,7 @@ export function TeamSeydaIcon({ active, burst, className = '' }: NavIconProps) {
 
 function prefersReducedMotion(): boolean {
   return (
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
 }
 
@@ -234,7 +239,14 @@ export function SettingsIcon({ active, className = '' }: NavIconProps) {
         strokeWidth="1.4"
         strokeLinecap="round"
       />
-      <circle cx="12" cy="12" r="6.4" stroke="currentColor" strokeWidth="1.35" strokeDasharray="2.2 2.4" />
+      <circle
+        cx="12"
+        cy="12"
+        r="6.4"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeDasharray="2.2 2.4"
+      />
     </svg>
   );
 }

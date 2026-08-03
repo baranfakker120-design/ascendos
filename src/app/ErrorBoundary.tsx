@@ -7,7 +7,10 @@ interface State {
 
 /** [F-2] Ein Render-Fehler darf nie eine weiße Seite hinterlassen. */
 export class ErrorBoundary extends Component<
-  { children: ReactNode; /** Soft reset without full reload when possible. */ onReset?: () => void },
+  {
+    children: ReactNode;
+    /** Soft reset without full reload when possible. */ onReset?: () => void;
+  },
   State
 > {
   state: State = { hasError: false };
@@ -32,7 +35,8 @@ export class ErrorBoundary extends Component<
       <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-lg font-semibold">Da ist etwas schiefgelaufen.</p>
         <p className="text-sm text-muted">
-          Deine Daten sind sicher gespeichert. Du kannst es erneut versuchen oder AscendOS neu laden.
+          Deine Daten sind sicher gespeichert. Du kannst es erneut versuchen oder AscendOS neu
+          laden.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button fullWidth={false} onClick={this.reset}>

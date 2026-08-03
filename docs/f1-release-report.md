@@ -7,18 +7,18 @@ Datum: 24. Juli 2026. **Nichts ausgerollt, nichts auf eine Datenbank angewendet.
 
 ## Übersicht der Artefakte
 
-| Datei | Art | Umfang |
-|---|---|---|
-| `supabase/migrations/20260730000012_f1_function_security.sql` | Migration | 581 Zeilen |
-| `supabase/tests/database/function_security.test.sql` | Test, neu | 34 Prüfungen |
-| `supabase/tests/database/regression.test.sql` | Test, neu | 23 Prüfungen |
-| `supabase/tests/database/rls.test.sql` | Test, korrigiert | 13 Prüfungen |
-| `supabase/tests/database/daily_plan.test.sql` | Test, korrigiert | 10 Prüfungen |
-| `supabase/tests/database/journey.test.sql` | Test, korrigiert | 8 Prüfungen |
-| `supabase/tests/database/phases.test.sql` | Test, korrigiert | 6 Prüfungen |
-| `docs/security-baseline.md` | Standard, neu | 12 Regelwerke |
-| `docs/f1-security-analysis.md` | Analyse | 264 Zeilen |
-| `setup/setup-complete.sql` | generiert | 12 Migrationen |
+| Datei                                                         | Art              | Umfang         |
+| ------------------------------------------------------------- | ---------------- | -------------- |
+| `supabase/migrations/20260730000012_f1_function_security.sql` | Migration        | 581 Zeilen     |
+| `supabase/tests/database/function_security.test.sql`          | Test, neu        | 34 Prüfungen   |
+| `supabase/tests/database/regression.test.sql`                 | Test, neu        | 23 Prüfungen   |
+| `supabase/tests/database/rls.test.sql`                        | Test, korrigiert | 13 Prüfungen   |
+| `supabase/tests/database/daily_plan.test.sql`                 | Test, korrigiert | 10 Prüfungen   |
+| `supabase/tests/database/journey.test.sql`                    | Test, korrigiert | 8 Prüfungen    |
+| `supabase/tests/database/phases.test.sql`                     | Test, korrigiert | 6 Prüfungen    |
+| `docs/security-baseline.md`                                   | Standard, neu    | 12 Regelwerke  |
+| `docs/f1-security-analysis.md`                                | Analyse          | 264 Zeilen     |
+| `setup/setup-complete.sql`                                    | generiert        | 12 Migrationen |
 
 Gesamt 94 Prüfungen über sechs Testdateien.
 
@@ -56,18 +56,19 @@ Produktionslogik ist unverändert. `handle_new_user` wurde nicht angefasst.
 
 **Status: strukturell geprüft, nicht ausgeführt.**
 
-| Prüfung | Ergebnis |
-|---|---|
-| `plan()` gegen tatsächliche Zusicherungen | 6 von 6 Dateien stimmen |
-| `$$`-Begrenzer paarweise | alle sechs Dateien gerade |
-| Trigger-Behandlung vorhanden | 6 von 6 |
-| Reihenfolge `disable` vor Insert, `enable` nach Aufbau | 6 von 6 |
+| Prüfung                                                | Ergebnis                  |
+| ------------------------------------------------------ | ------------------------- |
+| `plan()` gegen tatsächliche Zusicherungen              | 6 von 6 Dateien stimmen   |
+| `$$`-Begrenzer paarweise                               | alle sechs Dateien gerade |
+| Trigger-Behandlung vorhanden                           | 6 von 6                   |
+| Reihenfolge `disable` vor Insert, `enable` nach Aufbau | 6 von 6                   |
 
 Beim Prüfen meines eigenen Testplans habe ich eine Schwäche gefunden und behoben. Ich hatte `throws_ok(sql, null, null, beschreibung)` verwendet. Das ist aus zwei Gründen schlecht: untypisierte NULL erzeugt Mehrdeutigkeit bei der Funktionsauflösung, und der Test wird **auch grün, wenn die Funktion aus einem völlig anderen Grund scheitert**, etwa wegen eines Fehlers in meiner Migration. Ersetzt durch `throws_like` mit Prüfung der Fehlermeldung, was zugleich der Projektkonvention entspricht. Ebenso `isnt(x, null, ...)` durch `ok(x is not null, ...)`.
 
 **Risiko: hoch, und dies ist der Kern des Freigabeurteils.** Die Tests wurden nie ausgeführt. In meiner Umgebung fehlen Supabase-CLI, Docker und Netzwerkzugang. Statische Prüfung schließt Syntaxfehler nicht aus, die erst der Parser findet.
 
 **Offene Punkte:**
+
 - `supabase test db` wurde nie ausgeführt, weder lokal noch in der CI.
 - Der CI-Ablauf erreicht `supabase test db` überhaupt nicht: Zeile 41 führt `npm ci` aus, und das verweigert den Dienst ohne `package-lock.json`. Die Datei existiert im Repository nicht. Der Job scheitert vor Zeile 43.
 
@@ -77,22 +78,22 @@ Beim Prüfen meines eigenen Testplans habe ich eine Schwäche gefunden und behob
 
 **Status: geprüft, drei eigene Fehler gefunden und behoben.**
 
-| Prüfpunkt | Ergebnis |
-|---|---|
-| `SECURITY DEFINER` nur mit Begründung | 4 Gründe definiert, jede Funktion zugeordnet |
-| `SECURITY INVOKER` wo möglich | 6 Planungsfunktionen umgestellt |
-| `auth.uid()` | Parameter entfernt statt geprüft, wo immer eigener Nutzer |
-| `org_id` | in `get_downline` ergänzt, in beiden Rekursionszweigen |
-| Rollenprüfung | `is_super_admin()` bei `coach_messages_today`, `track_usage`, `get_downline` |
-| Berechtigungen | Beziehung über `is_ancestor_of`, nicht über Rolle |
-| RLS | nicht angetastet, keine Policy geändert |
-| PUBLIC | zuerst entzogen, dann selektiv gewährt |
-| anon | entzogen, außer bei den drei Policy-Helfern |
-| authenticated | erhalten für alle vom Frontend genutzten RPC |
-| Trigger | nicht eingeschränkt, weil nicht direkt aufrufbar |
-| Rekursionen | `CYCLE`-Klausel statt Tiefengrenze |
-| Performance | siehe unten |
-| Seiteneffekte | siehe unten |
+| Prüfpunkt                             | Ergebnis                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `SECURITY DEFINER` nur mit Begründung | 4 Gründe definiert, jede Funktion zugeordnet                                 |
+| `SECURITY INVOKER` wo möglich         | 6 Planungsfunktionen umgestellt                                              |
+| `auth.uid()`                          | Parameter entfernt statt geprüft, wo immer eigener Nutzer                    |
+| `org_id`                              | in `get_downline` ergänzt, in beiden Rekursionszweigen                       |
+| Rollenprüfung                         | `is_super_admin()` bei `coach_messages_today`, `track_usage`, `get_downline` |
+| Berechtigungen                        | Beziehung über `is_ancestor_of`, nicht über Rolle                            |
+| RLS                                   | nicht angetastet, keine Policy geändert                                      |
+| PUBLIC                                | zuerst entzogen, dann selektiv gewährt                                       |
+| anon                                  | entzogen, außer bei den drei Policy-Helfern                                  |
+| authenticated                         | erhalten für alle vom Frontend genutzten RPC                                 |
+| Trigger                               | nicht eingeschränkt, weil nicht direkt aufrufbar                             |
+| Rekursionen                           | `CYCLE`-Klausel statt Tiefengrenze                                           |
+| Performance                           | siehe unten                                                                  |
+| Seiteneffekte                         | siehe unten                                                                  |
 
 ### Eigene Fehler, die diese Runde gefunden hat
 
@@ -108,28 +109,29 @@ Bei `coach_messages_today` habe ich die Sprache von `sql` auf `plpgsql` geänder
 
 ### Performance
 
-| Änderung | Bewertung |
-|---|---|
+| Änderung                                  | Bewertung                                                                                                                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `match_knowledge` von `sql` auf `plpgsql` | Verliert Inlining. Da die Funktion immer eigenständig aufgerufen wird und der HNSW-Index im eigenen Plan genutzt wird, ist die Auswirkung vernachlässigbar. **Nicht gemessen.** |
-| `get_downline` von `sql` auf `plpgsql` | Verliert Inlining, gewinnt frühen Abbruch. Bei fehlender Berechtigung entfällt die gesamte Rekursion. Netto besser. |
-| `is_ancestor_of` je `get_downline`-Aufruf | Ein Aufwärtslauf pro Aufruf. Bei einer Leaderansicht über viele Personen entsteht ein N-plus-1-Muster. Das ist Befund F12 des Architektur-Reviews und nicht Teil von F1. |
-| Index auf `profiles.sponsor_id` | vorhanden (`profiles_sponsor_id_idx`), die Rekursion ist abgedeckt |
+| `get_downline` von `sql` auf `plpgsql`    | Verliert Inlining, gewinnt frühen Abbruch. Bei fehlender Berechtigung entfällt die gesamte Rekursion. Netto besser.                                                             |
+| `is_ancestor_of` je `get_downline`-Aufruf | Ein Aufwärtslauf pro Aufruf. Bei einer Leaderansicht über viele Personen entsteht ein N-plus-1-Muster. Das ist Befund F12 des Architektur-Reviews und nicht Teil von F1.        |
+| Index auf `profiles.sponsor_id`           | vorhanden (`profiles_sponsor_id_idx`), die Rekursion ist abgedeckt                                                                                                              |
 
 ### Seiteneffekte
 
-| Geprüft | Ergebnis |
-|---|---|
-| Funktions-OIDs ändern sich | ja, unerheblich. Signaturen der vom Frontend genutzten RPC bleiben identisch |
-| `database.types.ts` | enthält `get_downline` mit unveränderter Signatur, kein Anpassungsbedarf |
-| `coach-chat` Edge Function | übergibt die eigene Nutzerkennung und `profile.org_id`, beide Prüfungen bestehen |
-| `validate-invite` Edge Function | nutzt `service_role`, Entzug von `authenticated` unschädlich |
-| `set_updated_at` | wird auch von einem Trigger auf `products` des Fremdprojekts genutzt. Nur `search_path` ergänzt, Verhalten unverändert |
-| `event_phase_rank` | kein Index nutzt die Funktion, der `SET`-Zusatz ist unschädlich |
-| Kein Index auf betroffene Funktionen | geprüft, keiner |
+| Geprüft                              | Ergebnis                                                                                                               |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Funktions-OIDs ändern sich           | ja, unerheblich. Signaturen der vom Frontend genutzten RPC bleiben identisch                                           |
+| `database.types.ts`                  | enthält `get_downline` mit unveränderter Signatur, kein Anpassungsbedarf                                               |
+| `coach-chat` Edge Function           | übergibt die eigene Nutzerkennung und `profile.org_id`, beide Prüfungen bestehen                                       |
+| `validate-invite` Edge Function      | nutzt `service_role`, Entzug von `authenticated` unschädlich                                                           |
+| `set_updated_at`                     | wird auch von einem Trigger auf `products` des Fremdprojekts genutzt. Nur `search_path` ergänzt, Verhalten unverändert |
+| `event_phase_rank`                   | kein Index nutzt die Funktion, der `SET`-Zusatz ist unschädlich                                                        |
+| Kein Index auf betroffene Funktionen | geprüft, keiner                                                                                                        |
 
 **Risiko:** mittel. Alle Aussagen beruhen auf statischer Prüfung und auf Leseabfragen gegen die Live-Datenbank. Die Migration selbst wurde nicht angewendet.
 
 **Offene Punkte:**
+
 - Die `CYCLE`-Klausel wurde eigenständig validiert, aber nicht innerhalb eines `RETURN QUERY` in PL/pgSQL.
 - Die Umlaute in den `throws_like`-Mustern müssen zur Kodierung passen. Das Muster `%können nicht selbst geändert werden%` stammt unverändert aus `rls.test.sql` und ist damit konsistent.
 
@@ -139,22 +141,22 @@ Bei `coach_messages_today` habe ich die Sprache von `sql` auf `plpgsql` geänder
 
 **Status: erstellt, nicht ausgeführt.**
 
-| Kernfunktion | Abgedeckt | Wie |
-|---|---|---|
-| Registrierung | ja | über den **echten** Trigger-Pfad, mit gültiger Einladung und Metadaten. Wichtigster Nachweis, weil `handle_new_user` der einzige reguläre Weg zu einem Profil ist |
-| Invite-System | ja | `create_invite`, `validate_invite` |
-| Pipeline | ja | Anlage-Ereignis, Phasenableitung, `correct_pipeline_event` |
-| Daily Plan | ja | `generate_daily_plan`, `commit_daily_plan`, `update_mission_status`. Am stärksten betroffen, weil sechs Signaturen geändert wurden |
-| Coach | teilweise | `coach_messages_today`. Die Gemini-Anbindung ist nicht datenbankseitig prüfbar |
-| Wissensdatenbank | ja | Freigegebenes sichtbar, Entwurf unsichtbar |
-| Knowledge Retrieval | ja | `match_knowledge` mit echtem Vektor. **Kritischster Test der Migration**, weil ein falscher `search_path` den Operator `<=>` unauffindbar machen würde |
-| Teamstruktur | ja | `get_downline`, `profiles_public` |
-| Aktivitäten | ja | Schreiben eigener `usage_events` |
-| Berechtigungen | ja | Selbstbeförderung blockiert |
-| Mehrmandantenfähigkeit | ja | drei Prüfungen über die Organisationsgrenze |
-| Leaderfunktionen | dokumentiert | Geprüft wird, dass die Rolle `leader` **keinen** erweiterten Zugriff hat. Das ist der korrekte Istzustand, siehe F2 |
-| Login | **nein** | Supabase Auth, keine Datenbanklogik. Manuell zu prüfen |
-| Dashboard | **nein** | existiert noch nicht |
+| Kernfunktion           | Abgedeckt    | Wie                                                                                                                                                               |
+| ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registrierung          | ja           | über den **echten** Trigger-Pfad, mit gültiger Einladung und Metadaten. Wichtigster Nachweis, weil `handle_new_user` der einzige reguläre Weg zu einem Profil ist |
+| Invite-System          | ja           | `create_invite`, `validate_invite`                                                                                                                                |
+| Pipeline               | ja           | Anlage-Ereignis, Phasenableitung, `correct_pipeline_event`                                                                                                        |
+| Daily Plan             | ja           | `generate_daily_plan`, `commit_daily_plan`, `update_mission_status`. Am stärksten betroffen, weil sechs Signaturen geändert wurden                                |
+| Coach                  | teilweise    | `coach_messages_today`. Die Gemini-Anbindung ist nicht datenbankseitig prüfbar                                                                                    |
+| Wissensdatenbank       | ja           | Freigegebenes sichtbar, Entwurf unsichtbar                                                                                                                        |
+| Knowledge Retrieval    | ja           | `match_knowledge` mit echtem Vektor. **Kritischster Test der Migration**, weil ein falscher `search_path` den Operator `<=>` unauffindbar machen würde            |
+| Teamstruktur           | ja           | `get_downline`, `profiles_public`                                                                                                                                 |
+| Aktivitäten            | ja           | Schreiben eigener `usage_events`                                                                                                                                  |
+| Berechtigungen         | ja           | Selbstbeförderung blockiert                                                                                                                                       |
+| Mehrmandantenfähigkeit | ja           | drei Prüfungen über die Organisationsgrenze                                                                                                                       |
+| Leaderfunktionen       | dokumentiert | Geprüft wird, dass die Rolle `leader` **keinen** erweiterten Zugriff hat. Das ist der korrekte Istzustand, siehe F2                                               |
+| Login                  | **nein**     | Supabase Auth, keine Datenbanklogik. Manuell zu prüfen                                                                                                            |
+| Dashboard              | **nein**     | existiert noch nicht                                                                                                                                              |
 
 **Risiko:** mittel, solange nicht ausgeführt.
 
@@ -201,12 +203,12 @@ Eine Freigabe auf Basis von „sieht korrekt aus" wäre bei einer Sicherheitsmig
 
 ### Verbleibende Blocker
 
-| # | Blocker | Behebung | Aufwand |
-|---|---|---|---|
-| **B1** | `package-lock.json` fehlt, `npm ci` in `.github/workflows/ci.yml` Zeile 41 scheitert. Die CI erreicht `supabase test db` in Zeile 43 nie | `npm install` ausführen, `package-lock.json` committen | Minuten, braucht einen Rechner |
-| **B2** | Die Migration wurde nie angewendet. Kein Nachweis, dass sie fehlerfrei durchläuft | Auf einen Supabase-Entwicklungszweig anwenden, nicht auf Produktion | ein Durchlauf |
-| **B3** | Die 94 Prüfungen wurden nie ausgeführt | `supabase test db` nach B1 und B2 | ein Durchlauf |
-| **B4** | Login und Dashboard sind datenbankseitig nicht prüfbar | manuell: registrieren, anmelden, Coach-Nachricht, Tagesplan | 10 Minuten |
+| #      | Blocker                                                                                                                                  | Behebung                                                            | Aufwand                        |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------ |
+| **B1** | `package-lock.json` fehlt, `npm ci` in `.github/workflows/ci.yml` Zeile 41 scheitert. Die CI erreicht `supabase test db` in Zeile 43 nie | `npm install` ausführen, `package-lock.json` committen              | Minuten, braucht einen Rechner |
+| **B2** | Die Migration wurde nie angewendet. Kein Nachweis, dass sie fehlerfrei durchläuft                                                        | Auf einen Supabase-Entwicklungszweig anwenden, nicht auf Produktion | ein Durchlauf                  |
+| **B3** | Die 94 Prüfungen wurden nie ausgeführt                                                                                                   | `supabase test db` nach B1 und B2                                   | ein Durchlauf                  |
+| **B4** | Login und Dashboard sind datenbankseitig nicht prüfbar                                                                                   | manuell: registrieren, anmelden, Coach-Nachricht, Tagesplan         | 10 Minuten                     |
 
 Alle vier Blocker sind Verifikationsschritte, keine Konstruktionsfehler. Keiner verlangt eine Änderung an der Migration.
 

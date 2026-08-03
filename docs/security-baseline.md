@@ -25,12 +25,12 @@ Die Wissensdatenbank beschreibt in 13_SUPABASE.md das gegenteilige Muster, näml
 
 `SECURITY DEFINER` ist **nur** erlaubt, wenn mindestens eine dieser Bedingungen zutrifft und im Kopfkommentar der Funktion benannt ist:
 
-| Zulässiger Grund | Beispiel im Bestand |
-|---|---|
-| Die Funktion muss eine Tabelle beschreiben, für die es bewusst keine INSERT-Policy gibt | `generate_daily_plan`, weil `daily_plans` keinen Client-Schreibweg hat |
-| Die Funktion muss Daten oberhalb der eigenen Zeile lesen, um eine Beziehung zu prüfen | `is_ancestor_of`, weil `profiles_select_own` nur das eigene Profil freigibt |
-| Die Funktion wird in einer RLS-Policy aufgerufen und würde sonst eine Rekursion erzeugen | `current_org_id`, `is_super_admin` |
-| Die Funktion ist eine Trigger-Funktion, die über die Rechte des Auslösers hinaus schreiben muss | `handle_new_user`, schreibt `profiles` beim Anlegen eines Auth-Kontos |
+| Zulässiger Grund                                                                                | Beispiel im Bestand                                                         |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Die Funktion muss eine Tabelle beschreiben, für die es bewusst keine INSERT-Policy gibt         | `generate_daily_plan`, weil `daily_plans` keinen Client-Schreibweg hat      |
+| Die Funktion muss Daten oberhalb der eigenen Zeile lesen, um eine Beziehung zu prüfen           | `is_ancestor_of`, weil `profiles_select_own` nur das eigene Profil freigibt |
+| Die Funktion wird in einer RLS-Policy aufgerufen und würde sonst eine Rekursion erzeugen        | `current_org_id`, `is_super_admin`                                          |
+| Die Funktion ist eine Trigger-Funktion, die über die Rechte des Auslösers hinaus schreiben muss | `handle_new_user`, schreibt `profiles` beim Anlegen eines Auth-Kontos       |
 
 **Nicht zulässig** als Begründung: „ist einfacher", „die anderen Funktionen sind auch so", „ich weiß nicht, ob RLS reicht". Wenn unklar ist, ob RLS reicht: `SECURITY INVOKER` schreiben und testen. Wenn es reicht, ist die Frage beantwortet.
 
@@ -51,10 +51,13 @@ Jede Funktion, die einen Nutzerbezug hat, muss `auth.uid()` verwenden.
 Ein Parameter, der im gesamten Aufrufpfad stets `auth.uid()` enthält, ist keine Funktionalität, sondern Angriffsfläche. Er wird entfernt, nicht geprüft. So war es bei den sechs Planungsfunktionen in F1.
 
 Falsch:
+
 ```sql
 create function f(p_user uuid) ... where owner_id = p_user
 ```
+
 Richtig:
+
 ```sql
 create function f() ... where owner_id = auth.uid()
 ```
@@ -108,6 +111,7 @@ Rollenprüfung ist zulässig für **Verwaltungshandlungen**: Wissen freigeben, P
 Ein `revoke ... from anon` ist **wirkungslos**, solange `PUBLIC` das Recht hält, weil `anon` es über `PUBLIC` erbt. Genau daran ist der Fix `[S-1]` in Migration 8 gescheitert: `validate_invite` war danach weiterhin für `anon` aufrufbar.
 
 Verbindliches Muster für jede neue Funktion:
+
 ```sql
 revoke execute on function public.f(...) from PUBLIC, anon;
 grant  execute on function public.f(...) to authenticated, service_role;
@@ -127,19 +131,19 @@ Sie sind nicht direkt aufrufbar, PL/pgSQL lehnt den Direktaufruf einer Trigger-F
 
 Prüfliste. Alle Punkte sind Pflicht.
 
-| # | Anforderung |
-|---|---|
-| 1 | `set search_path = public` ist gesetzt. Bei Nutzung von pgvector, `<=>` oder `vector`: `set search_path = public, extensions`, sonst fällt die Funktion aus |
-| 2 | `SECURITY DEFINER` nur mit einem der vier Gründe aus Abschnitt 1, benannt im Kopfkommentar |
-| 3 | Kein Nutzerparameter, wenn immer der eigene Nutzer gemeint ist |
-| 4 | Bleibt ein Fremdparameter: Aufruferprüfung vorhanden |
-| 5 | `org_id`-Filter vorhanden, bei Rekursion in beiden Zweigen |
-| 6 | `auth.uid() is null` behandelt |
-| 7 | `revoke ... from PUBLIC, anon` vorhanden, dann selektiv gewährt |
-| 8 | Rekursive Abfragen nutzen die `CYCLE`-Klausel |
-| 9 | Kopfkommentar nennt Zweck, Sicherheitsmodell und Begründung |
-| 10 | pgTAP-Test vorhanden, der die Grenze von außen angreift |
-| 11 | **Aufrufsuche über die Datenbank durchgeführt**, nicht nur über Frontend und Edge Functions |
+| #   | Anforderung                                                                                                                                                 |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `set search_path = public` ist gesetzt. Bei Nutzung von pgvector, `<=>` oder `vector`: `set search_path = public, extensions`, sonst fällt die Funktion aus |
+| 2   | `SECURITY DEFINER` nur mit einem der vier Gründe aus Abschnitt 1, benannt im Kopfkommentar                                                                  |
+| 3   | Kein Nutzerparameter, wenn immer der eigene Nutzer gemeint ist                                                                                              |
+| 4   | Bleibt ein Fremdparameter: Aufruferprüfung vorhanden                                                                                                        |
+| 5   | `org_id`-Filter vorhanden, bei Rekursion in beiden Zweigen                                                                                                  |
+| 6   | `auth.uid() is null` behandelt                                                                                                                              |
+| 7   | `revoke ... from PUBLIC, anon` vorhanden, dann selektiv gewährt                                                                                             |
+| 8   | Rekursive Abfragen nutzen die `CYCLE`-Klausel                                                                                                               |
+| 9   | Kopfkommentar nennt Zweck, Sicherheitsmodell und Begründung                                                                                                 |
+| 10  | pgTAP-Test vorhanden, der die Grenze von außen angreift                                                                                                     |
+| 11  | **Aufrufsuche über die Datenbank durchgeführt**, nicht nur über Frontend und Edge Functions                                                                 |
 
 **Zu Punkt 8:** Eine feste Tiefengrenze ist falsch. Sie schneidet legitime tiefe Genealogien ab und liefert stillschweigend falsche Ergebnisse. PostgreSQL erkennt Kreise nicht selbst, die `CYCLE`-Klausel tut es und begrenzt nichts anderes:
 
@@ -163,23 +167,23 @@ Policy-Ausdruck nach dem Namen der zu aendernden Funktion.
 
 ## 8. Anforderungen an neue Trigger
 
-| # | Anforderung |
-|---|---|
-| 1 | `set search_path` gesetzt, auch bei `SECURITY INVOKER` |
-| 2 | Zeitpunkt und Ereignisse minimal: `BEFORE UPDATE` statt `BEFORE INSERT OR UPDATE`, wenn nur Änderungen betroffen sind |
-| 3 | Wirft der Trigger Ausnahmen, ist das in `docs/` dokumentiert, weil er dadurch die Testumgebung beeinflusst |
-| 4 | Bei einem Trigger auf `auth.users`: Auswirkung auf pgTAP-Tests prüfen und im Testkopf vermerken |
+| #   | Anforderung                                                                                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | `set search_path` gesetzt, auch bei `SECURITY INVOKER`                                                                |
+| 2   | Zeitpunkt und Ereignisse minimal: `BEFORE UPDATE` statt `BEFORE INSERT OR UPDATE`, wenn nur Änderungen betroffen sind |
+| 3   | Wirft der Trigger Ausnahmen, ist das in `docs/` dokumentiert, weil er dadurch die Testumgebung beeinflusst            |
+| 4   | Bei einem Trigger auf `auth.users`: Auswirkung auf pgTAP-Tests prüfen und im Testkopf vermerken                       |
 
 **Zu Punkt 3 und 4:** `on_auth_user_created` wirft ohne Einladungscode eine Ausnahme. Dadurch konnte keine einzige Testdatei durchlaufen, und in `rls.test.sql` stand ein Kommentar, der das Gegenteil behauptete. Ein Trigger, der wirft, ist nicht nur Produktionslogik, sondern eine Eigenschaft der Testumgebung.
 
 ## 9. Anforderungen an neue Views
 
-| # | Anforderung |
-|---|---|
-| 1 | `security_invoker = true` ist der Standard, damit die RLS des Aufrufers gilt |
-| 2 | Wird bewusst darauf verzichtet, muss der View eine **eigene** Filterbedingung tragen, die für `anon` geschlossen ausfällt |
-| 3 | Der Verzicht wird im Kommentar begründet |
-| 4 | Spaltenauswahl minimal |
+| #   | Anforderung                                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `security_invoker = true` ist der Standard, damit die RLS des Aufrufers gilt                                              |
+| 2   | Wird bewusst darauf verzichtet, muss der View eine **eigene** Filterbedingung tragen, die für `anon` geschlossen ausfällt |
+| 3   | Der Verzicht wird im Kommentar begründet                                                                                  |
+| 4   | Spaltenauswahl minimal                                                                                                    |
 
 **Beispiel aus dem Bestand:** `profiles_public` hat bewusst kein `security_invoker`, weil er als Teamliste die auf das eigene Profil beschränkte Policy erweitern muss. Er trägt stattdessen `where org_id = current_org_id()`, und das fällt für `anon` geschlossen aus, weil `current_org_id()` dann NULL ist. Das ist korrekt.
 
@@ -187,14 +191,14 @@ Zu beachten ist aber: Dieser View ist die **Bezugsquelle für Nutzerkennungen** 
 
 ## 10. Anforderungen an neue RLS-Policies
 
-| # | Anforderung |
-|---|---|
-| 1 | RLS wird beim Anlegen der Tabelle aktiviert, nicht später |
-| 2 | Jede Tabelle hat entweder Policies oder eine dokumentierte Begründung für Policy-Freiheit |
-| 3 | Jede Policy filtert auf `org_id` über `current_org_id()` |
-| 4 | Personenbezug über die Beziehung, nicht über die Rolle |
-| 5 | Schreibrechte getrennt von Leserechten, keine `for all`-Policy ohne Begründung |
-| 6 | Für `anon` muss die Bedingung geschlossen ausfallen, nachweisbar durch einen Test |
+| #   | Anforderung                                                                               |
+| --- | ----------------------------------------------------------------------------------------- |
+| 1   | RLS wird beim Anlegen der Tabelle aktiviert, nicht später                                 |
+| 2   | Jede Tabelle hat entweder Policies oder eine dokumentierte Begründung für Policy-Freiheit |
+| 3   | Jede Policy filtert auf `org_id` über `current_org_id()`                                  |
+| 4   | Personenbezug über die Beziehung, nicht über die Rolle                                    |
+| 5   | Schreibrechte getrennt von Leserechten, keine `for all`-Policy ohne Begründung            |
+| 6   | Für `anon` muss die Bedingung geschlossen ausfallen, nachweisbar durch einen Test         |
 
 **Zu Punkt 2:** `invite_validation_attempts` hat bewusst keine Policies, weil ausschließlich die Service-Rolle darauf zugreift. RLS aktiv plus keine Policy ist das korrekte Deny-All und das stärkere Muster gegenüber einer `is_super_admin()`-Policy, weil es gar keine API-Oberfläche hat.
 

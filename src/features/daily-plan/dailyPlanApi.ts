@@ -30,11 +30,7 @@ export function useDailyPlan() {
       if (genError) throw genError;
       const [plan, items] = await Promise.all([
         supabase.from('daily_plans').select('*').eq('id', planId).single(),
-        supabase
-          .from('daily_plan_items')
-          .select('*')
-          .eq('plan_id', planId)
-          .order('position'),
+        supabase.from('daily_plan_items').select('*').eq('plan_id', planId).order('position'),
       ]);
       if (plan.error) throw plan.error;
       if (items.error) throw items.error;

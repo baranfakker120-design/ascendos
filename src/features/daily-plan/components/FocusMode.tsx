@@ -162,13 +162,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
   );
 }
 
-function QueueRow({
-  item,
-  missionsDoneToday,
-}: {
-  item: DailyPlanItem;
-  missionsDoneToday: number;
-}) {
+function QueueRow({ item, missionsDoneToday }: { item: DailyPlanItem; missionsDoneToday: number }) {
   const ap = scoreDailyMission(item.mission_type, {
     engineScore: item.score,
     missionsDoneToday,

@@ -32,7 +32,12 @@ export default defineConfig({
           // Eigene Datei statt Wiederverwendung von icon-512 fuer beide
           // Zwecke: maskable braucht mehr Sicherheitsabstand, weil
           // Android das Icon auf verschiedene Formen zuschneidet.
-          { src: '/icons/icon-512-maskable-v2.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          {
+            src: '/icons/icon-512-maskable-v2.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
     }),

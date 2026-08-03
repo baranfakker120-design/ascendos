@@ -19,16 +19,16 @@ describe('coachReading', () => {
 
   it('promotes mentor teaching lines into card blockquotes', () => {
     expect(promoteTeachingLines('Pro Tip: Kurz und persönlich bleiben.')).toContain(
-      '> **🔥 Pro Tip:**',
+      '> **🔥 Pro Tip:**'
     );
     expect(promoteTeachingLines('Häufigster Fehler: Zu lange schreiben.')).toContain(
-      '> **💡 Häufigster Fehler:**',
+      '> **💡 Häufigster Fehler:**'
     );
     expect(promoteTeachingLines('Warum das zählt: Vertrauen wächst durch Tempo.')).toContain(
-      '> **📈 Warum das zählt:**',
+      '> **📈 Warum das zählt:**'
     );
     expect(promoteTeachingLines('Nächster Schritt: Ruf Mehmet heute an.')).toContain(
-      '> **🎯 Dein nächster Schritt:**',
+      '> **🎯 Dein nächster Schritt:**'
     );
   });
 

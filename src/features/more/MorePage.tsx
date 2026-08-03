@@ -129,7 +129,9 @@ export function MorePage() {
               return (
                 <li key={fp.user_id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="min-w-0 truncate font-medium">{fp.first_name}</span>
-                  <span className={`shrink-0 ${done ? 'font-medium text-emerald-600' : 'text-muted'}`}>
+                  <span
+                    className={`shrink-0 ${done ? 'font-medium text-emerald-600' : 'text-muted'}`}
+                  >
                     {done ? 'Reise abgeschlossen ✓' : `Tag ${fp.current_day} von ${fp.total_days}`}
                   </span>
                 </li>
@@ -144,8 +146,8 @@ export function MorePage() {
       <Card>
         <p className="font-semibold">Invite Partner</p>
         <p className="mt-1 text-sm text-muted">
-          Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14 Tage
-          gültig, einmal verwendbar.
+          Persönlicher Einladungslink — Registrierung ordnet Sponsor und Team automatisch zu. 14
+          Tage gültig, einmal verwendbar.
         </p>
         {inviteError ? (
           <div className="mt-3">

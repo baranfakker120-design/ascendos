@@ -42,13 +42,13 @@ party_done, became_customer, registered, correction
 
 Bereits fünf Bedingungstypen im Einsatz:
 
-| Typ | Beispiel |
-|---|---|
-| `journey_completed` | Onboarding abgeschlossen |
-| `event_count` | 100 Follow-ups |
-| `phase_count` | erster Kunde (min_rank 60) |
-| `firstline_count` | erster gesponserter Partner |
-| `downline_count` | zwei in der Downline |
+| Typ                 | Beispiel                    |
+| ------------------- | --------------------------- |
+| `journey_completed` | Onboarding abgeschlossen    |
+| `event_count`       | 100 Follow-ups              |
+| `phase_count`       | erster Kunde (min_rank 60)  |
+| `firstline_count`   | erster gesponserter Partner |
+| `downline_count`    | zwei in der Downline        |
 
 9 Auszeichnungen definiert, 5 freigeschaltet. **Ränge, Titel und Seasons erweitern diese Maschine — sie bekommen keine zweite.**
 
@@ -60,13 +60,13 @@ Genau die Form, die „sichtbar aber gesperrt" braucht. Sammlungen folgen diesem
 
 ### Weiteres
 
-| Baustein | Zustand | Verwendung in Sprint 4 |
-|---|---|---|
-| `usage_events` | 311 Zeilen, 6 Typen inkl. `app_opened` | Streak-Grundlage, sammelt bereits |
-| `daily_plan_items.score` | integer, vorhanden | Verhältnis zu AP zu klären |
-| `features/progress/` | ProgressPage + progressApi | erweitern, nicht ersetzen |
-| `PhaseBadge` | 23 Zeilen, funktioniert | Muster für `ApBadge` |
-| Dynamische Importe | `pdfjs`, `mammoth` bereits verzögert geladen | bewährtes Muster für schwere Bibliotheken |
+| Baustein                 | Zustand                                      | Verwendung in Sprint 4                    |
+| ------------------------ | -------------------------------------------- | ----------------------------------------- |
+| `usage_events`           | 311 Zeilen, 6 Typen inkl. `app_opened`       | Streak-Grundlage, sammelt bereits         |
+| `daily_plan_items.score` | integer, vorhanden                           | Verhältnis zu AP zu klären                |
+| `features/progress/`     | ProgressPage + progressApi                   | erweitern, nicht ersetzen                 |
+| `PhaseBadge`             | 23 Zeilen, funktioniert                      | Muster für `ApBadge`                      |
+| Dynamische Importe       | `pdfjs`, `mammoth` bereits verzögert geladen | bewährtes Muster für schwere Bibliotheken |
 
 ## 1.3 Was vollständig fehlt
 
@@ -106,11 +106,11 @@ Tokens im Bestand sind zurückhaltend: `--color-bg: #F7F6F3` hell, `--color-acce
 
 **Gemessen, gegen meine eigene Erwartung:** Die Assets funktionieren auf dem **hellen** Bestandshintergrund am besten.
 
-| Untergrund | schlechtester Wert |
-|---|---|
+| Untergrund            | schlechtester Wert     |
+| --------------------- | ---------------------- |
 | **#F7F6F3 (Bestand)** | **36,9 % kontrastarm** |
-| #4A4D52 Mittelgrau | 49,5 % |
-| #0F1012 Dunkel | 62,2 % |
+| #4A4D52 Mittelgrau    | 49,5 %                 |
+| #0F1012 Dunkel        | 62,2 %                 |
 
 Kein Dark-Mode-Umbau nötig. Die Silberrahmen 01–03 sind der schwächste Fall (35–37 %), aber besser als das Silberlogo damals (55,4 %), weil sie dunkle Kanten haben.
 
@@ -120,11 +120,11 @@ Kein Dark-Mode-Umbau nötig. Die Silberrahmen 01–03 sind der schwächste Fall 
 
 ## 1.5 Leistungsgrundlage
 
-| Posten | Gewicht |
-|---|---|
-| Sprint-4-Assets im Staging | **28 MB** |
-| `pdfjs-dist` + `mammoth` | schwer, aber **verzögert geladen** |
-| three.js + R3F, falls ergänzt | ~600 KB bis 1 MB gzip |
+| Posten                        | Gewicht                            |
+| ----------------------------- | ---------------------------------- |
+| Sprint-4-Assets im Staging    | **28 MB**                          |
+| `pdfjs-dist` + `mammoth`      | schwer, aber **verzögert geladen** |
+| three.js + R3F, falls ergänzt | ~600 KB bis 1 MB gzip              |
 
 Das Assetgewicht ist das größte praktische Risiko. Strategie in Abschnitt 2.10.
 
@@ -250,11 +250,11 @@ UNIQUE (org_id, period, place)
 
 Drei Optionen, ich empfehle B.
 
-| Option | Vorgehen | Preis |
-|---|---|---|
-| A | `developer` in die CHECK-Bedingung von `memberships.role` | Migration; vermischt Berechtigung und Kosmetik |
-| **B** | Rolle bleibt Berechtigung (`super_admin`, `admin`, `berater`). „Developer" wird ein **Titel** in `cosmetic_items` | keine Änderung am Rollenmodell, nutzt die neue Sammlung |
-| C | Zweite Spalte `display_role` | dritte Stelle mit Rollenbegriffen |
+| Option | Vorgehen                                                                                                          | Preis                                                   |
+| ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| A      | `developer` in die CHECK-Bedingung von `memberships.role`                                                         | Migration; vermischt Berechtigung und Kosmetik          |
+| **B**  | Rolle bleibt Berechtigung (`super_admin`, `admin`, `berater`). „Developer" wird ein **Titel** in `cosmetic_items` | keine Änderung am Rollenmodell, nutzt die neue Sammlung |
+| C      | Zweite Spalte `display_role`                                                                                      | dritte Stelle mit Rollenbegriffen                       |
 
 Zur Namenskollision „Team Leader" (Rang) gegen `leader` (Rolle): `leader` ist in Migration 15 bereits als **überholt** markiert. Vorschlag: nicht mehr vergeben, Rang „Team Leader" behält den Namen.
 
@@ -264,11 +264,11 @@ Zuerst geprüft, was existiert. `PhaseBadge` ist das Muster für Badges, `progre
 
 ### Neue Primitive in `shared/ui/`
 
-| Komponente | Zweck |
-|---|---|
-| `Avatar.tsx` | Bild plus Initialen-Ersatz, eine Größe als Prop |
-| `RankFrame.tsx` | Rahmen über Avatar, **mit Positionsdaten je Rahmen** |
-| `ApBadge.tsx` | Sticker plus **lebende Zahl** darüber |
+| Komponente       | Zweck                                                         |
+| ---------------- | ------------------------------------------------------------- |
+| `Avatar.tsx`     | Bild plus Initialen-Ersatz, eine Größe als Prop               |
+| `RankFrame.tsx`  | Rahmen über Avatar, **mit Positionsdaten je Rahmen**          |
+| `ApBadge.tsx`    | Sticker plus **lebende Zahl** darüber                         |
 | `EnergyCore.tsx` | Fortschrittsanzeige, Schnittstelle unabhängig von der Technik |
 
 ### Neues Feature `features/gamification/`
@@ -295,18 +295,18 @@ AvatarUpload.tsx        Zuschnitt und Upload
 
 Aus meinen Messungen — **keine Schätzung**. Jeder Rahmen hat eine andere Öffnung, und keine liegt im Bildmittelpunkt:
 
-| Rahmen | Öffnung | Vertikaler Versatz |
-|---|---|---|
-| 01 | 657 × 646 | −34 px |
-| 02 | 651 × 638 | −39 px |
-| 03 | 647 × 629 | −44 px |
-| 04 | 656 × 619 | −46 px |
-| 05 | 645 × 523 | −16 px |
-| 06 | 627 × 471 | −8 px |
-| 07 | 598 × 461 | +6 px |
-| 08 | 606 × 499 | +20 px |
-| 09 | 592 × 445 | −10 px |
-| 10 | 598 × 439 | −14 px |
+| Rahmen | Öffnung   | Vertikaler Versatz |
+| ------ | --------- | ------------------ |
+| 01     | 657 × 646 | −34 px             |
+| 02     | 651 × 638 | −39 px             |
+| 03     | 647 × 629 | −44 px             |
+| 04     | 656 × 619 | −46 px             |
+| 05     | 645 × 523 | −16 px             |
+| 06     | 627 × 471 | −8 px              |
+| 07     | 598 × 461 | +6 px              |
+| 08     | 606 × 499 | +20 px             |
+| 09     | 592 × 445 | −10 px             |
+| 10     | 598 × 439 | −14 px             |
 
 Der Versatz streut über **66 px**, also 6,4 % der Rahmenbreite. Ein naiv zentriertes Bild sitzt sichtbar schief. Diese Werte gehören als Datentabelle neben die Assets, nicht in verstreute CSS-Regeln.
 
@@ -314,11 +314,11 @@ Zweiter Punkt: Rahmen 01–04 haben eine **runde** Öffnung (Verhältnis 1,02–
 
 ## 2.6 Assetnutzung
 
-| Asset | Ort | Anzeigegröße |
-|---|---|---|
-| Rahmen 01–09 | Profil, Bestenliste, Sammlung | 96 px Liste, 160 px Profil |
-| Rahmen 10 (korrigiert) | nur Hero-Screen Platz 1 | 320 px |
-| AP-Sticker 25–1000 | an Aufgaben und Belohnungen | 48–64 px |
+| Asset                  | Ort                           | Anzeigegröße               |
+| ---------------------- | ----------------------------- | -------------------------- |
+| Rahmen 01–09           | Profil, Bestenliste, Sammlung | 96 px Liste, 160 px Profil |
+| Rahmen 10 (korrigiert) | nur Hero-Screen Platz 1       | 320 px                     |
+| AP-Sticker 25–1000     | an Aufgaben und Belohnungen   | 48–64 px                   |
 
 **Der fehlerhafte `frame-10-upload.png` wird nicht ausgeliefert.** Er bleibt im Staging als Nachweis, bis du das Löschen freigibst.
 
@@ -342,42 +342,42 @@ Für die Choreografie beim Aufstieg genügt die eingebaute Web Animations API. G
 
 ## 2.8 Reihenfolge — Risiko zuerst
 
-| Schritt | Inhalt | Warum hier |
-|---|---|---|
-| **0** | Migrationen 15–17 anwenden und validieren (136 Prüfungen) | **Blocker.** Ohne `memberships` kein AP |
-| 1 | Migration 18: Datenmodell aus 2.3, plus AP-Trigger und Regeln | Fundament |
-| 2 | Asset-Pipeline: Skript erzeugt optimierte WebP nach `public/` | vor jeder UI, sonst wird mit 28 MB entwickelt |
-| 3 | Speicher-Bucket `avatare` plus Zugriffsregeln | Voraussetzung für Profilbild |
-| 4 | `shared/ui`: Avatar, RankFrame, ApBadge — **statisch, ohne Animation** | erst korrekt, dann schön |
-| 5 | `features/profile`: Profilseite und Bearbeitung | sichtbarer Nutzen früh |
-| 6 | AP-Anzeige und EnergyCore, zunächst ohne Effekte | Zahlen müssen stimmen |
-| 7 | Animationen: ApTicker, Pulsieren, Rangaufstieg | jetzt die Wirkung |
-| 8 | Hero-Screen Berater des Monats | braucht 4 bis 7 |
-| 9 | Streaks | zuletzt, kehrt eine frühere Entscheidung um |
+| Schritt | Inhalt                                                                 | Warum hier                                    |
+| ------- | ---------------------------------------------------------------------- | --------------------------------------------- |
+| **0**   | Migrationen 15–17 anwenden und validieren (136 Prüfungen)              | **Blocker.** Ohne `memberships` kein AP       |
+| 1       | Migration 18: Datenmodell aus 2.3, plus AP-Trigger und Regeln          | Fundament                                     |
+| 2       | Asset-Pipeline: Skript erzeugt optimierte WebP nach `public/`          | vor jeder UI, sonst wird mit 28 MB entwickelt |
+| 3       | Speicher-Bucket `avatare` plus Zugriffsregeln                          | Voraussetzung für Profilbild                  |
+| 4       | `shared/ui`: Avatar, RankFrame, ApBadge — **statisch, ohne Animation** | erst korrekt, dann schön                      |
+| 5       | `features/profile`: Profilseite und Bearbeitung                        | sichtbarer Nutzen früh                        |
+| 6       | AP-Anzeige und EnergyCore, zunächst ohne Effekte                       | Zahlen müssen stimmen                         |
+| 7       | Animationen: ApTicker, Pulsieren, Rangaufstieg                         | jetzt die Wirkung                             |
+| 8       | Hero-Screen Berater des Monats                                         | braucht 4 bis 7                               |
+| 9       | Streaks                                                                | zuletzt, kehrt eine frühere Entscheidung um   |
 
 Nach jedem Schritt: Typprüfung, Testlauf, kurze Zusammenfassung, wie von dir verlangt.
 
 ## 2.9 Risiken
 
-| Risiko | Schwere | Umgang |
-|---|---|---|
-| Migrationen 15–17 unvalidiert | **hoch** | Schritt 0, vor allem anderen |
-| 100 Euro echtes Geld | **hoch** | `UNIQUE (identity_id, kind)`, plus getrennter `confirmed_paid_at` durch einen Menschen. Kein automatischer Zahlungsauslöser |
-| AP-Sätze unbestimmt | **hoch** | `ap_rules` ist vorbereitet, aber die **Werte fehlen**. Ohne sie sind die Schwellen unverankert |
-| Assetgewicht 28 MB | mittel | Abschnitt 2.10 |
-| 3 Nutzer, „Top 3" | mittel | Mindestteilnehmerzahl, sonst kein Hero-Screen |
-| Streak-Druck | mittel | Vorschlag: Streak zählt hoch, **fällt nicht auf null**, sondern verliert langsam. Behält die Motivation, vermeidet die Angst — im Sinne der ursprünglichen Phase-3-Entscheidung |
-| Doppelte Punktzählung | mittel | `ap_ledger.source_event_id` eindeutig je Ereignis und Regel |
+| Risiko                        | Schwere  | Umgang                                                                                                                                                                          |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migrationen 15–17 unvalidiert | **hoch** | Schritt 0, vor allem anderen                                                                                                                                                    |
+| 100 Euro echtes Geld          | **hoch** | `UNIQUE (identity_id, kind)`, plus getrennter `confirmed_paid_at` durch einen Menschen. Kein automatischer Zahlungsauslöser                                                     |
+| AP-Sätze unbestimmt           | **hoch** | `ap_rules` ist vorbereitet, aber die **Werte fehlen**. Ohne sie sind die Schwellen unverankert                                                                                  |
+| Assetgewicht 28 MB            | mittel   | Abschnitt 2.10                                                                                                                                                                  |
+| 3 Nutzer, „Top 3"             | mittel   | Mindestteilnehmerzahl, sonst kein Hero-Screen                                                                                                                                   |
+| Streak-Druck                  | mittel   | Vorschlag: Streak zählt hoch, **fällt nicht auf null**, sondern verliert langsam. Behält die Motivation, vermeidet die Angst — im Sinne der ursprünglichen Phase-3-Entscheidung |
+| Doppelte Punktzählung         | mittel   | `ap_ledger.source_event_id` eindeutig je Ereignis und Regel                                                                                                                     |
 
 ### Zur AP-Rate, weil sie über echtes Geld entscheidet
 
 Abstände: 250, 1.000, 3.750, 10.000, 15.000, 20.000 — zusammen 50.000 bis Mentor.
 
 | AP pro Tag | Team Leader (30.000) und damit 100 Euro |
-|---|---|
-| 100 | rund 10 Monate |
-| 200 | rund 5 Monate |
-| 500 | rund 2 Monate |
+| ---------- | --------------------------------------- |
+| 100        | rund 10 Monate                          |
+| 200        | rund 5 Monate                           |
+| 500        | rund 2 Monate                           |
 
 Ich brauche von dir die Zuordnung Ereignis zu AP, oder ich schlage einen Satz vor und du korrigierst.
 
@@ -387,11 +387,11 @@ Ich brauche von dir die Zuordnung Ereignis zu AP, oder ich schlage einen Satz vo
 
 Die Quellen sind 1024 px, angezeigt werden maximal 320 px. Das ist dreifach bis zehnfach überdimensioniert.
 
-| Ausgabe | Größe | Zweck |
-|---|---|---|
-| Rahmen groß | 320 px WebP | Hero, Profil |
-| Rahmen klein | 96 px WebP | Listen, Sammlung |
-| Sticker | 96 px WebP | 48 px Anzeige bei doppelter Auflösung |
+| Ausgabe      | Größe       | Zweck                                 |
+| ------------ | ----------- | ------------------------------------- |
+| Rahmen groß  | 320 px WebP | Hero, Profil                          |
+| Rahmen klein | 96 px WebP  | Listen, Sammlung                      |
+| Sticker      | 96 px WebP  | 48 px Anzeige bei doppelter Auflösung |
 
 Geschätzt 25 Dateien, je 15 bis 40 KB, zusammen unter 1 MB. Etwa **Faktor 30**. Originale bleiben in `docs/brand`, werden nicht ausgeliefert.
 

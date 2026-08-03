@@ -19,17 +19,17 @@ Versalien mit weiter Laufweite, Premium-Ruhe statt SaaS-Lautstärke.
 
 Licht (Standard):
 
-| Token | Wert | Rolle |
-|---|---|---|
-| `bg` | `#F7F6F3` | App-Hintergrund (warmes Off-White statt kaltem Grau) |
-| `surface` | `#FFFFFF` | Karten, Eingaben |
-| `ink` | `#111214` | Text, primäre Aktionen |
-| `muted` | `#6E7075` | Sekundärtext |
-| `line` | `#E6E4DF` | Hairlines, Ränder |
-| `primary` | `#1A1B1E` | Buttons/CTAs (Graphit — die Marke drückt, nicht schreit) |
-| `primary-ink` | `#FFFFFF` | Text auf primary |
-| `accent` | `#B8935A` | Champagner: Fortschritt, Meilensteine, aktive Zustände |
-| `accent-deep` | `#8A6C3C` | Champagner als TEXT (erst ab hier ≥ 4.5:1 auf Weiß) |
+| Token         | Wert      | Rolle                                                    |
+| ------------- | --------- | -------------------------------------------------------- |
+| `bg`          | `#F7F6F3` | App-Hintergrund (warmes Off-White statt kaltem Grau)     |
+| `surface`     | `#FFFFFF` | Karten, Eingaben                                         |
+| `ink`         | `#111214` | Text, primäre Aktionen                                   |
+| `muted`       | `#6E7075` | Sekundärtext                                             |
+| `line`        | `#E6E4DF` | Hairlines, Ränder                                        |
+| `primary`     | `#1A1B1E` | Buttons/CTAs (Graphit — die Marke drückt, nicht schreit) |
+| `primary-ink` | `#FFFFFF` | Text auf primary                                         |
+| `accent`      | `#B8935A` | Champagner: Fortschritt, Meilensteine, aktive Zustände   |
+| `accent-deep` | `#8A6C3C` | Champagner als TEXT (erst ab hier ≥ 4.5:1 auf Weiß)      |
 
 Dunkel (PWA/abends):
 `bg #0F1012 · surface #17181B · ink #F4F3F0 · muted #9A9CA1 ·
@@ -45,6 +45,7 @@ statt Signal-Neon.
 ## 3. Akzent-Regeln (die wichtigste Disziplin)
 
 Champagner ist ein Gewürz, kein Anstrich:
+
 - JA: Fortschrittsbalken, aktiver Tab, freigeschaltete Meilensteine,
   „Tag X von 7"-Label, Ascent-Avatar-Ring, Fokus-Karten-Rahmen
 - NEIN: Button-Flächen, Fließtext, Links in `accent` (Text nur
@@ -56,6 +57,7 @@ Champagner ist ein Gewürz, kein Anstrich:
 
 UI-Font bleibt **Inter** (Systemnähe, Lesbarkeit, Ziffern).
 Marken-Momente entstehen über Behandlung, nicht über einen zweiten Font:
+
 - Display/Brand: Versalien, `tracking-[0.25em]`, leicht (300–400) —
   wie die Logo-Wortmarke („ASCEND" leicht + „OS" fett)
 - Sektionstitel: 12px Versalien `tracking-wide` in `muted` (bereits etabliert)

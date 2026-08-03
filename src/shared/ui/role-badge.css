@@ -38,15 +38,14 @@
 
   color: #f7f2ff;
   border-color: rgb(180 140 255 / 0.55);
-  background:
-    linear-gradient(
-      135deg,
-      #4a2a78 0%,
-      #6b3fa0 28%,
-      #9b6fe0 52%,
-      #5a348c 78%,
-      #3a1f63 100%
-    );
+  background: linear-gradient(
+    135deg,
+    #4a2a78 0%,
+    #6b3fa0 28%,
+    #9b6fe0 52%,
+    #5a348c 78%,
+    #3a1f63 100%
+  );
   box-shadow:
     0 0 0 1px rgb(180 140 255 / 0.25),
     0 0 18px rgb(107 63 160 / 0.45),

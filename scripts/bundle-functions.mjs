@@ -52,8 +52,7 @@ function splitImports(source) {
   // Sicher additiv: eine Zeile wie `export const X = '...';` enthält
   // kein `from`, matcht also nicht; geprüft gegen alle drei bestehenden
   // Functions am 30. Juli 2026, keine betroffen.
-  const IMPORT_STATEMENT =
-    /^(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?'([^']+)';?[ \t]*$/gm;
+  const IMPORT_STATEMENT = /^(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?'([^']+)';?[ \t]*$/gm;
   const specifiers = [];
   const body = source.replace(IMPORT_STATEMENT, (match, spec) => {
     specifiers.push({ spec, statement: match });
@@ -139,7 +138,7 @@ function resolveSharedGroup(groupDir, entryFile, remoteImports, seen = new Map()
     }
     if (SHARED_RE.test(spec)) {
       throw new Error(
-        `${entryFile}: Import zurück nach _shared/ aus einer Gruppe heraus wird nicht unterstützt.`,
+        `${entryFile}: Import zurück nach _shared/ aus einer Gruppe heraus wird nicht unterstützt.`
       );
     }
     // jsr:/npm:/https: — echter externer Import, nach oben ziehen.
@@ -147,7 +146,9 @@ function resolveSharedGroup(groupDir, entryFile, remoteImports, seen = new Map()
   }
 
   seen.set(entryFile, true);
-  ownParts.push(`// ---- inline: _shared/${groupDir.split('/').pop()}/${entryFile} ----\n${parsed.body.trim()}\n`);
+  ownParts.push(
+    `// ---- inline: _shared/${groupDir.split('/').pop()}/${entryFile} ----\n${parsed.body.trim()}\n`
+  );
   return ownParts;
 }
 
@@ -167,9 +168,7 @@ function bundle(name) {
 
   // Sicherheitsnetz: kein `_shared`-Import darf den Filter überleben.
   if (bodyText.includes('_shared/')) {
-    throw new Error(
-      `${name}: nicht erkannter _shared-Import im Body — splitImports() prüfen.`
-    );
+    throw new Error(`${name}: nicht erkannter _shared-Import im Body — splitImports() prüfen.`);
   }
   const body = [bodyText];
 
@@ -188,7 +187,9 @@ function bundle(name) {
     .map((f) => f.split('/')[0])
     .filter((g) => !SHARED_GROUPS.includes(g));
   if (unknownGroups.length > 0) {
-    throw new Error(`Unbekannte Shared-Gruppe ${unknownGroups.join(', ')} — SHARED_GROUPS ergänzen.`);
+    throw new Error(
+      `Unbekannte Shared-Gruppe ${unknownGroups.join(', ')} — SHARED_GROUPS ergänzen.`
+    );
   }
 
   const inlinedFlat = SHARED_ORDER.filter((f) => shared.has(f)).map((file) => {
@@ -208,12 +209,12 @@ function bundle(name) {
   // Gruppen: für jeden Gruppennamen genau EINMAL rekursiv auflösen,
   // beginnend bei der konkreten Einstiegsdatei, die die Function
   // importiert hat (z. B. 'index.ts' aus 'ai-providers/index.ts').
-  const inlinedGroups = SHARED_GROUPS.filter((g) => grouped.some((f) => f.startsWith(`${g}/`))).flatMap(
-    (groupName) => {
-      const entry = grouped.find((f) => f.startsWith(`${groupName}/`)).slice(groupName.length + 1);
-      return resolveSharedGroup(join(FUNCTIONS_DIR, '_shared', groupName), entry, remoteImports);
-    },
-  );
+  const inlinedGroups = SHARED_GROUPS.filter((g) =>
+    grouped.some((f) => f.startsWith(`${g}/`))
+  ).flatMap((groupName) => {
+    const entry = grouped.find((f) => f.startsWith(`${groupName}/`)).slice(groupName.length + 1);
+    return resolveSharedGroup(join(FUNCTIONS_DIR, '_shared', groupName), entry, remoteImports);
+  });
 
   const inlined = [...inlinedFlat, ...inlinedGroups];
 

@@ -143,11 +143,7 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
               expanded || closing ? 'profile-stack-anchor' : '',
             ].join(' ')}
           >
-            <ProfileIcon
-              key={`profil-${burstKey}`}
-              active={active || expanded}
-              burst={burst}
-            />
+            <ProfileIcon key={`profil-${burstKey}`} active={active || expanded} burst={burst} />
           </span>
           <span
             className={[

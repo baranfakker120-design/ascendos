@@ -29,7 +29,8 @@ export function buttonClassName({
   fullWidth?: boolean;
   className?: string;
 }): string {
-  const width = fullWidth && size !== 'chip' && size !== 'icon' ? 'ui-btn--block' : 'ui-btn--inline';
+  const width =
+    fullWidth && size !== 'chip' && size !== 'icon' ? 'ui-btn--block' : 'ui-btn--inline';
   return `ui-btn ui-btn--${variant} ui-btn--${size} ${width} ${className}`.trim();
 }
 

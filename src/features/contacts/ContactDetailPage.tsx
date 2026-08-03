@@ -12,12 +12,7 @@ import { PhaseChip } from '@shared/ui/PhaseChip';
 import { EventPicker } from './components/EventPicker';
 import { EventTimeline } from './components/EventTimeline';
 import { ShareTools } from './components/ShareTools';
-import {
-  useContact,
-  useContactEvents,
-  useContactMutations,
-  useExternalTools,
-} from './contactsApi';
+import { useContact, useContactEvents, useContactMutations, useExternalTools } from './contactsApi';
 
 export function ContactDetailPage() {
   const { contactId } = useParams();
@@ -103,9 +98,7 @@ export function ContactDetailPage() {
 
       {contact.next_step ? (
         <Card>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            Nächster Schritt
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Nächster Schritt</p>
           <p className="mt-1 font-medium">{contact.next_step}</p>
         </Card>
       ) : null}
@@ -135,7 +128,9 @@ export function ContactDetailPage() {
           className="h-auto min-h-12 justify-between py-3 text-left [&_.ui-btn__label]:w-full [&_.ui-btn__label]:justify-between"
         >
           <span className="min-w-0">
-            <span className="block text-sm font-medium">Ascent zu {contact.name.split(' ')[0]} fragen</span>
+            <span className="block text-sm font-medium">
+              Ascent zu {contact.name.split(' ')[0]} fragen
+            </span>
             <span className="block text-xs font-normal text-muted">
               Kennt Phase, Verlauf und nächsten Schritt bereits
             </span>

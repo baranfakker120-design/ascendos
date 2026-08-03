@@ -2,11 +2,7 @@ import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ReactNode } from 'react';
-import {
-  matchTeachingLine,
-  prepareCoachReading,
-  type TeachingMeta,
-} from './coachReading';
+import { matchTeachingLine, prepareCoachReading, type TeachingMeta } from './coachReading';
 import './coach-markdown.css';
 
 function textFromChildren(children: ReactNode): string {

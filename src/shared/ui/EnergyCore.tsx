@@ -72,8 +72,7 @@ export function EnergyCore({
 
   useEffect(() => {
     setReduced(
-      typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     );
   }, []);
 
@@ -194,9 +193,7 @@ export function EnergyCore({
             ctx.closePath();
             const a = 0.06 + layer * 0.03;
             ctx.fillStyle =
-              layer === 1
-                ? `rgb(255 245 210 / ${a + boost * 0.06})`
-                : `rgb(60 35 8 / ${a * 0.7})`;
+              layer === 1 ? `rgb(255 245 210 / ${a + boost * 0.06})` : `rgb(60 35 8 / ${a * 0.7})`;
             ctx.fill();
           }
 
@@ -204,8 +201,7 @@ export function EnergyCore({
           for (const c of caustics) {
             c.x += c.speed * (1 + boost * 1.5) * (dt / 1000) * 0.12;
             if (c.x > 0.95) c.x = 0.05;
-            const wobble =
-              energyTurbulence(c.x, timeSec * 0.8, c.phase) * 0.08 * (1 + boost * 0.5);
+            const wobble = energyTurbulence(c.x, timeSec * 0.8, c.phase) * 0.08 * (1 + boost * 0.5);
             const cx = c.x * fillW;
             const cy = Math.min(0.82, Math.max(0.18, c.y + wobble)) * ch;
             const cr = c.r * ch * (1.6 + boost * 0.8);
@@ -216,7 +212,15 @@ export function EnergyCore({
             cg.addColorStop(1, 'rgb(255 220 140 / 0)');
             ctx.fillStyle = cg;
             ctx.beginPath();
-            ctx.ellipse(cx, cy, cr * 1.4, cr * 0.55, Math.sin(timeSec + c.phase) * 0.4, 0, Math.PI * 2);
+            ctx.ellipse(
+              cx,
+              cy,
+              cr * 1.4,
+              cr * 0.55,
+              Math.sin(timeSec + c.phase) * 0.4,
+              0,
+              Math.PI * 2
+            );
             ctx.fill();
           }
 

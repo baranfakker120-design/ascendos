@@ -12,7 +12,10 @@ import './coach-chat.css';
 
 const CHIPS = [
   { label: '🛡️ Einwand behandeln', text: 'Hilf mir, diesen Einwand zu behandeln: ' },
-  { label: '✍️ Nachricht formulieren', text: 'Formuliere mir eine Nachricht für diese Situation: ' },
+  {
+    label: '✍️ Nachricht formulieren',
+    text: 'Formuliere mir eine Nachricht für diese Situation: ',
+  },
   { label: '🎯 Gespräch vorbereiten', text: 'Bereite mich auf das nächste Gespräch vor.' },
 ];
 
@@ -33,7 +36,7 @@ function linkifyText(text: string): Array<string | JSX.Element> {
       </a>
     ) : (
       part
-    ),
+    )
   );
 }
 
@@ -54,7 +57,7 @@ export function CoachPage() {
       next.set('c', id);
       setSearchParams(next, { replace: true });
     },
-    [searchParams, setSearchParams],
+    [searchParams, setSearchParams]
   );
 
   // When contact context changes, drop a stale convo id so we resolve the
@@ -134,19 +137,13 @@ export function CoachPage() {
     }
   };
 
-  const showWelcome =
-    !send.isPending && !(messages?.length) && !(conversationId && messagesPending);
+  const showWelcome = !send.isPending && !messages?.length && !(conversationId && messagesPending);
 
   return (
     <div className="coach-page">
       <div className="coach-page__header space-y-3">
         <div className="flex items-center gap-3">
-          <img
-            src="/brand/ascendos-symbol-mono-v2.png"
-            alt=""
-            className="h-8 w-auto"
-            aria-hidden
-          />
+          <img src="/brand/ascendos-symbol-mono-v2.png" alt="" className="h-8 w-auto" aria-hidden />
           <div>
             <p className="text-lg font-bold leading-tight">Ascent</p>
             <p className="text-xs text-muted">Dein persönlicher Mentor</p>
@@ -171,11 +168,7 @@ export function CoachPage() {
         ) : null}
       </div>
 
-      <div
-        ref={scrollerRef}
-        className="coach-page__thread coach-thread"
-        onScroll={updateStick}
-      >
+      <div ref={scrollerRef} className="coach-page__thread coach-thread" onScroll={updateStick}>
         {showWelcome ? (
           <CoachBubble animate>
             <CoachMarkdown
@@ -195,7 +188,7 @@ export function CoachPage() {
             <CoachBubble key={m.id} animate={animateIds.has(m.id)}>
               <CoachMarkdown content={m.content} animate={animateIds.has(m.id)} />
             </CoachBubble>
-          ),
+          )
         )}
 
         {send.isPending ? <CoachBubble pending animate /> : null}

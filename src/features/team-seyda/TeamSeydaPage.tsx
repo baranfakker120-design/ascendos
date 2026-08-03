@@ -20,7 +20,9 @@ export function TeamSeydaPage() {
         {failed ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
             <p className="font-medium">Guide konnte nicht geladen werden.</p>
-            <p className="text-sm text-muted">Öffne ihn in einem neuen Tab und komm danach zurück.</p>
+            <p className="text-sm text-muted">
+              Öffne ihn in einem neuen Tab und komm danach zurück.
+            </p>
             <Button
               fullWidth={false}
               variant="secondary"

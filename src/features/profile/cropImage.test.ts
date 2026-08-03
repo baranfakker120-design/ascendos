@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { coverScaleForImage, CROP_INITIAL_ZOOM, CROP_MAX_ZOOM_FACTOR, CROP_OUTPUT_SIZE } from './AvatarCropModal';
+import {
+  coverScaleForImage,
+  CROP_INITIAL_ZOOM,
+  CROP_MAX_ZOOM_FACTOR,
+  CROP_OUTPUT_SIZE,
+} from './AvatarCropModal';
 
 const dir = dirname(fileURLToPath(import.meta.url));
 

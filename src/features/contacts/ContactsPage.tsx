@@ -99,10 +99,7 @@ export function ContactsPage() {
             ))}
           </ul>
           {data?.hasMore ? (
-            <Button
-              variant="secondary"
-              onClick={() => setLimit((l) => l + CONTACTS_PAGE_SIZE)}
-            >
+            <Button variant="secondary" onClick={() => setLimit((l) => l + CONTACTS_PAGE_SIZE)}>
               Weitere Kontakte laden
             </Button>
           ) : null}
@@ -146,7 +143,9 @@ function ContactRow({ contact }: { contact: ContactWithPhase }) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate font-semibold">{contact.name}</p>
-              <p className={`mt-0.5 text-xs ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}>
+              <p
+                className={`mt-0.5 text-xs ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}
+              >
                 {activityLabel(contact.last_event_at)}
                 {overdue ? ' · Follow-up überfällig' : ''}
               </p>
