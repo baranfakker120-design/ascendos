@@ -39,8 +39,8 @@ describe('frameAssets', () => {
   });
 
   it('wählt Retina-Assets groß genug für die Anzeigepixel', () => {
-    expect(pickFrameAssetPx(112, 1)).toBe(128);
-    expect(pickFrameAssetPx(268, 2)).toBe(480);
+    expect(pickFrameAssetPx(120, 1)).toBe(128);
+    expect(pickFrameAssetPx(FRAME_DISPLAY_PX.lg, 2)).toBe(480);
     expect(FRAME_ASSET_PX).toContain(480);
   });
 
@@ -51,15 +51,15 @@ describe('frameAssets', () => {
     expect(resolveFrameSrcSet('frame-09')).toContain('frame-09-480.webp 480w');
   });
 
-  it('füllt das Alpha-Loch vollständig — kein Spaltring zum Hintergrund', () => {
+  it('füllt das Alpha-Loch exakt bis zum Goldring — kein Spalt, kein Overcover', () => {
     expect(AVATAR_FILL_RATIO).toBe(1);
-    expect(HOLE_DISPLAY_SCALE).toBeGreaterThanOrEqual(1.08);
-    expect(FRAME_DISPLAY_PX.lg).toBeGreaterThanOrEqual(260);
+    expect(HOLE_DISPLAY_SCALE).toBe(1);
+    expect(FRAME_DISPLAY_PX.lg).toBeGreaterThanOrEqual(280);
+    expect(FRAME_DISPLAY_PX.lg).toBeLessThanOrEqual(292);
     const layout = frameAvatarLayout('frame-09', 'lg');
     const hole = layout.box * openingLayout(FRAME_GEOMETRY['frame-09']).holeRatio;
-    // Avatar >= Loch (Overlap unters Metall), kein Untermaß
-    expect(layout.avatarPx).toBeGreaterThanOrEqual(Math.round(hole));
-    expect(layout.avatarPx / hole).toBeCloseTo(HOLE_DISPLAY_SCALE, 2);
+    expect(layout.avatarPx).toBe(Math.round(hole));
+    expect(layout.avatarPx / hole).toBeCloseTo(1, 2);
   });
 
   it('ordnet Sonderrahmen fest zu (08 Developer, 09 Super Admin, 10 Monat)', () => {

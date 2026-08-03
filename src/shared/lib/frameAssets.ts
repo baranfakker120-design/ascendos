@@ -130,9 +130,9 @@ export type FrameDisplaySize = 'sm' | 'md' | 'lg';
  * Spezialrahmen (08–10) und AP-Rahmen nutzen dieselben Größen.
  */
 export const FRAME_DISPLAY_PX: Record<FrameDisplaySize, number> = {
-  sm: 112,
-  md: 168,
-  lg: 268,
+  sm: 120,
+  md: 178,
+  lg: 284,
 };
 
 /** Verfügbare Asset-Kantenlängen (generate-frame-assets.py). */
@@ -141,15 +141,12 @@ export type FrameAssetPx = (typeof FRAME_ASSET_PX)[number];
 
 /**
  * Avatar-Durchmesser relativ zur echten PNG-Alpha-Öffnung.
- * 1 = Loch vollständig füllen — kein transparenter/schwarzer Spaltring.
+ * 1 = exakt bis an den inneren Metall-/Goldring — kein Spalt, kein Überdecken.
  */
 export const AVATAR_FILL_RATIO = 1;
 
-/**
- * Avatar leicht unter den Metallrand schieben (AA / weicher Übergang).
- * 1.10 ≈ 10 % größer als die gemessene Öffnung — Spalt verschwindet.
- */
-export const HOLE_DISPLAY_SCALE = 1.1;
+/** Kein Extra-Overlap — Avatar endet am Alpha-Rand (Goldring). */
+export const HOLE_DISPLAY_SCALE = 1;
 
 /** Geometrie zu einem Rahmen-Schlüssel, oder null wenn unbekannt. */
 export function getFrameGeometry(frameKey: string | null | undefined): FrameGeometry | null {
@@ -211,9 +208,7 @@ export function resolveFrameSrcSet(frameKey: string | null | undefined): string 
 
 /**
  * Avatar- und Öffnungsmaße.
- *
- * Ursache des schwarzen Rings: Avatar < Alpha-Loch → Hintergrund scheint durch.
- * Deshalb: Avatar = Loch × HOLE_DISPLAY_SCALE (vollständig füllen, leicht unters Metall).
+ * Avatar-Durchmesser = horizontale Alpha-Öffnung (kein Padding, kein Scale-Faktor).
  */
 export function frameAvatarLayout(
   frameKey: string | null | undefined,
@@ -232,8 +227,6 @@ export function frameAvatarLayout(
     return { box, holePx, avatarPx, offsetY: 0 };
   }
   const layout = openingLayout(geometry);
-  // holeRatio = horizontale Alpha-Öffnung (pixelvermessen); Crests oben/unten
-  // überdecken den kreisförmigen Avatar — gewollt, kein Spalt links/rechts.
   const holePx = box * layout.holeRatio;
   const avatarPx = Math.round(holePx * HOLE_DISPLAY_SCALE * AVATAR_FILL_RATIO);
   const offsetY = Math.round(box * layout.offsetYRatio);
