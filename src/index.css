@@ -19,14 +19,36 @@
   --color-primary-ink: 255 255 255;
   --color-accent: 184 147 90;       /* Champagner: nur Akzente */
   --color-accent-deep: 138 108 60;  /* Champagner als Text (>=4.5:1) */
+
+  /* Layout tokens — one scrollport, iPhone-safe */
+  --app-height: 100dvh;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* BottomNav shell + center disc overhang + safe area */
+  --app-nav-clearance: calc(5.75rem + var(--safe-bottom));
+  --app-header-pad: max(0.75rem, var(--safe-top));
 }
 
-html,
+@supports not (height: 100dvh) {
+  :root {
+    --app-height: 100vh;
+  }
+}
+
+html {
+  height: var(--app-height);
+  overflow: hidden;
+}
+
 body,
 #root {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
   @apply bg-bg font-sans text-ink antialiased;
+  /* Prevent iOS rubber-band scrolling the document behind the app shell */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
