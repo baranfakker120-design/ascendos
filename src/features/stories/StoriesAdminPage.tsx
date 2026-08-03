@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n, type MessageKey } from '@shared/i18n';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
@@ -7,11 +8,10 @@ import { Input } from '@shared/ui/Input';
 import { Select } from '@shared/ui/Select';
 import { TextArea } from '@shared/ui/TextArea';
 import { useAllAscendStories, useStoryMutations } from './storiesApi';
-import { STORY_TYPE_LABELS, type StoryTone, type StoryType } from './types';
-
-const TYPES = Object.keys(STORY_TYPE_LABELS) as StoryType[];
+import { STORY_TYPES, type StoryTone, type StoryType } from './types';
 
 export function StoriesAdminPage() {
+  const { t, locale } = useI18n();
   const { profile } = useAuth();
   const { data: stories = [], isPending } = useAllAscendStories();
   const { publish, deactivate } = useStoryMutations();
@@ -40,20 +40,18 @@ export function StoriesAdminPage() {
       setTitle('');
       setBody('');
       setSubjectName('');
-      setMessage('Story published — visible for 24 hours. Motivate · Celebrate · Inspire.');
+      setMessage(t('stories.publishedHint'));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Publish failed.');
+      setError(e instanceof Error ? e.message : t('stories.publishFailed'));
     }
   };
 
   return (
     <div className="space-y-4 pb-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Ascend</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Stories</h1>
-        <p className="mt-1 text-sm text-muted">
-          Premium Admin Stories. Never shame. Never compare negatively. Expire after 24h.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">{t('brand.name')}</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('stories.adminTitle')}</h1>
+        <p className="mt-1 text-sm text-muted">{t('stories.adminSubtitle')}</p>
       </header>
 
       {message ? <Alert tone="info">{message}</Alert> : null}
@@ -61,30 +59,30 @@ export function StoriesAdminPage() {
 
       <Card className="space-y-3">
         <Select
-          label="Type"
+          label={t('stories.typeLabel')}
           value={storyType}
           onChange={(e) => setStoryType(e.target.value as StoryType)}
         >
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {STORY_TYPE_LABELS[t]}
+          {STORY_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {t(`stories.types.${type}` as MessageKey)}
             </option>
           ))}
         </Select>
-        <Select label="Tone" value={tone} onChange={(e) => setTone(e.target.value as StoryTone)}>
-          <option value="motivate">Motivate</option>
-          <option value="celebrate">Celebrate</option>
-          <option value="inspire">Inspire</option>
+        <Select label={t('stories.toneLabel')} value={tone} onChange={(e) => setTone(e.target.value as StoryTone)}>
+          <option value="motivate">{t('stories.toneMotivate')}</option>
+          <option value="celebrate">{t('stories.toneCelebrate')}</option>
+          <option value="inspire">{t('stories.toneInspire')}</option>
         </Select>
-        <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <TextArea label="Body" value={body} onChange={(e) => setBody(e.target.value)} rows={4} />
+        <Input label={t('stories.titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <TextArea label={t('stories.bodyLabel')} value={body} onChange={(e) => setBody(e.target.value)} rows={4} />
         <Input
-          label="Author"
+          label={t('stories.author')}
           value={authorLabel}
           onChange={(e) => setAuthorLabel(e.target.value)}
         />
         <Input
-          label="Subject (optional)"
+          label={t('stories.subjectOptional')}
           value={subjectName}
           onChange={(e) => setSubjectName(e.target.value)}
         />
@@ -95,13 +93,13 @@ export function StoriesAdminPage() {
           disabled={publish.isPending || !title.trim() || !body.trim()}
           onClick={() => void onPublish()}
         >
-          Publish Story
+          {t('stories.publish')}
         </Button>
       </Card>
 
       <Card className="space-y-2">
-        <p className="font-semibold">Recent</p>
-        {isPending ? <p className="text-sm text-muted">Loading …</p> : null}
+        <p className="font-semibold">{t('stories.adminTitle')}</p>
+        {isPending ? <p className="text-sm text-muted">{t('common.loading')}</p> : null}
         <ul className="space-y-2">
           {stories.map((s) => (
             <li
@@ -111,8 +109,8 @@ export function StoriesAdminPage() {
               <div className="min-w-0">
                 <p className="font-medium">{s.title}</p>
                 <p className="text-xs text-muted">
-                  {STORY_TYPE_LABELS[s.story_type as StoryType] ?? s.story_type} ·{' '}
-                  {s.active ? 'active' : 'off'} · expires {new Date(s.expires_at).toLocaleString()}
+                  {t(`stories.types.${s.story_type as StoryType}` as MessageKey)} ·{' '}
+                  {s.active ? t('knowledge.active') : 'off'} · {new Date(s.expires_at).toLocaleString(locale)}
                 </p>
               </div>
               {s.active ? (
@@ -123,7 +121,7 @@ export function StoriesAdminPage() {
                   disabled={deactivate.isPending}
                   onClick={() => void deactivate.mutateAsync(s.id)}
                 >
-                  Hide
+                  {t('stories.hide')}
                 </Button>
               ) : null}
             </li>

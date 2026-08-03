@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@shared/i18n';
 import { useApTasks, useCompleteApTask } from '../leadershipApi';
 import './leader-surface.css';
 
@@ -7,6 +8,7 @@ interface ApTasksPanelProps {
 }
 
 export function ApTasksPanel({ onAwarded }: ApTasksPanelProps) {
+  const { t } = useI18n();
   const { data: tasks = [], isPending } = useApTasks();
   const complete = useCompleteApTask();
   const [flying, setFlying] = useState<number | null>(null);
@@ -20,33 +22,33 @@ export function ApTasksPanel({ onAwarded }: ApTasksPanelProps) {
       onAwarded?.(result.apAwarded, result.newApTotal);
       window.setTimeout(() => setFlying(null), 1200);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Aufgabe konnte nicht abgeschlossen werden.');
+      setError(e instanceof Error ? e.message : t('leadership.taskFailed'));
     }
   };
 
   return (
-    <section className="leader-tasks leader-glass" aria-label="Aufgaben & AP">
+    <section className="leader-tasks leader-glass" aria-label={t('leadership.tasks')}>
       <header>
-        <h2>Aufgaben</h2>
-        <p>AP nur nach vollständigem Abschluss.</p>
+        <h2>{t('leadership.tasksTitle')}</h2>
+        <p>{t('leadership.tasksSub')}</p>
       </header>
       {error ? <p className="leader-tasks__error">{error}</p> : null}
       {flying != null ? (
         <div className="leader-tasks__fly" aria-live="polite">
-          +{flying} AP
+          +{flying} {t('common.ap')}
         </div>
       ) : null}
       <ul className="leader-tasks__list">
         {isPending ? (
-          <li>Lade Aufgaben …</li>
+          <li>{t('leadership.tasksLoading')}</li>
         ) : (
           tasks.map((task) => (
             <li key={task.id}>
               <div>
                 <p className="leader-tasks__title">{task.title}</p>
                 <p className="leader-tasks__meta">
-                  +{task.ap} AP · {task.difficulty}
-                  {task.repeatable ? '' : ' · einmalig'}
+                  +{task.ap} {t('common.ap')} · {task.difficulty}
+                  {task.repeatable ? '' : ` · ${t('leadership.once')}`}
                 </p>
               </div>
               <button
@@ -54,7 +56,7 @@ export function ApTasksPanel({ onAwarded }: ApTasksPanelProps) {
                 disabled={complete.isPending}
                 onClick={() => void onComplete(task.key, task.ap)}
               >
-                Erledigt
+                {t('leadership.done')}
               </button>
             </li>
           ))

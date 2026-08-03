@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import type { CSSProperties } from 'react';
 import { useMemo } from 'react';
@@ -34,6 +35,7 @@ export function TeamNodeCard({
   onToggleCollapse,
   style,
 }: TeamNodeCardProps) {
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const frameKey = resolveDisplayFrameKey({
     role: node.role,
@@ -81,7 +83,7 @@ export function TeamNodeCard({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`${displayName(node)}, ${node.rankLabel ?? 'Rang'}${editable ? '' : ', nur Ansicht'}`}
+      aria-label={`${displayName(node)}, ${node.rankLabel ?? t('team.rankFallback')}${editable ? '' : `, ${t('team.viewOnly')}`}`}
     >
       <div className="team-node__glow" aria-hidden />
       <div
@@ -107,48 +109,48 @@ export function TeamNodeCard({
           <RankFrame frameKey={frameKey} src={node.avatarUrl} name={displayName(node)} size="sm" />
           <span
             className={['team-node__presence', online ? 'is-on' : 'is-off'].join(' ')}
-            title={presenceLabel(node)}
+            title={presenceLabel(node, Date.now(), t)}
           />
           {node.messageBadge > 0 ? (
-            <span className="team-node__msg" aria-label={`${node.messageBadge} Nachrichten`}>
+            <span className="team-node__msg" aria-label={t('team.messages', { count: node.messageBadge })}>
               {node.messageBadge > 9 ? '9+' : node.messageBadge}
             </span>
           ) : null}
         </div>
-        {isNew ? <span className="team-node__badge">NEW</span> : null}
+        {isNew ? <span className="team-node__badge">{t('team.badgeNew')}</span> : null}
         {node.isFavorite ? <span className="team-node__pin">★</span> : null}
       </div>
 
       <h3 className="team-node__name">{displayName(node)}</h3>
-      <p className="team-node__rank">{node.rankLabel ?? 'Newcomer'}</p>
+      <p className="team-node__rank">{node.rankLabel ?? t('team.newcomer')}</p>
 
       <dl className="team-node__stats">
         <div>
           <dt>AP</dt>
-          <dd>{node.apTotal.toLocaleString('de-DE')}</dd>
+          <dd>{node.apTotal.toLocaleString(locale)}</dd>
         </div>
         <div>
           <dt>ICP</dt>
-          <dd>{node.icpMonth.toLocaleString('de-DE')}</dd>
+          <dd>{node.icpMonth.toLocaleString(locale)}</dd>
         </div>
         <div>
-          <dt>Direkt</dt>
+          <dt>{t('team.directShort')}</dt>
           <dd>{node.directCount}</dd>
         </div>
       </dl>
 
       <p className="team-node__activity">
-        {presenceLabel(node)}
+        {presenceLabel(node, Date.now(), t)}
         {node.streakDays > 0 ? ` · ${node.streakDays}d` : ''}
       </p>
-      {node.sponsorName ? <p className="team-node__sponsor">Sponsor: {node.sponsorName}</p> : null}
+      {node.sponsorName ? <p className="team-node__sponsor">{t('team.sponsor')} {node.sponsorName}</p> : null}
 
       {hasChildren ? (
         <button
           type="button"
           className="team-node__collapse"
           aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Zweig öffnen' : 'Zweig schließen'}
+          aria-label={collapsed ? t('team.expandBranch') : t('team.collapseBranch')}
           onClick={(e) => {
             e.stopPropagation();
             onToggleCollapse?.(node);

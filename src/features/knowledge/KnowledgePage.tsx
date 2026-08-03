@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@shared/ui/Card';
@@ -27,6 +28,7 @@ function titleFromFile(name: string): string {
 let jobCounter = 0;
 
 export function KnowledgePage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [category, setCategory] = useState<CategoryValue>('produkte');
   const [sourceType, setSourceType] = useState<SourceTypeValue>('document');
@@ -94,7 +96,7 @@ export function KnowledgePage() {
               ? e.message
               : e instanceof Error
                 ? e.message
-                : 'Unbekannter Fehler.';
+                : t('knowledge.unknownError');
           patch(job.id, { phase: 'error', error: message });
         }
       }
@@ -112,23 +114,22 @@ export function KnowledgePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-ink">Wissensdatenbank</h1>
-        <p className="mt-1 text-sm text-muted">
-          Teamdokumente sind für Ascent die oberste Wahrheit. Was hier fehlt, behandelt der Coach
-          als Wissenslücke.
-        </p>
+        <h1 className="text-2xl font-semibold text-ink">{t('knowledge.title')}</h1>
+        <p className="mt-1 text-sm text-muted">{t('knowledge.subtitle')}</p>
       </header>
 
       <Card className="space-y-4">
         <Select
           id="kb-category"
-          label="Kategorie"
+          label={t('knowledge.category')}
           value={category}
           onChange={(e: ChangeEvent<HTMLSelectElement>) =>
             setCategory(e.target.value as CategoryValue)
           }
           disabled={busy}
-          hint={selected ? `Wird abgefragt von: ${selected.agents}` : undefined}
+          hint={
+            selected ? t('knowledge.queriedBy', { agents: selected.agents }) : undefined
+          }
         >
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
@@ -139,7 +140,7 @@ export function KnowledgePage() {
 
         <Select
           id="kb-source"
-          label="Art des Dokuments"
+          label={t('knowledge.docType')}
           value={sourceType}
           onChange={(e: ChangeEvent<HTMLSelectElement>) =>
             setSourceType(e.target.value as SourceTypeValue)
@@ -159,7 +160,7 @@ export function KnowledgePage() {
       <UploadQueue jobs={jobs} />
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-ink">Dokumente</h2>
+        <h2 className="text-lg font-semibold text-ink">{t('knowledge.documents')}</h2>
         <DocumentList />
       </section>
     </div>

@@ -1,3 +1,4 @@
+import type { TranslateFn } from '@shared/i18n';
 import type { GenealogyFilter, GenealogyNode } from './types';
 
 const DAY_MS = 86_400_000;
@@ -83,7 +84,16 @@ export function filterTreeNodes(
   return keep;
 }
 
-export function presenceLabel(node: GenealogyNode, now = Date.now()): string {
+export function presenceLabel(node: GenealogyNode, now = Date.now(), t?: TranslateFn): string {
+  if (t) {
+    if (isOnline(node, now)) return t('team.online');
+    if (!node.lastAppOpenedAt) return t('team.neverOpened');
+    const days = Math.floor((now - new Date(node.lastAppOpenedAt).getTime()) / DAY_MS);
+    if (days < 1) return t('pipeline.activity.today');
+    if (days === 1) return t('pipeline.activity.yesterday');
+    if (days < 14) return t('team.lastSeenDays', { days });
+    return `${t('team.inactive')} · ${days}d`;
+  }
   if (isOnline(node, now)) return 'Online';
   if (!node.lastAppOpenedAt) return 'Noch nie';
   const days = Math.floor((now - new Date(node.lastAppOpenedAt).getTime()) / DAY_MS);

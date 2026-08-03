@@ -132,7 +132,7 @@ describe('shareVerification', () => {
     expect(
       isShareActionAlreadyAwarded('dogukan', 'waytomoon', 'waytomoon_sent', ['waytomoon_sent'])
     ).toBe(true);
-    expect(ALREADY_CONFIRMED_MESSAGE).toBe('Bereits für diesen Kontakt bestätigt.');
+    expect(ALREADY_CONFIRMED_MESSAGE).toBe('Already confirmed for this contact.');
     expect(
       getOrCreatePendingShareVerification({
         contactId: 'dogukan',

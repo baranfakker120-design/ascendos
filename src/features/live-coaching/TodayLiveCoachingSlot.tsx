@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { useEffect } from 'react';
 import { LiveCoachingCard } from './LiveCoachingCard';
 import { useLiveCoachingEvents } from './liveCoachingApi';
@@ -10,6 +11,7 @@ import { LIVE_COACHING_FUTURE } from './types';
  * Future library/search/replay surfaces stay stubbed.
  */
 export function TodayLiveCoachingSlot() {
+  const { t } = useI18n();
   const { data: events = [], isPending } = useLiveCoachingEvents({ activeOnly: true });
   const event = pickTodayCoachingEvent(events);
 
@@ -22,7 +24,7 @@ export function TodayLiveCoachingSlot() {
   if (isPending || !event) return null;
 
   return (
-    <section className="space-y-2" aria-label="Live Coaching">
+    <section className="space-y-2" aria-label={t('liveCoaching.slotTitle')}>
       <LiveCoachingCard event={event} />
       {/* Future-ready hooks (additive only, unused until later sprints) */}
       {LIVE_COACHING_FUTURE.library ? null : null}

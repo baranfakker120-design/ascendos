@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import type { TeamInsight } from '../types';
 import './leader-surface.css';
 
@@ -7,9 +8,10 @@ interface TeamInsightsStripProps {
 }
 
 export function TeamInsightsStrip({ items, onSelect }: TeamInsightsStripProps) {
+  const { t } = useI18n();
   if (!items.length) return null;
   return (
-    <section className="leader-insights" aria-label="Team Insights">
+    <section className="leader-insights" aria-label={t('leadership.insights')}>
       <div className="leader-insights__rail">
         {items.map((item, i) => (
           <button

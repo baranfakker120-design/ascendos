@@ -1,3 +1,4 @@
+import { useI18n } from '@shared/i18n';
 import { useState, type ChangeEvent } from 'react';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { Alert } from '@shared/ui/Alert';
@@ -24,6 +25,7 @@ function toLocalInputValue(iso: string | null): string {
 }
 
 export function LiveCoachingAdminPage() {
+  const { t } = useI18n();
   const { profile } = useAuth();
   const { data: events = [], isPending } = useLiveCoachingEvents();
   const { saveEvent } = useLiveCoachingMutations();
@@ -192,40 +194,40 @@ export function LiveCoachingAdminPage() {
             ))}
           </ul>
 
-          <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Input label="Subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+          <Input label={t('liveCoaching.titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input label={t('liveCoaching.subtitle')} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
           <TextArea
-            label="Description"
+            label={t('liveCoaching.description')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
-          <Input label="Coach" value={coachName} onChange={(e) => setCoachName(e.target.value)} />
-          <Select label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <Input label={t('liveCoaching.coach')} value={coachName} onChange={(e) => setCoachName(e.target.value)} />
+          <Select label={t('liveCoaching.category')} value={category} onChange={(e) => setCategory(e.target.value)}>
             {LIVE_COACHING_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </Select>
-          <Input label="Language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+          <Input label={t('liveCoaching.language')} value={language} onChange={(e) => setLanguage(e.target.value)} />
           <Input
-            label="Date & Time"
+            label={t('liveCoaching.datetime')}
             type="datetime-local"
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
           />
           <Input
-            label="Duration (Min)"
+            label={t('liveCoaching.duration')}
             type="number"
             min={5}
             max={480}
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(Number(e.target.value) || 60)}
           />
-          <Input label="Zoom URL" value={zoomUrl} onChange={(e) => setZoomUrl(e.target.value)} />
+          <Input label={t('liveCoaching.zoomUrl')} value={zoomUrl} onChange={(e) => setZoomUrl(e.target.value)} />
           <Select
-            label="Repeat"
+            label={t('liveCoaching.repeat')}
             value={repeatRule}
             onChange={(e) => setRepeatRule(e.target.value as LiveRepeatRule)}
           >
@@ -237,7 +239,7 @@ export function LiveCoachingAdminPage() {
           </Select>
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">Active</span>
-            <Toggle checked={active} onChange={setActive} label="Active" />
+            <Toggle checked={active} onChange={setActive} label={t('liveCoaching.active')} />
           </div>
           <label className="ui-btn ui-btn--secondary ui-btn--sm ui-btn--inline cursor-pointer">
             Bild (9:16) oder MP4
