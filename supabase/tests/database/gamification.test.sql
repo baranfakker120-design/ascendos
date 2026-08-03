@@ -51,6 +51,9 @@ values
 
 -- Mitgliedschaften (Migration 15 legt sie fuer Bestandsprofile an,
 -- fuer hier neu angelegte muss der Umzug nachgezogen werden).
+-- Unter replica: sync_profile_mirror darf profiles.sponsor_id nicht
+-- vor der Genealogie-Aktualisierung loeschen; protect blockiert sonst.
+set local session_replication_role = replica;
 insert into public.memberships (identity_id, org_id, team_id, role, status)
 select p.id, p.org_id, p.team_id, p.role, 'active'
 from public.profiles p
@@ -63,6 +66,7 @@ from public.profiles p
 join public.memberships sp on sp.identity_id=p.sponsor_id and sp.org_id=p.org_id and sp.status='active'
 where m.identity_id=p.id and m.org_id=p.org_id and m.status='active'
   and p.id::text like 'd1000000%' and p.sponsor_id is not null;
+set local session_replication_role = origin;
 
 -- ---------- Startdaten, WORTGETREU aus Migration 18 ----------
 -- Bewusst dieselben INSERTs: damit prueft diese Suite auch die
@@ -387,7 +391,8 @@ select is(
 select throws_ok(
   $$ insert into public.membership_cosmetics (membership_id, item_id, kind)
      values (tests.mid('s4bert'), gen_random_uuid(), 'frame') $$,
-  '23503', null,
+  'P0001',
+  'AscendOS: Unbekannter kosmetischer Gegenstand.',
   'F4 Unbekannter kosmetischer Gegenstand wird abgewiesen');
 
 

@@ -52,6 +52,13 @@ values
 -- Der Datenumzug aus Migration 15 lief bereits. Fuer die HIER neu
 -- angelegten Profile muss er von Hand nachgezogen werden, weil er
 -- einmalig in der Migration steht.
+--
+-- WICHTIG: unter session_replication_role = replica. Sonst loescht
+-- sync_profile_mirror beim INSERT ohne Sponsor sofort profiles.sponsor_id,
+-- und die Genealogie-Aktualisierung findet keinen Join-Partner mehr.
+-- Ausserdem blockiert protect_membership_columns die Sponsor-Spalte
+-- ohne Super-Admin-Sitzung.
+set local session_replication_role = replica;
 insert into public.memberships
   (identity_id, org_id, team_id, role, status)
 select p.id, p.org_id, p.team_id, p.role, 'active'
@@ -66,6 +73,7 @@ from public.profiles p
 join public.memberships sp on sp.identity_id = p.sponsor_id and sp.org_id = p.org_id and sp.status='active'
 where m.identity_id = p.id and m.org_id = p.org_id and m.status='active'
   and p.id::text like 'c5000000%' and p.sponsor_id is not null;
+set local session_replication_role = origin;
 
 create schema if not exists tests;
 
@@ -329,8 +337,11 @@ select is(
 reset role;
 
 -- Rolle an der MITGLIEDSCHAFT aendern. Der Spiegel muss folgen.
--- Trigger sind hier aktiv: der Aufbau hat nach dem Auth-Insert bereits
--- auf origin zurueckgeschaltet.
+-- protect_membership_columns laesst das nur Super-Admins: Anna in
+-- ihrer (eindeutigen) Org, Trigger bleiben aktiv fuer die Sync.
+select tests.authenticate_as('c5000000-0000-0000-0000-00000000000a');
+select tests.clear_org();
+
 update public.memberships set role = 'admin'
 where identity_id = 'c5000000-0000-0000-0000-00000000000b' and status = 'active';
 

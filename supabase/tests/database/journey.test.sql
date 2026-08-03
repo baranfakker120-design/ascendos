@@ -81,6 +81,25 @@ values
    'b3000000-0000-0000-0000-000000000001',
    null, 'berater', 'Faruk', 'F', 'faruk_f');
 
+-- Mitgliedschaften + Genealogie fuer profiles_public / Firstline-View.
+set local session_replication_role = replica;
+insert into public.memberships (identity_id, org_id, team_id, role, status)
+select p.id, p.org_id, p.team_id, p.role, 'active'
+from public.profiles p
+where p.id::text like 'c3000000%'
+  and not exists (
+    select 1 from public.memberships m
+    where m.identity_id = p.id and m.org_id = p.org_id and m.status = 'active'
+  );
+update public.memberships m
+set sponsor_membership_id = sp.id
+from public.profiles p
+join public.memberships sp
+  on sp.identity_id = p.sponsor_id and sp.org_id = p.org_id and sp.status = 'active'
+where m.identity_id = p.id and m.org_id = p.org_id and m.status = 'active'
+  and p.id::text like 'c3000000%' and p.sponsor_id is not null;
+set local session_replication_role = origin;
+
 insert into public.journeys (id, org_id, team_id, title)
 values ('e3000000-0000-0000-0000-000000000001',
         'a3000000-0000-0000-0000-000000000001',

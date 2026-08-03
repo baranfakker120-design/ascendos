@@ -38,10 +38,10 @@ bricht es ab, statt etwas zu zerstören.)
 Supabase → **Edge Functions** → „Deploy a new function" →
 „Via Editor". Dreimal wiederholen, Name muss EXAKT stimmen:
 
-| Function-Name | Datei aus dem Kit |
-|---|---|
-| `validate-invite` | `setup/functions/validate-invite.ts` |
-| `coach-chat` | `setup/functions/coach-chat.ts` |
+| Function-Name      | Datei aus dem Kit                     |
+| ------------------ | ------------------------------------- |
+| `validate-invite`  | `setup/functions/validate-invite.ts`  |
+| `coach-chat`       | `setup/functions/coach-chat.ts`       |
 | `ingest-knowledge` | `setup/functions/ingest-knowledge.ts` |
 
 Jeweils: kompletten Dateiinhalt in den Editor einfügen → **Deploy**.
@@ -52,10 +52,12 @@ sein); bei den anderen beiden eingeschaltet lassen.
 ## Schritt 4 — KI-Schlüssel als Secrets hinterlegen
 
 Supabase → Edge Functions → **Secrets** (Manage secrets):
+
 - `GEMINI_API_KEY` = dein Key von aistudio.google.com
   (der EINZIGE KI-Schlüssel: Ascent-Antworten und Wissenssuche)
 
 Optional, nur falls du ein anderes Modell willst:
+
 - `GEMINI_MODEL` — Coach-Modell (Standard: `gemini-3.5-flash`)
 - `GEMINI_FAST_MODEL` — Router/Anonymisierung (Standard: `gemini-3.1-flash-lite`)
 
@@ -68,6 +70,7 @@ Ohne diese läuft die App trotzdem — nur Ascent meldet sich als
 ## Schritt 5 — Anmeldung konfigurieren
 
 Supabase → **Authentication**:
+
 - Sign In / Providers → **Email** aktiviert lassen
 - Settings → **Minimum password length: 8**
 - Für den allerersten Test: „Confirm email" AUS — **vor der
