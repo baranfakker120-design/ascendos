@@ -19,10 +19,11 @@ describe('BottomNav tab contract', () => {
     ]);
   });
 
-  it('routes Team Seyda inside the PWA shell', () => {
+  it('routes Team to the Genealogy Engine', () => {
     const team = BOTTOM_NAV_TABS.find((t) => t.id === 'team');
-    expect(team?.to).toBe('/team-seyda');
-    expect(team?.externalInApp).toBe(true);
+    expect(team?.to).toBe('/team');
+    expect(team?.ariaLabel).toBe('Teambaum');
+    expect(team?.externalInApp).toBeFalsy();
   });
 
   it('keeps Ascend/Coach as the center route', () => {

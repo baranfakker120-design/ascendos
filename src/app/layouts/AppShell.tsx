@@ -6,7 +6,7 @@ import './nav/bottom-nav.css';
 
 /** Routes that own their own scrollport (chat / embedded guide). */
 function usesFillLayout(pathname: string): boolean {
-  return pathname === '/coach' || pathname === '/team-seyda';
+  return pathname === '/coach' || pathname === '/team' || pathname === '/team-seyda';
 }
 
 /**

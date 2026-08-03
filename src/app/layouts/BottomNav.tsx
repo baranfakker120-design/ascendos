@@ -22,10 +22,9 @@ export const BOTTOM_NAV_TABS: readonly NavTab[] = [
   { id: 'coach', to: '/coach', label: 'Coach', ariaLabel: 'Coach — Ascend' },
   {
     id: 'team',
-    to: '/team-seyda',
+    to: '/team',
     label: 'Team',
-    ariaLabel: 'Team Seyda',
-    externalInApp: true,
+    ariaLabel: 'Teambaum',
   },
   { id: 'profil', to: '/profil', label: 'Profil', ariaLabel: 'Profil' },
 ] as const;
@@ -42,6 +41,9 @@ function isTabActive(tab: NavTab, pathname: string): boolean {
       pathname === '/mehr' ||
       pathname.startsWith('/mehr/')
     );
+  }
+  if (tab.id === 'team') {
+    return pathname === '/team' || pathname.startsWith('/team/');
   }
   if (tab.end) return pathname === tab.to;
   return pathname === tab.to || pathname.startsWith(`${tab.to}/`);
