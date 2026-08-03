@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { Button } from '@shared/ui/Button';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
@@ -37,6 +38,7 @@ export interface ProfileStackProps {
  * GPU-only motion (transform / opacity / filter).
  */
 export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [expanded, setExpanded] = useState(false);
@@ -107,14 +109,14 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
         >
           <StackOrb
             className="stack-orb-more"
-            label="Mehr"
+            label={t('nav.more')}
             active={pathname.startsWith('/more') || pathname.startsWith('/mehr')}
             onClick={() => go('more')}
             icon={<MoreIcon active />}
           />
           <StackOrb
             className="stack-orb-settings"
-            label="Einstellungen"
+            label={t('nav.settings')}
             active={pathname.startsWith('/settings')}
             onClick={() => go('settings')}
             icon={<SettingsIcon active />}
@@ -128,7 +130,7 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
           id={labelId}
           variant="ghost"
           fullWidth
-          aria-label="Profil"
+          aria-label={t('nav.profile')}
           aria-expanded={expanded}
           aria-haspopup="menu"
           onClick={onProfileTap}
@@ -151,7 +153,7 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
               active || expanded ? 'font-bold text-accent-deep' : 'font-medium text-muted',
             ].join(' ')}
           >
-            Profil
+            {t('nav.profile')}
           </span>
         </Button>
       </LiquidChampagne>

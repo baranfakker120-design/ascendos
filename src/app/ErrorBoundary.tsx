@@ -1,4 +1,6 @@
 import { Component, type ReactNode } from 'react';
+import { createTranslator } from '@shared/i18n';
+import { readStoredLocale } from '@shared/lib/locale';
 import { Button } from '@shared/ui/Button';
 
 interface State {
@@ -31,19 +33,17 @@ export class ErrorBoundary extends Component<
 
   render() {
     if (!this.state.hasError) return this.props.children;
+    const t = createTranslator(readStoredLocale());
     return (
       <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-lg font-semibold">Da ist etwas schiefgelaufen.</p>
-        <p className="text-sm text-muted">
-          Deine Daten sind sicher gespeichert. Du kannst es erneut versuchen oder AscendOS neu
-          laden.
-        </p>
+        <p className="text-lg font-semibold">{t('errors.boundaryTitle')}</p>
+        <p className="text-sm text-muted">{t('errors.boundaryBody')}</p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button fullWidth={false} onClick={this.reset}>
-            Erneut versuchen
+            {t('common.retry')}
           </Button>
           <Button fullWidth={false} variant="secondary" onClick={() => window.location.reload()}>
-            Neu laden
+            {t('common.reload')}
           </Button>
         </div>
       </div>

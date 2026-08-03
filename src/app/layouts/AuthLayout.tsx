@@ -1,6 +1,8 @@
 import { Outlet } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 
 export function AuthLayout() {
+  const { t } = useI18n();
   return (
     <div className="mx-auto flex h-full max-w-md flex-col overflow-y-auto px-6 py-10 [scrollbar-gutter:stable]">
       <div className="my-auto w-full py-[max(1rem,var(--safe-top))] pb-[max(1.5rem,var(--safe-bottom))]">
@@ -19,7 +21,7 @@ export function AuthLayout() {
         <div className="mb-8 flex justify-center">
           <img
             src="/brand/ascendos-lockup-v2.png"
-            alt="AscendOS — Build a better tomorrow"
+            alt={t('brand.lockupAlt')}
             className="h-auto w-full max-w-[280px]"
           />
         </div>

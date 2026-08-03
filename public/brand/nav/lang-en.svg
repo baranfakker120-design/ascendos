@@ -1,12 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-  <defs><clipPath id="enClip"><circle cx="16" cy="16" r="13"/></clipPath></defs>
-  <circle cx="16" cy="16" r="14.25" stroke="#B8935A" stroke-width="1.5" fill="#F7F6F3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <defs>
+    <clipPath id="enClip">
+      <circle cx="32" cy="32" r="26"/>
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="28.5" fill="#F7F6F3" stroke="#B8935A" stroke-width="2.5"/>
   <g clip-path="url(#enClip)">
-    <rect x="3" y="3" width="26" height="26" fill="#1B3A6F"/>
-    <path d="M3 16h26M16 3v26" stroke="#fff" stroke-width="3.2"/>
-    <path d="M3 16h26M16 3v26" stroke="#C0392B" stroke-width="1.6"/>
-    <path d="M5 5l22 22M27 5L5 27" stroke="#fff" stroke-width="2.2"/>
-    <path d="M5 5l22 22M27 5L5 27" stroke="#C0392B" stroke-width="1"/>
+    <rect x="6" y="6" width="52" height="52" fill="#012169"/>
+    <path d="M6 6 L58 58 M58 6 L6 58" stroke="#FFFFFF" stroke-width="10"/>
+    <path d="M6 6 L58 58 M58 6 L6 58" stroke="#C8102E" stroke-width="6"/>
+    <path d="M32 6 V58 M6 32 H58" stroke="#FFFFFF" stroke-width="16"/>
+    <path d="M32 6 V58 M6 32 H58" stroke="#C8102E" stroke-width="10"/>
   </g>
-  <circle cx="16" cy="16" r="14.25" stroke="#B8935A" stroke-width="1.5" fill="none"/>
+  <circle cx="32" cy="32" r="28.5" fill="none" stroke="#B8935A" stroke-width="2.5"/>
 </svg>

@@ -1,23 +1,29 @@
-/** UI-Sprachen für AscendOS — Präsentation; Persistenz lokal. */
+/** UI languages for AscendOS — presentation only; persisted locally. */
 
-export type AppLocale = 'de' | 'en' | 'tr' | 'it' | 'es' | 'pl';
+export type AppLocale = 'de' | 'tr' | 'fr' | 'en' | 'it';
 
 export interface LocaleOption {
   code: AppLocale;
-  label: string;
+  /** Native endonym — never mixed with another language. */
+  labelKey: `locale.name.${AppLocale}`;
   flag: string;
 }
 
 export const APP_LOCALES: readonly LocaleOption[] = [
-  { code: 'de', label: 'German', flag: '/brand/nav/lang-de.svg' },
-  { code: 'en', label: 'English', flag: '/brand/nav/lang-en.svg' },
-  { code: 'tr', label: 'Türkçe', flag: '/brand/nav/lang-tr.svg' },
-  { code: 'it', label: 'Italiano', flag: '/brand/nav/lang-it.svg' },
-  { code: 'es', label: 'Español', flag: '/brand/nav/lang-es.svg' },
-  { code: 'pl', label: 'Polski', flag: '/brand/nav/lang-pl.svg' },
+  { code: 'de', labelKey: 'locale.name.de', flag: '/brand/nav/lang-de.svg' },
+  { code: 'tr', labelKey: 'locale.name.tr', flag: '/brand/nav/lang-tr.svg' },
+  { code: 'fr', labelKey: 'locale.name.fr', flag: '/brand/nav/lang-fr.svg' },
+  { code: 'en', labelKey: 'locale.name.en', flag: '/brand/nav/lang-en.svg' },
+  { code: 'it', labelKey: 'locale.name.it', flag: '/brand/nav/lang-it.svg' },
 ] as const;
 
 const STORAGE_KEY = 'ascendos.locale';
+
+/** Legacy codes removed from the product — map to a supported locale. */
+const LEGACY_LOCALE_MAP: Record<string, AppLocale> = {
+  es: 'en',
+  pl: 'en',
+};
 
 export function isAppLocale(value: string): value is AppLocale {
   return APP_LOCALES.some((l) => l.code === value);
@@ -27,7 +33,17 @@ export function readStoredLocale(): AppLocale {
   if (typeof window === 'undefined') return 'de';
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw && isAppLocale(raw)) return raw;
+    if (!raw) return 'de';
+    if (isAppLocale(raw)) return raw;
+    const mapped = LEGACY_LOCALE_MAP[raw];
+    if (mapped) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, mapped);
+      } catch {
+        // private mode
+      }
+      return mapped;
+    }
   } catch {
     // private mode
   }

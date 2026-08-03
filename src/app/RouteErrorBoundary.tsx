@@ -1,4 +1,6 @@
 import { Component, type ReactNode } from 'react';
+import { createTranslator } from '@shared/i18n';
+import { readStoredLocale } from '@shared/lib/locale';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 
@@ -37,14 +39,13 @@ export class RouteErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.hasError) return this.props.children;
+    const t = createTranslator(readStoredLocale());
     return (
       <Card className="mt-4 space-y-3 text-center">
-        <p className="font-semibold">Dieser Bereich ist kurz gestolpert.</p>
-        <p className="text-sm text-muted">
-          Die Navigation bleibt verfügbar — du kannst es hier erneut versuchen.
-        </p>
+        <p className="font-semibold">{t('errors.routeTitle')}</p>
+        <p className="text-sm text-muted">{t('errors.routeBody')}</p>
         <Button fullWidth={false} onClick={() => this.setState({ hasError: false })}>
-          Erneut versuchen
+          {t('common.retry')}
         </Button>
       </Card>
     );

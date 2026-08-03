@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
+import { useI18n } from '@shared/i18n';
 import { Select } from '@shared/ui/Select';
 import { useAuth } from './AuthProvider';
 
@@ -8,6 +9,7 @@ import { useAuth } from './AuthProvider';
  * Sets x-ascendos-org via AuthProvider → supabase client.
  */
 export function OrgSwitcher() {
+  const { t } = useI18n();
   const { memberships, membership, setActiveOrganization, needsOrgSelection } = useAuth();
   const orgIds = memberships.map((m) => m.org_id);
 
@@ -26,19 +28,20 @@ export function OrgSwitcher() {
 
   if (memberships.length <= 1) return null;
 
-  const labelFor = (orgId: string) => orgs?.find((o) => o.id === orgId)?.name ?? 'Organisation';
+  const labelFor = (orgId: string) =>
+    orgs?.find((o) => o.id === orgId)?.name ?? t('org.fallback');
 
   return (
     <Select
-      label="Aktive Organisation"
-      aria-label="Aktive Organisation"
+      label={t('org.active')}
+      aria-label={t('org.active')}
       value={membership?.org_id ?? ''}
       onChange={(e) => {
         if (e.target.value) setActiveOrganization(e.target.value);
       }}
       className={needsOrgSelection ? 'border-accent-deep' : ''}
     >
-      {needsOrgSelection ? <option value="">Organisation wählen…</option> : null}
+      {needsOrgSelection ? <option value="">{t('org.choose')}</option> : null}
       {memberships.map((m) => (
         <option key={m.id} value={m.org_id}>
           {labelFor(m.org_id)}

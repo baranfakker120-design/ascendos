@@ -60,16 +60,30 @@ export interface StoryCard {
   accent: 'gold' | 'champagne' | 'ink';
 }
 
+/** Story type keys for iteration — translate in UI via `t(\`stories.types.${type}\`)`. */
+export const STORY_TYPES: StoryType[] = [
+  'achievements',
+  'onboarding',
+  'presentations',
+  'zoom',
+  'qualifications',
+  'customers',
+  'partners',
+  'coach_highlights',
+  'admin',
+];
+
+/** @deprecated Use STORY_TYPES + `t(\`stories.types.${type}\`)` in UI. */
 export const STORY_TYPE_LABELS: Record<StoryType, string> = {
-  achievements: 'Achievements',
-  onboarding: 'Onboarding',
-  presentations: 'Presentations',
-  zoom: 'Zoom',
-  qualifications: 'Qualifications',
-  customers: 'Customers',
-  partners: 'Partners',
-  coach_highlights: 'Coach Highlights',
-  admin: 'Admin Stories',
+  achievements: 'stories.types.achievements',
+  onboarding: 'stories.types.onboarding',
+  presentations: 'stories.types.presentations',
+  zoom: 'stories.types.zoom',
+  qualifications: 'stories.types.qualifications',
+  customers: 'stories.types.customers',
+  partners: 'stories.types.partners',
+  coach_highlights: 'stories.types.coach_highlights',
+  admin: 'stories.types.admin',
 };
 
 export const STORY_TTL_MS = 24 * 60 * 60 * 1000;
