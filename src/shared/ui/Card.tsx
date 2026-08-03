@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
+import './card.css';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>{children}</div>
-  );
+  return <div className={`ui-card ${className}`}>{children}</div>;
 }

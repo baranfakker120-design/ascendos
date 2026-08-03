@@ -1,23 +1,71 @@
-import type { ButtonHTMLAttributes } from 'react';
+import {
+  useCallback,
+  useRef,
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
+import './button.css';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
-
-const styles: Record<Variant, string> = {
-  primary:
-    'bg-primary text-primary-ink hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed',
-  secondary: 'bg-surface border border-line text-ink hover:bg-bg disabled:opacity-50',
-  ghost: 'text-muted hover:text-ink',
-};
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
 }
 
-export function Button({ variant = 'primary', className = '', ...rest }: Props) {
+/**
+ * Material button — hover lift, press scale, ripple (transform/opacity only).
+ */
+export function Button({
+  variant = 'primary',
+  className = '',
+  onPointerDown,
+  children,
+  type = 'button',
+  ...rest
+}: Props) {
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const spawnRipple = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
+    const el = ref.current;
+    if (!el || el.disabled) return;
+    const rect = el.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.35;
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    const ripple = document.createElement('span');
+    ripple.className = 'ui-btn__ripple';
+    ripple.style.width = `${size}px`;
+    ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    el.appendChild(ripple);
+    ripple.addEventListener(
+      'animationend',
+      () => {
+        ripple.remove();
+      },
+      { once: true }
+    );
+  }, []);
+
   return (
     <button
-      className={`h-12 w-full rounded-xl px-4 text-base font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${styles[variant]} ${className}`}
+      ref={ref}
+      type={type}
+      className={`ui-btn ui-btn--${variant} ${className}`}
+      onPointerDown={(e) => {
+        spawnRipple(e);
+        onPointerDown?.(e);
+      }}
       {...rest}
-    />
+    >
+      <span className="ui-btn__label">{children}</span>
+    </button>
   );
 }
+
+/** Exported for tests — ripple uses transform/opacity only. */
+export const BUTTON_MOTION_STYLE: CSSProperties = {
+  willChange: 'transform, box-shadow, opacity',
+};

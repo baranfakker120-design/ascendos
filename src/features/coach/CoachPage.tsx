@@ -130,7 +130,7 @@ export function CoachPage() {
           ),
         )}
 
-        {send.isPending ? <CoachBubble pending>Ascent denkt nach …</CoachBubble> : null}
+        {send.isPending ? <CoachBubble pending /> : null}
 
         {error ? <Alert tone="error">{error}</Alert> : null}
         <div ref={bottomRef} />

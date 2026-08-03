@@ -40,20 +40,33 @@ export function CoachUserAvatar() {
   );
 }
 
+/** Apple-level typing indicator — three springy dots. */
+export function CoachTypingDots() {
+  return (
+    <span className="coach-typing" aria-label="Ascent schreibt" role="status">
+      <span className="coach-typing__dot" />
+      <span className="coach-typing__dot" />
+      <span className="coach-typing__dot" />
+    </span>
+  );
+}
+
 export function CoachBubble({
   children,
   pending = false,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   pending?: boolean;
 }) {
   return (
     <div className="coach-row coach-row--assistant coach-row--in">
-      <CoachAvatar />
+      <div className="coach-avatar-wrap">
+        <CoachAvatar />
+      </div>
       <div
-        className={`coach-bubble coach-bubble--assistant ${pending ? 'coach-bubble--pending' : ''}`}
+        className={`coach-bubble coach-bubble--assistant coach-bubble--pop ${pending ? 'coach-bubble--pending' : ''}`}
       >
-        {children}
+        {pending ? <CoachTypingDots /> : children}
       </div>
     </div>
   );
@@ -62,8 +75,10 @@ export function CoachBubble({
 export function UserBubble({ children }: { children: ReactNode }) {
   return (
     <div className="coach-row coach-row--user coach-row--in">
-      <div className="coach-bubble coach-bubble--user">{children}</div>
-      <CoachUserAvatar />
+      <div className="coach-bubble coach-bubble--user coach-bubble--pop">{children}</div>
+      <div className="coach-user-avatar-wrap">
+        <CoachUserAvatar />
+      </div>
     </div>
   );
 }
