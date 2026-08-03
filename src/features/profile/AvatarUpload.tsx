@@ -1,26 +1,29 @@
 import { useRef, useState, type ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@shared/ui/Button';
-import { cropCenterSquareWebp } from './cropImage';
+import { AvatarCropModal } from './AvatarCropModal';
 import { uploadAvatarImage } from './profileApi';
 
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
-const OUTPUT_SIZE = 512;
 
 export interface AvatarUploadProps {
   userId: string;
+  /** Aktiver Anzeige-Rahmen für die Live-Vorschau im Cropper. */
+  frameKey?: string | null;
+  name: string;
   onUploaded: (avatarUrl: string) => void;
 }
 
 /**
- * Datei wählen → zentriert auf Quadrat zuschneiden → WebP → Storage.
- * Kein Cropper-UI, keine Animation. Business-first.
+ * Datei wählen → Kreiszuschnitt (Pinch/Pan, Rahmen-Vorschau) → erst dann Upload.
  */
-export function AvatarUpload({ userId, onUploaded }: AvatarUploadProps) {
+export function AvatarUpload({ userId, frameKey = null, name, onUploaded }: AvatarUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [picked, setPicked] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onPick = async (e: ChangeEvent<HTMLInputElement>) => {
+  const onPick = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -34,11 +37,15 @@ export function AvatarUpload({ userId, onUploaded }: AvatarUploadProps) {
       setError('Das Bild ist zu groß (max. 8 MB vor dem Zuschneiden).');
       return;
     }
+    setPicked(file);
+  };
 
+  const onConfirm = async (blob: Blob) => {
     setBusy(true);
+    setError(null);
     try {
-      const blob = await cropCenterSquareWebp(file, OUTPUT_SIZE);
       const url = await uploadAvatarImage(userId, blob);
+      setPicked(null);
       onUploaded(url);
     } catch {
       setError('Upload fehlgeschlagen. Bitte erneut versuchen.');
@@ -62,12 +69,25 @@ export function AvatarUpload({ userId, onUploaded }: AvatarUploadProps) {
         disabled={busy}
         onClick={() => inputRef.current?.click()}
       >
-        {busy ? 'Bild wird verarbeitet …' : 'Profilbild wählen'}
+        {busy ? 'Bild wird gespeichert …' : 'Profilbild wählen'}
       </Button>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <p className="text-xs text-muted">
-        Quadratischer Zuschnitt in der Mitte. Wird als WebP gespeichert (max. 2 MB im Speicher).
+        Kreisförmiger Zuschnitt mit Zoom — Speichern erst nach Bestätigung.
       </p>
+
+      {picked
+        ? createPortal(
+            <AvatarCropModal
+              file={picked}
+              frameKey={frameKey}
+              name={name}
+              onCancel={() => setPicked(null)}
+              onConfirm={onConfirm}
+            />,
+            document.body
+          )
+        : null}
     </div>
   );
 }

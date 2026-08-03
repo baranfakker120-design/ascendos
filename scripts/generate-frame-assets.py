@@ -7,7 +7,7 @@ Quellen (unverändert, nicht ausgeliefert):
   docs/brand/sprint4-frames/frame-10-KORRIGIERT-berater-des-monats.png
 
 Ausgabe-Namen folgen resolveFrameSrc() in src/shared/lib/frameAssets.ts:
-  /brand/frames/{frame-01…frame-10}-{96|128|160}.webp
+  /brand/frames/{frame-01…frame-10}-{96|128|160|320|480}.webp
 
 Voraussetzung: cwebp (Paket `webp`) im PATH.
 """
@@ -21,7 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "docs" / "brand" / "sprint4-frames"
 OUT = ROOT / "public" / "brand" / "frames"
-SIZES = (96, 128, 160)
+# 96–160 für Listen; 320/480 für Retina-Profil (lg @ 2x/3x).
+SIZES = (96, 128, 160, 320, 480)
 
 # 01–07 AP-Ränge; 08 Developer; 09 Super Admin (Sonderrahmen, kein AP).
 SOURCES: dict[str, Path] = {
@@ -51,7 +52,7 @@ def main() -> int:
                     "cwebp",
                     "-quiet",
                     "-q",
-                    "82",
+                    "90",
                     "-alpha_q",
                     "100",
                     "-m",

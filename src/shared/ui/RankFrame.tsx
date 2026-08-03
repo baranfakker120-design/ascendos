@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Avatar } from './Avatar';
 import {
-  FRAME_DISPLAY_PX,
-  getFrameGeometry,
-  openingLayout,
+  frameAvatarLayout,
   resolveFrameSrc,
+  resolveFrameSrcSet,
   type FrameDisplaySize,
 } from '@shared/lib/frameAssets';
 import './rank-frame.css';
@@ -28,12 +27,8 @@ export interface RankFrameProps {
 /**
  * Avatar mit optionalem Rangrahmen.
  *
- * Rahmen-Asset unter /brand/frames/{key}-{px}.webp. Fehlt der Schlüssel
- * oder schlägt das Laden fehl, bleibt ein ruhiger Champagner-Ring —
- * sonst kein Placeholder unter dem echten Rahmen.
- *
- * Premium: langsamer Champagner-Shimmer über dem bestehenden Frame
- * (translateX + opacity, overflow clip). Keine neuen Assets.
+ * Layer: 1) Profilbild  2) Rahmen  3) Glanz (nur Rahmen-Asset).
+ * Avatar füllt ~84 % der inneren Kreisfläche — schmaler Spalt, object-fit cover.
  */
 export function RankFrame({
   frameKey = null,
@@ -43,16 +38,20 @@ export function RankFrame({
   className = '',
 }: RankFrameProps) {
   const [frameFailed, setFrameFailed] = useState(false);
-  const geometry = getFrameGeometry(frameKey);
-  const frameSrc = resolveFrameSrc(frameKey, size);
-  const showFrame = !!geometry && !!frameSrc && !frameFailed;
-  const box = FRAME_DISPLAY_PX[size];
-  const layout = geometry ? openingLayout(geometry) : null;
+  const [dpr, setDpr] = useState(1);
 
-  const openingWidth = layout ? Math.round(box * layout.widthRatio) : Math.round(box * 0.72);
-  const openingHeight = layout ? Math.round(box * layout.heightRatio) : Math.round(box * 0.72);
-  const offsetY = layout ? Math.round(box * layout.offsetYRatio) : 0;
-  const avatarPx = Math.min(openingWidth, openingHeight);
+  useEffect(() => {
+    const sync = () => setDpr(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
+    sync();
+    const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    mq.addEventListener?.('change', sync);
+    return () => mq.removeEventListener?.('change', sync);
+  }, []);
+
+  const { box, avatarPx, offsetY } = frameAvatarLayout(frameKey, size);
+  const frameSrc = resolveFrameSrc(frameKey, size, dpr);
+  const frameSrcSet = resolveFrameSrcSet(frameKey);
+  const showFrame = !!frameSrc && !frameFailed;
 
   useEffect(() => {
     setFrameFailed(false);
@@ -63,33 +62,59 @@ export function RankFrame({
       className={`relative inline-flex shrink-0 items-center justify-center ${className}`}
       style={{ width: box, height: box }}
     >
-      {/* Placeholder nur wenn kein Rahmen-Asset angezeigt wird. */}
       {!showFrame ? (
         <div className="absolute inset-0 rounded-full border-2 border-accent/50" aria-hidden />
       ) : null}
 
+      {/* 1) Profilbild — unter dem Rahmen, cover, zentriert */}
       <div
-        className="relative z-[1] flex items-center justify-center overflow-hidden rounded-full"
+        className="absolute z-[1] flex items-center justify-center overflow-hidden rounded-full bg-transparent"
         style={{
-          width: openingWidth,
-          height: openingHeight,
-          transform: offsetY ? `translateY(${offsetY}px)` : undefined,
+          width: avatarPx,
+          height: avatarPx,
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, calc(-50% + ${offsetY}px))`,
         }}
       >
-        <Avatar src={src} name={name} pixelSize={avatarPx} />
+        <Avatar
+          src={src}
+          name={name}
+          pixelSize={avatarPx}
+          className="!bg-transparent"
+          imgProps={{
+            decoding: 'async',
+            draggable: false,
+            style: { objectFit: 'cover', objectPosition: 'center' },
+          }}
+        />
       </div>
 
+      {/* 2) Rahmen + 3) Glanz nur über dem Rahmen-Asset */}
       {showFrame ? (
         <div className="rank-frame-layer">
           <img
             src={frameSrc}
+            srcSet={frameSrcSet ?? undefined}
+            sizes={`${box}px`}
             alt=""
             aria-hidden
-            className="relative z-0 h-full w-full object-contain"
+            className="rank-frame-asset"
             draggable={false}
+            decoding="async"
             onError={() => setFrameFailed(true)}
           />
-          <div className="rank-frame-sheen" aria-hidden />
+          <div className="rank-frame-sheen" aria-hidden>
+            <img
+              src={frameSrc}
+              srcSet={frameSrcSet ?? undefined}
+              sizes={`${box}px`}
+              alt=""
+              className="rank-frame-sheen-asset"
+              draggable={false}
+              decoding="async"
+            />
+          </div>
         </div>
       ) : null}
     </div>

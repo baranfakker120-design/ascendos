@@ -10,28 +10,35 @@ describe('rank frame sheen contract', () => {
   const tsx = readFileSync(join(dir, 'RankFrame.tsx'), 'utf8');
   const cssProps = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  it('mounts a real sheen overlay above every rendered frame', () => {
+  it('mounts sheen as duplicate frame asset above the base frame', () => {
     expect(tsx).toContain('rank-frame-sheen');
+    expect(tsx).toContain('rank-frame-sheen-asset');
     expect(tsx).toContain('rank-frame-layer');
     expect(tsx).toMatch(/showFrame\s*\?/);
     expect(cssProps).not.toMatch(/::before|::after/);
   });
 
-  it('uses translateX/opacity only — no mask, blend, filter, or webkit-mask', () => {
+  it('uses clip-path/opacity/transform only — no mask-image or blend modes', () => {
     expect(cssProps).not.toMatch(
-      /mask-image|mask-size|mask-mode|-webkit-mask|\bmask\b|mix-blend-mode|background-blend-mode|\bfilter\b/i,
+      /mask-image|mask-size|mask-mode|-webkit-mask|mix-blend-mode|background-blend-mode|\bfilter\b/i,
     );
     expect(tsx).not.toMatch(
       /maskImage|WebkitMaskImage|mixBlendMode|backgroundBlendMode|webkitMask/i,
     );
-    expect(cssProps).toMatch(/transform:\s*translateX\(/);
+    expect(cssProps).toMatch(/clip-path:\s*inset/);
     expect(cssProps).toMatch(/overflow:\s*hidden/);
-    expect(cssProps).toMatch(/linear-gradient/);
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
 
-  it('keeps the luxury timing (10–12s infinite loop)', () => {
-    expect(css).toMatch(/animation:\s*rank-frame-sheen\s+11s/);
+  it('keeps a slow premium glint (5–7s)', () => {
+    expect(css).toMatch(/animation:\s*rank-frame-sheen\s+6\.5s/);
     expect(css).toMatch(/infinite/);
+  });
+
+  it('keeps layer order avatar under frame under sheen', () => {
+    const avatarIdx = tsx.indexOf('z-[1]');
+    const layerIdx = tsx.indexOf('rank-frame-layer');
+    expect(avatarIdx).toBeGreaterThan(-1);
+    expect(layerIdx).toBeGreaterThan(avatarIdx);
   });
 });

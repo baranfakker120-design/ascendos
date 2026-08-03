@@ -125,12 +125,25 @@ export function resolveDisplayFrameKey(input: DisplayFrameInput): string | null 
 
 export type FrameDisplaySize = 'sm' | 'md' | 'lg';
 
-/** Anzeigegröße in CSS-Pixeln (Listen / Profil). */
+/**
+ * Anzeigegröße des Gesamtrahmens in CSS-Pixeln.
+ * lg ist Profil-Hero — groß genug für Premium-Darstellung auf Retina.
+ */
 export const FRAME_DISPLAY_PX: Record<FrameDisplaySize, number> = {
   sm: 96,
-  md: 128,
-  lg: 160,
+  md: 140,
+  lg: 220,
 };
+
+/** Verfügbare Asset-Kantenlängen (generate-frame-assets.py). */
+export const FRAME_ASSET_PX = [96, 128, 160, 320, 480] as const;
+export type FrameAssetPx = (typeof FRAME_ASSET_PX)[number];
+
+/**
+ * Anteil des inneren Kreises, den das Profilbild ausfüllt (82–85 %).
+ * Schmaler Spalt zum Rahmen — Instagram/LinkedIn-Niveau.
+ */
+export const AVATAR_FILL_RATIO = 0.84;
 
 /** Geometrie zu einem Rahmen-Schlüssel, oder null wenn unbekannt. */
 export function getFrameGeometry(frameKey: string | null | undefined): FrameGeometry | null {
@@ -138,29 +151,77 @@ export function getFrameGeometry(frameKey: string | null | undefined): FrameGeom
   return FRAME_GEOMETRY[frameKey] ?? null;
 }
 
-/** Öffentlicher Asset-Pfad für einen Rahmen-Schlüssel. */
-export function resolveFrameSrc(
-  frameKey: string | null | undefined,
-  size: FrameDisplaySize = 'lg'
-): string | null {
-  const geometry = getFrameGeometry(frameKey);
-  if (!geometry) return null;
-  const px = FRAME_DISPLAY_PX[size];
-  return `/brand/frames/${geometry.key}-${px}.webp`;
-}
-
 /**
  * Relative Position der Öffnung für das Avatar-Fenster (0..1 / Offset-Anteil).
- * Rein geometrisch — keine Business-Regel.
+ * Lochdurchmesser = größere Achse (bei Crest-Rahmen ist height oft untermessen).
  */
 export function openingLayout(geometry: FrameGeometry): {
   widthRatio: number;
   heightRatio: number;
+  holeRatio: number;
   offsetYRatio: number;
 } {
+  const widthRatio = geometry.openingWidth / FRAME_SOURCE_SIZE;
+  const heightRatio = geometry.openingHeight / FRAME_SOURCE_SIZE;
   return {
-    widthRatio: geometry.openingWidth / FRAME_SOURCE_SIZE,
-    heightRatio: geometry.openingHeight / FRAME_SOURCE_SIZE,
+    widthRatio,
+    heightRatio,
+    holeRatio: Math.max(widthRatio, heightRatio),
     offsetYRatio: geometry.verticalOffset / FRAME_SOURCE_SIZE,
   };
+}
+
+/** Nächstgrößeres verfügbares Asset ≥ benötigter Pixelkante. */
+export function pickFrameAssetPx(displayCssPx: number, devicePixelRatio = 1): FrameAssetPx {
+  const need = Math.ceil(displayCssPx * Math.max(1, devicePixelRatio));
+  for (const px of FRAME_ASSET_PX) {
+    if (px >= need) return px;
+  }
+  return FRAME_ASSET_PX[FRAME_ASSET_PX.length - 1];
+}
+
+/** Öffentlicher Asset-Pfad für einen Rahmen-Schlüssel. */
+export function resolveFrameSrc(
+  frameKey: string | null | undefined,
+  size: FrameDisplaySize = 'lg',
+  devicePixelRatio = 1
+): string | null {
+  const geometry = getFrameGeometry(frameKey);
+  if (!geometry) return null;
+  const display = FRAME_DISPLAY_PX[size];
+  const px = pickFrameAssetPx(display, devicePixelRatio);
+  return `/brand/frames/${geometry.key}-${px}.webp`;
+}
+
+/** srcSet für gestochen scharfe Retina-Darstellung ohne CSS-Upscale. */
+export function resolveFrameSrcSet(frameKey: string | null | undefined): string | null {
+  const geometry = getFrameGeometry(frameKey);
+  if (!geometry) return null;
+  return FRAME_ASSET_PX.map((px) => `/brand/frames/${geometry.key}-${px}.webp ${px}w`).join(', ');
+}
+
+/**
+ * Avatar- und Öffnungsmaße in CSS-Pixeln für eine Anzeigegröße.
+ * Avatar füllt AVATAR_FILL_RATIO der inneren Kreisfläche — Rahmen skaliert mit.
+ */
+export function frameAvatarLayout(
+  frameKey: string | null | undefined,
+  size: FrameDisplaySize = 'lg'
+): {
+  box: number;
+  holePx: number;
+  avatarPx: number;
+  offsetY: number;
+} {
+  const box = FRAME_DISPLAY_PX[size];
+  const geometry = getFrameGeometry(frameKey);
+  if (!geometry) {
+    const avatarPx = Math.round(box * 0.84);
+    return { box, holePx: avatarPx, avatarPx, offsetY: 0 };
+  }
+  const layout = openingLayout(geometry);
+  const holePx = box * layout.holeRatio;
+  const avatarPx = Math.round(holePx * AVATAR_FILL_RATIO);
+  const offsetY = Math.round(box * layout.offsetYRatio);
+  return { box, holePx, avatarPx, offsetY };
 }

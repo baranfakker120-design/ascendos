@@ -97,6 +97,12 @@ export function ProfileEditPage() {
         />
         <AvatarUpload
           userId={data.profile.id}
+          name={displayName}
+          frameKey={resolveDisplayFrameKey({
+            role: membershipRole,
+            rankFrameKey: data.rank.current?.frame_asset ?? null,
+            isBeraterDesMonats: data.rank.isBeraterDesMonats,
+          })}
           onUploaded={(url) => {
             setAvatarUrl(url);
             void queryClient.invalidateQueries({
