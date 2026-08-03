@@ -1,4 +1,5 @@
 import { Card } from '@shared/ui/Card';
+import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { DayReview } from './components/DayReview';
 import { FocusMode } from './components/FocusMode';
 import { MorningCommit } from './components/MorningCommit';
@@ -10,8 +11,19 @@ import { missionProgress, orderMissions } from './missionOrder';
  * State aus den Daten — kein separater Client-Zustand, der driften
  * könnte. Vollständig ohne LLM funktionsfähig (ADR-006-Fallback
  * ist hier der Normalfall; Begründungen kommen aus der Regel-Engine).
+ *
+ * Sprint 5.1: Live Coaching card is an additive sibling above the plan.
  */
 export function TodayPage() {
+  return (
+    <div className="space-y-4">
+      <TodayLiveCoachingSlot />
+      <TodayDailyPlan />
+    </div>
+  );
+}
+
+function TodayDailyPlan() {
   const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
 

@@ -424,6 +424,269 @@ export type Database = {
           },
         ];
       };
+      coach_knowledge_articles: {
+        Row: {
+          active: boolean;
+          approved_at: string | null;
+          approved_by: string | null;
+          body_html: string;
+          body_markdown: string;
+          category: string;
+          contradiction_flags: Json;
+          contradiction_summary: string | null;
+          created_at: string;
+          created_by: string | null;
+          current_version: number;
+          id: string;
+          slug: string;
+          status: string;
+          tags: string[];
+          title: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          active?: boolean;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          body_html?: string;
+          body_markdown?: string;
+          category?: string;
+          contradiction_flags?: Json;
+          contradiction_summary?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          current_version?: number;
+          id?: string;
+          slug: string;
+          status?: string;
+          tags?: string[];
+          title: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          active?: boolean;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          body_html?: string;
+          body_markdown?: string;
+          category?: string;
+          contradiction_flags?: Json;
+          contradiction_summary?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          current_version?: number;
+          id?: string;
+          slug?: string;
+          status?: string;
+          tags?: string[];
+          title?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coach_knowledge_articles_approved_by_fkey';
+            columns: ['approved_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_approved_by_fkey';
+            columns: ['approved_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_approved_by_fkey';
+            columns: ['approved_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coach_knowledge_change_log: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          article_id: string;
+          created_at: string;
+          detail: string | null;
+          id: string;
+          version: number | null;
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          article_id: string;
+          created_at?: string;
+          detail?: string | null;
+          id?: string;
+          version?: number | null;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          article_id?: string;
+          created_at?: string;
+          detail?: string | null;
+          id?: string;
+          version?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coach_knowledge_change_log_actor_id_fkey';
+            columns: ['actor_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_change_log_actor_id_fkey';
+            columns: ['actor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_change_log_actor_id_fkey';
+            columns: ['actor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_change_log_article_id_fkey';
+            columns: ['article_id'];
+            isOneToOne: false;
+            referencedRelation: 'coach_knowledge_articles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coach_knowledge_versions: {
+        Row: {
+          article_id: string;
+          body_html: string;
+          body_markdown: string;
+          category: string;
+          change_summary: string | null;
+          contradiction_flags: Json;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          status: string;
+          tags: string[];
+          title: string;
+          version: number;
+        };
+        Insert: {
+          article_id: string;
+          body_html?: string;
+          body_markdown: string;
+          category: string;
+          change_summary?: string | null;
+          contradiction_flags?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          status: string;
+          tags?: string[];
+          title: string;
+          version: number;
+        };
+        Update: {
+          article_id?: string;
+          body_html?: string;
+          body_markdown?: string;
+          category?: string;
+          change_summary?: string | null;
+          contradiction_flags?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          status?: string;
+          tags?: string[];
+          title?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coach_knowledge_versions_article_id_fkey';
+            columns: ['article_id'];
+            isOneToOne: false;
+            referencedRelation: 'coach_knowledge_articles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_versions_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_versions_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_versions_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       coach_messages: {
         Row: {
           content: string;
@@ -452,6 +715,47 @@ export type Database = {
             columns: ['convo_id'];
             isOneToOne: false;
             referencedRelation: 'coach_convos';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coaching_notification_outbox: {
+        Row: {
+          body: string;
+          created_at: string;
+          event_id: string;
+          id: string;
+          kind: string;
+          scheduled_for: string;
+          sent_at: string | null;
+          title: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          event_id: string;
+          id?: string;
+          kind: string;
+          scheduled_for: string;
+          sent_at?: string | null;
+          title: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          event_id?: string;
+          id?: string;
+          kind?: string;
+          scheduled_for?: string;
+          sent_at?: string | null;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coaching_notification_outbox_event_id_fkey';
+            columns: ['event_id'];
+            isOneToOne: false;
+            referencedRelation: 'live_coaching_events';
             referencedColumns: ['id'];
           },
         ];
@@ -1261,6 +1565,154 @@ export type Database = {
           },
         ];
       };
+      live_coaching_events: {
+        Row: {
+          active: boolean;
+          category: string;
+          coach_name: string;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          duration_minutes: number;
+          guest_speakers: Json;
+          id: string;
+          language: string;
+          library_visible: boolean;
+          media_path: string | null;
+          media_type: string;
+          media_url: string | null;
+          published_at: string | null;
+          published_by: string | null;
+          recording_url: string | null;
+          repeat_rule: string;
+          replay_url: string | null;
+          starts_at: string;
+          subtitle: string | null;
+          title: string;
+          updated_at: string;
+          updated_by: string | null;
+          zoom_url: string | null;
+        };
+        Insert: {
+          active?: boolean;
+          category?: string;
+          coach_name?: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          duration_minutes?: number;
+          guest_speakers?: Json;
+          id?: string;
+          language?: string;
+          library_visible?: boolean;
+          media_path?: string | null;
+          media_type: string;
+          media_url?: string | null;
+          published_at?: string | null;
+          published_by?: string | null;
+          recording_url?: string | null;
+          repeat_rule?: string;
+          replay_url?: string | null;
+          starts_at: string;
+          subtitle?: string | null;
+          title: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          zoom_url?: string | null;
+        };
+        Update: {
+          active?: boolean;
+          category?: string;
+          coach_name?: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          duration_minutes?: number;
+          guest_speakers?: Json;
+          id?: string;
+          language?: string;
+          library_visible?: boolean;
+          media_path?: string | null;
+          media_type?: string;
+          media_url?: string | null;
+          published_at?: string | null;
+          published_by?: string | null;
+          recording_url?: string | null;
+          repeat_rule?: string;
+          replay_url?: string | null;
+          starts_at?: string;
+          subtitle?: string | null;
+          title?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          zoom_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'live_coaching_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_published_by_fkey';
+            columns: ['published_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_published_by_fkey';
+            columns: ['published_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_published_by_fkey';
+            columns: ['published_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       membership_cosmetics: {
         Row: {
           is_equipped: boolean;
@@ -1732,6 +2184,61 @@ export type Database = {
             columns: ['team_id'];
             isOneToOne: false;
             referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      push_subscriptions: {
+        Row: {
+          auth: string;
+          created_at: string;
+          endpoint: string;
+          id: string;
+          p256dh: string;
+          updated_at: string;
+          user_agent: string | null;
+          user_id: string;
+        };
+        Insert: {
+          auth: string;
+          created_at?: string;
+          endpoint: string;
+          id?: string;
+          p256dh: string;
+          updated_at?: string;
+          user_agent?: string | null;
+          user_id: string;
+        };
+        Update: {
+          auth?: string;
+          created_at?: string;
+          endpoint?: string;
+          id?: string;
+          p256dh?: string;
+          updated_at?: string;
+          user_agent?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'push_subscriptions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'push_subscriptions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'push_subscriptions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
             referencedColumns: ['id'];
           },
         ];
@@ -2310,6 +2817,7 @@ export type Database = {
         }[];
       };
       is_ancestor_of: { Args: { p_target: string }; Returns: boolean };
+      is_coach_content_manager: { Args: never; Returns: boolean };
       is_super_admin: { Args: never; Returns: boolean };
       list_ap_tasks: {
         Args: never;

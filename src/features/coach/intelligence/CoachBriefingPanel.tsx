@@ -1,4 +1,9 @@
 import { useEffect, useId, useState } from 'react';
+import { useApprovedCoachKnowledge } from '@features/knowledge-center/knowledgeCenterApi';
+import {
+  formatApprovedKnowledgeContext,
+  syncApprovedKnowledgeFromArticles,
+} from './approvedKnowledge';
 import { filterManagerMessagesByMemory, recordCeoRecommendation } from './ceoMemory';
 import type {
   BranchHealthGrade,
@@ -30,6 +35,13 @@ interface Props {
 export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAbout }: Props) {
   const titleId = useId();
   const [open, setOpen] = useState(true);
+  const approvedKnowledge = useApprovedCoachKnowledge();
+
+  useEffect(() => {
+    if (approvedKnowledge.data) {
+      syncApprovedKnowledgeFromArticles(approvedKnowledge.data);
+    }
+  }, [approvedKnowledge.data]);
 
   const managerMessages: ManagerMessage[] = intelligence
     ? filterManagerMessagesByMemory(intelligence.managerMessages)
@@ -58,6 +70,9 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
   const priorities: CoachPriorityInsight[] = isMorning
     ? intelligence.briefing.priorities
     : intelligence.surfaceInsights;
+  const knowledgeHint = formatApprovedKnowledgeContext(1)
+    ? `${approvedKnowledge.data?.length ?? 0} freigegebene Knowledge-Artikel`
+    : null;
 
   return (
     <section
@@ -71,6 +86,7 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
           </p>
           <p className="mt-0.5 text-xs text-muted">
             Team: {GRADE_COPY[health.grade]} · {health.score}/100
+            {knowledgeHint ? ` · ${knowledgeHint}` : ''}
           </p>
         </div>
         <button

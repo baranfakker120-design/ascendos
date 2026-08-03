@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
 import {
@@ -11,6 +11,10 @@ import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { Toggle } from '@shared/ui/Toggle';
+import {
+  ensureNotificationPermission,
+  notificationPermissionState,
+} from '@features/live-coaching/notifications';
 
 /**
  * Premium Settings — clean system preferences only.
@@ -20,10 +24,31 @@ export function SettingsPage() {
   const { signOut } = useAuth();
   const [locale, setLocale] = useState<AppLocale>(() => readStoredLocale());
   const [deleteHint, setDeleteHint] = useState<string | null>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushHint, setPushHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPushEnabled(notificationPermissionState() === 'granted');
+  }, []);
 
   const onLocale = (code: AppLocale) => {
     setLocale(code);
     writeStoredLocale(code);
+  };
+
+  const onPushToggle = async (next: boolean) => {
+    if (!next) {
+      setPushEnabled(false);
+      setPushHint('Push lokal deaktiviert. Systemberechtigung bleibt ggf. bestehen.');
+      return;
+    }
+    const ok = await ensureNotificationPermission();
+    setPushEnabled(ok);
+    setPushHint(
+      ok
+        ? 'Push aktiv — Lock Screen, Notification Center und Banner (sofern vom Gerät erlaubt).'
+        : 'Push-Berechtigung fehlt. Bitte in den Systemeinstellungen erlauben.'
+    );
   };
 
   const requestDelete = () => {
@@ -75,10 +100,15 @@ export function SettingsPage() {
           <div>
             <span className="font-medium">Push & Erinnerungen</span>
             <p className="mt-0.5 text-xs text-muted">
-              Demnächst verfügbar — noch nicht speicherbar.
+              Live Coaching: sofort nach Publish, 30 Min und 5 Min vorher.
             </p>
+            {pushHint ? <p className="mt-1 text-xs text-muted">{pushHint}</p> : null}
           </div>
-          <Toggle checked={false} onChange={() => undefined} disabled label="Push & Erinnerungen" />
+          <Toggle
+            checked={pushEnabled}
+            onChange={(next) => void onPushToggle(next)}
+            label="Push & Erinnerungen"
+          />
         </div>
       </Card>
 

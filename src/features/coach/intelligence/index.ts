@@ -48,6 +48,13 @@ export {
 } from './automation';
 export { forgetCoachFact, listCoachMemory, rememberCoachFact } from './memory';
 export {
+  formatApprovedKnowledgeContext,
+  listApprovedKnowledgeForCoach,
+  rememberApprovedArticle,
+  syncApprovedKnowledgeFromArticles,
+} from './approvedKnowledge';
+export type { ApprovedKnowledgeSnapshot } from './approvedKnowledge';
+export {
   filterManagerMessagesByMemory,
   listCeoRecommendationMemory,
   recordCeoRecommendation,

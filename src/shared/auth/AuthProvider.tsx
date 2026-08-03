@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { setActiveOrg, supabase } from '@shared/api/supabase';
 import type { Membership, Profile } from '@shared/types/domain';
+import { canManageCoachContent } from './coachContentAuthority';
 import {
   isSuperAdminRole,
   pickActiveMembership,
@@ -35,6 +36,8 @@ interface AuthState {
   /** Rolle der aktiven Mitgliedschaft — einzige Auth-Wahrheit im Client. */
   role: AuthorityRole | null;
   isSuperAdmin: boolean;
+  /** Sprint 5.1 — Knowledge Center & Live Coaching editors. */
+  canManageCoachContent: boolean;
   /** Mehrere Orgs → Nutzer muss wählen / gespeicherte Wahl gilt. */
   needsOrgSelection: boolean;
   setActiveOrganization: (orgId: string) => void;
@@ -178,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const role = membership?.role ?? null;
   const isSuperAdmin = isSuperAdminRole(role);
+  const coachContentManager = canManageCoachContent(role);
   const needsOrgSelection = memberships.length > 1 && !membership;
 
   const value = useMemo<AuthState>(
@@ -188,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       membership,
       role,
       isSuperAdmin,
+      canManageCoachContent: coachContentManager,
       needsOrgSelection,
       setActiveOrganization,
       refreshProfile,
@@ -201,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       membership,
       role,
       isSuperAdmin,
+      coachContentManager,
       needsOrgSelection,
       setActiveOrganization,
       refreshProfile,
