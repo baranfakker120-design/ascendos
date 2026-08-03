@@ -3,7 +3,7 @@
 **Status:** Highest product and engineering authority  
 **Effective:** 2026-08-03  
 **Location:** `docs/ASCENDOS_CONSTITUTION_v1.md`  
-**Audience:** Every human developer, product owner, and AI agent working on AscendOS  
+**Audience:** Every human developer, product owner, and AI agent working on AscendOS
 
 ---
 
@@ -82,15 +82,15 @@ Pipeline events, usage events, memberships, and verification proofs are the meas
 
 ## Chapter 4 — Core Values
 
-| Value | Meaning | Why |
-| --- | --- | --- |
-| **Integrity** | No fake AP, no fake ranks, no silent data leaks | Trust is the only durable currency in a team product |
-| **Respect** | No pressure tactics, no income promises, no humiliation UX | DACH compliance and human dignity |
-| **Clarity** | Every recommendation explains WHY | Sponsors act when they understand, not when they are scored |
-| **Calm premium** | Quiet confidence, not SaaS loudness | Matches brand DNA and long work sessions |
-| **Accountability** | Server-side authority for money-like and permission-like rules | Clients lie; databases with RLS do not negotiate |
-| **Stewardship** | Protect privacy of downline, contacts, and knowledge | Genealogy visibility is a privilege, not a dump |
-| **Restraint** | Ship less chrome; surface only high-value signals | An annoying coach destroys the product |
+| Value              | Meaning                                                        | Why                                                         |
+| ------------------ | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Integrity**      | No fake AP, no fake ranks, no silent data leaks                | Trust is the only durable currency in a team product        |
+| **Respect**        | No pressure tactics, no income promises, no humiliation UX     | DACH compliance and human dignity                           |
+| **Clarity**        | Every recommendation explains WHY                              | Sponsors act when they understand, not when they are scored |
+| **Calm premium**   | Quiet confidence, not SaaS loudness                            | Matches brand DNA and long work sessions                    |
+| **Accountability** | Server-side authority for money-like and permission-like rules | Clients lie; databases with RLS do not negotiate            |
+| **Stewardship**    | Protect privacy of downline, contacts, and knowledge           | Genealogy visibility is a privilege, not a dump             |
+| **Restraint**      | Ship less chrome; surface only high-value signals              | An annoying coach destroys the product                      |
 
 ---
 
