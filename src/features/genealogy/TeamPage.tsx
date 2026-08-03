@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@shared/ui/Button';
+import { isMissingRpcError } from '@shared/api/rpcErrors';
+import { Button, buttonClassName } from '@shared/ui/Button';
 import { BottomSheet } from '@shared/ui/BottomSheet';
 import { Card } from '@shared/ui/Card';
 import { ApTasksPanel } from '@features/leadership/components/ApTasksPanel';
@@ -16,6 +17,7 @@ import {
   useTeamLeaderProgress,
 } from '@features/leadership/leadershipApi';
 import { useGenealogyTree } from './genealogyApi';
+import { hasNoTeamPartners } from './genealogyUtils';
 import { filterTreeNodes } from './genealogyUtils';
 import { GenealogyList } from './components/GenealogyList';
 import { GenealogyToolbar } from './components/GenealogyToolbar';
@@ -24,13 +26,33 @@ import { NodeDetailContent } from './components/NodeDetailContent';
 import type { GenealogyFilter, GenealogyNode } from './types';
 import './team-page.css';
 
+function TeamEmptyState() {
+  return (
+    <Card className="mt-2 space-y-4 text-center">
+      <div className="space-y-2">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent-deep">
+          Dein Team
+        </p>
+        <h2 className="text-xl font-bold tracking-tight">Noch keine Teammitglieder</h2>
+        <p className="mx-auto max-w-sm text-sm text-muted">
+          Du hast aktuell noch keine Teammitglieder. Sobald du deinen ersten Businesspartner
+          registrierst, erscheint dein Team hier.
+        </p>
+      </div>
+      <Link to="/more" className={buttonClassName({ fullWidth: false })}>
+        ➕ Ersten Partner gewinnen
+      </Link>
+    </Card>
+  );
+}
+
 /**
  * Sprint 4.2 — Leader Experience + Genealogy Engine.
- * Dashboard / insights / warnings sit above the virtualized tree.
+ * Empty downline is a first-class state, never an error.
  */
 export function TeamPage() {
   const navigate = useNavigate();
-  const { data: nodes = [], isPending, isError, refetch, isFetching } = useGenealogyTree();
+  const { data: nodes = [], isPending, isError, error, refetch, isFetching } = useGenealogyTree();
   const dash = useLeaderDashboard();
   const insights = useTeamInsights();
   const warnings = useSmartWarnings();
@@ -41,6 +63,8 @@ export function TeamPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<GenealogyNode | null>(null);
   const [showOps, setShowOps] = useState(true);
+
+  const emptyTeam = !isPending && !isError && hasNoTeamPartners(nodes);
 
   const visibleIds = useMemo(
     () => filterTreeNodes(nodes, { filter, search }),
@@ -75,14 +99,38 @@ export function TeamPage() {
   }
 
   if (isError) {
+    const schemaGap = isMissingRpcError(error);
     return (
       <Card className="mt-2 space-y-3 text-center">
-        <p className="font-medium">Das Team konnte nicht geladen werden.</p>
-        <p className="text-sm text-muted">Prüfe deine Verbindung und versuche es erneut.</p>
+        <p className="font-medium">
+          {schemaGap
+            ? 'Team-Funktionen sind noch nicht auf der Datenbank freigeschaltet.'
+            : 'Das Team konnte nicht geladen werden.'}
+        </p>
+        <p className="text-sm text-muted">
+          {schemaGap
+            ? 'Bitte setup/production-migrations-26-27.sql im Supabase SQL Editor ausführen.'
+            : 'Prüfe deine Verbindung und versuche es erneut.'}
+        </p>
         <Button fullWidth={false} variant="secondary" onClick={() => void refetch()}>
           Erneut versuchen
         </Button>
       </Card>
+    );
+  }
+
+  if (emptyTeam) {
+    return (
+      <div className="team-page flex min-h-0 flex-1 flex-col gap-2.5">
+        <header className="shrink-0 space-y-1">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent-deep">
+            Leadership
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight">Dein Team</h1>
+        </header>
+        <TeamLeaderProgressCard progress={tlProgress.data} />
+        <TeamEmptyState />
+      </div>
     );
   }
 
@@ -116,7 +164,7 @@ export function TeamPage() {
       </header>
 
       {showOps ? (
-        <div className="shrink-0 space-y-2.5 overflow-y-auto max-h-[42vh] pr-0.5">
+        <div className="max-h-[42vh] shrink-0 space-y-2.5 overflow-y-auto pr-0.5">
           <LeaderDashboardStrip data={dash.data} loading={dash.isPending} />
           <TeamLeaderProgressCard progress={tlProgress.data} />
           <TeamInsightsStrip items={insights.data ?? []} onSelect={selectById} />

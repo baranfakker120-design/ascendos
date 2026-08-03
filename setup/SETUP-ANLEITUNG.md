@@ -33,6 +33,17 @@ Achievements — und erzeugt **zwei Gründer-Codes**.
 für Seyda. (Schutz eingebaut: Läuft das Skript versehentlich doppelt,
 bricht es ab, statt etwas zu zerstören.)
 
+### Bestehende Production nachziehen (Team / Qualifikationen)
+
+Wenn die App bereits läuft, aber **Team** oder **Qualifikationen**
+fehlen bzw. Fehler zeigen, fehlen oft Migrationen 26–27 auf der DB.
+
+Supabase → SQL Editor → Inhalt von
+**`setup/production-migrations-26-27.sql`** einfügen → **Run**.
+
+Danach prüfen: Team-Tab zeigt Empty State (kein Partner) oder den
+Teambaum — nie einen harten Fehler nur weil die Downline leer ist.
+
 ## Schritt 3 — Die drei Ascent-Functions anlegen
 
 Supabase → **Edge Functions** → „Deploy a new function" →

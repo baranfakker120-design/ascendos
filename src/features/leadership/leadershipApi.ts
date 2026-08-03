@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isMissingRpcError } from '@shared/api/rpcErrors';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import type {
@@ -45,6 +46,42 @@ function mapDashboard(raw: Record<string, unknown>): LeaderDashboard {
   };
 }
 
+const EMPTY_DASH: LeaderDashboard = {
+  activeToday: 0,
+  newRegistrationsMonth: 0,
+  newCustomersMonth: 0,
+  openFollowups: 0,
+  teamAp: 0,
+  teamSize: 0,
+  directCount: 0,
+  inactive14d: 0,
+  tasksDoneToday: 0,
+  icpMonth: 0,
+  monthGoalAp: 2500,
+  goalProgress: 0,
+  myApTotal: 0,
+  tasksDoneByTeamToday: [],
+};
+
+/** Soft-fail optional leadership RPCs: missing schema → empty, never crash the page. */
+async function softRpcJson(
+  name:
+    | 'get_leader_dashboard'
+    | 'get_team_insights'
+    | 'get_smart_warnings'
+    | 'get_team_leaderboard'
+    | 'get_team_leader_progress'
+    | 'get_qualification_progress'
+    | 'list_ap_tasks',
+  args?: Record<string, unknown>
+): Promise<unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)(name, args);
+  if (!error) return data;
+  if (isMissingRpcError(error)) return null;
+  throw error;
+}
+
 export function useLeaderDashboard() {
   const { membership } = useAuth();
   return useQuery({
@@ -52,9 +89,11 @@ export function useLeaderDashboard() {
     enabled: !!membership,
     staleTime: 20_000,
     queryFn: async (): Promise<LeaderDashboard> => {
-      const { data, error } = await supabase.rpc('get_leader_dashboard');
-      if (error) throw error;
-      return mapDashboard((data ?? {}) as Record<string, unknown>);
+      const data = await softRpcJson('get_leader_dashboard');
+      if (data == null) {
+        return { ...EMPTY_DASH, myApTotal: membership?.ap_total ?? 0 };
+      }
+      return mapDashboard(data as Record<string, unknown>);
     },
   });
 }
@@ -70,7 +109,10 @@ export function useTeamLeaderboard(period: LeaderboardPeriod, sort: LeaderboardS
         p_period: period,
         p_sort: sort === 'sales' ? 'activity' : sort,
       });
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error)) return [];
+        throw error;
+      }
       return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
         membershipId: String(row.membership_id),
         identityId: String(row.identity_id),
@@ -95,7 +137,10 @@ export function useTeamInsights() {
     staleTime: 30_000,
     queryFn: async (): Promise<TeamInsight[]> => {
       const { data, error } = await supabase.rpc('get_team_insights');
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error)) return [];
+        throw error;
+      }
       const arr = Array.isArray(data) ? data : [];
       return (arr as Array<Record<string, unknown>>).map((row) => ({
         kind: String(row.kind ?? ''),
@@ -117,7 +162,10 @@ export function useSmartWarnings() {
     staleTime: 30_000,
     queryFn: async (): Promise<SmartWarning[]> => {
       const { data, error } = await supabase.rpc('get_smart_warnings');
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error)) return [];
+        throw error;
+      }
       const arr = Array.isArray(data) ? data : [];
       return (arr as Array<Record<string, unknown>>).map((row) => ({
         kind: String(row.kind ?? ''),
@@ -140,9 +188,34 @@ export function useTeamLeaderProgress() {
       const { data, error } = await supabase.rpc('get_team_leader_progress', {
         p_membership: membership!.id,
       });
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error)) {
+          return {
+            membershipId: membership!.id,
+            activeFirstlines: 0,
+            requiredFirstlines: 5,
+            qualified: false,
+            qualifiedAt: null,
+            bonusEntitled: false,
+            bonusPaid: false,
+            bonusAmountCents: 10000,
+          };
+        }
+        throw error;
+      }
       const row = (data ?? [])[0] as Record<string, unknown> | undefined;
-      if (!row) return null;
+      if (!row) {
+        return {
+          membershipId: membership!.id,
+          activeFirstlines: 0,
+          requiredFirstlines: 5,
+          qualified: false,
+          qualifiedAt: null,
+          bonusEntitled: false,
+          bonusPaid: false,
+          bonusAmountCents: 10000,
+        };
+      }
       return {
         membershipId: String(row.membership_id),
         activeFirstlines: num(row.active_firstlines),
@@ -157,58 +230,133 @@ export function useTeamLeaderProgress() {
   });
 }
 
+async function loadQualificationFallback(
+  membershipId: string,
+  apTotal: number
+): Promise<QualificationProgress> {
+  const { data: ranks } = await supabase
+    .from('ranks')
+    .select('key, label, threshold_ap, frame_asset')
+    .eq('is_active', true)
+    .order('threshold_ap', { ascending: true });
+
+  const list = (ranks ?? []) as Array<{
+    key: string;
+    label: string;
+    threshold_ap: number;
+    frame_asset: string | null;
+  }>;
+  const current =
+    [...list].reverse().find((r) => r.threshold_ap <= apTotal && r.key !== 'team_leader') ??
+    list[0] ??
+    null;
+  const next = list.find((r) => r.threshold_ap > apTotal) ?? null;
+
+  let activeFirstlines = 0;
+  const { data: directs } = await supabase
+    .from('memberships')
+    .select('id')
+    .eq('sponsor_membership_id', membershipId)
+    .eq('status', 'active');
+  activeFirstlines = directs?.length ?? 0;
+
+  return {
+    membershipId,
+    apTotal,
+    currentRank: current
+      ? {
+          key: current.key,
+          label: current.label,
+          thresholdAp: current.threshold_ap,
+          frameAsset: current.frame_asset,
+        }
+      : null,
+    nextRank: next
+      ? {
+          key: next.key,
+          label: next.label,
+          thresholdAp: next.threshold_ap,
+          remainingAp: Math.max(0, next.threshold_ap - apTotal),
+        }
+      : null,
+    teamLeader: {
+      qualified: false,
+      activeFirstlines,
+      requiredFirstlines: 5,
+      bonusAmountCents: 10000,
+      bonusPaid: false,
+      qualifiedAt: null,
+    },
+    unlockedRewards: [],
+  };
+}
+
+function mapQualification(
+  raw: Record<string, unknown>,
+  fallbackMembershipId: string
+): QualificationProgress {
+  const current = raw.current_rank as Record<string, unknown> | null;
+  const next = raw.next_rank as Record<string, unknown> | null;
+  const tl = (raw.team_leader ?? {}) as Record<string, unknown>;
+  const rewards = Array.isArray(raw.unlocked_rewards)
+    ? (raw.unlocked_rewards as Array<Record<string, unknown>>)
+    : [];
+  return {
+    membershipId: String(raw.membership_id ?? fallbackMembershipId),
+    apTotal: num(raw.ap_total),
+    currentRank: current
+      ? {
+          key: String(current.key),
+          label: String(current.label),
+          thresholdAp: num(current.threshold_ap),
+          frameAsset: (current.frame_asset as string) || null,
+        }
+      : null,
+    nextRank: next
+      ? {
+          key: String(next.key),
+          label: String(next.label),
+          thresholdAp: num(next.threshold_ap),
+          remainingAp: num(next.remaining_ap),
+        }
+      : null,
+    teamLeader: {
+      qualified: Boolean(tl.qualified),
+      activeFirstlines: num(tl.active_firstlines),
+      requiredFirstlines: num(tl.required_firstlines, 5),
+      bonusAmountCents: num(tl.bonus_amount_cents, 10000),
+      bonusPaid: Boolean(tl.bonus_paid),
+      qualifiedAt: (tl.qualified_at as string) || null,
+    },
+    unlockedRewards: rewards.map((r) => ({
+      kind: String(r.kind ?? ''),
+      amountCents: num(r.amount_cents),
+      note: (r.note as string) || null,
+    })),
+  };
+}
+
 export function useQualificationProgress() {
   const { membership } = useAuth();
   return useQuery({
     queryKey: ['qualification-progress', membership?.id],
     enabled: !!membership,
     staleTime: 15_000,
-    queryFn: async (): Promise<QualificationProgress | null> => {
+    queryFn: async (): Promise<QualificationProgress> => {
       const { data, error } = await supabase.rpc('get_qualification_progress', {
         p_membership: membership!.id,
       });
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error)) {
+          return loadQualificationFallback(membership!.id, membership!.ap_total ?? 0);
+        }
+        throw error;
+      }
       const raw = (data ?? {}) as Record<string, unknown>;
-      if (!raw.membership_id) return null;
-      const current = raw.current_rank as Record<string, unknown> | null;
-      const next = raw.next_rank as Record<string, unknown> | null;
-      const tl = (raw.team_leader ?? {}) as Record<string, unknown>;
-      const rewards = Array.isArray(raw.unlocked_rewards)
-        ? (raw.unlocked_rewards as Array<Record<string, unknown>>)
-        : [];
-      return {
-        membershipId: String(raw.membership_id),
-        apTotal: num(raw.ap_total),
-        currentRank: current
-          ? {
-              key: String(current.key),
-              label: String(current.label),
-              thresholdAp: num(current.threshold_ap),
-              frameAsset: (current.frame_asset as string) || null,
-            }
-          : null,
-        nextRank: next
-          ? {
-              key: String(next.key),
-              label: String(next.label),
-              thresholdAp: num(next.threshold_ap),
-              remainingAp: num(next.remaining_ap),
-            }
-          : null,
-        teamLeader: {
-          qualified: Boolean(tl.qualified),
-          activeFirstlines: num(tl.active_firstlines),
-          requiredFirstlines: num(tl.required_firstlines, 5),
-          bonusAmountCents: num(tl.bonus_amount_cents, 10000),
-          bonusPaid: Boolean(tl.bonus_paid),
-          qualifiedAt: (tl.qualified_at as string) || null,
-        },
-        unlockedRewards: rewards.map((r) => ({
-          kind: String(r.kind ?? ''),
-          amountCents: num(r.amount_cents),
-          note: (r.note as string) || null,
-        })),
-      };
+      if (!raw.membership_id) {
+        return loadQualificationFallback(membership!.id, membership!.ap_total ?? 0);
+      }
+      return mapQualification(raw, membership!.id);
     },
   });
 }
@@ -221,7 +369,10 @@ export function useApTasks() {
     staleTime: 60_000,
     queryFn: async (): Promise<ApTaskDef[]> => {
       const { data, error } = await supabase.rpc('list_ap_tasks');
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error)) return [];
+        throw error;
+      }
       return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
         id: String(row.id),
         key: String(row.key),
@@ -311,7 +462,12 @@ export function useLeadershipNote(targetMembershipId: string | null) {
         .eq('owner_membership_id', membership!.id)
         .eq('target_membership_id', targetMembershipId!)
         .maybeSingle();
-      if (error) throw error;
+      if (error) {
+        if (isMissingRpcError(error) || error.code === '42P01' || error.code === 'PGRST205') {
+          return '';
+        }
+        throw error;
+      }
       return data?.body ?? '';
     },
   });
