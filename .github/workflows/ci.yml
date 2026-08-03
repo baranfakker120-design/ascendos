@@ -53,8 +53,9 @@ jobs:
       - run: npm ci
       - name: Check generated database types
         run: |
-          supabase gen types typescript --local > /tmp/database.types.ts
-          npx prettier --write /tmp/database.types.ts
+          supabase gen types typescript --local \
+            | npx prettier --stdin-filepath src/shared/types/database.types.ts \
+            > /tmp/database.types.ts
           diff -u src/shared/types/database.types.ts /tmp/database.types.ts \
             || (echo '::error::database.types.ts weicht vom Schema ab. Lokal `npm run db:types` ausführen und committen.' && exit 1)
 
