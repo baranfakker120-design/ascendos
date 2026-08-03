@@ -5538,6 +5538,24 @@ comment on function public.active_membership_id() is
 alter table public.pipeline_events
   alter column created_by drop not null;
 
+-- AAA mission scorer was introduced without a pinned search_path (F1).
+create or replace function public.ap_design_score_mission(p_mission_type text)
+returns int
+language sql
+immutable
+set search_path = public
+as $$
+  select case p_mission_type
+    when 'new_contacts' then 25
+    when 'follow_up_overdue' then 50
+    when 'reactivate_contact' then 50
+    when 'presentation_pending' then 75
+    when 'next_step_due' then 50
+    when 'fit_check_next_step' then 100
+    else 50
+  end;
+$$;
+
 -- ============================================================
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================

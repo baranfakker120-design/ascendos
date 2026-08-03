@@ -107,6 +107,24 @@ begin
 end;
 $$;
 
+/** SECURITY DEFINER: RLS on memberships hides cross-org rows from
+ *  authenticated callers, which would turn sponsor-reassignment tests
+ *  into silent no-ops (SET sponsor = NULL). */
+create or replace function tests.membership_id(p_identity uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.id from public.memberships m
+  where m.identity_id = p_identity and m.status = 'active'
+  order by m.created_at nulls last, m.id
+  limit 1;
+$$;
+
+grant execute on function tests.membership_id(uuid) to authenticated;
+
 -- ============================================================
 -- A. Datenumzug
 -- ============================================================
@@ -230,8 +248,7 @@ select tests.clear_org();
 
 select throws_like(
   $$ update public.memberships
-     set sponsor_membership_id = (select id from public.memberships
-                                  where identity_id = 'c5000000-0000-0000-0000-00000000000f')
+     set sponsor_membership_id = tests.membership_id('c5000000-0000-0000-0000-00000000000f')
      where identity_id = 'c5000000-0000-0000-0000-00000000000c'
        and status = 'active' $$,
   '%selben Organisation%',

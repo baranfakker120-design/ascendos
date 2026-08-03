@@ -156,13 +156,20 @@ $$;
  *  deterministisch: TestOrg (...0001) kommt vor FremdOrg (...0002),
  *  und genau das ist ueberall gemeint. */
 create or replace function tests.mid(p_username text)
-returns uuid language sql stable as $$
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
   select m.id from public.memberships m
   join public.profiles p on p.id = m.identity_id
   where p.username = p_username and m.status = 'active'
   order by m.org_id::text
   limit 1;
 $$;
+
+grant execute on function tests.mid(text) to authenticated;
 
 
 -- ============================================================
