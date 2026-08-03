@@ -3,11 +3,11 @@ import {
   assessOrgHealth,
   buildCoachOrgIntelligence,
   buildFollowUpRecommendations,
-  buildMessageDraft,
   buildPersonInsight,
   isMorningWindow,
   selectSurfaceInsights,
-} from './index';
+} from './analyzeOrg';
+import { buildMessageDraft } from './messageDrafts';
 import type { CoachOrgInput, CoachPartnerSnapshot } from './types';
 
 function partner(
