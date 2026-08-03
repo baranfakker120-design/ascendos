@@ -71,6 +71,51 @@
 
 .team-node__avatar-wrap {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Premium aura hugging the profile frame (~3–6px) */
+.team-node__aura {
+  pointer-events: none;
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  z-index: 0;
+  will-change: transform, opacity;
+}
+
+.team-node__avatar-wrap > *:not(.team-node__aura) {
+  position: relative;
+  z-index: 1;
+}
+
+.team-node__avatar-wrap.is-editable .team-node__aura {
+  box-shadow:
+    0 0 0 1.5px rgb(52 168 110 / 0.72),
+    0 0 9px rgb(52 168 110 / 0.3);
+  animation: team-aura-green 2.6s ease-in-out infinite;
+}
+
+.team-node__avatar-wrap.is-readonly .team-node__aura {
+  box-shadow:
+    0 0 0 1.25px rgb(196 72 72 / 0.55),
+    0 0 7px rgb(196 72 72 / 0.2);
+  animation: team-aura-red 3s ease-in-out infinite;
+}
+
+.team-node--editable {
+  border-color: rgb(52 168 110 / 0.22);
+}
+
+.team-node--readonly {
+  border-color: rgb(196 72 72 / 0.16);
+}
+
+.team-node--readonly .team-node__name,
+.team-node--readonly .team-node__rank {
+  opacity: 0.92;
 }
 
 .team-node__presence {
@@ -222,9 +267,34 @@
   }
 }
 
+@keyframes team-aura-green {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.045);
+  }
+}
+
+@keyframes team-aura-red {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.03);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .team-node,
-  .team-node--gold .team-node__glow {
+  .team-node--gold .team-node__glow,
+  .team-node__aura {
     transition: none;
     animation: none;
   }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isMissingRpcError } from '@shared/api/rpcErrors';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { Button, buttonClassName } from '@shared/ui/Button';
 import { BottomSheet } from '@shared/ui/BottomSheet';
 import { Card } from '@shared/ui/Card';
@@ -17,7 +18,7 @@ import {
   useTeamLeaderProgress,
 } from '@features/leadership/leadershipApi';
 import { useGenealogyTree } from './genealogyApi';
-import { hasNoTeamPartners } from './genealogyUtils';
+import { buildEditableMembershipIds, hasNoTeamPartners } from './genealogyUtils';
 import { filterTreeNodes } from './genealogyUtils';
 import { GenealogyList } from './components/GenealogyList';
 import { GenealogyToolbar } from './components/GenealogyToolbar';
@@ -53,6 +54,7 @@ function TeamEmptyState() {
  */
 export function TeamPage() {
   const navigate = useNavigate();
+  const { membership } = useAuth();
   const { data: nodes = [], isPending, isError, error, refetch, isFetching } = useGenealogyTree();
   const dash = useLeaderDashboard();
   const insights = useTeamInsights();
@@ -70,6 +72,11 @@ export function TeamPage() {
   const visibleIds = useMemo(
     () => filterTreeNodes(nodes, { filter, search }),
     [nodes, filter, search]
+  );
+
+  const editableIds = useMemo(
+    () => buildEditableMembershipIds(nodes, membership?.id),
+    [nodes, membership?.id]
   );
 
   const directsOfSelected = useMemo(() => {
@@ -186,6 +193,7 @@ export function TeamPage() {
               visibleIds={visibleIds}
               collapsed={collapsed}
               selectedId={selected?.membershipId ?? null}
+              editableIds={editableIds}
               onSelect={setSelected}
               onToggleCollapse={onToggleCollapse}
             />
@@ -221,6 +229,7 @@ export function TeamPage() {
           <NodeDetailContent
             node={selected}
             directs={directsOfSelected}
+            editable={editableIds.has(selected.membershipId)}
             onCoach={(node) => {
               setSelected(null);
               void navigate(

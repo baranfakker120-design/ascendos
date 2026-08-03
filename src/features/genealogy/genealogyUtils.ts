@@ -97,3 +97,46 @@ export function presenceLabel(node: GenealogyNode, now = Date.now()): string {
 export function hasNoTeamPartners(nodes: GenealogyNode[]): boolean {
   return nodes.every((n) => n.depth === 0) || nodes.filter((n) => n.depth > 0).length === 0;
 }
+
+/**
+ * Membership IDs the viewer may edit: themselves + every descendant in the loaded tree.
+ * Nodes outside this set stay visible but are read-only (sidelines / parallel branches).
+ */
+export function buildEditableMembershipIds(
+  nodes: GenealogyNode[],
+  viewerMembershipId: string | null | undefined
+): Set<string> {
+  const present = new Set(nodes.map((n) => n.membershipId));
+  if (present.size === 0) return present;
+
+  let origin = viewerMembershipId && present.has(viewerMembershipId) ? viewerMembershipId : null;
+  if (!origin) {
+    const root = nodes.find((n) => n.depth === 0);
+    origin = root?.membershipId ?? null;
+  }
+  if (!origin) return present;
+
+  const children = new Map<string, string[]>();
+  for (const n of nodes) {
+    if (!n.sponsorMembershipId) continue;
+    const list = children.get(n.sponsorMembershipId);
+    if (list) list.push(n.membershipId);
+    else children.set(n.sponsorMembershipId, [n.membershipId]);
+  }
+
+  const editable = new Set<string>();
+  const stack = [origin];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (editable.has(id)) continue;
+    if (!present.has(id)) continue;
+    editable.add(id);
+    const kids = children.get(id);
+    if (kids) for (const k of kids) stack.push(k);
+  }
+  return editable;
+}
+
+export function isEditableMembership(editableIds: Set<string>, membershipId: string): boolean {
+  return editableIds.has(membershipId);
+}
