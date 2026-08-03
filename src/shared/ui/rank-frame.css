@@ -1,5 +1,7 @@
-/* Premium frame specular glint — frame metal only (duplicate asset strip).
-   transform + opacity + clip-path. No mask-image, no blend modes, no filters. */
+/* Super-Admin / premium frame shimmer — design sheet timing.
+   Saturated white-metal gloss on FRAME ASSET ONLY (duplicate img + clip-path).
+   6.5s cycle: start → 45° sweep (fast mid) → 1.5s pause → reset outside.
+   transform / opacity / clip-path only. No mask-image, no blend modes. */
 
 .rank-frame-layer {
   pointer-events: none;
@@ -18,7 +20,6 @@
   height: 100%;
   object-fit: contain;
   object-position: center;
-  /* Avoid browser resampling softness */
   image-rendering: auto;
   -webkit-user-drag: none;
   user-select: none;
@@ -32,6 +33,7 @@
   overflow: hidden;
 }
 
+/* Dense gloss strip of the same frame — hole stays transparent (no avatar paint). */
 .rank-frame-sheen-asset {
   position: absolute;
   inset: 0;
@@ -40,32 +42,55 @@
   object-fit: contain;
   object-position: center;
   opacity: 0;
-  /* Soft metal catch: narrow vertical band of the same frame asset */
-  clip-path: inset(0 100% 0 0);
+  /* Strong specular: stacked frame reads as saturated metal highlight */
+  clip-path: polygon(-45% -15%, -22% -15%, -2% 115%, -25% 115%);
   will-change: clip-path, opacity;
-  animation: rank-frame-sheen 6.5s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+  animation: rank-frame-sheen 6.5s linear infinite;
 }
 
+/*
+  Timeline (6.5s):
+  0s     start outside
+  ~0.3s  visible, linear entry
+  2s     mid-frame — fast/sudden peak (45° band)
+  3.5s   exit complete
+  3.5–5s pause off-frame
+  5–6.5s hold reset outside
+*/
 @keyframes rank-frame-sheen {
-  0%,
-  62% {
-    clip-path: inset(0 100% 0 -15%);
+  0% {
     opacity: 0;
+    clip-path: polygon(-48% -15%, -24% -15%, -4% 115%, -28% 115%);
   }
-  68% {
-    opacity: 0.38;
+  4% {
+    opacity: 0.72;
   }
-  74% {
-    clip-path: inset(0 35% 0 35%);
-    opacity: 0.28;
+  /* accelerate into the 45° pass */
+  18% {
+    opacity: 0.92;
+    clip-path: polygon(8% -15%, 34% -15%, 54% 115%, 28% 115%);
   }
-  82% {
-    clip-path: inset(0 -15% 0 100%);
+  /* 2s ≈ 30.8% — sudden bright catch */
+  30.8% {
+    opacity: 1;
+    clip-path: polygon(38% -15%, 64% -15%, 84% 115%, 58% 115%);
+  }
+  /* finish exit by 3.5s ≈ 53.8% */
+  53.8% {
     opacity: 0;
+    clip-path: polygon(98% -15%, 124% -15%, 144% 115%, 118% 115%);
   }
+  /* 1.5s pause through 5s ≈ 76.9% */
+  53.9%,
+  76.9% {
+    opacity: 0;
+    clip-path: polygon(130% -15%, 156% -15%, 176% 115%, 150% 115%);
+  }
+  /* reset outside for next loop */
+  77%,
   100% {
-    clip-path: inset(0 -15% 0 100%);
     opacity: 0;
+    clip-path: polygon(-48% -15%, -24% -15%, -4% 115%, -28% 115%);
   }
 }
 
