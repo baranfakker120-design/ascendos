@@ -12,7 +12,7 @@ import type { Database } from './database.types';
 // ---------- Fachliche Unions (Quelle: CHECK-Constraints im Schema) ----------
 
 /** Rollen an der Mitgliedschaft (Canonical). profiles.role ist nur Spiegel. */
-export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater';
+export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater' | 'developer';
 
 export type PipelineEventType =
   | 'contact_created'

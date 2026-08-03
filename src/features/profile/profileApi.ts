@@ -22,6 +22,8 @@ export interface ProfileRankState {
   membershipId: string | null;
   current: RankForAp | null;
   next: NextRankForAp | null;
+  /** Monatlicher Award Platz 1 im laufenden Monat — Sonderrahmen frame-10. */
+  isBeraterDesMonats: boolean;
 }
 
 export interface ProfileDetail {
@@ -80,14 +82,32 @@ export function useProfileDetail() {
 
       const apTotal = membership.data?.ap_total ?? 0;
       const orgId = membership.data?.org_id ?? profile.org_id;
+      const membershipId = membership.data?.id ?? null;
+
+      // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
+      const now = new Date();
+      const period = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        .toISOString()
+        .slice(0, 10);
 
       // Rangschwellen kommen ausschließlich aus der Datenbank.
-      const [currentRank, nextRank] = await Promise.all([
+      const [currentRank, nextRank, monthlyAward] = await Promise.all([
         supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
         supabase.rpc('next_rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
+        membershipId
+          ? supabase
+              .from('monthly_awards')
+              .select('id')
+              .eq('org_id', orgId)
+              .eq('membership_id', membershipId)
+              .eq('period', period)
+              .eq('place', 1)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
       ]);
       if (currentRank.error) throw currentRank.error;
       if (nextRank.error) throw nextRank.error;
+      if (monthlyAward.error) throw monthlyAward.error;
 
       return {
         profile,
@@ -100,9 +120,10 @@ export function useProfileDetail() {
         },
         rank: {
           apTotal,
-          membershipId: membership.data?.id ?? null,
+          membershipId,
           current: currentRank.data?.[0] ?? null,
           next: nextRank.data?.[0] ?? null,
+          isBeraterDesMonats: !!monthlyAward.data,
         },
       };
     },

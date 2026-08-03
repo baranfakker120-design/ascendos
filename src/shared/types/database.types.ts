@@ -15,7 +15,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater';
+export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater' | 'developer';
 
 export interface Database {
   public: {
@@ -394,7 +394,7 @@ export interface Database {
           org_id: string;
           team_id: string;
           sponsor_membership_id: string | null;
-          role: UserRole | 'admin';
+          role: UserRole;
           status: 'pending' | 'active' | 'suspended' | 'ended';
           country: string | null;
           goals: Json;
@@ -425,6 +425,20 @@ export interface Database {
           is_active: boolean;
           created_at: string;
           updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      monthly_awards: {
+        Row: {
+          id: string;
+          org_id: string;
+          period: string;
+          place: number;
+          membership_id: string;
+          ap_in_period: number;
+          created_at: string;
         };
         Insert: never;
         Update: never;

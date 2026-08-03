@@ -3,7 +3,9 @@ import {
   FRAME_GEOMETRY,
   getFrameGeometry,
   openingLayout,
+  resolveDisplayFrameKey,
   resolveFrameSrc,
+  SPECIAL_FRAME,
 } from './frameAssets';
 
 describe('frameAssets', () => {
@@ -39,5 +41,18 @@ describe('frameAssets', () => {
     const layout = openingLayout(FRAME_GEOMETRY['frame-01']);
     expect(layout.widthRatio).toBeCloseTo(657 / 1024, 5);
     expect(layout.offsetYRatio).toBeCloseTo(-34 / 1024, 5);
+  });
+
+  it('ordnet Sonderrahmen fest zu (08 Developer, 09 Super Admin, 10 Monat)', () => {
+    expect(SPECIAL_FRAME.developer).toBe('frame-08');
+    expect(SPECIAL_FRAME.super_admin).toBe('frame-09');
+    expect(SPECIAL_FRAME.berater_des_monats).toBe('frame-10');
+    expect(resolveFrameSrc(SPECIAL_FRAME.developer, 'lg')).toBe(
+      '/brand/frames/frame-08-160.webp',
+    );
+    expect(resolveFrameSrc(SPECIAL_FRAME.super_admin, 'md')).toBe(
+      '/brand/frames/frame-09-128.webp',
+    );
+    expect(resolveDisplayFrameKey({ role: 'developer' })).toBe('frame-08');
   });
 });

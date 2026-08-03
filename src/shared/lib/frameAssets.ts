@@ -25,6 +25,9 @@ export const FRAME_SOURCE_SIZE = 1024;
 /**
  * Vermessene Öffnungen (Sprint-4-Plan Abschnitt 2.5).
  * frame-01 … frame-10; unbekannte Schlüssel → null (Placeholder).
+ *
+ * AP-Ränge: 01–07. Sonderrahmen (kein AP): 08 Developer, 09 Super Admin,
+ * 10 Berater des Monats — siehe resolveDisplayFrameKey().
  */
 export const FRAME_GEOMETRY: Readonly<Record<string, FrameGeometry>> = {
   'frame-01': {
@@ -69,18 +72,21 @@ export const FRAME_GEOMETRY: Readonly<Record<string, FrameGeometry>> = {
     openingHeight: 461,
     verticalOffset: 6,
   },
+  /** Sonderrahmen Developer (Rolle developer) — kein AP-Rang. */
   'frame-08': {
     key: 'frame-08',
     openingWidth: 606,
     openingHeight: 499,
     verticalOffset: 20,
   },
+  /** Sonderrahmen Super Admin (Rolle super_admin) — kein AP-Rang. */
   'frame-09': {
     key: 'frame-09',
     openingWidth: 592,
     openingHeight: 445,
     verticalOffset: -10,
   },
+  /** Sonderrahmen Berater des Monats — kein AP-Rang. */
   'frame-10': {
     key: 'frame-10',
     openingWidth: 598,
@@ -88,6 +94,34 @@ export const FRAME_GEOMETRY: Readonly<Record<string, FrameGeometry>> = {
     verticalOffset: -14,
   },
 };
+
+/** Feste Sonderrahmen-Schlüssel (keine ranks.frame_asset-Einträge). */
+export const SPECIAL_FRAME = {
+  developer: 'frame-08',
+  super_admin: 'frame-09',
+  berater_des_monats: 'frame-10',
+} as const;
+
+export interface DisplayFrameInput {
+  /** memberships.role der aktiven Mitgliedschaft */
+  role?: string | null;
+  /** ranks.frame_asset aus rank_for_ap — unverändert die AP-Wahrheit */
+  rankFrameKey?: string | null;
+  /** true = aktueller monatlicher Award (Berater des Monats) */
+  isBeraterDesMonats?: boolean;
+}
+
+/**
+ * Welcher Rahmen angezeigt wird.
+ * Priorität: super_admin → developer → Berater des Monats → AP-Rang.
+ * Ändert keine Gamification / rank_for_ap-Daten.
+ */
+export function resolveDisplayFrameKey(input: DisplayFrameInput): string | null {
+  if (input.role === 'super_admin') return SPECIAL_FRAME.super_admin;
+  if (input.role === 'developer') return SPECIAL_FRAME.developer;
+  if (input.isBeraterDesMonats) return SPECIAL_FRAME.berater_des_monats;
+  return input.rankFrameKey ?? null;
+}
 
 export type FrameDisplaySize = 'sm' | 'md' | 'lg';
 
@@ -104,10 +138,7 @@ export function getFrameGeometry(frameKey: string | null | undefined): FrameGeom
   return FRAME_GEOMETRY[frameKey] ?? null;
 }
 
-/**
- * Öffentlicher Asset-Pfad für einen Rahmen.
- * Dateien werden in einer späteren Phase ausgeliefert; Phase B erwartet 404 → Placeholder.
- */
+/** Öffentlicher Asset-Pfad für einen Rahmen-Schlüssel. */
 export function resolveFrameSrc(
   frameKey: string | null | undefined,
   size: FrameDisplaySize = 'lg'

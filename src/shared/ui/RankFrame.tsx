@@ -10,7 +10,11 @@ import {
 import './rank-frame.css';
 
 export interface RankFrameProps {
-  /** ranks.frame_asset / cosmetic key, z. B. "frame-01". null = nur Placeholder-Ring. */
+  /**
+   * Anzuzeigender Rahmen-Schlüssel (AP-Rang oder Sonderrahmen).
+   * Aufrufer: resolveDisplayFrameKey() — RankFrame selbst kennt keine Rollen.
+   * z. B. "frame-01" … "frame-10". null = nur Placeholder-Ring.
+   */
   frameKey?: string | null;
   /** Avatar-Bild-URL. */
   src?: string | null;

@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -18,7 +19,7 @@ import { useProfileDetail, useUpdateProfile } from './profileApi';
 export function ProfileEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, role: membershipRole } = useAuth();
   const { data, isLoading, isError } = useProfileDetail();
   const updateProfile = useUpdateProfile();
 
@@ -85,7 +86,11 @@ export function ProfileEditPage() {
 
       <Card className="flex flex-col items-center gap-4">
         <RankFrame
-          frameKey={data.rank.current?.frame_asset ?? null}
+          frameKey={resolveDisplayFrameKey({
+            role: membershipRole,
+            rankFrameKey: data.rank.current?.frame_asset ?? null,
+            isBeraterDesMonats: data.rank.isBeraterDesMonats,
+          })}
           src={avatarUrl}
           name={displayName}
           size="lg"

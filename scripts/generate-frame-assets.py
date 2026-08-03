@@ -23,10 +23,12 @@ SRC = ROOT / "docs" / "brand" / "sprint4-frames"
 OUT = ROOT / "public" / "brand" / "frames"
 SIZES = (96, 128, 160)
 
+# 01–07 AP-Ränge; 08 Developer; 09 Super Admin (Sonderrahmen, kein AP).
 SOURCES: dict[str, Path] = {
     f"frame-{i:02d}": SRC / f"frame-{i:02d}-upload.png" for i in range(1, 10)
 }
 # Sprint-4-Plan: fehlerhaftes frame-10-upload.png nicht ausliefern.
+# frame-10 = Berater des Monats (Sonderrahmen, kein AP).
 SOURCES["frame-10"] = SRC / "frame-10-KORRIGIERT-berater-des-monats.png"
 
 

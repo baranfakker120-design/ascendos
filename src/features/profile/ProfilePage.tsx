@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { EnergyCore } from '@shared/ui/EnergyCore';
@@ -13,6 +14,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   leader: 'Leader',
   berater: 'Berater',
+  developer: 'Developer',
 };
 
 /**
@@ -35,6 +37,11 @@ export function ProfilePage() {
   const currentLabel = rank.current?.label ?? null;
   // Anzeige aus aktiver Mitgliedschaft — profiles.role ist nur Spiegel.
   const roleLabel = ROLE_LABELS[membershipRole ?? ''] ?? membershipRole ?? '—';
+  const displayFrameKey = resolveDisplayFrameKey({
+    role: membershipRole,
+    rankFrameKey: rank.current?.frame_asset ?? null,
+    isBeraterDesMonats: rank.isBeraterDesMonats,
+  });
 
   return (
     <div className="space-y-4">
@@ -42,7 +49,7 @@ export function ProfilePage() {
 
       <Card className="flex flex-col items-center gap-4 text-center">
         <RankFrame
-          frameKey={rank.current?.frame_asset ?? null}
+          frameKey={displayFrameKey}
           src={profile.avatar_url}
           name={displayName || profile.username}
           size="lg"
@@ -54,7 +61,7 @@ export function ProfilePage() {
         {currentLabel ? (
           <RankChip
             label={currentLabel}
-            frameKey={rank.current?.frame_asset ?? null}
+            frameKey={displayFrameKey}
             variant="framed"
           />
         ) : null}
