@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { eventLabel } from '@shared/lib/pipeline';
+import type { ShareVerificationRecord } from '@shared/lib/shareVerification';
 import type { PipelineEvent } from '@shared/types/domain';
 import { Button } from '@shared/ui/Button';
 
@@ -15,13 +16,16 @@ const dateFmt = new Intl.DateTimeFormat('de-DE', {
  * Vollständige, unveränderliche Historie (ADR-003). Fehl-Taps werden
  * nicht gelöscht, sondern per Korrektur-Event unwirksam gemacht [D-2]:
  * korrigierte Einträge bleiben sichtbar (durchgestrichen).
+ * Pending share proofs appear until verified (no AP yet).
  */
 export function EventTimeline({
   events,
+  pendingProofs = [],
   onCorrect,
   correcting,
 }: {
   events: PipelineEvent[];
+  pendingProofs?: ShareVerificationRecord[];
   onCorrect: (eventId: string) => void;
   correcting: boolean;
 }) {
@@ -36,14 +40,38 @@ export function EventTimeline({
     return ids;
   }, [events]);
 
-  if (events.length === 0) {
+  if (events.length === 0 && pendingProofs.length === 0) {
     return <p className="text-sm text-muted">Noch keine Ereignisse.</p>;
   }
 
   return (
     <ol className="relative space-y-4 border-l border-line pl-5">
+      {pendingProofs.map((proof) => (
+        <li key={proof.id} className="relative">
+          <span
+            aria-hidden
+            className="absolute -left-[26.5px] top-1.5 h-2.5 w-2.5 rounded-full bg-accent"
+          />
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-medium">{proof.toolName} · Warte auf Nachweis</p>
+          </div>
+          <p className="text-xs text-muted">
+            {dateFmt.format(new Date(proof.updatedAt))}
+            {proof.shareCompleted ? ' · Teilen ok' : ''}
+            {proof.screenshotFileName ? ` · Screenshot: ${proof.screenshotFileName}` : ''}
+          </p>
+          {proof.screenshotDataUrl ? (
+            <img
+              src={proof.screenshotDataUrl}
+              alt=""
+              className="mt-2 max-h-28 rounded-lg border border-line object-contain"
+            />
+          ) : null}
+        </li>
+      ))}
+
       {events.map((event) => {
-        if (event.event_type === 'correction') return null; // implizit via Durchstreichung
+        if (event.event_type === 'correction') return null;
         const corrected = correctedIds.has(event.id);
         const correctable =
           !corrected && event.event_type !== 'contact_created' && event.source !== 'system';

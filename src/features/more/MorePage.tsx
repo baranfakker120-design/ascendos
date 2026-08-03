@@ -7,6 +7,7 @@ import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
+import { displayShareTool } from '@shared/lib/shareToolsDisplay';
 import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
 
 /**
@@ -209,21 +210,24 @@ export function MorePage() {
         <p className="mt-0.5 text-sm text-muted">Externe Werkzeuge für Gespräche und Follow-ups.</p>
         {tools && tools.length > 0 ? (
           <ul className="mt-3 space-y-2">
-            {tools.map((tool) => (
-              <li key={tool.key}>
-                <a
-                  href={tool.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-bg"
-                >
-                  <span>{tool.name}</span>
-                  <span className="text-muted" aria-hidden>
-                    →
-                  </span>
-                </a>
-              </li>
-            ))}
+            {tools.map((raw) => {
+              const tool = displayShareTool(raw);
+              return (
+                <li key={tool.key}>
+                  <a
+                    href={tool.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-bg"
+                  >
+                    <span>{tool.name}</span>
+                    <span className="text-muted" aria-hidden>
+                      →
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted">Keine Tools hinterlegt.</p>

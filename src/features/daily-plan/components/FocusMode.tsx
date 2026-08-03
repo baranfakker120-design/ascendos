@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { DailyPlanItem } from '@shared/types/domain';
 import { comboBonusAp, scoreDailyMission } from '@shared/lib/apScoring';
+import { contactHasPendingShareProof } from '@shared/lib/shareVerification';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -29,6 +30,8 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
     missionsDoneToday: progress.done,
   });
   const combo = comboBonusAp(progress.done);
+  const awaitingProof =
+    Boolean(current.contact_id) && contactHasPendingShareProof(current.contact_id!);
 
   return (
     <div className="space-y-5">
@@ -56,6 +59,11 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
               <ApRewardSticker ap={missionAp} size="sm" />
             </div>
             <p className="mt-1 text-sm text-muted">{current.reason}</p>
+            {awaitingProof ? (
+              <p className="mt-2 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent-deep">
+                Warte auf Nachweis
+              </p>
+            ) : null}
             {current.contact_id ? (
               <Link
                 to={`/kontakte/${current.contact_id}`}
