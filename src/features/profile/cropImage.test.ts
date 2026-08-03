@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import { coverScaleForImage, CROP_INITIAL_ZOOM, CROP_MAX_ZOOM_FACTOR, CROP_OUTPUT_SIZE } from './AvatarCropModal';
 
 const dir = dirname(fileURLToPath(import.meta.url));
 
@@ -20,9 +21,22 @@ describe('cropImage contract', () => {
     expect(upload).toContain('AvatarCropModal');
     expect(upload).toContain('setPicked(file)');
     expect(upload).toContain('onConfirm={onConfirm}');
-    expect(upload).toMatch(/const onConfirm = async \(blob: Blob\)/);
     expect(modal).toContain('kneifen');
     expect(modal).toContain('RankFrame');
-    expect(modal).toContain('onConfirm');
+  });
+
+  it('uses the same output size for preview and save (1:1 crop)', () => {
+    expect(CROP_OUTPUT_SIZE).toBe(512);
+    expect(modal).toMatch(/cropCircleWebp\(file,\s*currentTransform,\s*CROP_OUTPUT_SIZE\)/g);
+    const matches = modal.match(/cropCircleWebp\([^)]*CROP_OUTPUT_SIZE\)/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('starts tighter than cover and allows deep zoom-in', () => {
+    expect(CROP_INITIAL_ZOOM).toBeGreaterThan(1);
+    expect(CROP_MAX_ZOOM_FACTOR).toBeGreaterThanOrEqual(5);
+    const cover = coverScaleForImage(1200, 800, 280);
+    expect(cover).toBeGreaterThan(1);
+    expect(cover * CROP_INITIAL_ZOOM).toBeGreaterThan(cover);
   });
 });

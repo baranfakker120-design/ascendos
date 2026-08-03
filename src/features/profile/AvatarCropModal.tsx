@@ -12,10 +12,11 @@ import { Button } from '@shared/ui/Button';
 import { cropCircleWebp, type CircleCropTransform } from './cropImage';
 import './avatar-crop.css';
 
-const MIN_SCALE = 1;
-const MAX_SCALE = 4;
-const OUTPUT_SIZE = 512;
-const CIRCLE = 280;
+/** Cover = Kreis gefüllt; Start leicht enger, Zoom weit hinein. */
+export const CROP_INITIAL_ZOOM = 1.15;
+export const CROP_MAX_ZOOM_FACTOR = 6;
+export const CROP_OUTPUT_SIZE = 512;
+export const CROP_CIRCLE_PX = 280;
 
 export interface AvatarCropModalProps {
   file: File;
@@ -32,9 +33,14 @@ function containSize(imgW: number, imgH: number, box: number) {
   return { baseWidth: box * ratio, baseHeight: box };
 }
 
+export function coverScaleForImage(imgW: number, imgH: number, circle: number): number {
+  const contained = containSize(imgW, imgH, circle);
+  return Math.max(circle / contained.baseWidth, circle / contained.baseHeight);
+}
+
 /**
  * Instagram-ähnlicher Kreiszuschnitt: Pinch/Wheel-Zoom, Pan,
- * Live-Vorschau mit aktivem Rahmen. Speichert erst nach Bestätigen.
+ * Live-Vorschau mit aktivem Rahmen. Vorschau und Export nutzen denselben Crop.
  */
 export function AvatarCropModal({
   file,
@@ -45,6 +51,7 @@ export function AvatarCropModal({
 }: AvatarCropModalProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [coverScale, setCoverScale] = useState(1);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
@@ -56,6 +63,9 @@ export function AvatarCropModal({
   const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
+  const minScale = coverScale;
+  const maxScale = coverScale * CROP_MAX_ZOOM_FACTOR;
+
   useEffect(() => {
     const url = URL.createObjectURL(file);
     setObjectUrl(url);
@@ -63,16 +73,16 @@ export function AvatarCropModal({
   }, [file]);
 
   const base = useMemo(() => {
-    if (!natural) return { baseWidth: CIRCLE, baseHeight: CIRCLE };
-    return containSize(natural.w, natural.h, CIRCLE);
+    if (!natural) return { baseWidth: CROP_CIRCLE_PX, baseHeight: CROP_CIRCLE_PX };
+    return containSize(natural.w, natural.h, CROP_CIRCLE_PX);
   }, [natural]);
 
   const clampOffset = useCallback(
     (x: number, y: number, nextScale: number) => {
       const drawnW = base.baseWidth * nextScale;
       const drawnH = base.baseHeight * nextScale;
-      const maxX = Math.max(0, (drawnW - CIRCLE) / 2);
-      const maxY = Math.max(0, (drawnH - CIRCLE) / 2);
+      const maxX = Math.max(0, (drawnW - CROP_CIRCLE_PX) / 2);
+      const maxY = Math.max(0, (drawnH - CROP_CIRCLE_PX) / 2);
       return {
         x: Math.min(maxX, Math.max(-maxX, x)),
         y: Math.min(maxY, Math.max(-maxY, y)),
@@ -83,28 +93,32 @@ export function AvatarCropModal({
 
   const setScaleClamped = useCallback(
     (next: number) => {
-      const s = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+      const s = Math.min(maxScale, Math.max(minScale, next));
       setScale(s);
       setOffset((o) => clampOffset(o.x, o.y, s));
     },
-    [clampOffset]
+    [clampOffset, minScale, maxScale]
   );
 
-  // Debounced live preview blob for RankFrame
+  const currentTransform = useMemo((): CircleCropTransform | null => {
+    if (!natural) return null;
+    return {
+      baseWidth: base.baseWidth,
+      baseHeight: base.baseHeight,
+      scale,
+      offsetX: offset.x,
+      offsetY: offset.y,
+      circleDiameter: CROP_CIRCLE_PX,
+    };
+  }, [natural, base.baseWidth, base.baseHeight, scale, offset.x, offset.y]);
+
+  // Live-Vorschau: identischer Crop wie beim Speichern (gleiche OUTPUT_SIZE).
   useEffect(() => {
-    if (!natural) return;
+    if (!currentTransform) return;
     let cancelled = false;
     const t = window.setTimeout(async () => {
       try {
-        const transform: CircleCropTransform = {
-          baseWidth: base.baseWidth,
-          baseHeight: base.baseHeight,
-          scale,
-          offsetX: offset.x,
-          offsetY: offset.y,
-          circleDiameter: CIRCLE,
-        };
-        const blob = await cropCircleWebp(file, transform, 256);
+        const blob = await cropCircleWebp(file, currentTransform, CROP_OUTPUT_SIZE);
         if (cancelled) return;
         if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
         const url = URL.createObjectURL(blob);
@@ -113,12 +127,12 @@ export function AvatarCropModal({
       } catch {
         /* preview optional */
       }
-    }, 100);
+    }, 80);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [file, natural, base.baseWidth, base.baseHeight, scale, offset.x, offset.y]);
+  }, [file, currentTransform]);
 
   useEffect(
     () => () => {
@@ -176,19 +190,11 @@ export function AvatarCropModal({
   };
 
   const confirm = async () => {
-    if (!natural) return;
+    if (!currentTransform) return;
     setBusy(true);
     setError(null);
     try {
-      const transform: CircleCropTransform = {
-        baseWidth: base.baseWidth,
-        baseHeight: base.baseHeight,
-        scale,
-        offsetX: offset.x,
-        offsetY: offset.y,
-        circleDiameter: CIRCLE,
-      };
-      const blob = await cropCircleWebp(file, transform, OUTPUT_SIZE);
+      const blob = await cropCircleWebp(file, currentTransform, CROP_OUTPUT_SIZE);
       await onConfirm(blob);
     } catch {
       setError('Zuschneiden fehlgeschlagen. Bitte erneut versuchen.');
@@ -225,7 +231,7 @@ export function AvatarCropModal({
         onPointerCancel={onPointerUp}
         onWheel={onWheel}
       >
-        <div className="avatar-crop-circle" style={{ width: CIRCLE, height: CIRCLE }}>
+        <div className="avatar-crop-circle" style={{ width: CROP_CIRCLE_PX, height: CROP_CIRCLE_PX }}>
           {objectUrl ? (
             <img
               src={objectUrl}
@@ -241,10 +247,11 @@ export function AvatarCropModal({
                 const img = e.currentTarget;
                 const w = img.naturalWidth;
                 const h = img.naturalHeight;
+                const cover = coverScaleForImage(w, h, CROP_CIRCLE_PX);
+                const initial = cover * CROP_INITIAL_ZOOM;
                 setNatural({ w, h });
-                const contained = containSize(w, h, CIRCLE);
-                const cover = Math.max(CIRCLE / contained.baseWidth, CIRCLE / contained.baseHeight);
-                setScale(Math.max(MIN_SCALE, cover));
+                setCoverScale(cover);
+                setScale(Math.min(cover * CROP_MAX_ZOOM_FACTOR, initial));
                 setOffset({ x: 0, y: 0 });
               }}
             />

@@ -10,33 +10,29 @@ describe('rank frame sheen contract', () => {
   const tsx = readFileSync(join(dir, 'RankFrame.tsx'), 'utf8');
   const cssProps = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  it('mounts a masked sheen host with an animated beam child', () => {
+  it('mounts a frame-PNG sheen duplicate (no beam fill that can leak)', () => {
     expect(tsx).toContain('rank-frame-sheen');
-    expect(tsx).toContain('rank-frame-sheen-beam');
+    expect(tsx).toContain('rank-frame-sheen-asset');
     expect(tsx).toContain('rank-frame-layer');
-    expect(tsx).toMatch(/maskImage:\s*`url\(\$\{frameSrc\}\)`/);
-    expect(tsx).toMatch(/WebkitMaskImage:\s*`url\(\$\{frameSrc\}\)`/);
+    expect(tsx).not.toContain('rank-frame-sheen-beam');
+    expect(tsx).not.toMatch(/maskImage|WebkitMaskImage/);
     expect(cssProps).not.toMatch(/::before|::after/);
   });
 
-  it('masks the static host; only the beam transforms (no card leak)', () => {
-    expect(cssProps).toMatch(/mask-size:\s*contain/);
-    expect(cssProps).toMatch(/mask-mode:\s*alpha/);
-    expect(cssProps).toMatch(/-webkit-mask-size:\s*contain/);
+  it('paints only via frame asset opacity — no mask/blend/gradient beam', () => {
+    expect(cssProps).not.toMatch(
+      /mask-image|mask-size|mask-mode|-webkit-mask|mix-blend-mode|background-blend-mode|backdrop-filter|linear-gradient/i,
+    );
+    expect(cssProps).toMatch(/\.rank-frame-sheen-asset/);
     expect(cssProps).toMatch(/overflow:\s*hidden/);
-    expect(cssProps).toMatch(/isolation:\s*isolate/);
-    expect(cssProps).not.toMatch(/mix-blend-mode|background-blend-mode|backdrop-filter/i);
-    // Beam is the only animated transforming layer
-    expect(cssProps).toMatch(/\.rank-frame-sheen-beam[\s\S]*will-change:\s*transform,\s*opacity/);
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
 
-  it('matches design-sheet timing (6.5s, 45° sweep, pause, reset)', () => {
-    expect(css).toMatch(/animation:\s*rank-frame-sheen\s+6\.5s\s+linear\s+infinite/);
-    expect(css).toMatch(/rotate\(45deg\)/);
-    expect(css).toMatch(/30\.8%/);
-    expect(css).toMatch(/53\.8%/);
-    expect(css).toMatch(/76\.9%/);
+  it('uses a soft polish pulse with a long rest (not a scanner)', () => {
+    expect(css).toMatch(/animation:\s*rank-frame-sheen\s+7s/);
+    expect(css).toMatch(/68%/);
+    expect(css).toMatch(/82%/);
+    expect(css).toMatch(/infinite/);
   });
 
   it('keeps layer order avatar under frame under sheen', () => {

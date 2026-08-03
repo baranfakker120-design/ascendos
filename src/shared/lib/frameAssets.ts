@@ -127,12 +127,12 @@ export type FrameDisplaySize = 'sm' | 'md' | 'lg';
 
 /**
  * Anzeigegröße des Gesamtrahmens in CSS-Pixeln.
- * lg ist Profil-Hero — groß genug für Premium-Darstellung auf Retina.
+ * lg/md ~10 % größer — Rahmen umschließt den Avatar hochwertig.
  */
 export const FRAME_DISPLAY_PX: Record<FrameDisplaySize, number> = {
-  sm: 96,
-  md: 140,
-  lg: 220,
+  sm: 104,
+  md: 154,
+  lg: 244,
 };
 
 /** Verfügbare Asset-Kantenlängen (generate-frame-assets.py). */
@@ -140,14 +140,16 @@ export const FRAME_ASSET_PX = [96, 128, 160, 320, 480] as const;
 export type FrameAssetPx = (typeof FRAME_ASSET_PX)[number];
 
 /**
- * Flächenanteil der inneren Kreisöffnung, den der Avatar ausfüllt (84–86 %).
- * Durchmesser = sqrt(Fläche) → schmaler Spalt, dominantes Profilbild.
- * Rahmengröße (FRAME_DISPLAY_PX) bleibt unverändert.
+ * Durchmesser-Anteil der inneren Kreisöffnung (85–90 %).
+ * Schmaler Spalt zum Metall — Gesicht/Motiv dominant.
  */
-export const AVATAR_AREA_FILL = 0.85;
+export const AVATAR_FILL_RATIO = 0.89;
 
-/** Durchmesser-Anteil abgeleitet aus AVATAR_AREA_FILL. */
-export const AVATAR_FILL_RATIO = Math.sqrt(AVATAR_AREA_FILL);
+/**
+ * Leichte Aufweitung der vermessenen Öffnung (PNG-Rand / Untermaß).
+ * Nur für Avatar-Layout — Frame-Asset und Box bleiben unverändert proportional.
+ */
+export const HOLE_DISPLAY_SCALE = 1.08;
 
 /** Geometrie zu einem Rahmen-Schlüssel, oder null wenn unbekannt. */
 export function getFrameGeometry(frameKey: string | null | undefined): FrameGeometry | null {
@@ -206,8 +208,7 @@ export function resolveFrameSrcSet(frameKey: string | null | undefined): string 
 
 /**
  * Avatar- und Öffnungsmaße in CSS-Pixeln für eine Anzeigegröße.
- * Avatar füllt 84–86 % der inneren Kreis*fläche* (Durchmesser = √Fläche).
- * Rahmen-Box bleibt FRAME_DISPLAY_PX — nur der Avatar wird größer.
+ * Avatar ≈ 85–90 % der inneren Kreisöffnung; Rahmen-Box +8–12 % vs. zuvor.
  */
 export function frameAvatarLayout(
   frameKey: string | null | undefined,
@@ -221,13 +222,13 @@ export function frameAvatarLayout(
   const box = FRAME_DISPLAY_PX[size];
   const geometry = getFrameGeometry(frameKey);
   if (!geometry) {
-    const holePx = box * 0.72;
+    const holePx = box * 0.72 * HOLE_DISPLAY_SCALE;
     const avatarPx = Math.round(holePx * AVATAR_FILL_RATIO);
     return { box, holePx, avatarPx, offsetY: 0 };
   }
   const layout = openingLayout(geometry);
-  const holePx = box * layout.holeRatio;
-  const avatarPx = Math.round(holePx * AVATAR_FILL_RATIO);
+  const holePx = box * layout.holeRatio * HOLE_DISPLAY_SCALE;
+  const avatarPx = Math.round(Math.min(holePx * AVATAR_FILL_RATIO, box * 0.7));
   const offsetY = Math.round(box * layout.offsetYRatio);
   return { box, holePx, avatarPx, offsetY };
 }

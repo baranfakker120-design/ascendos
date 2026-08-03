@@ -7,7 +7,7 @@ import { resolveFrameSrc } from '@shared/lib/frameAssets';
  */
 describe('RankChip frame path contract', () => {
   it('nutzt sm-Frame-Pfad für framed-Variante', () => {
-    expect(resolveFrameSrc('frame-01', 'sm')).toBe('/brand/frames/frame-01-96.webp');
+    expect(resolveFrameSrc('frame-01', 'sm')).toBe('/brand/frames/frame-01-128.webp');
   });
 
   it('liefert null ohne frameKey', () => {

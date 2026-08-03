@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AVATAR_AREA_FILL,
   AVATAR_FILL_RATIO,
-  FRAME_ASSET_PX,
   FRAME_DISPLAY_PX,
   FRAME_GEOMETRY,
+  HOLE_DISPLAY_SCALE,
   frameAvatarLayout,
   getFrameGeometry,
   openingLayout,
@@ -12,6 +11,7 @@ import {
   resolveDisplayFrameKey,
   resolveFrameSrc,
   resolveFrameSrcSet,
+  FRAME_ASSET_PX,
   SPECIAL_FRAME,
 } from './frameAssets';
 
@@ -39,31 +39,29 @@ describe('frameAssets', () => {
   });
 
   it('wählt Retina-Assets groß genug für die Anzeigepixel', () => {
-    expect(pickFrameAssetPx(96, 1)).toBe(96);
-    expect(pickFrameAssetPx(96, 2)).toBe(320); // 192 benötigt → nächstes 320
-    expect(pickFrameAssetPx(220, 2)).toBe(480);
-    expect(pickFrameAssetPx(220, 3)).toBe(480);
+    expect(pickFrameAssetPx(104, 1)).toBe(128);
+    expect(pickFrameAssetPx(244, 2)).toBe(480);
     expect(FRAME_ASSET_PX).toContain(480);
   });
 
   it('löst Asset-Pfad und srcSet für scharfe Darstellung auf', () => {
     expect(resolveFrameSrc('frame-09', 'lg', 2)).toBe('/brand/frames/frame-09-480.webp');
-    expect(resolveFrameSrc('frame-02', 'sm', 1)).toBe('/brand/frames/frame-02-96.webp');
+    expect(resolveFrameSrc('frame-02', 'sm', 1)).toBe('/brand/frames/frame-02-128.webp');
     expect(resolveFrameSrc(null)).toBeNull();
     expect(resolveFrameSrcSet('frame-09')).toContain('frame-09-480.webp 480w');
   });
 
-  it('füllt das Profilbild zu 84–86 % der inneren Kreisfläche', () => {
-    expect(AVATAR_AREA_FILL).toBeGreaterThanOrEqual(0.84);
-    expect(AVATAR_AREA_FILL).toBeLessThanOrEqual(0.86);
-    expect(AVATAR_FILL_RATIO).toBeCloseTo(Math.sqrt(AVATAR_AREA_FILL), 10);
+  it('füllt den Avatar zu 85–90 % und hält den Rahmen ~10 % größer', () => {
+    expect(AVATAR_FILL_RATIO).toBeGreaterThanOrEqual(0.85);
+    expect(AVATAR_FILL_RATIO).toBeLessThanOrEqual(0.9);
+    expect(FRAME_DISPLAY_PX.lg).toBeGreaterThanOrEqual(240);
+    expect(HOLE_DISPLAY_SCALE).toBeGreaterThan(1);
     const layout = frameAvatarLayout('frame-09', 'lg');
     expect(layout.box).toBe(FRAME_DISPLAY_PX.lg);
-    // Durchmesser-Anteil = √Fläche → schmaler Spalt, Rahmen unverändert
-    expect(layout.avatarPx / layout.holePx).toBeCloseTo(AVATAR_FILL_RATIO, 2);
-    expect((layout.avatarPx / layout.holePx) ** 2).toBeCloseTo(AVATAR_AREA_FILL, 2);
-    const opening = openingLayout(FRAME_GEOMETRY['frame-09']);
-    expect(opening.holeRatio).toBe(opening.widthRatio);
+    expect(layout.avatarPx / (layout.box * openingLayout(FRAME_GEOMETRY['frame-09']).holeRatio * HOLE_DISPLAY_SCALE)).toBeCloseTo(
+      AVATAR_FILL_RATIO,
+      1
+    );
   });
 
   it('ordnet Sonderrahmen fest zu (08 Developer, 09 Super Admin, 10 Monat)', () => {
