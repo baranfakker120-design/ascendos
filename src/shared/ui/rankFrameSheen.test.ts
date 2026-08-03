@@ -23,9 +23,9 @@ describe('rank frame sheen contract', () => {
     expect(css).toMatch(/rank-frame-metal-secondary/);
     expect(css).toMatch(/rank-frame-metal-breathe/);
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
-    // No long idle rest keyed as the old laser sweep
-    expect(css).not.toMatch(/62%/);
-    expect(css).not.toMatch(/83%/);
+    // No long idle rest keyed as the old laser sweep (opacity 0 plateaus)
+    expect(css).not.toMatch(/62%\s*\{[\s\S]*?opacity:\s*0/);
+    expect(css).not.toMatch(/83%\s*,/);
     expect(css).not.toMatch(/rank-frame-sheen\s+7s/);
     expect(cssProps).not.toMatch(/clip-path:\s*polygon/);
   });
