@@ -55,13 +55,13 @@ export function ApRewardSticker({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const particles = Array.from({ length: value >= 500 ? 12 : 8 }, () => ({
+    const particles = Array.from({ length: value >= 1000 ? 16 : value >= 500 ? 12 : 9 }, () => ({
       x: Math.random(),
       y: Math.random(),
-      r: 0.6 + Math.random() * 1.2,
-      vx: (Math.random() - 0.5) * 0.08,
-      vy: -0.04 - Math.random() * 0.08,
-      a: 0.35 + Math.random() * 0.45,
+      r: 0.7 + Math.random() * 1.4,
+      vx: (Math.random() - 0.5) * 0.1,
+      vy: -0.05 - Math.random() * 0.1,
+      a: 0.4 + Math.random() * 0.5,
       life: Math.random(),
     }));
 
