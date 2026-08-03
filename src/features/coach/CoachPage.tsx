@@ -115,7 +115,7 @@ export function CoachPage() {
           <CoachBubble>
             <CoachMarkdown
               content={
-                '**Womit kann ich dich weiterbringen?**\n\nIch arbeite mit deiner Pipeline und den Teamdokumenten — und ende immer mit einem konkreten nächsten Schritt.'
+                'Ich bin Ascent — dein Mentor für den Alltag im Business.\n\nFrag mich zu Einwänden, Nachrichten oder dem nächsten Schritt mit einem Kontakt. Ich ende immer mit etwas, das du **heute** umsetzen kannst.\n\nNächster Schritt: Sag mir, woran du gerade arbeitest.'
               }
             />
           </CoachBubble>

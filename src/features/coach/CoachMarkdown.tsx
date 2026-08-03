@@ -2,9 +2,12 @@ import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ReactNode } from 'react';
+import {
+  matchTeachingLine,
+  prepareCoachReading,
+  type TeachingMeta,
+} from './coachReading';
 import './coach-markdown.css';
-
-const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 
 function textFromChildren(children: ReactNode): string {
   if (children == null || typeof children === 'boolean') return '';
@@ -16,54 +19,20 @@ function textFromChildren(children: ReactNode): string {
   return '';
 }
 
-type CalloutKind = 'action' | 'tip' | 'important' | 'quote';
-
-function detectCallout(text: string): CalloutKind {
-  const t = text.trim();
-  if (/^(nächster|naechster)\s+schritt\b/i.test(t)) return 'action';
-  if (/^(tipp|hinweis|pro tip)\b/i.test(t)) return 'tip';
-  if (/^(wichtig|achtung|merke)\b/i.test(t)) return 'important';
-  return 'quote';
-}
-
-function calloutLabel(kind: CalloutKind): string | null {
-  if (kind === 'action') return 'Nächster Schritt';
-  if (kind === 'tip') return 'Tipp';
-  if (kind === 'important') return 'Wichtig';
-  return null;
-}
-
-/** Drop the leading label from blockquote body so the chrome label isn't doubled. */
-function CalloutBody({ kind, children }: { kind: CalloutKind; children: ReactNode }) {
-  const text = textFromChildren(children).trim();
-  const stripped = (() => {
-    if (kind === 'action') {
-      return text.replace(/^(nächster|naechster)\s+schritt\s*[:—–-]?\s*/i, '').trim();
-    }
-    if (kind === 'tip') {
-      return text.replace(/^(tipp|hinweis|pro tip)\s*[:—–-]?\s*/i, '').trim();
-    }
-    if (kind === 'important') {
-      return text.replace(/^(wichtig|achtung|merke)\s*[:—–-]?\s*/i, '').trim();
-    }
-    return text;
-  })();
-
-  // If stripping only removed the label, render plain text to avoid duplicate chrome.
-  if (stripped && stripped !== text) {
-    return <p>{stripped}</p>;
-  }
-  return <>{children}</>;
-}
-
-function Callout({ kind, children }: { kind: CalloutKind; children: ReactNode }) {
-  const label = calloutLabel(kind);
+function TeachingCard({ meta, children }: { meta: TeachingMeta; children: ReactNode }) {
   return (
-    <aside className={`coach-md__callout coach-md__callout--${kind}`} role="note">
-      {label ? <span className="coach-md__callout-label">{label}</span> : null}
-      <div className="coach-md__callout-body">
-        <CalloutBody kind={kind}>{children}</CalloutBody>
-      </div>
+    <aside
+      className={`coach-md__card coach-md__card--${meta.kind}`}
+      role="note"
+      aria-label={meta.label}
+    >
+      <header className="coach-md__card-head">
+        <span className="coach-md__card-mark" aria-hidden>
+          {meta.mark}
+        </span>
+        <span className="coach-md__card-label">{meta.label}</span>
+      </header>
+      <div className="coach-md__card-body">{children}</div>
     </aside>
   );
 }
@@ -85,7 +54,7 @@ const components: Components = {
     return <h3 className="coach-md__h coach-md__h--sub">{children}</h3>;
   },
   strong({ children }) {
-    return <strong className="coach-md__strong">{children}</strong>;
+    return <strong className="coach-md__mark">{children}</strong>;
   },
   em({ children }) {
     return <em className="coach-md__em">{children}</em>;
@@ -101,9 +70,13 @@ const components: Components = {
   },
   blockquote({ children }) {
     const text = textFromChildren(children);
-    const kind = detectCallout(text);
-    if (kind !== 'quote') {
-      return <Callout kind={kind}>{children}</Callout>;
+    const hit = matchTeachingLine(text);
+    if (hit) {
+      return (
+        <TeachingCard meta={hit.meta}>
+          <p>{hit.body || text}</p>
+        </TeachingCard>
+      );
     }
     return <blockquote className="coach-md__quote">{children}</blockquote>;
   },
@@ -130,36 +103,19 @@ const components: Components = {
   },
 };
 
-/**
- * Autolink plain URLs that models emit without markdown link syntax.
- */
-function autolinkPlainUrls(source: string): string {
-  return source.replace(URL_PATTERN, (url, _g, offset, full) => {
-    const before = full.slice(Math.max(0, offset - 2), offset);
-    if (before.endsWith('](') || before.endsWith('(')) return url;
-    return `<${url}>`;
-  });
-}
-
-/**
- * Promote callout lines into blockquotes so they render as premium cards.
- * Works for both fresh Markdown and older plain-text coach replies.
- */
-export function promoteCalloutLines(source: string): string {
-  return source.replace(
-    /^(?:[-*]\s+)?(?:\*\*)?(Nächster Schritt|Naechster Schritt|Tipp|Hinweis|Wichtig|Achtung)(?:\*\*)?\s*:\s*(?:\*\*)?\s*(.+?)(?:\*\*)?\s*$/gim,
-    (_m, label: string, rest: string) => `> **${label}:** ${rest.trim()}`,
-  );
-}
-
-export function prepareCoachMarkdown(content: string): string {
-  return autolinkPlainUrls(promoteCalloutLines(content.trim()));
-}
+export {
+  prepareCoachReading,
+  promoteCalloutLines,
+  prepareCoachMarkdown,
+  promoteTeachingLines,
+  splitLongParagraph,
+  matchTeachingLine,
+} from './coachReading';
 
 export function CoachMarkdown({ content }: { content: string }) {
-  const source = prepareCoachMarkdown(content);
+  const source = prepareCoachReading(content);
   return (
-    <div className="coach-md">
+    <div className="coach-md coach-md--reveal">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {source}
       </ReactMarkdown>
