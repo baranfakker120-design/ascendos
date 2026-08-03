@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { triggerNavHaptic } from '@shared/lib/haptics';
+import { Button } from '@shared/ui/Button';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
 import { MoreIcon, ProfileIcon, SettingsIcon } from './NavIcons';
 
@@ -116,17 +117,18 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
       ) : null}
 
       <LiquidChampagne className="w-full justify-center">
-        <button
+        <Button
           type="button"
           id={labelId}
+          variant="ghost"
+          fullWidth
           aria-label="Profil"
           aria-expanded={expanded}
           aria-haspopup="menu"
           onClick={onProfileTap}
           className={[
-            'flex min-h-[44px] w-full flex-col items-center justify-end gap-1 px-1 py-1 outline-none',
-            'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-            active || expanded ? 'text-accent-deep' : 'text-muted',
+            '!h-auto !flex-col !items-center !justify-end !gap-1 !rounded-xl !px-1 !py-1 !shadow-none',
+            active || expanded ? '!text-accent-deep' : '!text-muted',
           ].join(' ')}
         >
           <span
@@ -149,7 +151,7 @@ export function ProfileStack({ burst, burstKey, onBurst }: ProfileStackProps) {
           >
             Profil
           </span>
-        </button>
+        </Button>
       </LiquidChampagne>
     </div>
   );
@@ -170,14 +172,16 @@ function StackOrb({
 }) {
   return (
     <LiquidChampagne>
-      <button
+      <Button
         type="button"
         role="menuitem"
+        variant="secondary"
+        size="icon"
+        fullWidth={false}
         aria-label={label}
         onClick={onClick}
         className={[
-          'stack-orb group flex flex-row-reverse items-center gap-2 outline-none',
-          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+          'stack-orb group !h-auto !w-auto !flex-row-reverse !items-center !gap-2 !rounded-none !border-0 !bg-transparent !p-0 !shadow-none',
           className,
         ].join(' ')}
       >
@@ -199,7 +203,7 @@ function StackOrb({
         >
           {label}
         </span>
-      </button>
+      </Button>
     </LiquidChampagne>
   );
 }

@@ -2,21 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { phaseLabel } from '@shared/lib/pipeline';
 import { Alert } from '@shared/ui/Alert';
+import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import { Input } from '@shared/ui/Input';
 import { CoachBubble, UserBubble } from './CoachBubbles';
+import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
 import './coach-chat.css';
 
-/** Kontext-Chips (Phase 3): zeigen, was der Coach kann — statt leerem Feld. */
 const CHIPS = [
   { label: '🛡️ Einwand behandeln', text: 'Hilf mir, diesen Einwand zu behandeln: ' },
   { label: '✍️ Nachricht formulieren', text: 'Formuliere mir eine Nachricht für diese Situation: ' },
   { label: '🎯 Gespräch vorbereiten', text: 'Bereite mich auf das nächste Gespräch vor.' },
 ];
 
-/**
- * Erkennt bare URLs in einer Coach-Antwort und macht sie anklickbar.
- */
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 
 function linkifyText(text: string): Array<string | JSX.Element> {
@@ -78,8 +77,8 @@ export function CoachPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="space-y-3 pb-3">
+    <div className="flex min-h-0 flex-col gap-3">
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
           <img
             src="/brand/ascendos-symbol-mono-v2.png"
@@ -89,11 +88,11 @@ export function CoachPage() {
           />
           <div>
             <p className="text-lg font-bold leading-tight">Ascent</p>
-            <p className="text-xs text-muted">Dein persönlicher Coach</p>
+            <p className="text-xs text-muted">Dein persönlicher Mentor</p>
           </div>
         </div>
         {contact ? (
-          <Card className="py-3">
+          <Card padding="sm">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               Ascent kennt bereits
             </p>
@@ -111,14 +110,14 @@ export function CoachPage() {
         ) : null}
       </div>
 
-      <div className="flex-1 space-y-3.5 overflow-y-auto pb-3">
+      <div className="coach-thread">
         {!messages?.length && !send.isPending ? (
           <CoachBubble>
-            <p className="font-medium">Womit kann ich dich weiterbringen?</p>
-            <p className="mt-1 text-sm text-muted">
-              Ich arbeite mit deiner Pipeline und den Teamdokumenten — und ende immer mit einem
-              konkreten nächsten Schritt.
-            </p>
+            <CoachMarkdown
+              content={
+                'Ich bin Ascent — dein Mentor für den Alltag im Business.\n\nKein Theorie-Marathon. Eine klare Einsicht, warum sie zählt, und was du als Nächstes tust.\n\nNächster Schritt: Sag mir, woran du gerade arbeitest — Einwand, Nachricht oder nächster Move mit einem Kontakt.'
+              }
+            />
           </CoachBubble>
         ) : null}
 
@@ -126,7 +125,9 @@ export function CoachPage() {
           m.role === 'user' ? (
             <UserBubble key={m.id}>{linkifyText(m.content)}</UserBubble>
           ) : (
-            <CoachBubble key={m.id}>{linkifyText(m.content)}</CoachBubble>
+            <CoachBubble key={m.id}>
+              <CoachMarkdown content={m.content} />
+            </CoachBubble>
           ),
         )}
 
@@ -138,39 +139,49 @@ export function CoachPage() {
 
       <div className="space-y-2 border-t border-line pt-3">
         {!messages?.length ? (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {CHIPS.map((chip) => (
-              <button
+              <Button
                 key={chip.label}
+                type="button"
+                variant="secondary"
+                size="chip"
+                fullWidth={false}
                 onClick={() => setInput(chip.text)}
-                className="whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-transform active:scale-[0.97]"
               >
                 {chip.label}
-              </button>
+              </Button>
             ))}
           </div>
         ) : null}
         <form
-          className="flex gap-2"
+          className="flex items-start gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             void submit(input);
           }}
         >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={contact ? `Frage zu ${contact.name.split(' ')[0]} …` : 'Nachricht an Ascent …'}
-            className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-base placeholder:text-muted focus:border-primary focus:outline-none"
-          />
-          <button
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Nachricht an Ascent"
+              hideLabel
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={
+                contact ? `Frage zu ${contact.name.split(' ')[0]} …` : 'Nachricht an Ascent …'
+              }
+            />
+          </div>
+          <Button
             type="submit"
+            size="md"
+            fullWidth={false}
             disabled={send.isPending || !input.trim()}
             aria-label="Senden"
-            className="h-12 shrink-0 rounded-xl bg-primary px-4 font-semibold text-primary-ink transition-transform enabled:active:scale-[0.97] disabled:opacity-50"
+            className="!px-4"
           >
             →
-          </button>
+          </Button>
         </form>
       </div>
     </div>

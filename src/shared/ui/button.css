@@ -1,18 +1,13 @@
-/* Material button — hover / press / release / ripple (GPU only) */
+/* Material button — one language for the whole app */
 
 .ui-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 3rem;
-  padding: 0 1rem;
   overflow: hidden;
   isolation: isolate;
-  border-radius: 0.75rem;
   border: 1px solid transparent;
-  font-size: 1rem;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
@@ -27,6 +22,52 @@
     color 200ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, box-shadow;
+}
+
+.ui-btn--block {
+  width: 100%;
+}
+
+.ui-btn--inline {
+  width: auto;
+}
+
+.ui-btn--md {
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+}
+
+.ui-btn--lg {
+  height: 3.25rem;
+  padding: 0 1.15rem;
+  border-radius: 0.85rem;
+  font-size: 1.05rem;
+}
+
+.ui-btn--sm {
+  height: 2.5rem;
+  padding: 0 0.85rem;
+  border-radius: 0.65rem;
+  font-size: 0.875rem;
+}
+
+.ui-btn--chip {
+  height: auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ui-btn--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1rem;
 }
 
 .ui-btn:focus-visible {
@@ -48,6 +89,9 @@
 .ui-btn__label {
   position: relative;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .ui-btn__ripple {
@@ -78,9 +122,6 @@
 
 .ui-btn--primary:active:not(:disabled) {
   transform: translate3d(0, 1.5px, 0) scale(0.97);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.06) inset,
-    0 2px 6px rgb(17 18 20 / 0.22);
 }
 
 .ui-btn--secondary {
@@ -95,16 +136,10 @@
 .ui-btn--secondary:hover:not(:disabled) {
   transform: translate3d(0, -1px, 0) scale(1.01);
   background: rgb(var(--color-bg));
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.9) inset,
-    0 8px 18px rgb(17 18 20 / 0.07);
 }
 
 .ui-btn--secondary:active:not(:disabled) {
   transform: translate3d(0, 1px, 0) scale(0.975);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.6) inset,
-    0 2px 6px rgb(17 18 20 / 0.05);
 }
 
 .ui-btn--secondary .ui-btn__ripple {
@@ -120,6 +155,7 @@
 .ui-btn--ghost:hover:not(:disabled) {
   color: rgb(var(--color-ink));
   transform: translate3d(0, -1px, 0);
+  background: rgb(17 18 20 / 0.04);
 }
 
 .ui-btn--ghost:active:not(:disabled) {
@@ -128,6 +164,20 @@
 
 .ui-btn--ghost .ui-btn__ripple {
   background: radial-gradient(circle, rgb(17 18 20 / 0.08) 0%, rgb(17 18 20 / 0) 70%);
+}
+
+.ui-btn--danger {
+  background: linear-gradient(180deg, #d45a4c 0%, #c0392b 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgb(192 57 43 / 0.28);
+}
+
+.ui-btn--danger:hover:not(:disabled) {
+  transform: translate3d(0, -1px, 0) scale(1.01);
+}
+
+.ui-btn--chip.ui-btn--primary {
+  box-shadow: 0 4px 12px rgb(17 18 20 / 0.18);
 }
 
 @keyframes ui-btn-ripple {
@@ -160,7 +210,8 @@
 @media (hover: none) {
   .ui-btn--primary:hover:not(:disabled),
   .ui-btn--secondary:hover:not(:disabled),
-  .ui-btn--ghost:hover:not(:disabled) {
+  .ui-btn--ghost:hover:not(:disabled),
+  .ui-btn--danger:hover:not(:disabled) {
     transform: none;
   }
 }

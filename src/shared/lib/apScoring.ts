@@ -3,19 +3,36 @@
  *
  * Bewertet Aktionen über fünf Dimensionen und mappt auf Reward-Tiers.
  * Eine Wahrheit für UI-Badges und (via Migration) DB-Vergabe.
+ *
+ * Dimension ↔ Game-Design-Sprache:
+ *   difficulty      → Schwierigkeit / Risiko
+ *   duration        → geschätzter Zeitaufwand
+ *   businessImpact  → Business-Hebel
+ *   priority        → Dringlichkeit / Urgency
+ *   rarity          → langfristiger Wert / Meilenstein-Charakter
  */
 
 export type ApScoreDimensions = {
-  /** 0–1: wie schwer / riskant */
+  /** 0–1: Schwierigkeit / Risiko */
   difficulty: number;
-  /** 0–1: Zeitaufwand */
+  /** 0–1: geschätzter Zeitaufwand */
   duration: number;
   /** 0–1: Business-Hebel */
   businessImpact: number;
-  /** 0–1: Dringlichkeit / Fokus */
+  /** 0–1: Dringlichkeit / Urgency */
   priority: number;
-  /** 0–1: Seltenheit / Meilenstein-Charakter */
+  /** 0–1: langfristiger Wert / Meilenstein */
   rarity: number;
+};
+
+/** Kontext-Modulatoren für Tagesmissionen (nie hardcodierte AP-Zahlen). */
+export type DailyMissionContext = {
+  /** Prioritäts-Score der Regel-Engine (höher = dringender heute) */
+  engineScore?: number;
+  /** Bereits heute erledigte Missionen (Intra-Day-Streak) */
+  missionsDoneToday?: number;
+  /** Tage in Folge mit Aktivität (Inter-Day-Streak) */
+  dayStreak?: number;
 };
 
 export type ApRewardTier = 10 | 25 | 50 | 75 | 100 | 150 | 250 | 500;
@@ -253,7 +270,99 @@ export function scorePipelineEvent(eventType: string): ApRewardTier {
 }
 
 export function scoreMission(missionType: string): ApRewardTier {
-  return scoreAction(`mission:${missionType}`);
+  return scoreDailyMission(missionType);
+}
+
+/**
+ * Tagesmission: Basis-Profil × Urgency × Streak × Langfristwert.
+ * Keine hardcodierten AP-Zahlen — immer Dimensionen → snapToApTier.
+ */
+export function scoreDailyMission(
+  missionType: string,
+  ctx: DailyMissionContext = {},
+): ApRewardTier {
+  const base = PROFILE[`mission:${missionType}`] ?? {
+    difficulty: 0.35,
+    duration: 0.3,
+    businessImpact: 0.4,
+    priority: 0.5,
+    rarity: 0.25,
+  };
+  const dims: ApScoreDimensions = { ...base };
+
+  // Urgency aus Engine-Score (typisch ~40–100)
+  if (ctx.engineScore != null && ctx.engineScore > 0) {
+    const urgency = Math.min(1, Math.max(0, ctx.engineScore / 100));
+    dims.priority = clamp01(dims.priority * 0.45 + urgency * 0.55);
+  }
+
+  // Intra-Day-Streak: Momentum belohnt (langes Durchhalten)
+  if (ctx.missionsDoneToday != null && ctx.missionsDoneToday > 0) {
+    const streak01 = Math.min(1, ctx.missionsDoneToday / 7);
+    dims.rarity = clamp01(dims.rarity + streak01 * 0.18);
+    dims.difficulty = clamp01(dims.difficulty + streak01 * 0.06);
+  }
+
+  // Inter-Day-Streak: langfristiger Habit-Wert
+  if (ctx.dayStreak != null && ctx.dayStreak > 0) {
+    const day01 = Math.min(1, ctx.dayStreak / 14);
+    dims.businessImpact = clamp01(dims.businessImpact + day01 * 0.12);
+    dims.rarity = clamp01(dims.rarity + day01 * 0.1);
+  }
+
+  const raw = scoreDimensions(dims);
+  if (raw <= 0) return 10;
+  return snapToApTier(raw);
+}
+
+/**
+ * Journey-Schritt auf dem Heute-Tab: Typ × Tag × Tagesfortschritt.
+ */
+export function scoreJourneyStep(
+  contentType: 'info' | 'task' | 'tool' | string,
+  dayNumber: number,
+  stepsDoneToday = 0,
+): ApRewardTier {
+  const byType: Record<string, ApScoreDimensions> = {
+    info: {
+      difficulty: 0.15,
+      duration: 0.2,
+      businessImpact: 0.28,
+      priority: 0.35,
+      rarity: 0.22,
+    },
+    task: {
+      difficulty: 0.35,
+      duration: 0.4,
+      businessImpact: 0.42,
+      priority: 0.48,
+      rarity: 0.36,
+    },
+    tool: {
+      difficulty: 0.3,
+      duration: 0.45,
+      businessImpact: 0.44,
+      priority: 0.42,
+      rarity: 0.4,
+    },
+  };
+  const dims: ApScoreDimensions = { ...(byType[contentType] ?? byType.task) };
+
+  // Spätere Reisetage = mehr Investition / langfristiger Wert
+  const day01 = Math.min(1, Math.max(0, (dayNumber - 1) / 6));
+  dims.rarity = clamp01(dims.rarity + day01 * 0.22);
+  dims.businessImpact = clamp01(dims.businessImpact + day01 * 0.12);
+
+  if (stepsDoneToday > 0) {
+    const momentum = Math.min(1, stepsDoneToday / 4);
+    dims.priority = clamp01(dims.priority + momentum * 0.12);
+  }
+
+  return snapToApTier(scoreDimensions(dims));
+}
+
+function clamp01(n: number): number {
+  return Math.min(1, Math.max(0, n));
 }
 
 export function scoreUsageEvent(eventType: string, meta?: { mission_type?: string }): ApRewardTier {

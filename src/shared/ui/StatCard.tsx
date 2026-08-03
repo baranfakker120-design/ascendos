@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Card } from './Card';
 
 export interface StatCardProps {
   /** Kurzlabel über dem Wert (Versalien-Stil über CSS). */
@@ -24,7 +25,7 @@ export function StatCard({ label, value, hint, icon, className = '' }: StatCardP
     (typeof value === 'number' && !Number.isFinite(value));
 
   return (
-    <div className={`rounded-2xl border border-line bg-surface p-4 sm:p-5 ${className}`}>
+    <Card className={className}>
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
         {icon != null ? <div className="shrink-0 text-muted">{icon}</div> : null}
@@ -33,7 +34,7 @@ export function StatCard({ label, value, hint, icon, className = '' }: StatCardP
         {empty ? <span className="text-muted">—</span> : value}
       </p>
       {hint ? <p className="mt-2 text-xs text-muted">{hint}</p> : null}
-    </div>
+    </Card>
   );
 }
 

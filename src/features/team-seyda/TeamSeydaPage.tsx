@@ -1,3 +1,5 @@
+import { Card } from '@shared/ui/Card';
+
 /**
  * Team Seyda Guide — opened inside the PWA shell (iframe), never the
  * system browser. Bottom nav stays available around this view.
@@ -9,7 +11,7 @@ export function TeamSeydaPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Team Seyda</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Guide</h1>
       </header>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_24px_rgb(17_18_20/0.04)]">
+      <Card padding="none" className="min-h-0 flex-1 overflow-hidden">
         <iframe
           title="Team Seyda Guide"
           src="https://teamseydaguide.netlify.app"
@@ -17,7 +19,7 @@ export function TeamSeydaPage() {
           referrerPolicy="no-referrer-when-downgrade"
           allow="fullscreen"
         />
-      </div>
+      </Card>
     </div>
   );
 }

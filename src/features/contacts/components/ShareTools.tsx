@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { scorePipelineEvent } from '@shared/lib/apScoring';
 import type { ExternalTool } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
+import { Button } from '@shared/ui/Button';
 
 interface Props {
   tools: ExternalTool[];
@@ -40,15 +41,16 @@ export function ShareTools({ tools, contactName, onShared }: Props) {
   return (
     <div className="space-y-2">
       {tools.map((tool) => (
-        <button
+        <Button
           key={tool.id}
+          variant="secondary"
           onClick={() => void share(tool)}
-          className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-left transition-transform hover:bg-bg active:scale-[0.99]"
+          className="h-auto min-h-12 justify-between py-3 text-left [&_.ui-btn__label]:w-full [&_.ui-btn__label]:justify-between"
         >
           <span className="min-w-0">
             <span className="block text-sm font-medium">{tool.name} teilen</span>
             {tool.description ? (
-              <span className="block text-xs text-muted">{tool.description}</span>
+              <span className="block text-xs font-normal text-muted">{tool.description}</span>
             ) : null}
           </span>
           <span className="flex shrink-0 items-center gap-2">
@@ -61,7 +63,7 @@ export function ShareTools({ tools, contactName, onShared }: Props) {
               {copiedKey === tool.key ? '✓' : '↗'}
             </span>
           </span>
-        </button>
+        </Button>
       ))}
     </div>
   );

@@ -3,18 +3,37 @@ import { useId } from 'react';
 import './input.css';
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  /** Optional — omit for search / composer fields. */
+  label?: string;
   hint?: string;
+  /** Visually hide label but keep it for a11y when provided. */
+  hideLabel?: boolean;
 }
 
-export function Input({ label, hint, id, className = '', ...rest }: Props) {
+export function Input({
+  label,
+  hint,
+  hideLabel = false,
+  id,
+  className = '',
+  ...rest
+}: Props) {
   const autoId = useId();
   const inputId = id ?? autoId;
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={inputId} className="block text-sm font-medium text-ink">
-        {label}
-      </label>
+    <div className={label ? 'space-y-1.5' : undefined}>
+      {label ? (
+        <label
+          htmlFor={inputId}
+          className={
+            hideLabel
+              ? 'sr-only'
+              : 'block text-sm font-medium text-ink'
+          }
+        >
+          {label}
+        </label>
+      ) : null}
       <input id={inputId} className={`ui-input ${className}`} {...rest} />
       {hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>

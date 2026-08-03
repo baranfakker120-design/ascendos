@@ -4,10 +4,11 @@ import { activityLabel, daysSince } from '@shared/lib/pipeline';
 import type { ExternalTool, PipelineEventType } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
+import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
+import { PhaseChip } from '@shared/ui/PhaseChip';
 import { EventPicker } from './components/EventPicker';
 import { EventTimeline } from './components/EventTimeline';
-import { PhaseBadge } from './components/PhaseBadge';
 import { ShareTools } from './components/ShareTools';
 import {
   useContact,
@@ -65,7 +66,7 @@ export function ContactDetailPage() {
         <div className="mt-2 flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{contact.name}</h1>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
-            <PhaseBadge phase={contact.phase} />
+            <PhaseChip phase={contact.phase} />
             <ApRewardSticker ap={scoreLeadPhase(contact.phase)} size="sm" />
           </div>
         </div>
@@ -102,18 +103,19 @@ export function ContactDetailPage() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Aktionen</h2>
-        <Link
+        <ButtonLink
           to={`/coach?kontakt=${contact.id}`}
-          className="flex w-full items-center justify-between rounded-xl border border-primary/40 bg-surface px-4 py-3 transition-colors hover:bg-bg"
+          variant="secondary"
+          className="h-auto min-h-12 justify-between py-3 text-left [&_.ui-btn__label]:w-full [&_.ui-btn__label]:justify-between"
         >
-          <span>
+          <span className="min-w-0">
             <span className="block text-sm font-medium">Ascent zu {contact.name.split(' ')[0]} fragen</span>
-            <span className="block text-xs text-muted">
+            <span className="block text-xs font-normal text-muted">
               Kennt Phase, Verlauf und nächsten Schritt bereits
             </span>
           </span>
           <span className="text-xs font-medium text-primary">→</span>
-        </Link>
+        </ButtonLink>
         <ShareTools tools={tools ?? []} contactName={contact.name} onShared={onToolShared} />
         <EventPicker onSelect={(type) => logEvent(type)} busy={addEvent.isPending} />
       </section>
@@ -133,10 +135,10 @@ export function ContactDetailPage() {
       </section>
 
       <section className="space-y-2 border-t border-line pt-4">
-        <Link to={`/kontakte/${contact.id}/bearbeiten`}>
-          <Button variant="secondary">Kontakt bearbeiten</Button>
-        </Link>
-        <Button variant="ghost" onClick={() => void remove()} className="text-red-600">
+        <ButtonLink to={`/kontakte/${contact.id}/bearbeiten`} variant="secondary">
+          Kontakt bearbeiten
+        </ButtonLink>
+        <Button variant="danger" onClick={() => void remove()}>
           Kontakt löschen
         </Button>
       </section>

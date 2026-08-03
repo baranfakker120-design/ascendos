@@ -1,10 +1,13 @@
-import { Link } from 'react-router-dom';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
+import { scoreJourneyStep } from '@shared/lib/apScoring';
 import type { ExternalTool, JourneyStep, JourneyStepContent } from '@shared/types/domain';
-import { Button } from '@shared/ui/Button';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
+import { Button, buttonClassName } from '@shared/ui/Button';
+import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
+import { EnergyCore } from '@shared/ui/EnergyCore';
 import { useCompleteStep, useJourneyState } from './journeyApi';
 
 /**
@@ -44,12 +47,14 @@ export function JourneyToday() {
           {profile ? `${profile.first_name}, ` : ''}deine erste Woche
         </h1>
         <p className="mt-1 text-sm text-muted">{state.journey.title}</p>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-          <div
-            className="h-full rounded-full bg-accent transition-all"
-            style={{ width: `${Math.round((totalDone / Math.max(state.steps.length, 1)) * 100)}%` }}
-          />
-        </div>
+        <EnergyCore
+          ap={totalDone}
+          currentThreshold={0}
+          nextThreshold={state.steps.length}
+          showLabel={false}
+          size="md"
+          className="mt-3"
+        />
       </div>
 
       <ol className="space-y-3">
@@ -58,6 +63,7 @@ export function JourneyToday() {
             key={step.id}
             step={step}
             done={state.completedStepIds.has(step.id)}
+            doneToday={doneToday}
             tools={tools ?? []}
             busy={complete.isPending}
             onComplete={() => void complete.mutateAsync(step.id)}
@@ -82,23 +88,31 @@ export function JourneyToday() {
 function JourneyStepCard({
   step,
   done,
+  doneToday,
   tools,
   busy,
   onComplete,
 }: {
   step: JourneyStep;
   done: boolean;
+  doneToday: number;
   tools: ExternalTool[];
   busy: boolean;
   onComplete: () => void;
 }) {
   const content = (step.content ?? {}) as JourneyStepContent;
   const tool = content.tool_key ? tools.find((t) => t.key === content.tool_key) : null;
+  const ap = scoreJourneyStep(step.content_type, step.day_number, doneToday);
 
   return (
     <li>
       <Card className={done ? 'opacity-60' : ''}>
-        <p className={`font-semibold ${done ? 'line-through' : ''}`}>{step.title}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className={`min-w-0 flex-1 font-semibold ${done ? 'line-through' : ''}`}>
+            {step.title}
+          </p>
+          <ApRewardSticker ap={ap} size="sm" animate={!done} />
+        </div>
         {content.body ? <p className="mt-1 text-sm text-muted">{content.body}</p> : null}
 
         {!done ? (
@@ -108,18 +122,15 @@ function JourneyStepCard({
                 href={tool.url}
                 target="_blank"
                 rel="noreferrer"
-                className="block w-full rounded-xl border border-line bg-bg px-4 py-2.5 text-center text-sm font-medium text-primary"
+                className={buttonClassName({ variant: 'secondary' })}
               >
-                {tool.name} öffnen ↗
+                <span className="ui-btn__label">{tool.name} öffnen ↗</span>
               </a>
             ) : null}
             {content.link ? (
-              <Link
-                to={content.link}
-                className="block w-full rounded-xl border border-line bg-bg px-4 py-2.5 text-center text-sm font-medium text-primary"
-              >
+              <ButtonLink to={content.link} variant="secondary">
                 {content.cta ?? 'Öffnen'}
-              </Link>
+              </ButtonLink>
             ) : null}
             <Button onClick={onComplete} disabled={busy}>
               {step.content_type === 'info' ? 'Verstanden ✓' : 'Erledigt ✓'}

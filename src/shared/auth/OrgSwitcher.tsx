@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
+import { Select } from '@shared/ui/Select';
 import { useAuth } from './AuthProvider';
 
 /**
@@ -28,27 +29,21 @@ export function OrgSwitcher() {
   const labelFor = (orgId: string) => orgs?.find((o) => o.id === orgId)?.name ?? 'Organisation';
 
   return (
-    <label className="flex items-center gap-2 text-xs text-muted">
-      <span className="sr-only">Aktive Organisation</span>
-      <select
-        aria-label="Aktive Organisation"
-        value={membership?.org_id ?? ''}
-        onChange={(e) => {
-          if (e.target.value) setActiveOrganization(e.target.value);
-        }}
-        className={[
-          'h-11 max-w-[12rem] truncate rounded-full border border-line bg-surface px-3 text-xs font-medium text-ink',
-          'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-          needsOrgSelection ? 'border-accent-deep' : '',
-        ].join(' ')}
-      >
-        {needsOrgSelection ? <option value="">Organisation wählen…</option> : null}
-        {memberships.map((m) => (
-          <option key={m.id} value={m.org_id}>
-            {labelFor(m.org_id)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      label="Aktive Organisation"
+      aria-label="Aktive Organisation"
+      value={membership?.org_id ?? ''}
+      onChange={(e) => {
+        if (e.target.value) setActiveOrganization(e.target.value);
+      }}
+      className={needsOrgSelection ? 'border-accent-deep' : ''}
+    >
+      {needsOrgSelection ? <option value="">Organisation wählen…</option> : null}
+      {memberships.map((m) => (
+        <option key={m.id} value={m.org_id}>
+          {labelFor(m.org_id)}
+        </option>
+      ))}
+    </Select>
   );
 }

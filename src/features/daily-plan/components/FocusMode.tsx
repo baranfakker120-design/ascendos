@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { DailyPlanItem } from '@shared/types/domain';
-import { comboBonusAp, scoreMission } from '@shared/lib/apScoring';
+import { comboBonusAp, scoreDailyMission } from '@shared/lib/apScoring';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -23,7 +23,10 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
 
   if (!current) return null;
 
-  const missionAp = scoreMission(current.mission_type);
+  const missionAp = scoreDailyMission(current.mission_type, {
+    engineScore: current.score,
+    missionsDoneToday: progress.done,
+  });
   const combo = comboBonusAp(progress.done);
 
   return (
@@ -69,16 +72,16 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
               Warum klappt es heute nicht?
             </p>
             {['Nicht erreicht', 'Termin verschoben', 'Anderer Grund'].map((reason) => (
-              <button
+              <Button
                 key={reason}
+                variant="secondary"
                 onClick={() => {
                   onStatus(current.id, 'skipped', reason);
                   setSkipPickerFor(null);
                 }}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-sm font-medium transition-transform hover:bg-bg active:scale-[0.99]"
               >
                 {reason}
-              </button>
+              </Button>
             ))}
             <Button variant="ghost" onClick={() => setSkipPickerFor(null)}>
               Zurück
@@ -106,7 +109,7 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
           </h2>
           <ul className="space-y-1.5">
             {queue.map((item) => (
-              <QueueRow key={item.id} item={item} />
+              <QueueRow key={item.id} item={item} missionsDoneToday={progress.done} />
             ))}
           </ul>
         </section>
@@ -119,20 +122,25 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
           </h2>
           <ul className="space-y-1.5">
             {resolved.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm text-muted"
-              >
-                <span aria-hidden>{item.status === 'done' ? '✓' : '–'}</span>
-                <span className={`min-w-0 flex-1 truncate ${item.status === 'done' ? 'line-through' : ''}`}>
-                  {item.title}
-                </span>
-                {item.status === 'done' ? (
-                  <ApRewardSticker ap={scoreMission(item.mission_type)} size="sm" animate={false} />
-                ) : null}
-                {item.status_reason ? (
-                  <span className="shrink-0 text-xs">({item.status_reason})</span>
-                ) : null}
+              <li key={item.id}>
+                <Card padding="sm" className="flex items-center gap-2 text-sm text-muted">
+                  <span aria-hidden>{item.status === 'done' ? '✓' : '–'}</span>
+                  <span
+                    className={`min-w-0 flex-1 truncate ${item.status === 'done' ? 'line-through' : ''}`}
+                  >
+                    {item.title}
+                  </span>
+                  {item.status === 'done' ? (
+                    <ApRewardSticker
+                      ap={scoreDailyMission(item.mission_type, { engineScore: item.score })}
+                      size="sm"
+                      animate={false}
+                    />
+                  ) : null}
+                  {item.status_reason ? (
+                    <span className="shrink-0 text-xs">({item.status_reason})</span>
+                  ) : null}
+                </Card>
               </li>
             ))}
           </ul>
@@ -142,17 +150,29 @@ export function FocusMode({ ordered, progress, onStatus }: Props) {
   );
 }
 
-function QueueRow({ item }: { item: DailyPlanItem }) {
+function QueueRow({
+  item,
+  missionsDoneToday,
+}: {
+  item: DailyPlanItem;
+  missionsDoneToday: number;
+}) {
+  const ap = scoreDailyMission(item.mission_type, {
+    engineScore: item.score,
+    missionsDoneToday,
+  });
   return (
-    <li className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5">
-      <span aria-hidden className="text-base leading-none">
-        {MISSION_ICONS[item.mission_type]}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.title}</span>
-      <ApRewardSticker ap={scoreMission(item.mission_type)} size="sm" animate={false} />
-      {item.status === 'deferred' ? (
-        <span className="shrink-0 text-xs text-muted">verschoben</span>
-      ) : null}
+    <li>
+      <Card padding="sm" className="flex items-center gap-2.5">
+        <span aria-hidden className="text-base leading-none">
+          {MISSION_ICONS[item.mission_type]}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.title}</span>
+        <ApRewardSticker ap={ap} size="sm" animate={false} />
+        {item.status === 'deferred' ? (
+          <span className="shrink-0 text-xs text-muted">verschoben</span>
+        ) : null}
+      </Card>
     </li>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Input } from '@shared/ui/Input';
+import { TextArea } from '@shared/ui/TextArea';
 import { useContact, useContactMutations } from './contactsApi';
 
 /** Ein Formular für beide Fälle: /kontakte/neu und /kontakte/:id/bearbeiten */
@@ -91,22 +92,15 @@ export function ContactFormPage() {
           onChange={(e) => setNextStepDue(e.target.value)}
           hint="Terminierte Schritte erscheinen am Fälligkeitstag als Top-Mission in deinem Tagesplan."
         />
-        <div className="space-y-1.5">
-          <label htmlFor="notes" className="block text-sm font-medium text-ink">
-            Notizen (optional)
-          </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            placeholder="Kontext fürs nächste Gespräch"
-          />
-          <p className="text-xs text-muted">
-            Bitte nur geschäftlich Relevantes notieren — keine sensiblen persönlichen Angaben.
-          </p>
-        </div>
+        <TextArea
+          label="Notizen (optional)"
+          id="notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder="Kontext fürs nächste Gespräch"
+          hint="Bitte nur geschäftlich Relevantes notieren — keine sensiblen persönlichen Angaben."
+        />
         {error ? <Alert tone="error">{error}</Alert> : null}
         <Button type="submit" disabled={busy || !name.trim()}>
           {busy ? 'Wird gespeichert …' : isEdit ? 'Änderungen speichern' : 'Kontakt anlegen'}

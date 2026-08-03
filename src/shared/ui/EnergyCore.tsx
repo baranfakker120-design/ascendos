@@ -100,7 +100,7 @@ export function EnergyCore({
     let raf = 0;
     let running = true;
     let last = performance.now();
-    let start = last;
+    const start = last;
     let cssW = 0;
     let cssH = 0;
 

@@ -208,19 +208,28 @@ export function AvatarCropModal({
   return (
     <div className="avatar-crop-root" role="dialog" aria-modal="true" aria-label="Profilbild zuschneiden">
       <header className="avatar-crop-header">
-        <button type="button" className="avatar-crop-icon-btn" onClick={onCancel} aria-label="Abbrechen">
-          ✕
-        </button>
-        <h2 className="avatar-crop-title">Profilbild</h2>
-        <button
+        <Button
           type="button"
-          className="avatar-crop-check"
+          variant="ghost"
+          size="icon"
+          fullWidth={false}
+          onClick={onCancel}
+          aria-label="Abbrechen"
+        >
+          ✕
+        </Button>
+        <h2 className="avatar-crop-title">Profilbild</h2>
+        <Button
+          type="button"
+          variant="primary"
+          size="icon"
+          fullWidth={false}
           onClick={() => void confirm()}
           disabled={busy || !natural}
           aria-label="Übernehmen"
         >
           ✓
-        </button>
+        </Button>
       </header>
 
       <div
