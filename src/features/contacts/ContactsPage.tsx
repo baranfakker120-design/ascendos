@@ -4,16 +4,13 @@ import { scoreLeadPhase } from '@shared/lib/apScoring';
 import { PHASE_ORDER, activityLabel, daysSince, phaseLabel } from '@shared/lib/pipeline';
 import type { ContactPhase } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
+import { Button } from '@shared/ui/Button';
+import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
+import { Input } from '@shared/ui/Input';
+import { PhaseChip } from '@shared/ui/PhaseChip';
 import { CONTACTS_PAGE_SIZE, useContacts, type ContactWithPhase } from './contactsApi';
-import { PhaseBadge } from './components/PhaseBadge';
 
-/**
- * Pipeline-first statt Alphabet-first (Phase 3): Filter nach Phase,
- * pro Kontakt Phase, Aktivität und nächster Schritt auf einen Blick.
- * Überfällige Kontakte (7+ Tage ohne Aktivität, noch kein Partner)
- * werden markiert — die Regel-Engine von Sprint 3 baut hierauf auf.
- */
 export function ContactsPage() {
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(CONTACTS_PAGE_SIZE);
@@ -35,17 +32,16 @@ export function ContactsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Kontakte</h1>
-        <Link
-          to="/kontakte/neu"
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-ink"
-        >
+        <ButtonLink to="/kontakte/neu" variant="primary" size="sm" fullWidth={false}>
           + Neu
-        </Link>
+        </ButtonLink>
       </div>
 
-      <input
+      <Input
+        label="Kontakt suchen"
+        hideLabel
         type="search"
         value={search}
         onChange={(e) => {
@@ -53,7 +49,6 @@ export function ContactsPage() {
           setLimit(CONTACTS_PAGE_SIZE);
         }}
         placeholder="Kontakt suchen …"
-        className="h-11 w-full rounded-xl border border-line bg-surface px-4 text-base placeholder:text-muted focus:border-primary focus:outline-none"
       />
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -96,12 +91,12 @@ export function ContactsPage() {
             ))}
           </ul>
           {data?.hasMore && filter === 'alle' ? (
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setLimit((l) => l + CONTACTS_PAGE_SIZE)}
-              className="w-full rounded-xl border border-line bg-surface py-2.5 text-sm font-medium text-muted"
             >
               Weitere Kontakte laden
-            </button>
+            </Button>
           ) : null}
         </>
       )}
@@ -119,14 +114,15 @@ function FilterChip({
   children: ReactNode;
 }) {
   return (
-    <button
+    <Button
+      type="button"
+      variant={active ? 'primary' : 'secondary'}
+      size="chip"
+      fullWidth={false}
       onClick={onClick}
-      className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active ? 'border-primary bg-primary text-primary-ink' : 'border-line bg-surface text-muted'
-      }`}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -137,26 +133,25 @@ function ContactRow({ contact }: { contact: ContactWithPhase }) {
 
   return (
     <li>
-      <Link
-        to={`/kontakte/${contact.id}`}
-        className="block rounded-2xl border border-line bg-surface p-4 transition-transform hover:bg-bg active:scale-[0.995]"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate font-semibold">{contact.name}</p>
-            <p className={`mt-0.5 text-xs ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}>
-              {activityLabel(contact.last_event_at)}
-              {overdue ? ' · Follow-up überfällig' : ''}
-            </p>
-            {contact.next_step ? (
-              <p className="mt-1 truncate text-sm text-ink">→ {contact.next_step}</p>
-            ) : null}
+      <Link to={`/kontakte/${contact.id}`} className="block">
+        <Card padding="sm" interactive>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{contact.name}</p>
+              <p className={`mt-0.5 text-xs ${overdue ? 'font-medium text-red-600' : 'text-muted'}`}>
+                {activityLabel(contact.last_event_at)}
+                {overdue ? ' · Follow-up überfällig' : ''}
+              </p>
+              {contact.next_step ? (
+                <p className="mt-1 truncate text-sm text-ink">→ {contact.next_step}</p>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <PhaseChip phase={contact.phase} />
+              <ApRewardSticker ap={rewardAp} size="sm" animate={false} />
+            </div>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            <PhaseBadge phase={contact.phase} />
-            <ApRewardSticker ap={rewardAp} size="sm" animate={false} />
-          </div>
-        </div>
+        </Card>
       </Link>
     </li>
   );

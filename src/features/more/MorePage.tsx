@@ -5,6 +5,7 @@ import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
+import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
 import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
 
@@ -190,19 +191,13 @@ export function MorePage() {
           Wissen, Guides und Materialien für dein Leadership.
         </p>
         {isSuperAdmin ? (
-          <Link
-            to="/wissen"
-            className="mt-3 flex h-12 items-center justify-center rounded-xl border border-line bg-surface px-4 text-base font-semibold text-ink hover:bg-bg"
-          >
+          <ButtonLink to="/wissen" variant="secondary" className="mt-3">
             Wissensdatenbank
-          </Link>
+          </ButtonLink>
         ) : (
-          <Link
-            to="/team-seyda"
-            className="mt-3 flex h-12 items-center justify-center rounded-xl border border-line bg-surface px-4 text-base font-semibold text-ink hover:bg-bg"
-          >
+          <ButtonLink to="/team-seyda" variant="secondary" className="mt-3">
             Team Seyda Guide
-          </Link>
+          </ButtonLink>
         )}
       </Card>
     </div>

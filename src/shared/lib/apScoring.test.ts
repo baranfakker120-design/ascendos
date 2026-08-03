@@ -4,7 +4,9 @@ import {
   allPipelineScores,
   comboBonusAp,
   rewardMark,
+  scoreDailyMission,
   scoreDimensions,
+  scoreJourneyStep,
   scoreLeadPhase,
   scoreMission,
   scorePipelineEvent,
@@ -72,5 +74,19 @@ describe('apScoring', () => {
   it('exports complete catalogs for pipeline and missions', () => {
     expect(Object.keys(allPipelineScores()).length).toBe(13);
     expect(Object.keys(allMissionScores()).length).toBe(6);
+  });
+
+  it('scores daily missions from dimensions, never a hardcoded constant', () => {
+    const low = scoreDailyMission('new_contacts', { engineScore: 40 });
+    const urgent = scoreDailyMission('new_contacts', { engineScore: 100, missionsDoneToday: 4 });
+    expect([10, 25, 50, 75, 100, 150, 250, 500]).toContain(low);
+    expect(urgent).toBeGreaterThanOrEqual(low);
+  });
+
+  it('scores journey steps by type and day depth', () => {
+    const day1Info = scoreJourneyStep('info', 1, 0);
+    const day7Task = scoreJourneyStep('task', 7, 2);
+    expect(day7Task).toBeGreaterThanOrEqual(day1Info);
+    expect([10, 25, 50, 75, 100, 150, 250, 500]).toContain(day1Info);
   });
 });

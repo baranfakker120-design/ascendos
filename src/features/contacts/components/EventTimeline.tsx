@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { eventLabel } from '@shared/lib/pipeline';
 import type { PipelineEvent } from '@shared/types/domain';
+import { Button } from '@shared/ui/Button';
 
 const dateFmt = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
@@ -59,13 +60,16 @@ export function EventTimeline({
                 {eventLabel(event.event_type)}
               </p>
               {correctable ? (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  fullWidth={false}
                   onClick={() => onCorrect(event.id)}
                   disabled={correcting}
-                  className="shrink-0 text-xs font-medium text-muted underline disabled:opacity-50"
+                  className="shrink-0 underline"
                 >
                   korrigieren
-                </button>
+                </Button>
               ) : null}
             </div>
             <p className="text-xs text-muted">

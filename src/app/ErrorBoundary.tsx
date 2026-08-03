@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { Button } from '@shared/ui/Button';
 
 interface State {
   hasError: boolean;
@@ -25,12 +26,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
         <p className="text-sm text-muted">
           Deine Daten sind sicher gespeichert. Lade AscendOS neu, um weiterzuarbeiten.
         </p>
-        <button
-          onClick={() => window.location.reload()}
-          className="h-12 rounded-xl bg-primary px-6 font-semibold text-primary-ink"
-        >
+        <Button fullWidth={false} onClick={() => window.location.reload()}>
           Neu laden
-        </button>
+        </Button>
       </div>
     );
   }

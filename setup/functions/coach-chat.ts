@@ -285,22 +285,17 @@ HANDLUNGSORIENTIERUNG (Pflicht):
 - Ausnahme: Wenn du eine Rückfrage stellst, ist die Rückfrage das Ende.
 - Du führst zur Aktion. Du unterhältst nicht.
 
-STRUKTUR (Sprint 3):
+STRUKTUR:
 - Eine vollständige Antwort hat gedanklich vier Teile: die eigentliche
   Antwort, eine kurze Erklärung, ein praktischer Tipp, ein nächster
-  Schritt. Das ist eine gedankliche Reihenfolge, KEINE Pflicht zu vier
-  sichtbaren Abschnitten oder Überschriften.
-- Die Länge richtet sich nach der Frage, nicht nach der Struktur: Bei
-  einer knappen Faktenfrage (z. B. einer Duftnummer, einer Definition)
-  genügen die Antwort selbst und der nächste Schritt, in ein bis zwei
-  Sätzen. Erklärung und Tipp entfallen dort, wenn sie nichts Sinnvolles
-  hinzufügen würden.
-- Bei einer offenen oder komplexen Frage werden alle vier Teile
-  ausformuliert, weiterhin als Fließtext, nicht als Liste mit
-  Zwischenüberschriften.
-- Erfinde niemals einen Tipp oder eine Erklärung nur um die Struktur zu
-  füllen. Eine kurze, korrekte Antwort ist besser als eine lange mit
-  erfundenem Zusatzinhalt.
+  Schritt. Das ist eine gedankliche Reihenfolge — nutze sie als Lesefluss,
+  nicht als starres Formular.
+- Die Länge richtet sich nach der Frage: Bei einer knappen Faktenfrage
+  genügen Antwort und nächster Schritt. Erklärung und Tipp entfallen,
+  wenn sie nichts Sinnvolles hinzufügen.
+- Bei komplexen Fragen: kurze Absätze, klare Listen, ein Highlight für
+  das Wesentliche. Nie Textwände ohne Luft.
+- Erfinde niemals Inhalt nur um Struktur zu füllen.
 
 WISSENSBASIS:
 - Ausschnitte aus den Teamdokumenten (falls vorhanden) sind deine oberste
@@ -320,20 +315,25 @@ GRENZEN (nicht verhandelbar):
 - Du versendest niemals selbst Nachrichten und führst keine Aktionen aus.
   Du bereitest vor - der Mensch entscheidet und handelt.
 
-FORMAT (nicht verhandelbar, Sprint 3.1/3):
-- AscendOS ist eine Business-App, kein Chat-Werkzeug für Entwickler.
-  Schreibe reinen Fließtext ohne Markdown.
-- Erlaubt: . , : ; ? ! ( ) " ' sowie nummerierte Listen (1. 2. 3.) und
-  Aufzählungspunkte (• Punkt).
-- Verboten: **fett**, __fett__, *kursiv*, # Überschriften, Backticks,
-  Codeblöcke, Tabellen mit |, Zitatzeichen >, Trennlinien ---, eckige
-  Klammern für Links, HTML.
-- Enthält eine Antwort eine Internetadresse, schreibe sie als reinen Text
-  genau wie im Kontext angegeben (z. B. https://duftparty.netlify.app),
-  ohne eckige Klammern, ohne sie zu verändern oder zu verkürzen. Die App
-  macht daraus automatisch einen anklickbaren Link.
-- Der Nutzer darf nie erkennen, dass intern Wissensdokumente oder
-  Formatierungssyntax verwendet werden.
+PRÄSENTATION (Premium Coach — nicht verhandelbar):
+- Du schreibst wie ein Executive Mentor: klar, ruhig, hochwertig.
+- Nutze leichtes Markdown für Lesbarkeit. Die App rendert es premium —
+  der Nutzer sieht nie rohe Syntax.
+- Erlaubt und erwünscht:
+  • **Fettschrift** für Schlüsselbegriffe (sparsam)
+  • Kurze ## Überschriften nur bei längeren Antworten (max. 2–3)
+  • Aufzählungen mit - oder nummerierte Schritte mit 1. 2. 3.
+  • Zitate mit > für Nachrichtenentwürfe, die der Nutzer kopieren soll
+  • Callouts als eigene Zeile: "Tipp: ...", "Wichtig: ...",
+    "Nächster Schritt: ..."
+- Verboten: HTML, Tabellen mit |, Codeblöcke außer wenn der Nutzer
+  ausdrücklich technischen Text braucht, überladene Formatierung,
+  dekorative Trennlinien, Emoji-Spam.
+- Internetadressen als reinen Text schreiben (https://...), ohne sie zu
+  verkürzen. Die App macht daraus Links.
+- Absätze kurz halten (2–4 Sätze). Zwischen Abschnitten eine Leerzeile.
+- Der Nutzer darf nie erkennen, dass intern Wissensdokumente geladen
+  wurden.
 `.trim();
 
 export const ROUTER_PROMPT = `
@@ -1171,70 +1171,41 @@ export function classifyIntent(message: string): IntentResult {
 
 // ---- inline: _shared/format/strip-markdown.ts ----
 /**
- * Entfernt Markdown und normalisiert die Ausgabe auf das im Auftrag
- * erlaubte Zeichenrepertoire. Sprint 3.1, 30. Juli 2026.
+ * Normalisiert Coach-Antworten für die Premium-Markdown-UI.
  *
- * WARUM MECHANISCH statt nur eine Promptanweisung: Sprachmodelle folgen
- * Formatierungsanweisungen zuverlaessig, aber nicht garantiert -- und
- * die eingebetteten Wissensausschnitte (aus echten Dokumenten) koennen
- * selbst Markdown enthalten, das wortwoertlich in die Antwort
- * uebernommen wird. Eine Anweisung allein wuerde das nicht sicher
- * verhindern. Diese Funktion laeuft NACH der Antwortgenerierung, auf
- * dem tatsaechlichen Text, unabhaengig davon, ob das Modell sich an die
- * Anweisung gehalten hat.
+ * Früher: stripMarkdown entfernte ** und # mechanisch (Sprint 3.1),
+ * weil die App Plaintext erwartete. Jetzt rendert die UI Markdown —
+ * wir erhalten Struktur und entfernen nur XSS-/Rauschquellen.
  *
- * Erlaubt bleiben, wie im Auftrag festgelegt: . , : ; ? ! ( ) " ' sowie
- * nummerierte Listen (1. 2. 3.) und Aufzaehlungspunkte (• Punkt).
+ * Behält: **fett**, Überschriften, Listen, Zitate, Links.
+ * Entfernt: Roh-HTML, überzählige Leerzeilen.
  */
-export function stripMarkdown(text: string): string {
+export function sanitizeCoachReply(text: string): string {
   let s = text;
 
-  // Codebloecke zuerst, bevor einzelne Backticks behandelt werden.
-  s = s.replace(/```[\s\S]*?```/g, (block) => block.replace(/```/g, '').trim());
-  // Einzelne Inline-Backticks: Zeichen entfernen, Inhalt behalten.
-  s = s.replace(/`([^`]+)`/g, '$1');
-
-  // Ueberschriften: fuehrende Rauten entfernen, Text behalten.
-  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
-
-  // Fett/kursiv: **text**, __text__, *text*, _text_ -> text.
-  // Reihenfolge wichtig: doppelte Marker vor einfachen behandeln, sonst
-  // bleiben einzelne Sternchen uebrig.
-  s = s.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
-  s = s.replace(/___([^_]+)___/g, '$1');
-  s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
-  s = s.replace(/__([^_]+)__/g, '$1');
-  s = s.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '$1');
-  s = s.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, '$1');
-
-  // Markdown-Links: [Text](url) -> Text. Bilder: ![Alt](url) -> Alt.
-  s = s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
-
-  // Zitatzeichen am Zeilenanfang.
-  s = s.replace(/^\s{0,3}>\s?/gm, '');
-
-  // Horizontale Trenner: eine Zeile aus nur -, * oder _ (mind. 3).
-  s = s.replace(/^\s*([-*_])\1{2,}\s*$/gm, '');
-
-  // Tabellen-Pipes: durch ein Leerzeichen ersetzen, kein Zeichen aus
-  // der Verbotsliste beibehalten.
-  s = s.replace(/\|/g, ' ');
-
-  // Aufzaehlungszeichen -, * am Zeilenanfang auf den erlaubten
-  // Aufzaehlungspunkt "•" vereinheitlichen. Numerierte Listen ("1. ")
-  // bleiben unveraendert, sie sind bereits im erlaubten Format.
-  s = s.replace(/^\s*[-*]\s+/gm, '• ');
-
-  // Rohes HTML entfernen.
+  // Roh-HTML entfernen (XSS / Modell-Leak aus Dokumenten).
   s = s.replace(/<\/?[a-zA-Z][^>]*>/g, '');
 
-  // Ueberzaehlige Leerzeichen und Leerzeilen, die durch das Entfernen
-  // entstanden sind, wieder einsammeln.
-  s = s.replace(/[ \t]{2,}/g, ' ');
+  // Halb kaputte HTML-Entities, die Modelle manchmal aus Docs übernehmen.
+  s = s.replace(/&nbsp;/gi, ' ');
+  s = s.replace(/&amp;/gi, '&');
+  s = s.replace(/&lt;/gi, '<');
+  s = s.replace(/&gt;/gi, '>');
+
+  // Überzählige Leerzeichen / Leerzeilen einsammeln.
+  s = s.replace(/[ \t]+\n/g, '\n');
   s = s.replace(/\n{3,}/g, '\n\n');
-  s = s.split('\n').map((line) => line.trimEnd()).join('\n');
+  s = s
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n');
 
   return s.trim();
+}
+
+/** @deprecated Alias — bestehende Imports / Tests. */
+export function stripMarkdown(text: string): string {
+  return sanitizeCoachReply(text);
 }
 
 // ============================================================
@@ -1632,10 +1603,7 @@ Deno.serve(async (req) => {
       messages: [...history, { role: 'user', content: message }],
       maxTokens: 1024,
     });
-    // Sprint 3.1: mechanische Bereinigung NACH der Generierung, siehe
-    // Kopfkommentar in strip-markdown.ts. Laeuft immer, unabhaengig
-    // davon, ob das Modell der Formatanweisung in CORE_RULES gefolgt
-    // ist -- die Wissensausschnitte selbst koennen Markdown enthalten.
+    // Premium-UI rendert Markdown: HTML strippen, Struktur behalten.
     const reply = stripMarkdown(chatResult.text.trim());
     mark('llm_ms', tLlm);
 

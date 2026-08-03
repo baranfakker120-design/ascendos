@@ -404,10 +404,7 @@ Deno.serve(async (req) => {
       messages: [...history, { role: 'user', content: message }],
       maxTokens: 1024,
     });
-    // Sprint 3.1: mechanische Bereinigung NACH der Generierung, siehe
-    // Kopfkommentar in strip-markdown.ts. Laeuft immer, unabhaengig
-    // davon, ob das Modell der Formatanweisung in CORE_RULES gefolgt
-    // ist -- die Wissensausschnitte selbst koennen Markdown enthalten.
+    // Premium-UI rendert Markdown: HTML strippen, Struktur behalten.
     const reply = stripMarkdown(chatResult.text.trim());
     mark('llm_ms', tLlm);
 

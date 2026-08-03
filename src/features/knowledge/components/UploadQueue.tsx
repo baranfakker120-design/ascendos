@@ -1,3 +1,5 @@
+import { Card } from '@shared/ui/Card';
+import { EnergyCore } from '@shared/ui/EnergyCore';
 import { humanFileSize } from '../extractText';
 
 export type JobPhase = 'waiting' | 'reading' | 'embedding' | 'done' | 'error';
@@ -61,52 +63,47 @@ export function UploadQueue({ jobs }: { jobs: UploadJob[] }) {
         {jobs.map((job) => {
           const percent = progressPercent(job);
           return (
-            <li key={job.id} className="rounded-xl border border-line bg-surface p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink">{job.fileName}</p>
-                  <p className="text-xs text-muted">
-                    {humanFileSize(job.size)}
-                    {job.pages ? ` · ${job.pages} Seiten` : ''}
-                    {job.parts > 1 ? ` · ${job.parts} Teile` : ''}
-                    {job.phase === 'done' && job.chunks > 0 ? ` · ${job.chunks} Abschnitte` : ''}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 text-xs font-semibold ${
-                    job.phase === 'error'
-                      ? 'text-red-700'
-                      : job.phase === 'done'
-                        ? 'text-accent-deep'
-                        : 'text-muted'
-                  }`}
-                >
-                  {PHASE_LABEL[job.phase]}
-                  {job.phase === 'embedding' && job.parts > 1
-                    ? ` ${job.partsDone}/${job.parts}`
-                    : ''}
-                </span>
-              </div>
-
-              {job.phase !== 'error' && (
-                <div
-                  role="progressbar"
-                  aria-valuenow={percent}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`Fortschritt ${job.fileName}`}
-                  className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg"
-                >
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      job.phase === 'done' ? 'bg-accent-deep' : 'bg-primary'
+            <li key={job.id}>
+              <Card padding="sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{job.fileName}</p>
+                    <p className="text-xs text-muted">
+                      {humanFileSize(job.size)}
+                      {job.pages ? ` · ${job.pages} Seiten` : ''}
+                      {job.parts > 1 ? ` · ${job.parts} Teile` : ''}
+                      {job.phase === 'done' && job.chunks > 0 ? ` · ${job.chunks} Abschnitte` : ''}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 text-xs font-semibold ${
+                      job.phase === 'error'
+                        ? 'text-red-700'
+                        : job.phase === 'done'
+                          ? 'text-accent-deep'
+                          : 'text-muted'
                     }`}
-                    style={{ width: `${percent}%` }}
-                  />
+                  >
+                    {PHASE_LABEL[job.phase]}
+                    {job.phase === 'embedding' && job.parts > 1
+                      ? ` ${job.partsDone}/${job.parts}`
+                      : ''}
+                  </span>
                 </div>
-              )}
 
-              {job.error && <p className="mt-2 text-xs text-red-700">{job.error}</p>}
+                {job.phase !== 'error' && (
+                  <EnergyCore
+                    ap={percent}
+                    currentThreshold={0}
+                    nextThreshold={100}
+                    showLabel={false}
+                    size="md"
+                    className="mt-2"
+                  />
+                )}
+
+                {job.error && <p className="mt-2 text-xs text-red-700">{job.error}</p>}
+              </Card>
             </li>
           );
         })}
