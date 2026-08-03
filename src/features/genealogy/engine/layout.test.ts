@@ -67,4 +67,32 @@ describe('layoutGenealogyTree', () => {
     expect(layout.nodes.map((n) => n.id).sort()).toEqual([child, root].sort());
     expect(layout.edges).toHaveLength(1);
   });
+
+  it('erzeugt für 3 Direkte genau 3 Kanten inkl. vertikalem Center-Child', () => {
+    const root = 'm-root';
+    const a = 'm-a';
+    const b = 'm-b';
+    const c = 'm-c';
+    const nodes = [
+      node({ membershipId: root, depth: 0 }),
+      node({ membershipId: a, depth: 1, sponsorMembershipId: root }),
+      node({ membershipId: b, depth: 1, sponsorMembershipId: root }),
+      node({ membershipId: c, depth: 1, sponsorMembershipId: root }),
+    ];
+    const layout = layoutGenealogyTree(nodes, new Set());
+    expect(layout.edges).toHaveLength(3);
+    expect(new Set(layout.edges.map((e) => e.id)).size).toBe(3);
+
+    const parent = layout.nodes.find((n) => n.id === root)!;
+    const kids = layout.nodes.filter((n) => n.parentId === root).sort((p, q) => p.x - q.x);
+    expect(kids).toHaveLength(3);
+
+    // Middle child aligns under parent (tidy mean) → vertical edge
+    const mid = kids[1]!;
+    expect(mid.x).toBeCloseTo(parent.x, 5);
+    const midEdge = layout.edges.find((e) => e.toId === mid.id)!;
+    expect(midEdge).toBeTruthy();
+    expect(midEdge.x1).toBeCloseTo(midEdge.x2, 5);
+    expect(midEdge.y2).toBeGreaterThan(midEdge.y1);
+  });
 });
