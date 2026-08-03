@@ -168,9 +168,7 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
                       type="button"
                       className="shrink-0 text-xs font-semibold text-primary"
                       onClick={() =>
-                        onAskAbout(
-                          t('coach.askAboutPriorityFull', { title: p.title, why: p.why })
-                        )
+                        onAskAbout(t('coach.askAboutPriorityFull', { title: p.title, why: p.why }))
                       }
                     >
                       {t('coach.ask')}

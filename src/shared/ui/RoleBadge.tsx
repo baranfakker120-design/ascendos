@@ -44,11 +44,7 @@ export function RoleBadge({ role, label, className = '' }: RoleBadgeProps) {
   const tone = toneFor(role);
   const roleKey = role ? ROLE_KEYS[role] : undefined;
   const text =
-    label ??
-    (roleKey && i18n ? i18n.t(roleKey) : undefined) ??
-    LABELS[role ?? ''] ??
-    role ??
-    '—';
+    label ?? (roleKey && i18n ? i18n.t(roleKey) : undefined) ?? LABELS[role ?? ''] ?? role ?? '—';
 
   return (
     <span className={`role-badge role-badge--${tone} ${className}`}>

@@ -185,7 +185,9 @@ export function ContactDetailPage() {
             <span className="block text-sm font-medium">
               {t('contacts.askAscent', { name: contact.name.split(' ')[0] ?? contact.name })}
             </span>
-            <span className="block text-xs font-normal text-muted">{t('contacts.askAscentSub')}</span>
+            <span className="block text-xs font-normal text-muted">
+              {t('contacts.askAscentSub')}
+            </span>
           </span>
           <span className="text-xs font-medium text-primary">→</span>
         </ButtonLink>

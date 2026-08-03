@@ -155,7 +155,9 @@ export function LiveCoachingAdminPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
           {t('liveCoaching.eyebrow')}
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('liveCoaching.adminCenterTitle')}</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">
+          {t('liveCoaching.adminCenterTitle')}
+        </h1>
         <p className="mt-1 text-sm text-muted">{t('liveCoaching.adminSubtitle')}</p>
       </header>
 
@@ -191,23 +193,43 @@ export function LiveCoachingAdminPage() {
             ))}
           </ul>
 
-          <Input label={t('liveCoaching.titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Input label={t('liveCoaching.subtitle')} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+          <Input
+            label={t('liveCoaching.titleLabel')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Input
+            label={t('liveCoaching.subtitle')}
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+          />
           <TextArea
             label={t('liveCoaching.description')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
-          <Input label={t('liveCoaching.coach')} value={coachName} onChange={(e) => setCoachName(e.target.value)} />
-          <Select label={t('liveCoaching.category')} value={category} onChange={(e) => setCategory(e.target.value)}>
+          <Input
+            label={t('liveCoaching.coach')}
+            value={coachName}
+            onChange={(e) => setCoachName(e.target.value)}
+          />
+          <Select
+            label={t('liveCoaching.category')}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
             {LIVE_COACHING_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </Select>
-          <Input label={t('liveCoaching.language')} value={language} onChange={(e) => setLanguage(e.target.value)} />
+          <Input
+            label={t('liveCoaching.language')}
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          />
           <Input
             label={t('liveCoaching.datetime')}
             type="datetime-local"
@@ -222,7 +244,11 @@ export function LiveCoachingAdminPage() {
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(Number(e.target.value) || 60)}
           />
-          <Input label={t('liveCoaching.zoomUrl')} value={zoomUrl} onChange={(e) => setZoomUrl(e.target.value)} />
+          <Input
+            label={t('liveCoaching.zoomUrl')}
+            value={zoomUrl}
+            onChange={(e) => setZoomUrl(e.target.value)}
+          />
           <Select
             label={t('liveCoaching.repeat')}
             value={repeatRule}

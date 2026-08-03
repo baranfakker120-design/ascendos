@@ -143,7 +143,10 @@ export function GenealogyViewerShell({
             }}
           >
             <h2 id={titleId} className="genealogy-viewer-shell__title">
-              {resolvedTitle}{' '}<span className="genealogy-viewer-shell__count">{t('team.membersCount', { count: memberCount })}</span>
+              {resolvedTitle}{' '}
+              <span className="genealogy-viewer-shell__count">
+                {t('team.membersCount', { count: memberCount })}
+              </span>
             </h2>
             <button
               ref={closeRef}

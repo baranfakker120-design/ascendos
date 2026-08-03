@@ -141,11 +141,7 @@ function ContactForm({
         />
         {error ? <Alert tone="error">{error}</Alert> : null}
         <Button type="submit" disabled={busy || !name.trim()}>
-          {busy
-            ? t('common.saving')
-            : isEdit
-              ? t('contacts.saveChanges')
-              : t('contacts.create')}
+          {busy ? t('common.saving') : isEdit ? t('contacts.saveChanges') : t('contacts.create')}
         </Button>
         <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
           {t('common.cancel')}

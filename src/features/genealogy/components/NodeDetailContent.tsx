@@ -47,7 +47,9 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold tracking-tight">{name}</p>
-          <p className="text-sm font-semibold text-accent-deep">{node.rankLabel ?? t('team.newcomer')}</p>
+          <p className="text-sm font-semibold text-accent-deep">
+            {node.rankLabel ?? t('team.newcomer')}
+          </p>
           <p className="text-xs text-muted">{presenceLabel(node, Date.now(), t)}</p>
         </div>
         {node.depth > 0 ? (
@@ -141,9 +143,7 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             if (!editable) return;
             setNote(e.target.value);
           }}
-          placeholder={
-            editable ? t('team.nextTalk') : t('team.structureEditOnly')
-          }
+          placeholder={editable ? t('team.nextTalk') : t('team.structureEditOnly')}
           readOnly={!editable}
           disabled={!editable}
         />
@@ -172,7 +172,9 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
             {directs.slice(0, 8).map((d) => (
               <li key={d.membershipId} className="flex justify-between gap-2">
                 <span className="font-medium">{displayName(d)}</span>
-                <span className="text-muted">{d.apTotal.toLocaleString(locale)} {t('common.ap')}</span>
+                <span className="text-muted">
+                  {d.apTotal.toLocaleString(locale)} {t('common.ap')}
+                </span>
               </li>
             ))}
           </ul>

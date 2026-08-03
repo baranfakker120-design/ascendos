@@ -140,7 +140,9 @@ export function StoriesBar({ stories }: Props) {
           <div className="ascend-stories__meta">
             <div>
               <p className="ascend-stories__meta-title">{current.authorLabel}</p>
-              <p className="ascend-stories__meta-sub">{t(`stories.types.${current.type}` as MessageKey)}</p>
+              <p className="ascend-stories__meta-sub">
+                {t(`stories.types.${current.type}` as MessageKey)}
+              </p>
             </div>
             <button
               type="button"

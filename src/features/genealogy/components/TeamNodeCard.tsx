@@ -112,7 +112,10 @@ export function TeamNodeCard({
             title={presenceLabel(node, Date.now(), t)}
           />
           {node.messageBadge > 0 ? (
-            <span className="team-node__msg" aria-label={t('team.messages', { count: node.messageBadge })}>
+            <span
+              className="team-node__msg"
+              aria-label={t('team.messages', { count: node.messageBadge })}
+            >
               {node.messageBadge > 9 ? '9+' : node.messageBadge}
             </span>
           ) : null}
@@ -143,7 +146,11 @@ export function TeamNodeCard({
         {presenceLabel(node, Date.now(), t)}
         {node.streakDays > 0 ? ` · ${node.streakDays}d` : ''}
       </p>
-      {node.sponsorName ? <p className="team-node__sponsor">{t('team.sponsor')} {node.sponsorName}</p> : null}
+      {node.sponsorName ? (
+        <p className="team-node__sponsor">
+          {t('team.sponsor')} {node.sponsorName}
+        </p>
+      ) : null}
 
       {hasChildren ? (
         <button

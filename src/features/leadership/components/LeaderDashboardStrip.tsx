@@ -26,7 +26,11 @@ export function LeaderDashboardStrip({ data, loading }: LeaderDashboardStripProp
         { key: 'teamAp' as const, label: t('leadership.teamAp'), format: 'ap' as const },
         { key: 'icpMonth' as const, label: t('leadership.icp'), format: 'ap' as const },
         { key: 'monthGoalAp' as const, label: t('leadership.monthGoal'), format: 'ap' as const },
-        { key: 'goalProgress' as const, label: t('leadership.goalProgress'), format: 'pct' as const },
+        {
+          key: 'goalProgress' as const,
+          label: t('leadership.goalProgress'),
+          format: 'pct' as const,
+        },
       ] satisfies Array<{
         key: keyof LeaderDashboard;
         label: string;

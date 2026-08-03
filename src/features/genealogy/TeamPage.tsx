@@ -110,9 +110,7 @@ export function TeamPage() {
     const schemaGap = isMissingRpcError(error);
     return (
       <Card className="mt-2 space-y-3 text-center">
-        <p className="font-medium">
-          {schemaGap ? t('team.migrationTitle') : t('team.loadError')}
-        </p>
+        <p className="font-medium">{schemaGap ? t('team.migrationTitle') : t('team.loadError')}</p>
         <p className="text-sm text-muted">
           {schemaGap ? t('team.migrationBody') : t('common.connectionHint')}
         </p>
@@ -218,7 +216,9 @@ export function TeamPage() {
 
       <BottomSheet
         open={!!selected}
-        title={selected ? `${selected.firstName} ${selected.lastName}`.trim() || t('team.partner') : ''}
+        title={
+          selected ? `${selected.firstName} ${selected.lastName}`.trim() || t('team.partner') : ''
+        }
         onClose={() => setSelected(null)}
       >
         {selected ? (

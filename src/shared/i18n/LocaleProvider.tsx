@@ -7,12 +7,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { readStoredLocale, writeStoredLocale, type AppLocale } from '@shared/lib/locale';
 import {
-  readStoredLocale,
-  writeStoredLocale,
-  type AppLocale,
-} from '@shared/lib/locale';
-import { createTranslator, type MessageKey, type TranslateFn, type TranslateParams } from './translate';
+  createTranslator,
+  type MessageKey,
+  type TranslateFn,
+  type TranslateParams,
+} from './translate';
 
 export interface LocaleContextValue {
   locale: AppLocale;

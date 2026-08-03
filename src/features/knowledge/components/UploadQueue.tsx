@@ -54,9 +54,7 @@ export function UploadQueue({ jobs }: { jobs: UploadJob[] }) {
     <section aria-label={t('knowledge.queueProgress')} className="space-y-2">
       <div className="flex items-baseline justify-between">
         <h3 className="text-sm font-semibold text-ink">
-          {active > 0
-            ? t('knowledge.queueActive', { active })
-            : t('knowledge.queueComplete')}
+          {active > 0 ? t('knowledge.queueActive', { active }) : t('knowledge.queueComplete')}
         </h3>
         {failed > 0 && (
           <span className="text-xs font-medium text-red-700">

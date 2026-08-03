@@ -28,8 +28,7 @@ export function OrgSwitcher() {
 
   if (memberships.length <= 1) return null;
 
-  const labelFor = (orgId: string) =>
-    orgs?.find((o) => o.id === orgId)?.name ?? t('org.fallback');
+  const labelFor = (orgId: string) => orgs?.find((o) => o.id === orgId)?.name ?? t('org.fallback');
 
   return (
     <Select

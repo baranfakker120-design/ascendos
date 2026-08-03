@@ -49,7 +49,9 @@ export function StoriesAdminPage() {
   return (
     <div className="space-y-4 pb-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">{t('brand.name')}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
+          {t('brand.name')}
+        </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('stories.adminTitle')}</h1>
         <p className="mt-1 text-sm text-muted">{t('stories.adminSubtitle')}</p>
       </header>
@@ -69,13 +71,26 @@ export function StoriesAdminPage() {
             </option>
           ))}
         </Select>
-        <Select label={t('stories.toneLabel')} value={tone} onChange={(e) => setTone(e.target.value as StoryTone)}>
+        <Select
+          label={t('stories.toneLabel')}
+          value={tone}
+          onChange={(e) => setTone(e.target.value as StoryTone)}
+        >
           <option value="motivate">{t('stories.toneMotivate')}</option>
           <option value="celebrate">{t('stories.toneCelebrate')}</option>
           <option value="inspire">{t('stories.toneInspire')}</option>
         </Select>
-        <Input label={t('stories.titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
-        <TextArea label={t('stories.bodyLabel')} value={body} onChange={(e) => setBody(e.target.value)} rows={4} />
+        <Input
+          label={t('stories.titleLabel')}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <TextArea
+          label={t('stories.bodyLabel')}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={4}
+        />
         <Input
           label={t('stories.author')}
           value={authorLabel}
@@ -110,7 +125,8 @@ export function StoriesAdminPage() {
                 <p className="font-medium">{s.title}</p>
                 <p className="text-xs text-muted">
                   {t(`stories.types.${s.story_type as StoryType}` as MessageKey)} ·{' '}
-                  {s.active ? t('knowledge.active') : 'off'} · {new Date(s.expires_at).toLocaleString(locale)}
+                  {s.active ? t('knowledge.active') : 'off'} ·{' '}
+                  {new Date(s.expires_at).toLocaleString(locale)}
                 </p>
               </div>
               {s.active ? (

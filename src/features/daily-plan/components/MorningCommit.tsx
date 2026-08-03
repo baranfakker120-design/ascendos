@@ -39,9 +39,7 @@ export function MorningCommit({
           {profile ? `, ${profile.first_name}` : ''}.
         </h1>
         <p className="mt-1 text-sm text-muted">
-          {count === 1
-            ? t('today.commitIntroOne')
-            : t('today.commitIntroMany', { count })}
+          {count === 1 ? t('today.commitIntroOne') : t('today.commitIntroMany', { count })}
         </p>
       </div>
 

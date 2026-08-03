@@ -127,9 +127,7 @@ export function KnowledgePage() {
             setCategory(e.target.value as CategoryValue)
           }
           disabled={busy}
-          hint={
-            selected ? t('knowledge.queriedBy', { agents: selected.agents }) : undefined
-          }
+          hint={selected ? t('knowledge.queriedBy', { agents: selected.agents }) : undefined}
         >
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>

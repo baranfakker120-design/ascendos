@@ -176,7 +176,11 @@ export function KnowledgeCenterPage() {
         </Card>
 
         <Card className="space-y-3">
-          <Input label={t('knowledge.titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input
+            label={t('knowledge.titleLabel')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
           <Select
             label={t('knowledge.category')}
             value={category}
@@ -220,9 +224,7 @@ export function KnowledgeCenterPage() {
 
           {selected ? (
             <div className="rounded-xl border border-line bg-bg px-3 py-2 text-sm">
-              <p className="font-medium">
-                {selected.status}
-              </p>
+              <p className="font-medium">{selected.status}</p>
               {asFlagsDisplay(selected.contradiction_flags).length > 0 ? (
                 <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted">
                   {asFlagsDisplay(selected.contradiction_flags).map((f) => (
@@ -268,7 +270,9 @@ export function KnowledgeCenterPage() {
           <div>
             <p className="text-sm font-semibold">{t('knowledge.preview')}</p>
             <div className="prose prose-sm mt-2 max-w-none rounded-xl border border-line bg-surface px-3 py-2">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{body || t('knowledge.emptyBody')}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {body || t('knowledge.emptyBody')}
+              </ReactMarkdown>
             </div>
           </div>
 
