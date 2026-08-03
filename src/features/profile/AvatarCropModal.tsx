@@ -13,7 +13,7 @@ import { cropCircleWebp, type CircleCropTransform } from './cropImage';
 import './avatar-crop.css';
 
 /** Cover = Kreis gefüllt; Start leicht enger, Zoom weit hinein. */
-export const CROP_INITIAL_ZOOM = 1.15;
+export const CROP_INITIAL_ZOOM = 1.28;
 export const CROP_MAX_ZOOM_FACTOR = 6;
 export const CROP_OUTPUT_SIZE = 512;
 export const CROP_CIRCLE_PX = 280;

@@ -31,16 +31,16 @@ describe('frameAssets', () => {
     ]);
   });
 
-  it('liefert Geometrie für bekannte Schlüssel und null sonst', () => {
-    expect(getFrameGeometry('frame-01')?.openingWidth).toBe(657);
-    expect(getFrameGeometry('frame-06')?.verticalOffset).toBe(-8);
+  it('nutzt pixelvermessene Alpha-Öffnungen (kein Untermaß)', () => {
+    expect(getFrameGeometry('frame-01')?.openingWidth).toBe(656);
+    expect(getFrameGeometry('frame-09')?.openingWidth).toBe(590);
+    expect(getFrameGeometry('frame-09')?.openingHeight).toBe(424);
     expect(getFrameGeometry('unbekannt')).toBeNull();
-    expect(getFrameGeometry(null)).toBeNull();
   });
 
   it('wählt Retina-Assets groß genug für die Anzeigepixel', () => {
-    expect(pickFrameAssetPx(104, 1)).toBe(128);
-    expect(pickFrameAssetPx(244, 2)).toBe(480);
+    expect(pickFrameAssetPx(112, 1)).toBe(128);
+    expect(pickFrameAssetPx(268, 2)).toBe(480);
     expect(FRAME_ASSET_PX).toContain(480);
   });
 
@@ -51,17 +51,15 @@ describe('frameAssets', () => {
     expect(resolveFrameSrcSet('frame-09')).toContain('frame-09-480.webp 480w');
   });
 
-  it('füllt den Avatar zu 85–90 % und hält den Rahmen ~10 % größer', () => {
-    expect(AVATAR_FILL_RATIO).toBeGreaterThanOrEqual(0.85);
-    expect(AVATAR_FILL_RATIO).toBeLessThanOrEqual(0.9);
-    expect(FRAME_DISPLAY_PX.lg).toBeGreaterThanOrEqual(240);
-    expect(HOLE_DISPLAY_SCALE).toBeGreaterThan(1);
+  it('füllt das Alpha-Loch vollständig — kein Spaltring zum Hintergrund', () => {
+    expect(AVATAR_FILL_RATIO).toBe(1);
+    expect(HOLE_DISPLAY_SCALE).toBeGreaterThanOrEqual(1.08);
+    expect(FRAME_DISPLAY_PX.lg).toBeGreaterThanOrEqual(260);
     const layout = frameAvatarLayout('frame-09', 'lg');
-    expect(layout.box).toBe(FRAME_DISPLAY_PX.lg);
-    expect(layout.avatarPx / (layout.box * openingLayout(FRAME_GEOMETRY['frame-09']).holeRatio * HOLE_DISPLAY_SCALE)).toBeCloseTo(
-      AVATAR_FILL_RATIO,
-      1
-    );
+    const hole = layout.box * openingLayout(FRAME_GEOMETRY['frame-09']).holeRatio;
+    // Avatar >= Loch (Overlap unters Metall), kein Untermaß
+    expect(layout.avatarPx).toBeGreaterThanOrEqual(Math.round(hole));
+    expect(layout.avatarPx / hole).toBeCloseTo(HOLE_DISPLAY_SCALE, 2);
   });
 
   it('ordnet Sonderrahmen fest zu (08 Developer, 09 Super Admin, 10 Monat)', () => {

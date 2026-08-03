@@ -27,8 +27,8 @@ export interface RankFrameProps {
 /**
  * Avatar mit optionalem Rangrahmen.
  *
- * Layer: 1) Profilbild  2) Rahmen  3) Glanz (Frame-PNG-Duplikat, nur Metall).
- * Avatar ≈ 85–90 % der inneren Öffnung; Rahmen ~10 % größer.
+ * Layer: 1) Profilbild (füllt Alpha-Loch)  2) Rahmen  3) Metall-Glanz.
+ * Kein absichtlicher Spalt — sonst scheint der Seitenhintergrund durch.
  */
 export function RankFrame({
   frameKey = null,
@@ -66,15 +66,16 @@ export function RankFrame({
         <div className="absolute inset-0 rounded-full border-2 border-accent/50" aria-hidden />
       ) : null}
 
-      {/* 1) Profilbild */}
+      {/* 1) Profilbild — Durchmesser = Alpha-Loch (+ leichter Overlap unters Metall) */}
       <div
-        className="absolute z-[1] flex items-center justify-center overflow-hidden rounded-full bg-transparent"
+        className="absolute z-[1] overflow-hidden rounded-full"
         style={{
           width: avatarPx,
           height: avatarPx,
           left: '50%',
           top: '50%',
           transform: `translate(-50%, calc(-50% + ${offsetY}px))`,
+          backgroundColor: 'transparent',
         }}
       >
         <Avatar
@@ -82,15 +83,16 @@ export function RankFrame({
           name={name}
           pixelSize={avatarPx}
           className="!bg-transparent"
+          style={{ backgroundColor: 'transparent' }}
           imgProps={{
             decoding: 'async',
             draggable: false,
-            style: { objectFit: 'cover', objectPosition: 'center' },
+            style: { objectFit: 'cover', objectPosition: 'center', backgroundColor: 'transparent' },
           }}
         />
       </div>
 
-      {/* 2) Rahmen + 3) Glanz (nur Frame-Pixel) */}
+      {/* 2) Rahmen + 3) Glanz (Frame-PNG-Duplikat, kein mask-image) */}
       {showFrame ? (
         <div className="rank-frame-layer">
           <img

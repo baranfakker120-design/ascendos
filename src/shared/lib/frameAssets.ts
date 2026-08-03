@@ -32,65 +32,65 @@ export const FRAME_SOURCE_SIZE = 1024;
 export const FRAME_GEOMETRY: Readonly<Record<string, FrameGeometry>> = {
   'frame-01': {
     key: 'frame-01',
-    openingWidth: 657,
-    openingHeight: 646,
+    openingWidth: 656,
+    openingHeight: 578,
     verticalOffset: -34,
   },
   'frame-02': {
     key: 'frame-02',
-    openingWidth: 651,
-    openingHeight: 638,
+    openingWidth: 650,
+    openingHeight: 560,
     verticalOffset: -39,
   },
   'frame-03': {
     key: 'frame-03',
-    openingWidth: 647,
-    openingHeight: 629,
+    openingWidth: 648,
+    openingHeight: 534,
     verticalOffset: -44,
   },
   'frame-04': {
     key: 'frame-04',
     openingWidth: 656,
-    openingHeight: 619,
+    openingHeight: 526,
     verticalOffset: -46,
   },
   'frame-05': {
     key: 'frame-05',
-    openingWidth: 645,
-    openingHeight: 523,
+    openingWidth: 644,
+    openingHeight: 488,
     verticalOffset: -16,
   },
   'frame-06': {
     key: 'frame-06',
-    openingWidth: 627,
-    openingHeight: 471,
+    openingWidth: 624,
+    openingHeight: 456,
     verticalOffset: -8,
   },
   'frame-07': {
     key: 'frame-07',
-    openingWidth: 598,
-    openingHeight: 461,
+    openingWidth: 596,
+    openingHeight: 472,
     verticalOffset: 6,
   },
   /** Sonderrahmen Developer (Rolle developer) — kein AP-Rang. */
   'frame-08': {
     key: 'frame-08',
-    openingWidth: 606,
-    openingHeight: 499,
+    openingWidth: 604,
+    openingHeight: 536,
     verticalOffset: 20,
   },
   /** Sonderrahmen Super Admin (Rolle super_admin) — kein AP-Rang. */
   'frame-09': {
     key: 'frame-09',
-    openingWidth: 592,
-    openingHeight: 445,
+    openingWidth: 590,
+    openingHeight: 424,
     verticalOffset: -10,
   },
   /** Sonderrahmen Berater des Monats — kein AP-Rang. */
   'frame-10': {
     key: 'frame-10',
-    openingWidth: 598,
-    openingHeight: 439,
+    openingWidth: 596,
+    openingHeight: 428,
     verticalOffset: -14,
   },
 };
@@ -127,12 +127,12 @@ export type FrameDisplaySize = 'sm' | 'md' | 'lg';
 
 /**
  * Anzeigegröße des Gesamtrahmens in CSS-Pixeln.
- * lg/md ~10 % größer — Rahmen umschließt den Avatar hochwertig.
+ * Spezialrahmen (08–10) und AP-Rahmen nutzen dieselben Größen.
  */
 export const FRAME_DISPLAY_PX: Record<FrameDisplaySize, number> = {
-  sm: 104,
-  md: 154,
-  lg: 244,
+  sm: 112,
+  md: 168,
+  lg: 268,
 };
 
 /** Verfügbare Asset-Kantenlängen (generate-frame-assets.py). */
@@ -140,16 +140,16 @@ export const FRAME_ASSET_PX = [96, 128, 160, 320, 480] as const;
 export type FrameAssetPx = (typeof FRAME_ASSET_PX)[number];
 
 /**
- * Durchmesser-Anteil der inneren Kreisöffnung (85–90 %).
- * Schmaler Spalt zum Metall — Gesicht/Motiv dominant.
+ * Avatar-Durchmesser relativ zur echten PNG-Alpha-Öffnung.
+ * 1 = Loch vollständig füllen — kein transparenter/schwarzer Spaltring.
  */
-export const AVATAR_FILL_RATIO = 0.89;
+export const AVATAR_FILL_RATIO = 1;
 
 /**
- * Leichte Aufweitung der vermessenen Öffnung (PNG-Rand / Untermaß).
- * Nur für Avatar-Layout — Frame-Asset und Box bleiben unverändert proportional.
+ * Avatar leicht unter den Metallrand schieben (AA / weicher Übergang).
+ * 1.10 ≈ 10 % größer als die gemessene Öffnung — Spalt verschwindet.
  */
-export const HOLE_DISPLAY_SCALE = 1.08;
+export const HOLE_DISPLAY_SCALE = 1.1;
 
 /** Geometrie zu einem Rahmen-Schlüssel, oder null wenn unbekannt. */
 export function getFrameGeometry(frameKey: string | null | undefined): FrameGeometry | null {
@@ -158,8 +158,9 @@ export function getFrameGeometry(frameKey: string | null | undefined): FrameGeom
 }
 
 /**
- * Relative Position der Öffnung für das Avatar-Fenster (0..1 / Offset-Anteil).
- * Lochdurchmesser = größere Achse (bei Crest-Rahmen ist height oft untermessen).
+ * Relative Position der Öffnung.
+ * holeRatio = horizontale Alpha-Öffnung (pixelvermessen am PNG).
+ * openingHeight = vertikale Alpha-Öffnung (Crests können enger sein).
  */
 export function openingLayout(geometry: FrameGeometry): {
   widthRatio: number;
@@ -172,7 +173,9 @@ export function openingLayout(geometry: FrameGeometry): {
   return {
     widthRatio,
     heightRatio,
-    holeRatio: Math.max(widthRatio, heightRatio),
+    // Kreisförmiger Avatar muss die horizontale Öffnung füllen;
+    // oben/unten decken Crests den Avatar ab — kein Sichtspalt.
+    holeRatio: widthRatio,
     offsetYRatio: geometry.verticalOffset / FRAME_SOURCE_SIZE,
   };
 }
@@ -207,8 +210,10 @@ export function resolveFrameSrcSet(frameKey: string | null | undefined): string 
 }
 
 /**
- * Avatar- und Öffnungsmaße in CSS-Pixeln für eine Anzeigegröße.
- * Avatar ≈ 85–90 % der inneren Kreisöffnung; Rahmen-Box +8–12 % vs. zuvor.
+ * Avatar- und Öffnungsmaße.
+ *
+ * Ursache des schwarzen Rings: Avatar < Alpha-Loch → Hintergrund scheint durch.
+ * Deshalb: Avatar = Loch × HOLE_DISPLAY_SCALE (vollständig füllen, leicht unters Metall).
  */
 export function frameAvatarLayout(
   frameKey: string | null | undefined,
@@ -222,13 +227,15 @@ export function frameAvatarLayout(
   const box = FRAME_DISPLAY_PX[size];
   const geometry = getFrameGeometry(frameKey);
   if (!geometry) {
-    const holePx = box * 0.72 * HOLE_DISPLAY_SCALE;
-    const avatarPx = Math.round(holePx * AVATAR_FILL_RATIO);
+    const holePx = box * 0.72;
+    const avatarPx = Math.round(holePx * HOLE_DISPLAY_SCALE * AVATAR_FILL_RATIO);
     return { box, holePx, avatarPx, offsetY: 0 };
   }
   const layout = openingLayout(geometry);
-  const holePx = box * layout.holeRatio * HOLE_DISPLAY_SCALE;
-  const avatarPx = Math.round(Math.min(holePx * AVATAR_FILL_RATIO, box * 0.7));
+  // holeRatio = horizontale Alpha-Öffnung (pixelvermessen); Crests oben/unten
+  // überdecken den kreisförmigen Avatar — gewollt, kein Spalt links/rechts.
+  const holePx = box * layout.holeRatio;
+  const avatarPx = Math.round(holePx * HOLE_DISPLAY_SCALE * AVATAR_FILL_RATIO);
   const offsetY = Math.round(box * layout.offsetYRatio);
   return { box, holePx, avatarPx, offsetY };
 }

@@ -1,6 +1,6 @@
-/* Premium metal polish — frame PNG pixels only (no mask, no beam fill).
-   Soft specular: duplicate frame brightens briefly, then long pause.
-   Transparent PNG areas never paint → no card / avatar leak. */
+/* Luxury watch specular — white-metal catch on FRAME PIXELS ONLY.
+   Root cause of invisible shimmer: CSS mask-image + WebP → transparent mask on iOS.
+   Fix: animate a brightened duplicate of the frame asset (alpha keeps the hole clean). */
 
 .rank-frame-layer {
   pointer-events: none;
@@ -33,7 +33,6 @@
   overflow: hidden;
 }
 
-/* Same frame asset — only opaque metal/ornament pixels can brighten. */
 .rank-frame-sheen-asset {
   position: absolute;
   inset: 0;
@@ -43,27 +42,38 @@
   object-fit: contain;
   object-position: center;
   opacity: 0;
+  /* Soft specular boost — only opaque frame metal/ornament paints */
+  filter: brightness(1.85) contrast(1.05);
+  /* ~30° diagonal band via polygon (image stays registered) */
+  clip-path: polygon(-35% -10%, -12% -10%, 8% 110%, -15% 110%);
   animation: rank-frame-sheen 7s ease-in-out infinite;
 }
 
 /*
-  Freshly polished metal: short soft catch (~0.9s), then ~5s rest.
-  No scanner band, no laser, no blink spam.
+  Narrow light catch sweeps the metal, then rests.
+  No scanner fill, no glow bloom, no card paint (PNG alpha).
 */
 @keyframes rank-frame-sheen {
   0%,
-  68% {
+  62% {
     opacity: 0;
+    clip-path: polygon(-40% -10%, -16% -10%, 4% 110%, -20% 110%);
   }
-  72% {
-    opacity: 0.42;
+  68% {
+    opacity: 0.7;
   }
-  76% {
-    opacity: 0.28;
+  74% {
+    opacity: 0.55;
+    clip-path: polygon(28% -10%, 52% -10%, 72% 110%, 48% 110%);
   }
-  82%,
+  82% {
+    opacity: 0;
+    clip-path: polygon(88% -10%, 112% -10%, 132% 110%, 108% 110%);
+  }
+  83%,
   100% {
     opacity: 0;
+    clip-path: polygon(-40% -10%, -16% -10%, 4% 110%, -20% 110%);
   }
 }
 
@@ -71,5 +81,6 @@
   .rank-frame-sheen-asset {
     animation: none !important;
     opacity: 0 !important;
+    filter: none !important;
   }
 }

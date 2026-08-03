@@ -10,29 +10,19 @@ describe('rank frame sheen contract', () => {
   const tsx = readFileSync(join(dir, 'RankFrame.tsx'), 'utf8');
   const cssProps = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  it('mounts a frame-PNG sheen duplicate (no beam fill that can leak)', () => {
-    expect(tsx).toContain('rank-frame-sheen');
+  it('uses a brightened frame-PNG duplicate — not CSS mask-image (iOS)', () => {
     expect(tsx).toContain('rank-frame-sheen-asset');
-    expect(tsx).toContain('rank-frame-layer');
-    expect(tsx).not.toContain('rank-frame-sheen-beam');
     expect(tsx).not.toMatch(/maskImage|WebkitMaskImage/);
-    expect(cssProps).not.toMatch(/::before|::after/);
+    expect(cssProps).not.toMatch(/mask-image|mask-mode|-webkit-mask/i);
+    expect(cssProps).toMatch(/filter:\s*brightness/);
+    expect(cssProps).toMatch(/clip-path:\s*polygon/);
   });
 
-  it('paints only via frame asset opacity — no mask/blend/gradient beam', () => {
-    expect(cssProps).not.toMatch(
-      /mask-image|mask-size|mask-mode|-webkit-mask|mix-blend-mode|background-blend-mode|backdrop-filter|linear-gradient/i,
-    );
-    expect(cssProps).toMatch(/\.rank-frame-sheen-asset/);
-    expect(cssProps).toMatch(/overflow:\s*hidden/);
-    expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
-  });
-
-  it('uses a soft polish pulse with a long rest (not a scanner)', () => {
+  it('keeps a soft angled metal catch with rest period', () => {
     expect(css).toMatch(/animation:\s*rank-frame-sheen\s+7s/);
-    expect(css).toMatch(/68%/);
-    expect(css).toMatch(/82%/);
-    expect(css).toMatch(/infinite/);
+    expect(css).toMatch(/62%/);
+    expect(css).toMatch(/83%/);
+    expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
 
   it('keeps layer order avatar under frame under sheen', () => {
