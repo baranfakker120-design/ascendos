@@ -1,7 +1,6 @@
 /**
- * Future Ascent Vision contracts for chat screenshots.
- * No model wiring — Coach COO can call these later.
- * Complements @shared/lib/shareVerification without changing AP logic.
+ * Future Ascent Vision contracts for chat screenshots & documents.
+ * Architecture only — no OpenAI / model wiring.
  */
 
 export type VisionChatChannel =
@@ -13,6 +12,9 @@ export type VisionChatChannel =
   | 'sms'
   | 'email'
   | 'imessage'
+  | 'document'
+  | 'invoice'
+  | 'presentation_screenshot'
   | 'unknown';
 
 export interface VisionScreenshotSummary {
@@ -28,6 +30,12 @@ export interface VisionScreenshotSummary {
   repliesDetected: boolean | null;
   questionsDetected: string[];
   objectionsDetected: string[];
+  /** Future coach answers derived from the screenshot. */
+  presentationAlreadySent: boolean | null;
+  askedAboutPrice: boolean | null;
+  appearsInterested: boolean | null;
+  appearsRejected: boolean | null;
+  daysSinceLastReply: number | null;
   conversationSummary: string;
   confidence: number;
   /** Low confidence must stay pending — never auto-award AP. */
@@ -42,6 +50,10 @@ export interface AscentVisionAnalyzer {
     expectedPresentationUrl?: string;
     expectedBusinessFitUrl?: string;
   }): Promise<VisionScreenshotSummary>;
+  analyzeDocument?(input: {
+    imageDataUrl: string;
+    kindHint?: 'invoice' | 'document' | 'presentation_screenshot';
+  }): Promise<VisionScreenshotSummary>;
 }
 
 export class PendingAscentVisionAnalyzer implements AscentVisionAnalyzer {
@@ -54,24 +66,45 @@ export class PendingAscentVisionAnalyzer implements AscentVisionAnalyzer {
     expectedBusinessFitUrl?: string;
   }): Promise<VisionScreenshotSummary> {
     void input;
+    return emptySummary();
+  }
+
+  async analyzeDocument(input: {
+    imageDataUrl: string;
+    kindHint?: 'invoice' | 'document' | 'presentation_screenshot';
+  }): Promise<VisionScreenshotSummary> {
+    void input;
     return {
-      channel: 'unknown',
-      recipientHint: null,
-      detectedNames: [],
-      detectedDates: [],
-      detectedTimes: [],
-      detectedLinks: [],
-      hasPresentationLink: false,
-      hasOnboardingLink: false,
-      hasBusinessFitLink: false,
-      repliesDetected: null,
-      questionsDetected: [],
-      objectionsDetected: [],
-      conversationSummary: 'Vision analysis not configured yet.',
-      confidence: 0,
-      suggestedApStatus: 'pending_review',
+      ...emptySummary(),
+      channel: input.kindHint === 'invoice' ? 'invoice' : (input.kindHint ?? 'document'),
+      conversationSummary: 'Document vision not configured yet.',
     };
   }
+}
+
+function emptySummary(): VisionScreenshotSummary {
+  return {
+    channel: 'unknown',
+    recipientHint: null,
+    detectedNames: [],
+    detectedDates: [],
+    detectedTimes: [],
+    detectedLinks: [],
+    hasPresentationLink: false,
+    hasOnboardingLink: false,
+    hasBusinessFitLink: false,
+    repliesDetected: null,
+    questionsDetected: [],
+    objectionsDetected: [],
+    presentationAlreadySent: null,
+    askedAboutPrice: null,
+    appearsInterested: null,
+    appearsRejected: null,
+    daysSinceLastReply: null,
+    conversationSummary: 'Vision analysis not configured yet.',
+    confidence: 0,
+    suggestedApStatus: 'pending_review',
+  };
 }
 
 export const defaultAscentVisionAnalyzer: AscentVisionAnalyzer = new PendingAscentVisionAnalyzer();
