@@ -22,6 +22,7 @@ import { filterTreeNodes } from './genealogyUtils';
 import { GenealogyList } from './components/GenealogyList';
 import { GenealogyToolbar } from './components/GenealogyToolbar';
 import { GenealogyViewport } from './components/GenealogyViewport';
+import { GenealogyViewerShell } from './components/GenealogyViewerShell';
 import { NodeDetailContent } from './components/NodeDetailContent';
 import type { GenealogyFilter, GenealogyNode } from './types';
 import './team-page.css';
@@ -164,7 +165,7 @@ export function TeamPage() {
       </header>
 
       {showOps ? (
-        <div className="max-h-[42vh] shrink-0 space-y-2.5 overflow-y-auto pr-0.5">
+        <div className="max-h-[28dvh] shrink-0 space-y-2.5 overflow-y-auto pr-0.5">
           <LeaderDashboardStrip data={dash.data} loading={dash.isPending} />
           <TeamLeaderProgressCard progress={tlProgress.data} />
           <TeamInsightsStrip items={insights.data ?? []} onSelect={selectById} />
@@ -174,35 +175,42 @@ export function TeamPage() {
         </div>
       ) : null}
 
-      <GenealogyToolbar
-        search={search}
-        onSearch={setSearch}
-        filter={filter}
-        onFilter={setFilter}
-        mode={mode}
-        onMode={setMode}
-        count={visibleIds.size}
-      />
-
-      {mode === 'tree' ? (
-        <GenealogyViewport
-          nodes={nodes}
-          visibleIds={visibleIds}
-          collapsed={collapsed}
-          selectedId={selected?.membershipId ?? null}
-          onSelect={setSelected}
-          onToggleCollapse={onToggleCollapse}
+      <GenealogyViewerShell
+        memberCount={visibleIds.size}
+        title="User Tree"
+        expandable={mode === 'tree'}
+        tree={
+          mode === 'tree' ? (
+            <GenealogyViewport
+              nodes={nodes}
+              visibleIds={visibleIds}
+              collapsed={collapsed}
+              selectedId={selected?.membershipId ?? null}
+              onSelect={setSelected}
+              onToggleCollapse={onToggleCollapse}
+            />
+          ) : (
+            <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+              <GenealogyList
+                nodes={nodes}
+                visibleIds={visibleIds}
+                selectedId={selected?.membershipId ?? null}
+                onSelect={setSelected}
+              />
+            </div>
+          )
+        }
+      >
+        <GenealogyToolbar
+          search={search}
+          onSearch={setSearch}
+          filter={filter}
+          onFilter={setFilter}
+          mode={mode}
+          onMode={setMode}
+          count={visibleIds.size}
         />
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto pb-2">
-          <GenealogyList
-            nodes={nodes}
-            visibleIds={visibleIds}
-            selectedId={selected?.membershipId ?? null}
-            onSelect={setSelected}
-          />
-        </div>
-      )}
+      </GenealogyViewerShell>
 
       <BottomSheet
         open={!!selected}
