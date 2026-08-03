@@ -4,6 +4,7 @@ export type {
   AutomationPreference,
   BranchHealthAssessment,
   BranchHealthGrade,
+  CeoRecommendationMemory,
   CoachMemoryEntry,
   CoachOrgIntelligence,
   CoachPriorityInsight,
@@ -12,6 +13,7 @@ export type {
   DailyCeoBriefing,
   EveningReport,
   FollowUpRecommendation,
+  ManagerMessage,
   MessageDraft,
   MessageDraftKind,
   OnboardingLifecycleItem,
@@ -26,6 +28,7 @@ export {
   buildDailyCeoBriefing,
   buildEveningReport,
   buildFollowUpRecommendations,
+  buildManagerMessages,
   buildOnboardingLifecycle,
   buildPersonInsight,
   buildPriorities,
@@ -44,8 +47,15 @@ export {
   setAutomationEnabled,
 } from './automation';
 export { forgetCoachFact, listCoachMemory, rememberCoachFact } from './memory';
+export {
+  filterManagerMessagesByMemory,
+  listCeoRecommendationMemory,
+  recordCeoRecommendation,
+  shouldSurfaceRecommendation,
+} from './ceoMemory';
 export { PendingAscentVisionAnalyzer, defaultAscentVisionAnalyzer } from './visionContracts';
 export type { AscentVisionAnalyzer, VisionScreenshotSummary } from './visionContracts';
+export { mapGenealogyNodeToPartner } from './mapGenealogyPartner';
 export { CoachBriefingPanel } from './CoachBriefingPanel';
 export { CoachPersonInsightBubble } from './CoachPersonInsightBubble';
 export { findPersonInsight, useCoachOrgIntelligence } from './useCoachOrgIntelligence';

@@ -1,5 +1,11 @@
-import { useId, useState } from 'react';
-import type { BranchHealthGrade, CoachOrgIntelligence, CoachPriorityInsight } from './types';
+import { useEffect, useId, useState } from 'react';
+import { filterManagerMessagesByMemory, recordCeoRecommendation } from './ceoMemory';
+import type {
+  BranchHealthGrade,
+  CoachOrgIntelligence,
+  CoachPriorityInsight,
+  ManagerMessage,
+} from './types';
 
 const GRADE_COPY: Record<BranchHealthGrade, string> = {
   excellent: 'Excellent',
@@ -24,6 +30,18 @@ interface Props {
 export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAbout }: Props) {
   const titleId = useId();
   const [open, setOpen] = useState(true);
+
+  const managerMessages: ManagerMessage[] = intelligence
+    ? filterManagerMessagesByMemory(intelligence.managerMessages)
+    : [];
+
+  useEffect(() => {
+    for (const m of managerMessages.slice(0, 3)) {
+      recordCeoRecommendation(m.id, m.text, 'shown');
+    }
+    // Only when intelligence identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intelligence?.generatedAt]);
 
   if (isLoading && !intelligence) {
     return (
@@ -73,6 +91,20 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
             ))}
           </ul>
 
+          {managerMessages.length > 0 ? (
+            <div className="space-y-1.5 rounded-xl border border-accent/20 bg-accent/5 px-2.5 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-accent-deep">
+                Geschäftsführer-Hinweis
+              </p>
+              {managerMessages.slice(0, 3).map((m) => (
+                <div key={m.id}>
+                  <p className="text-sm font-medium leading-snug text-ink">{m.text}</p>
+                  <p className="text-xs text-muted">Warum: {m.why}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           {isMorning ? (
             <ul className="space-y-1 text-xs">
               {intelligence.briefing.yesterdaySummary.slice(0, 4).map((line) => (
@@ -107,7 +139,7 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
                 <div key={p.id} className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium leading-snug">{p.title}</p>
-                    <p className="text-xs text-muted">{p.why}</p>
+                    <p className="text-xs text-muted">Warum: {p.why}</p>
                   </div>
                   {onAskAbout ? (
                     <button

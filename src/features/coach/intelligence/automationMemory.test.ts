@@ -7,6 +7,11 @@ import {
   logAutomationEvent,
   setAutomationEnabled,
 } from './automation';
+import {
+  filterManagerMessagesByMemory,
+  recordCeoRecommendation,
+  shouldSurfaceRecommendation,
+} from './ceoMemory';
 import { forgetCoachFact, listCoachMemory, rememberCoachFact } from './memory';
 import { PendingAscentVisionAnalyzer } from './visionContracts';
 
@@ -59,6 +64,18 @@ describe('coach automation + memory + vision stubs', () => {
     expect(listCoachMemory({ contactId: 'c1' })).toHaveLength(0);
   });
 
+  it('tracks CEO recommendation memory and avoids nagging', () => {
+    recordCeoRecommendation('tip-1', 'Call Seyda', 'shown');
+    expect(shouldSurfaceRecommendation('tip-1', 'medium')).toBe(false);
+    expect(shouldSurfaceRecommendation('tip-1', 'critical')).toBe(true);
+    expect(
+      filterManagerMessagesByMemory([
+        { id: 'tip-1', severity: 'medium' as const },
+        { id: 'tip-2', severity: 'high' as const },
+      ])
+    ).toEqual([{ id: 'tip-2', severity: 'high' }]);
+  });
+
   it('never auto-verifies screenshots via vision stub', async () => {
     const vision = new PendingAscentVisionAnalyzer();
     const summary = await vision.analyzeChatScreenshot({
@@ -66,5 +83,6 @@ describe('coach automation + memory + vision stubs', () => {
     });
     expect(summary.confidence).toBe(0);
     expect(summary.suggestedApStatus).toBe('pending_review');
+    expect(summary.presentationAlreadySent).toBeNull();
   });
 });

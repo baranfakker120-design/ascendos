@@ -1,5 +1,12 @@
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import type { CSSProperties } from 'react';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  CoachPersonInsightBubble,
+  buildPersonInsight,
+  mapGenealogyNodeToPartner,
+} from '@features/coach/intelligence';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { displayName, isNewPartner, isOnline, presenceLabel } from '../genealogyUtils';
 import type { GenealogyNode } from '../types';
@@ -27,6 +34,7 @@ export function TeamNodeCard({
   onToggleCollapse,
   style,
 }: TeamNodeCardProps) {
+  const navigate = useNavigate();
   const frameKey = resolveDisplayFrameKey({
     role: node.role,
     rankFrameKey: node.frameAsset,
@@ -35,6 +43,21 @@ export function TeamNodeCard({
   const online = isOnline(node);
   const isNew = isNewPartner(node);
   const gold = node.isBeraterDesMonats;
+  const coachInsight = useMemo(
+    () => buildPersonInsight(mapGenealogyNodeToPartner(node), new Date()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recompute when node identity/metrics change
+    [
+      node.membershipId,
+      node.apTotal,
+      node.icpMonth,
+      node.streakDays,
+      node.lastAppOpenedAt,
+      node.directCount,
+      node.joinedAt,
+      node.firstName,
+      node.lastName,
+    ]
+  );
 
   return (
     <article
@@ -61,6 +84,21 @@ export function TeamNodeCard({
       aria-label={`${displayName(node)}, ${node.rankLabel ?? 'Rang'}${editable ? '' : ', nur Ansicht'}`}
     >
       <div className="team-node__glow" aria-hidden />
+      <div
+        className="team-node__coach"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <CoachPersonInsightBubble
+          insight={coachInsight}
+          onAsk={() => {
+            const name = displayName(node);
+            navigate(
+              `/coach?partner=${encodeURIComponent(name)}&mid=${encodeURIComponent(node.membershipId)}`
+            );
+          }}
+        />
+      </div>
       <div className="team-node__head">
         <div
           className={['team-node__avatar-wrap', editable ? 'is-editable' : 'is-readonly'].join(' ')}

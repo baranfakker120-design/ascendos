@@ -8,12 +8,7 @@ import { Input } from '@shared/ui/Input';
 import { CoachBubble, UserBubble } from './CoachBubbles';
 import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
-import {
-  CoachBriefingPanel,
-  buildMessageDraft,
-  findPersonInsight,
-  useCoachOrgIntelligence,
-} from './intelligence';
+import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from './intelligence';
 import './coach-chat.css';
 
 const CHIPS = [
@@ -172,12 +167,21 @@ export function CoachPage() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               Analyse · {partnerInsight.name}
             </p>
-            <p className="mt-0.5 text-sm font-semibold">{partnerInsight.headline}</p>
-            <ul className="mt-1 space-y-0.5 text-xs text-muted">
-              {partnerInsight.bullets.slice(0, 3).map((b) => (
-                <li key={b}>· {b}</li>
-              ))}
-            </ul>
+            <p className="mt-0.5 text-sm font-semibold">{partnerInsight.currentSituation}</p>
+            <p className="mt-2 text-xs font-medium text-ink">{partnerInsight.nextBestAction}</p>
+            <p className="mt-0.5 text-xs text-muted">Warum: {partnerInsight.nextBestActionWhy}</p>
+            {partnerInsight.possibleObjection ? (
+              <p className="mt-1 text-xs text-muted">
+                Möglicher Einwand: {partnerInsight.possibleObjection}
+              </p>
+            ) : null}
+            <p className="mt-2 whitespace-pre-wrap text-xs text-ink">
+              {partnerInsight.suggestedWhatsApp}
+            </p>
+            <p className="mt-2 text-xs text-muted">
+              Reg. {partnerInsight.probabilityOfRegistration}% · Inaktiv{' '}
+              {partnerInsight.probabilityOfInactivity}% · Risiko {partnerInsight.riskScore}
+            </p>
             {partnerInsight.recommendation ? (
               <Button
                 type="button"
@@ -185,20 +189,8 @@ export function CoachPage() {
                 size="sm"
                 className="mt-2"
                 onClick={() => {
-                  const kind =
-                    partnerInsight.recommendation === 'onboarding'
-                      ? 'onboarding'
-                      : partnerInsight.recommendation === 'reactivation'
-                        ? 'reactivation'
-                        : partnerInsight.recommendation === 'recognition' ||
-                            partnerInsight.recommendation === 'congratulation'
-                          ? 'recognition'
-                          : 'follow_up';
-                  const draft = buildMessageDraft(kind, {
-                    firstName: partnerInsight.name.split(' ')[0] ?? partnerInsight.name,
-                  });
                   setInput(
-                    `Bitte prüfe und verbessere diese Nachricht an ${partnerInsight.name} bevor ich sende:\n\n${draft.body}`
+                    `Bitte prüfe und verbessere diese Nachricht an ${partnerInsight.name} bevor ich sende:\n\n${partnerInsight.suggestedWhatsApp}`
                   );
                 }}
               >

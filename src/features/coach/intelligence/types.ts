@@ -153,6 +153,7 @@ export interface DailyCeoBriefing {
   priorities: CoachPriorityInsight[];
   highestPriority: CoachPriorityInsight | null;
   teamHealth: BranchHealthAssessment;
+  managerMessages: ManagerMessage[];
 }
 
 export interface EveningReport {
@@ -163,6 +164,15 @@ export interface EveningReport {
   missedOpportunities: string[];
   tomorrowPriorities: string[];
   teamHealth: BranchHealthAssessment;
+  managerMessages: ManagerMessage[];
+}
+
+/** Proactive Geschäftsführer notes — recommendations only, never auto-actions. */
+export interface ManagerMessage {
+  id: string;
+  text: string;
+  why: string;
+  severity: InsightSeverity;
 }
 
 export interface PersonCoachInsight {
@@ -172,6 +182,17 @@ export interface PersonCoachInsight {
   bullets: string[];
   recommendation: CoachRecommendationKind | null;
   severity: InsightSeverity;
+  currentSituation: string;
+  nextBestAction: string;
+  nextBestActionWhy: string;
+  possibleObjection: string | null;
+  suggestedWhatsApp: string;
+  probabilityOfRegistration: number;
+  probabilityOfInactivity: number;
+  riskScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  sponsorRecommendation: string;
 }
 
 export interface OnboardingLifecycleItem {
@@ -230,6 +251,17 @@ export interface CoachMemoryEntry {
   createdAt: string;
 }
 
+export type CeoMemoryOutcome = 'shown' | 'ignored' | 'solved' | 'improved';
+
+export interface CeoRecommendationMemory {
+  id: string;
+  recommendationKey: string;
+  text: string;
+  outcome: CeoMemoryOutcome;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CoachOrgIntelligence {
   generatedAt: string;
   briefing: DailyCeoBriefing;
@@ -240,6 +272,7 @@ export interface CoachOrgIntelligence {
   personInsights: PersonCoachInsight[];
   onboarding: OnboardingLifecycleItem[];
   followUps: FollowUpRecommendation[];
+  managerMessages: ManagerMessage[];
   /** High-value only — max handful for UI. */
   surfaceInsights: CoachPriorityInsight[];
 }

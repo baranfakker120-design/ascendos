@@ -108,6 +108,8 @@ describe('coach COO intelligence', () => {
     expect(intel.briefing.highestPriority).toBeTruthy();
     expect(intel.surfaceInsights.length).toBeGreaterThan(0);
     expect(intel.surfaceInsights.length).toBeLessThanOrEqual(4);
+    expect(intel.managerMessages.length).toBeGreaterThan(0);
+    expect(intel.managerMessages.every((m) => m.why.length > 0)).toBe(true);
   });
 
   it('detects hot and forgotten contacts', () => {
@@ -116,7 +118,7 @@ describe('coach COO intelligence', () => {
     expect(fus.some((f) => f.heat === 'forgotten')).toBe(true);
   });
 
-  it('analyzes a single partner without genealogy UI', () => {
+  it('analyzes a single partner with WHY and probabilities', () => {
     const insight = buildPersonInsight(
       partner({
         membershipId: 'm1',
@@ -127,6 +129,10 @@ describe('coach COO intelligence', () => {
     );
     expect(insight.headline.toLowerCase()).toContain('inaktiv');
     expect(insight.recommendation).toBe('reactivation');
+    expect(insight.nextBestActionWhy.toLowerCase()).toContain('weil');
+    expect(insight.suggestedWhatsApp.length).toBeGreaterThan(10);
+    expect(insight.riskScore).toBeGreaterThan(0);
+    expect(insight.probabilityOfInactivity).toBeGreaterThan(50);
   });
 
   it('keeps message drafts sponsor-approved only', () => {

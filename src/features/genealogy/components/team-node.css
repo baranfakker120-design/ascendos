@@ -62,6 +62,13 @@
   background: radial-gradient(circle at 50% 0%, rgb(255 255 255 / 0.7), transparent 65%);
 }
 
+.team-node__coach {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+}
+
 .team-node__head {
   position: relative;
   display: flex;
