@@ -48,6 +48,8 @@ function linkifyText(text: string): Array<string | JSX.Element> {
 export function CoachPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const contactId = searchParams.get('kontakt');
+  const partnerName = searchParams.get('partner');
+  const partnerMid = searchParams.get('mid');
   const conversationId = searchParams.get('c');
   const { data: contact } = useCoachContact(contactId);
 
@@ -163,6 +165,15 @@ export function CoachPage() {
             <p className="mt-0.5 text-xs text-muted">
               Phase, letzte Ereignisse und dein geplanter nächster Schritt werden automatisch
               mitgegeben — du musst nichts erklären.
+            </p>
+          </Card>
+        ) : partnerName ? (
+          <Card padding="sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">Team-Kontext</p>
+            <p className="mt-0.5 text-sm font-semibold">{partnerName}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              Frag z. B.: „Wie helfe ich {partnerName} heute?“ — Ascent nutzt deinen Leadership-
+              Kontext{partnerMid ? ' und die Teamstruktur' : ''}.
             </p>
           </Card>
         ) : null}

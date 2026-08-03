@@ -23,6 +23,11 @@ function node(
     lastAppOpenedAt: null,
     isBeraterDesMonats: false,
     joinedAt: new Date().toISOString(),
+    icpMonth: 0,
+    streakDays: 0,
+    isFavorite: false,
+    sponsorName: null,
+    messageBadge: 0,
     ...partial,
   };
 }

@@ -23,6 +23,11 @@ interface RpcRow {
   last_app_opened_at: string;
   is_berater_des_monats: boolean;
   joined_at: string;
+  icp_month?: number;
+  streak_days?: number;
+  is_favorite?: boolean;
+  sponsor_name?: string;
+  message_badge?: number;
 }
 
 function mapRow(row: RpcRow): GenealogyNode {
@@ -46,6 +51,11 @@ function mapRow(row: RpcRow): GenealogyNode {
     lastAppOpenedAt: row.last_app_opened_at || null,
     isBeraterDesMonats: row.is_berater_des_monats,
     joinedAt: row.joined_at,
+    icpMonth: row.icp_month ?? 0,
+    streakDays: row.streak_days ?? 0,
+    isFavorite: Boolean(row.is_favorite),
+    sponsorName: row.sponsor_name || null,
+    messageBadge: row.message_badge ?? 0,
   };
 }
 

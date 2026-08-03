@@ -106,8 +106,20 @@ export function MorePage() {
       <Link to="/team" className="block">
         <Card className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">Teambaum</p>
-            <p className="mt-0.5 text-sm text-muted">Struktur, Ränge und Aktivität</p>
+            <p className="font-semibold">Führungszentrum</p>
+            <p className="mt-0.5 text-sm text-muted">Dashboard, Insights, Teambaum</p>
+          </div>
+          <span className="text-primary" aria-hidden>
+            →
+          </span>
+        </Card>
+      </Link>
+
+      <Link to="/qualifikationen" className="block">
+        <Card className="flex items-center justify-between">
+          <div>
+            <p className="font-semibold">Qualifikationen</p>
+            <p className="mt-0.5 text-sm text-muted">Rang, TeamLeader, 100 € Bonus</p>
           </div>
           <span className="text-primary" aria-hidden>
             →
