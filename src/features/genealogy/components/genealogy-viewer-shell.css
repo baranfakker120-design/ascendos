@@ -1,0 +1,298 @@
+/* Compact / fullscreen shell for the genealogy viewer only.
+   Keeps one tree instance mounted — expand is CSS layout, not remount. */
+
+.genealogy-viewer-shell {
+  --gvs-radius: 1.25rem;
+  --gvs-spring: cubic-bezier(0.22, 1.15, 0.36, 1);
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.genealogy-viewer-shell__spacer {
+  flex-shrink: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.genealogy-viewer-shell__panel {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.55rem;
+  overflow: hidden;
+}
+
+/* —— Compact: ~42–45% of the screen —— */
+.genealogy-viewer-shell--compact .genealogy-viewer-shell__panel {
+  height: 45dvh;
+  min-height: 42dvh;
+  max-height: 48dvh;
+  flex: 0 0 auto;
+}
+
+.genealogy-viewer-shell--compact .genealogy-viewer-shell__body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--gvs-radius);
+}
+
+.genealogy-viewer-shell--compact .genealogy-viewer-shell__body > .genealogy-viewport {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+/* —— Expanded: near-fullscreen glass modal —— */
+.genealogy-viewer-shell__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  background: rgb(17 18 20 / 0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: gvs-backdrop-in 0.28s ease-out both;
+}
+
+.genealogy-viewer-shell--expanded .genealogy-viewer-shell__panel {
+  position: fixed;
+  z-index: 56;
+  inset: max(0.55rem, env(safe-area-inset-top, 0px)) max(0.55rem, env(safe-area-inset-right, 0px))
+    max(0.55rem, env(safe-area-inset-bottom, 0px)) max(0.55rem, env(safe-area-inset-left, 0px));
+  height: auto;
+  max-height: none;
+  gap: 0;
+  padding: 0.7rem 0.7rem 0.55rem;
+  border-radius: calc(var(--gvs-radius) + 0.15rem);
+  border: 1px solid rgb(255 255 255 / 0.62);
+  background:
+    linear-gradient(165deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.78) 48%, rgb(248 247 245 / 0.88));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 28px 64px rgb(17 18 20 / 0.18),
+    0 8px 24px rgb(17 18 20 / 0.08);
+  backdrop-filter: blur(22px) saturate(1.15);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  transform-origin: 50% 42%;
+  animation: gvs-spring-in 0.48s var(--gvs-spring) both;
+}
+
+.genealogy-viewer-shell--expanded.is-closing .genealogy-viewer-shell__panel {
+  animation: gvs-spring-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.genealogy-viewer-shell--expanded.is-closing .genealogy-viewer-shell__backdrop {
+  animation: gvs-backdrop-out 0.28s ease-in both;
+}
+
+.genealogy-viewer-shell__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.1rem 0.15rem 0.55rem;
+  touch-action: none;
+  cursor: grab;
+}
+
+.genealogy-viewer-shell__header:active {
+  cursor: grabbing;
+}
+
+.genealogy-viewer-shell__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgb(17 18 20);
+  line-height: 1.2;
+}
+
+.genealogy-viewer-shell__count {
+  font-weight: 600;
+  color: rgb(110 112 117);
+}
+
+.genealogy-viewer-shell__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid rgb(17 18 20 / 0.08);
+  background: rgb(255 255 255 / 0.75);
+  color: rgb(17 18 20);
+  font-size: 1.05rem;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgb(17 18 20 / 0.06);
+  transition:
+    transform 0.2s var(--gvs-spring),
+    background 0.15s ease;
+}
+
+.genealogy-viewer-shell__close:hover {
+  background: rgb(255 255 255 / 0.95);
+}
+
+.genealogy-viewer-shell__close:active {
+  transform: scale(0.94);
+}
+
+.genealogy-viewer-shell__close:focus-visible {
+  outline: 2px solid rgb(184 147 90);
+  outline-offset: 2px;
+}
+
+.genealogy-viewer-shell--expanded .genealogy-viewer-shell__chrome {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.genealogy-viewer-shell--expanded .genealogy-viewer-shell__body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.05rem;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  background: rgb(255 255 255 / 0.35);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.65) inset;
+}
+
+.genealogy-viewer-shell--expanded .genealogy-viewer-shell__body > .genealogy-viewport {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 1.05rem;
+  box-shadow: none;
+}
+
+.genealogy-viewer-shell__hint {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.35rem 0.25rem 0.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgb(110 112 117 / 0.95);
+}
+
+/* Floating expand control — top-right of the compact genealogy viewport */
+.genealogy-viewer-shell__expand {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  background: rgb(255 255 255 / 0.82);
+  color: rgb(17 18 20);
+  font-size: 1.05rem;
+  line-height: 1;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 10px 24px rgb(17 18 20 / 0.12);
+  transition:
+    transform 0.22s var(--gvs-spring),
+    background 0.15s ease;
+}
+
+.genealogy-viewer-shell__expand:hover {
+  background: rgb(255 255 255 / 0.95);
+}
+
+.genealogy-viewer-shell__expand:active {
+  transform: scale(0.94);
+}
+
+.genealogy-viewer-shell__expand:focus-visible {
+  outline: 2px solid rgb(184 147 90);
+  outline-offset: 2px;
+}
+
+.genealogy-viewer-shell--expanded .genealogy-viewer-shell__expand {
+  display: none;
+}
+
+@keyframes gvs-spring-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.965);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.008);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gvs-spring-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+
+@keyframes gvs-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gvs-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .genealogy-viewer-shell--expanded .genealogy-viewer-shell__panel,
+  .genealogy-viewer-shell--expanded.is-closing .genealogy-viewer-shell__panel,
+  .genealogy-viewer-shell__backdrop,
+  .genealogy-viewer-shell--expanded.is-closing .genealogy-viewer-shell__backdrop {
+    animation: none;
+  }
+}
