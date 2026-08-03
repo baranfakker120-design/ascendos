@@ -1120,6 +1120,7 @@ export type Database = {
           id: string;
           identity_id: string;
           joined_at: string;
+          last_app_opened_at: string | null;
           left_at: string | null;
           org_id: string;
           role: string;
@@ -1136,6 +1137,7 @@ export type Database = {
           id?: string;
           identity_id: string;
           joined_at?: string;
+          last_app_opened_at?: string | null;
           left_at?: string | null;
           org_id: string;
           role?: string;
@@ -1152,6 +1154,7 @@ export type Database = {
           id?: string;
           identity_id?: string;
           joined_at?: string;
+          last_app_opened_at?: string | null;
           left_at?: string | null;
           org_id?: string;
           role?: string;
@@ -2026,6 +2029,30 @@ export type Database = {
         Returns: {
           depth: number;
           user_id: string;
+        }[];
+      };
+      get_genealogy_tree: {
+        Args: { p_root_identity?: string };
+        Returns: {
+          ap_total: number;
+          avatar_url: string;
+          depth: number;
+          direct_count: number;
+          first_name: string;
+          frame_asset: string;
+          identity_id: string;
+          is_berater_des_monats: boolean;
+          joined_at: string;
+          last_app_opened_at: string;
+          last_name: string;
+          membership_id: string;
+          phone: string;
+          rank_key: string;
+          rank_label: string;
+          role: string;
+          sponsor_membership_id: string;
+          team_count: number;
+          username: string;
         }[];
       };
       is_ancestor_of: { Args: { p_target: string }; Returns: boolean };

@@ -103,6 +103,18 @@ export function MorePage() {
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Mehr</h1>
       </header>
 
+      <Link to="/team" className="block">
+        <Card className="flex items-center justify-between">
+          <div>
+            <p className="font-semibold">Teambaum</p>
+            <p className="mt-0.5 text-sm text-muted">Struktur, Ränge und Aktivität</p>
+          </div>
+          <span className="text-primary" aria-hidden>
+            →
+          </span>
+        </Card>
+      </Link>
+
       <Link to="/team-seyda" className="block">
         <Card className="flex items-center justify-between">
           <div>

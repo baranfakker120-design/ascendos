@@ -1,0 +1,26 @@
+.genealogy-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.genealogy-edges__path {
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-dasharray: 5 7;
+  animation: genealogy-edge-flow 4.5s linear infinite;
+}
+
+@keyframes genealogy-edge-flow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .genealogy-edges__path {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
