@@ -1,20 +1,33 @@
-/* Coach — living conversation, spring physics, Apple typing */
+/* Coach — living conversation, spring physics, centered thread */
+
+.coach-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  /* Reserve scrollbar space so vertical scroll never nudges the column */
+  scrollbar-gutter: stable;
+}
 
 .coach-row {
   display: flex;
   align-items: flex-end;
   gap: 0.7rem;
+  width: 100%;
   max-width: 100%;
+  /* Symmetric gutters — no left/right jump between user and assistant */
+  padding-inline: 0;
+  box-sizing: border-box;
 }
 
 .coach-row--assistant {
   justify-content: flex-start;
-  padding-right: 6%;
 }
 
 .coach-row--user {
   justify-content: flex-end;
-  padding-left: 14%;
 }
 
 .coach-row--in {
@@ -73,10 +86,14 @@
 
 .coach-bubble {
   position: relative;
-  max-width: min(100%, 36rem);
-  padding: 1.05rem 1.2rem 1.1rem;
+  /* Same max width for both sides → column stays visually centered */
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: min(100%, 22.5rem);
+  padding: 1.05rem 1.15rem 1.1rem;
   font-size: 0.95rem;
   line-height: 1.55;
+  overflow-wrap: anywhere;
   word-break: break-word;
   transform-origin: bottom left;
   will-change: transform, opacity;

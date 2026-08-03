@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prepareCoachReading, promoteCalloutLines } from './CoachMarkdown';
+import { prepareCoachReading, promoteCalloutLines } from './coachReading';
 
 describe('CoachMarkdown preparation exports', () => {
   it('promotes next-step lines into blockquote callouts', () => {

@@ -103,15 +103,6 @@ const components: Components = {
   },
 };
 
-export {
-  prepareCoachReading,
-  promoteCalloutLines,
-  prepareCoachMarkdown,
-  promoteTeachingLines,
-  splitLongParagraph,
-  matchTeachingLine,
-} from './coachReading';
-
 export function CoachMarkdown({ content }: { content: string }) {
   const source = prepareCoachReading(content);
   return (

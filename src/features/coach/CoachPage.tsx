@@ -77,8 +77,8 @@ export function CoachPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="space-y-3 pb-3">
+    <div className="flex min-h-0 flex-col gap-3">
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
           <img
             src="/brand/ascendos-symbol-mono-v2.png"
@@ -88,7 +88,7 @@ export function CoachPage() {
           />
           <div>
             <p className="text-lg font-bold leading-tight">Ascent</p>
-            <p className="text-xs text-muted">Dein persönlicher Coach</p>
+            <p className="text-xs text-muted">Dein persönlicher Mentor</p>
           </div>
         </div>
         {contact ? (
@@ -110,7 +110,7 @@ export function CoachPage() {
         ) : null}
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto pb-3">
+      <div className="coach-thread">
         {!messages?.length && !send.isPending ? (
           <CoachBubble>
             <CoachMarkdown
@@ -139,7 +139,7 @@ export function CoachPage() {
 
       <div className="space-y-2 border-t border-line pt-3">
         {!messages?.length ? (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {CHIPS.map((chip) => (
               <Button
                 key={chip.label}
