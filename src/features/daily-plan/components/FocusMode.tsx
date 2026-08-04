@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
 import type { DailyPlanItem } from '@shared/types/domain';
 import { comboBonusAp, scoreDailyMission } from '@shared/lib/apScoring';
@@ -9,6 +8,7 @@ import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { scoreFollowUpGravity, type GravityReading } from '../dayMemory';
 import type { OrderedMissions } from '../missionOrder';
+import { ConversationPrepSheet } from './ConversationPrepSheet';
 import { MISSION_ICONS } from './missionMeta';
 
 interface Props {
@@ -35,6 +35,7 @@ export function FocusMode({
   const { t } = useI18n();
   const { current, queue, resolved } = ordered;
   const [skipPickerFor, setSkipPickerFor] = useState<string | null>(null);
+  const [prepOpen, setPrepOpen] = useState(false);
 
   if (!current) return null;
 
@@ -107,12 +108,13 @@ export function FocusMode({
               </p>
             ) : null}
             {current.contact_id ? (
-              <Link
-                to={`/kontakte/${current.contact_id}`}
+              <button
+                type="button"
                 className="mt-2 inline-block text-sm font-medium text-primary"
+                onClick={() => setPrepOpen(true)}
               >
-                {t('today.openContact')}
-              </Link>
+                {t('today.prepOpenCta')}
+              </button>
             ) : null}
           </div>
         </div>
@@ -216,6 +218,16 @@ export function FocusMode({
             {t('today.endWorkday')}
           </Button>
         </div>
+      ) : null}
+
+      {current.contact_id ? (
+        <ConversationPrepSheet
+          open={prepOpen}
+          contactId={current.contact_id}
+          missionTitle={current.title}
+          missionReason={current.reason}
+          onClose={() => setPrepOpen(false)}
+        />
       ) : null}
     </div>
   );

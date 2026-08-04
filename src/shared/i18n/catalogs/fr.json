@@ -433,7 +433,21 @@
     "gravityPulling": "Gravité en jeu",
     "gravityHeavy": "Gravité forte",
     "gravityCritical": "Gravité critique",
-    "gravityIdle": "{days} jours sans mouvement"
+    "gravityIdle": "{days} jours sans mouvement",
+    "prepTitle": "Préparer l’échange",
+    "prepEyebrow": "Moment of Truth",
+    "prepLoading": "Préparation…",
+    "prepSituation": "Situation",
+    "prepNext": "Prochaine meilleure question",
+    "prepObjection": "Objection possible",
+    "prepEvents": "Événements récents",
+    "prepDraft": "Brouillon — tu envoies",
+    "prepCompliance": "Vérifie avant d’envoyer. AscendOS n’envoie jamais à ta place.",
+    "prepCopy": "Copier le brouillon",
+    "prepCopied": "Copié",
+    "prepAskAscent": "Demander à Ascent",
+    "prepOpenContact": "Ouvrir le contact →",
+    "prepOpenCta": "Préparer l’échange — 8 secondes →"
   },
   "journey": {
     "title": "Ton parcours",

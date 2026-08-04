@@ -433,7 +433,21 @@
     "gravityPulling": "Yerçekimi çekiyor",
     "gravityHeavy": "Ağır yerçekimi",
     "gravityCritical": "Kritik yerçekimi",
-    "gravityIdle": "{days} gündür hareketsiz"
+    "gravityIdle": "{days} gündür hareketsiz",
+    "prepTitle": "Görüşmeye hazırlan",
+    "prepEyebrow": "Moment of Truth",
+    "prepLoading": "Hazırlık yükleniyor…",
+    "prepSituation": "Durum",
+    "prepNext": "Sonraki en iyi soru",
+    "prepObjection": "Olası itiraz",
+    "prepEvents": "Son olaylar",
+    "prepDraft": "Taslak — sen gönderirsin",
+    "prepCompliance": "Göndermeden önce kontrol et. AscendOS senin yerine asla göndermez.",
+    "prepCopy": "Taslağı kopyala",
+    "prepCopied": "Kopyalandı",
+    "prepAskAscent": "Ascent’e sor",
+    "prepOpenContact": "Kişiyi aç →",
+    "prepOpenCta": "Görüşmeye hazırlan — 8 saniye →"
   },
   "journey": {
     "title": "Yolculuğun",

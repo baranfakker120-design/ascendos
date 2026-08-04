@@ -22,6 +22,12 @@ export {
   type GravityReading,
 } from './gravity';
 export {
+  buildConversationPrep,
+  type ConversationPrepInput,
+  type ConversationPrepPack,
+  type PrepEventLine,
+} from './buildConversationPrep';
+export {
   readDayClose,
   readDayOpen,
   readYesterdayClose,

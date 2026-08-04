@@ -433,7 +433,21 @@
     "gravityPulling": "Gravity zieht",
     "gravityHeavy": "Schwere Gravity",
     "gravityCritical": "Kritische Gravity",
-    "gravityIdle": "{days} Tage ohne Bewegung"
+    "gravityIdle": "{days} Tage ohne Bewegung",
+    "prepTitle": "Gespräch vorbereiten",
+    "prepEyebrow": "Moment of Truth",
+    "prepLoading": "Vorbereitung wird geladen …",
+    "prepSituation": "Lage",
+    "prepNext": "Nächste beste Frage",
+    "prepObjection": "Möglicher Einwand",
+    "prepEvents": "Letzte Ereignisse",
+    "prepDraft": "Entwurf — du sendest",
+    "prepCompliance": "Vor dem Senden prüfen. AscendOS sendet nie selbst.",
+    "prepCopy": "Entwurf kopieren",
+    "prepCopied": "Kopiert",
+    "prepAskAscent": "Ascent fragen",
+    "prepOpenContact": "Kontakt öffnen →",
+    "prepOpenCta": "Gespräch vorbereiten — 8 Sekunden →"
   },
   "journey": {
     "title": "Deine Reise",

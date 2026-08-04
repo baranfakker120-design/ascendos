@@ -433,7 +433,21 @@
     "gravityPulling": "Gravity pulling",
     "gravityHeavy": "Heavy gravity",
     "gravityCritical": "Critical gravity",
-    "gravityIdle": "{days} days without movement"
+    "gravityIdle": "{days} days without movement",
+    "prepTitle": "Prepare conversation",
+    "prepEyebrow": "Moment of Truth",
+    "prepLoading": "Loading prep …",
+    "prepSituation": "Situation",
+    "prepNext": "Next best question",
+    "prepObjection": "Possible objection",
+    "prepEvents": "Recent events",
+    "prepDraft": "Draft — you send",
+    "prepCompliance": "Review before sending. AscendOS never sends for you.",
+    "prepCopy": "Copy draft",
+    "prepCopied": "Copied",
+    "prepAskAscent": "Ask Ascent",
+    "prepOpenContact": "Open contact →",
+    "prepOpenCta": "Prepare conversation — 8 seconds →"
   },
   "journey": {
     "title": "Your journey",
