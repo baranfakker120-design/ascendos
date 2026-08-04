@@ -54,18 +54,36 @@ describe('resolveCurrentRank', () => {
     expect(result.warning).toBe('display_rank_unavailable');
   });
 
-  it('rethrows unexpected display_rank errors', async () => {
-    await expect(
-      resolveCurrentRank({
-        orgId: 'org-1',
-        apTotal: 10,
-        teamLeaderQualified: false,
-        displayRank: async () => ({
-          data: null,
-          error: { code: '57014', message: 'timeout' },
-        }),
-        classicRank: async () => ({ data: [sampleRank], error: null }),
-      })
-    ).rejects.toMatchObject({ code: '57014' });
+  it('falls back to classic on unexpected display_rank errors', async () => {
+    const result = await resolveCurrentRank({
+      orgId: 'org-1',
+      apTotal: 10,
+      teamLeaderQualified: false,
+      displayRank: async () => ({
+        data: null,
+        error: { code: '57014', message: 'timeout' },
+      }),
+      classicRank: async () => ({ data: [sampleRank], error: null }),
+    });
+    expect(result.current).toEqual(sampleRank);
+    expect(result.warning).toBe('display_rank_error');
+  });
+
+  it('returns empty rank when both RPCs fail (keeps Profile alive)', async () => {
+    const result = await resolveCurrentRank({
+      orgId: 'org-1',
+      apTotal: 10,
+      teamLeaderQualified: false,
+      displayRank: async () => ({
+        data: null,
+        error: { code: 'PGRST202', message: 'missing' },
+      }),
+      classicRank: async () => ({
+        data: null,
+        error: { code: '42501', message: 'permission denied' },
+      }),
+    });
+    expect(result.current).toBeNull();
+    expect(result.warning).toBe('rank_unavailable');
   });
 });

@@ -32,13 +32,35 @@ export function ProfileEditPage() {
     return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
 
-  const detail = data ?? (authProfile ? profileDetailFromAuth(authProfile, membership) : null);
+  const detail =
+    data ??
+    (authProfile
+      ? profileDetailFromAuth(authProfile, membership)
+      : profileDetailFromAuth(
+          {
+            id: '',
+            first_name: '',
+            last_name: '',
+            username: '—',
+            phone: null,
+            country: null,
+            language: 'de',
+            avatar_url: null,
+            org_id: '',
+            team_id: '',
+            sponsor_id: null,
+            role: 'berater',
+            goals: {},
+            created_at: '',
+            updated_at: '',
+          },
+          null
+        ));
 
-  if (!detail) {
-    return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
-  }
-
-  const showLoadBanner = !isPending && (isError || !data);
+  const showLoadBanner =
+    (!isPending && (isError || !data)) ||
+    detail.loadWarning === 'profile_partial' ||
+    detail.loadWarning === 'rank_unavailable';
 
   return (
     <>
@@ -47,7 +69,7 @@ export function ProfileEditPage() {
           <Alert tone="error">{t('profile.loadError')}</Alert>
         </div>
       ) : null}
-      <ProfileEditForm key={detail.profile.id} data={detail} />
+      <ProfileEditForm key={detail.profile.id || 'shell'} data={detail} />
     </>
   );
 }
