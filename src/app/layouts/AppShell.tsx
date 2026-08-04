@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { FirstLaunchGate } from '@features/first-launch';
+import { AdvisorHeroScreen } from '@features/profile/AdvisorHeroScreen';
 import { OrgSwitcher } from '@shared/auth/OrgSwitcher';
 import { SyncStatusIndicator } from '@shared/offline';
 import { BottomNav } from './BottomNav';
@@ -59,6 +60,7 @@ export function AppShell() {
       </main>
       {personCoach ? null : <BottomNav />}
       <FirstLaunchGate />
+      <AdvisorHeroScreen />
     </div>
   );
 }

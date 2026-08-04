@@ -9,10 +9,13 @@ import { RankChip } from '@shared/ui/RankChip';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { RoleBadge } from '@shared/ui/RoleBadge';
 import { StatCard, formatStatNumber } from '@shared/ui/StatCard';
+import { AdvisorAwardsHistory } from './AdvisorAwardsHistory';
+import { FrameCollection } from './FrameCollection';
+import { RankUpOverlay } from './RankUpOverlay';
 import { useProfileDetail } from './profileApi';
 
 /**
- * Eigenes Profil: Identität, Rang/AP, geschäftlicher Kontext.
+ * Eigenes Profil: Identität, Rang/AP, Rahmen-Sammlung, geschäftlicher Kontext.
  */
 export function ProfilePage() {
   const { t } = useI18n();
@@ -29,14 +32,25 @@ export function ProfilePage() {
   const { profile, context, rank } = data;
   const displayName = `${profile.first_name} ${profile.last_name}`.trim();
   const currentLabel = rank.current?.label ?? null;
+  const rankKey = rank.current?.key ?? null;
   const displayFrameKey = resolveDisplayFrameKey({
     role: membershipRole,
     rankFrameKey: rank.current?.frame_asset ?? null,
     isBeraterDesMonats: rank.isBeraterDesMonats,
+    equippedFrameKey: rank.equippedFrameKey,
   });
 
   return (
     <div className="space-y-4">
+      <RankUpOverlay
+        membershipId={rank.membershipId}
+        rankKey={rankKey}
+        rankLabel={currentLabel}
+        frameKey={displayFrameKey}
+        avatarUrl={profile.avatar_url}
+        displayName={displayName || profile.username}
+      />
+
       <h1 className="text-2xl font-bold">{t('profile.title')}</h1>
 
       <Card className="flex flex-col items-center gap-4 text-center">
@@ -55,6 +69,11 @@ export function ProfilePage() {
             <RankChip label={currentLabel} frameKey={displayFrameKey} variant="framed" />
           ) : null}
           <RoleBadge role={membershipRole} />
+          {rank.isBeraterDesMonats ? (
+            <span className="rounded-full border border-accent/40 bg-accent/15 px-2.5 py-1 text-[0.7rem] font-semibold text-accent-deep">
+              {t('profile.beraterDesMonats')}
+            </span>
+          ) : null}
         </div>
       </Card>
 
@@ -67,6 +86,10 @@ export function ProfilePage() {
           size="lg"
         />
       </Card>
+
+      <FrameCollection />
+
+      <AdvisorAwardsHistory />
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard label={t('profile.ap')} value={formatStatNumber(rank.apTotal)} />

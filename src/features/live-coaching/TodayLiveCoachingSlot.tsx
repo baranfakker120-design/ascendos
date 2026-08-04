@@ -3,12 +3,14 @@ import { useEffect } from 'react';
 import { LiveCoachingCard } from './LiveCoachingCard';
 import { useLiveCoachingEvents } from './liveCoachingApi';
 import { flushDueLocalNotifications } from './notifications';
+import { flushDueOutboxNotifications } from './outboxFlush';
 import { pickTodayCoachingEvent } from './pickTodayEvent';
 import { LIVE_COACHING_FUTURE } from './types';
 
 /**
  * Additive Today slot — does not alter Daily Plan state machine.
- * Future library/search/replay surfaces stay stubbed.
+ * Reminders: DB outbox + per-user receipts (in-app when open).
+ * Library/replay remain deferred (LIVE_COACHING_FUTURE).
  */
 export function TodayLiveCoachingSlot() {
   const { t } = useI18n();
@@ -16,8 +18,12 @@ export function TodayLiveCoachingSlot() {
   const event = pickTodayCoachingEvent(events);
 
   useEffect(() => {
-    void flushDueLocalNotifications();
-    const id = window.setInterval(() => void flushDueLocalNotifications(), 30_000);
+    const flush = () => {
+      void flushDueOutboxNotifications();
+      void flushDueLocalNotifications();
+    };
+    flush();
+    const id = window.setInterval(flush, 30_000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -26,7 +32,6 @@ export function TodayLiveCoachingSlot() {
   return (
     <section className="space-y-2" aria-label={t('liveCoaching.slotTitle')}>
       <LiveCoachingCard event={event} />
-      {/* Future-ready hooks (additive only, unused until later sprints) */}
       {LIVE_COACHING_FUTURE.library ? null : null}
     </section>
   );

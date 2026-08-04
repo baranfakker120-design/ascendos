@@ -43,7 +43,8 @@
     "done": "Terminé",
     "errorGeneric": "Une erreur est survenue.",
     "connectionHint": "Vérifie ta connexion et réessaie.",
-    "copyLink": "Copier le lien"
+    "copyLink": "Copier le lien",
+    "continue": "Continuer"
   },
   "boot": {
     "configMissingTitle": "AscendOS n’est pas encore configuré.",
@@ -684,7 +685,31 @@
     "cropHint": "Recadrage circulaire avec zoom — enregistrer seulement après confirmation.",
     "photo": "Photo de profil",
     "cropGesture": "Pincez ou faites défiler pour zoomer · Faites glisser pour déplacer",
-    "previewFrame": "Aperçu avec cadre"
+    "previewFrame": "Aperçu avec cadre",
+    "framesTitle": "Mes cadres",
+    "framesHint": "Choisis un cadre débloqué. Super Admin, Developer et Conseiller du mois restent prioritaires.",
+    "framesEmpty": "Aucun cadre débloqué — gagne des AP pour commencer.",
+    "framesLoading": "Chargement des cadres …",
+    "framesLoadError": "Impossible de charger les cadres.",
+    "frameEquip": "Équiper",
+    "frameEquipped": "Équipé",
+    "rankUpEyebrow": "Nouveau rang",
+    "rankUpTitle": "Cadre débloqué",
+    "beraterDesMonats": "Conseiller du mois",
+    "advisorTitle": "Conseiller du mois",
+    "advisorHint": "Places 1–3 selon les AP du mois UTC précédent. Le titre vaut pour le mois en cours.",
+    "advisorEmpty": "Pas encore de distinction ce mois-ci — le podium apparaît dès que les AP du mois précédent sont comptés.",
+    "advisorLoading": "Chargement des distinctions …",
+    "advisorLoadError": "Impossible de charger les distinctions.",
+    "advisorHistory": "Mois précédents",
+    "advisorPlace1": "1re place",
+    "advisorPlace2": "2e place",
+    "advisorPlace3": "3e place",
+    "advisorYou": "toi",
+    "heroEyebrow": "Reconnaissance",
+    "heroTitle": "Conseiller du mois",
+    "heroSubtitle": "Meilleurs AP du mois précédent — votre podium pour ce mois.",
+    "heroYouWon": "Tu es 1er. Porte le cadre avec fierté."
   },
   "team": {
     "title": "Ton équipe",

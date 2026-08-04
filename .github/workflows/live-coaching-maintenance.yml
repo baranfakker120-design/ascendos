@@ -1,0 +1,32 @@
+name: Live Coaching Maintenance
+
+# Sprint 6 System 4 — archive finished / roll recurrence
+# Hourly catch-up. Client also calls maintain_live_coaching_events on load.
+
+on:
+  schedule:
+    - cron: '15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  maintain:
+    name: Maintain live coaching events
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke run-live-coaching-maintenance
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          CRON_SECRET: ${{ secrets.MONTHLY_AWARDS_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::SUPABASE_URL and a cron secret are required."
+            exit 1
+          fi
+          URL="${SUPABASE_URL%/}/functions/v1/run-live-coaching-maintenance"
+          curl -fsS -X POST "$URL" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            | tee /tmp/live-coaching-maintain.json
+          jq -e '.ok == true' /tmp/live-coaching-maintain.json >/dev/null

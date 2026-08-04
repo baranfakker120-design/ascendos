@@ -24,6 +24,7 @@ export interface LiveCoachingEvent {
   recording_url: string | null;
   guest_speakers: unknown;
   library_visible: boolean;
+  org_id: string;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
