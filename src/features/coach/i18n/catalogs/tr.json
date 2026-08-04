@@ -374,5 +374,15 @@
   },
   "chat": {
     "unreachable": "Ascent şu anda kullanılamıyor."
+  },
+  "warning": {
+    "no_activity_7d": {
+      "title": "7 gündür aktivite yok",
+      "action": "Kısa bir WhatsApp yaz: “Bu hafta sana nasıl destek olabilirim?”"
+    },
+    "no_order_proxy_30d": {
+      "title": "30 gündür uygulama aktivitesi yok",
+      "action": "10 dakikalık bir check-in ayarla ve ortak bir günlük hedef koyun."
+    }
   }
 }

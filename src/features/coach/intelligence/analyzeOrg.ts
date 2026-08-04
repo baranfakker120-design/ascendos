@@ -514,12 +514,23 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
   const now = input.now;
 
   for (const w of input.warnings.slice(0, 8)) {
+    // Localize by kind so RPC German copy never leaks into Coach UI.
+    const titleKey = `warning.${w.kind}.title`;
+    const actionKey = `warning.${w.kind}.action`;
+    const localizedTitle = t(titleKey);
+    const localizedAction = t(actionKey);
     items.push({
       id: `warn-${w.membershipId}-${w.kind}`,
-      severity: w.kind.includes('inactive') || w.kind.includes('critical') ? 'high' : 'medium',
-      title: w.title,
-      why: w.action,
-      recommendation: w.kind.includes('inactive') ? 'reactivation' : 'follow_up',
+      severity:
+        w.kind.includes('inactive') || w.kind.includes('critical') || w.kind.includes('30d')
+          ? 'high'
+          : 'medium',
+      title: localizedTitle !== titleKey ? localizedTitle : w.title,
+      why: localizedAction !== actionKey ? localizedAction : w.action,
+      recommendation:
+        w.kind.includes('inactive') || w.kind.includes('no_activity') || w.kind.includes('30d')
+          ? 'reactivation'
+          : 'follow_up',
       targetName: w.name,
       targetMembershipId: w.membershipId,
       targetContactId: null,

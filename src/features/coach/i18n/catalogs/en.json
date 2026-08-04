@@ -374,5 +374,15 @@
   },
   "chat": {
     "unreachable": "Ascent is currently unavailable."
+  },
+  "warning": {
+    "no_activity_7d": {
+      "title": "No activity for 7 days",
+      "action": "Send a short WhatsApp: “How can I support you this week?”"
+    },
+    "no_order_proxy_30d": {
+      "title": "30 days without app activity",
+      "action": "Book a 10-minute check-in and set one shared daily goal."
+    }
   }
 }
