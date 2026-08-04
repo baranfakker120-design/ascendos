@@ -1,0 +1,334 @@
+/* Coach reading — Apple Notes × ChatGPT, executive mentor cards */
+
+.coach-md {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  font-size: 0.955rem;
+  line-height: 1.58;
+  letter-spacing: -0.012em;
+  color: rgb(var(--color-ink));
+  text-wrap: pretty;
+}
+
+.coach-md > :first-child {
+  margin-top: 0;
+}
+
+.coach-md > :last-child {
+  margin-bottom: 0;
+}
+
+/* Staggered section reveal — scan-friendly, calm */
+.coach-md--reveal > * {
+  animation: coach-section-in 520ms cubic-bezier(0.22, 1.15, 0.36, 1) both;
+}
+
+.coach-md--reveal > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.coach-md--reveal > *:nth-child(2) {
+  animation-delay: 55ms;
+}
+.coach-md--reveal > *:nth-child(3) {
+  animation-delay: 110ms;
+}
+.coach-md--reveal > *:nth-child(4) {
+  animation-delay: 165ms;
+}
+.coach-md--reveal > *:nth-child(5) {
+  animation-delay: 220ms;
+}
+.coach-md--reveal > *:nth-child(6) {
+  animation-delay: 275ms;
+}
+.coach-md--reveal > *:nth-child(7) {
+  animation-delay: 330ms;
+}
+.coach-md--reveal > *:nth-child(8) {
+  animation-delay: 385ms;
+}
+.coach-md--reveal > *:nth-child(9) {
+  animation-delay: 440ms;
+}
+.coach-md--reveal > *:nth-child(n + 10) {
+  animation-delay: 480ms;
+}
+
+@keyframes coach-section-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.coach-md__p {
+  margin: 0;
+  max-width: 36em;
+  color: rgb(28 30 34 / 0.9);
+}
+
+.coach-md__h {
+  margin: 0.35rem 0 0;
+  font-size: 1.04rem;
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  line-height: 1.32;
+  color: rgb(var(--color-ink));
+}
+
+.coach-md__h--sub {
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  color: rgb(42 44 48);
+}
+
+/* Soft highlight — never shout */
+.coach-md__mark {
+  font-weight: 600;
+  color: rgb(var(--color-ink));
+  letter-spacing: -0.01em;
+  background: linear-gradient(
+    180deg,
+    transparent 62%,
+    rgb(var(--color-accent) / 0.22) 62%,
+    rgb(var(--color-accent) / 0.22) 100%
+  );
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 0.06em;
+}
+
+.coach-md__em {
+  font-style: italic;
+  color: rgb(48 50 54);
+}
+
+.coach-md__ul,
+.coach-md__ol {
+  margin: 0.05rem 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.coach-md__li {
+  position: relative;
+  padding-left: 1.2rem;
+  color: rgb(28 30 34 / 0.9);
+  line-height: 1.52;
+}
+
+.coach-md__ul > .coach-md__li::before {
+  content: '';
+  position: absolute;
+  left: 0.18rem;
+  top: 0.58em;
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgb(var(--color-accent)), rgb(var(--color-accent-deep)));
+  box-shadow: 0 0 0 2px rgb(var(--color-accent) / 0.16);
+}
+
+.coach-md__ol {
+  counter-reset: coach-step;
+}
+
+.coach-md__ol > .coach-md__li {
+  padding-left: 1.7rem;
+  counter-increment: coach-step;
+}
+
+.coach-md__ol > .coach-md__li::before {
+  content: counter(coach-step);
+  position: absolute;
+  left: 0;
+  top: 0.05em;
+  width: 1.28rem;
+  height: 1.28rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgb(var(--color-accent-deep));
+  background: linear-gradient(180deg, #fff 0%, #f6f2ea 100%);
+  border: 1px solid rgb(var(--color-accent) / 0.38);
+  box-shadow:
+    0 1px 2px rgb(17 18 20 / 0.05),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
+.coach-md__li > .coach-md__p {
+  display: inline;
+}
+
+.coach-md__a {
+  color: rgb(var(--color-accent-deep));
+  font-weight: 560;
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--color-accent) / 0.4);
+  text-underline-offset: 0.18em;
+  word-break: break-all;
+}
+
+.coach-md__quote {
+  margin: 0.1rem 0;
+  padding: 0.7rem 0.9rem 0.7rem 1rem;
+  border-left: 2.5px solid rgb(var(--color-accent) / 0.5);
+  border-radius: 0 0.85rem 0.85rem 0;
+  background: linear-gradient(90deg, rgb(var(--color-accent) / 0.07), transparent);
+  color: rgb(48 50 54);
+  font-style: italic;
+  line-height: 1.55;
+}
+
+.coach-md__quote .coach-md__p {
+  color: inherit;
+}
+
+/* ——— Teaching cards (mentor moments) ——— */
+
+.coach-md__card {
+  margin: 0.15rem 0 0.05rem;
+  padding: 0.8rem 0.95rem 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid rgb(var(--color-line));
+  background: linear-gradient(165deg, #ffffff 0%, #faf8f4 100%);
+  box-shadow:
+    0 10px 24px rgb(17 18 20 / 0.045),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
+.coach-md__card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.38rem;
+}
+
+.coach-md__card-mark {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  filter: saturate(0.95);
+}
+
+.coach-md__card-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgb(var(--color-accent-deep));
+}
+
+.coach-md__card-body {
+  font-size: 0.92rem;
+  line-height: 1.52;
+  color: rgb(28 30 34);
+}
+
+.coach-md__card-body > p {
+  margin: 0;
+}
+
+.coach-md__card--mistake {
+  border-color: rgb(184 147 90 / 0.28);
+  background: linear-gradient(155deg, #fffdf8 0%, #f7f1e6 100%);
+}
+
+.coach-md__card--tip {
+  border-color: rgb(17 18 20 / 0.1);
+  background: linear-gradient(155deg, #ffffff 0%, #f4f5f6 100%);
+}
+
+.coach-md__card--tip .coach-md__card-label {
+  color: rgb(55 57 62);
+}
+
+.coach-md__card--action {
+  border-color: rgb(var(--color-accent) / 0.45);
+  background: linear-gradient(150deg, #fffdf7 0%, #f8efe0 100%);
+  box-shadow:
+    0 12px 28px rgb(184 147 90 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
+.coach-md__card--action .coach-md__card-label {
+  color: rgb(var(--color-accent-deep));
+}
+
+.coach-md__card--why {
+  border-color: rgb(17 18 20 / 0.08);
+  background: linear-gradient(165deg, #ffffff 0%, #f3f6f4 100%);
+}
+
+.coach-md__card--why .coach-md__card-label {
+  color: rgb(60 72 64);
+}
+
+.coach-md__card--important {
+  border-color: rgb(17 18 20 / 0.14);
+  background: linear-gradient(165deg, #ffffff 0%, #f2f1ee 100%);
+}
+
+.coach-md__card--important .coach-md__card-label {
+  color: rgb(var(--color-ink));
+}
+
+.coach-md__pre {
+  margin: 0.15rem 0;
+  padding: 0.75rem 0.85rem;
+  overflow-x: auto;
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, #1e1f23 0%, #15161a 100%);
+  border: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.coach-md__code-block {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #f0ece4;
+  white-space: pre;
+}
+
+.coach-md__code {
+  padding: 0.08em 0.35em;
+  border-radius: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.84em;
+  background: rgb(17 18 20 / 0.055);
+  border: 1px solid rgb(17 18 20 / 0.05);
+  color: rgb(30 32 36);
+}
+
+.coach-md__hr {
+  margin: 0.25rem 0;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--color-line)), transparent);
+}
+
+.coach-md__li > .coach-md__ul,
+.coach-md__li > .coach-md__ol {
+  margin-top: 0.45rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-md--reveal > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

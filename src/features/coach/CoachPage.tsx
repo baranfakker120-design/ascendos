@@ -1,32 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
 import { phaseLabel } from '@shared/lib/pipeline';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
+import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import { Input } from '@shared/ui/Input';
+import { CoachBubble, UserBubble } from './CoachBubbles';
+import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
+import { createCoachTranslator } from './i18n';
+import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from './intelligence';
+import './coach-chat.css';
 
-/** Kontext-Chips (Phase 3): zeigen, was der Coach kann — statt leerem Feld. */
-const CHIPS = [
-  { label: '🛡️ Einwand behandeln', text: 'Hilf mir, diesen Einwand zu behandeln: ' },
-  { label: '✍️ Nachricht formulieren', text: 'Formuliere mir eine Nachricht für diese Situation: ' },
-  { label: '🎯 Gespräch vorbereiten', text: 'Bereite mich auf das nächste Gespräch vor.' },
-];
-
-/**
- * Erkennt bare URLs in einer Coach-Antwort und macht sie anklickbar.
- * Sprint 3, Punkt 7. Bewusst als lokale Funktion hier statt als eigenes
- * Modul: eine reine Anzeigefunktion fuer genau diese eine Stelle, kein
- * neues Modul im Sinne des Auftrags ("keine neuen Module"). Veraendert
- * die URL selbst NICHT -- trennt nur Text- von Link-Abschnitten fuer
- * die Darstellung, mechanisch geprueft gegen alle vier im Auftrag
- * genannten Adressen inklusive Satzzeichen am Ende.
- *
- * Der letzte Zeichenklassen-Ausschluss [^\s.,;:!?)\]"'] sorgt dafuer,
- * dass ein abschliessendes Satzzeichen ("...netlify.app.") NICHT Teil
- * des Links wird -- ohne ihn wuerde der Punkt versehentlich mit
- * angeklickt und die Adresse waere ungueltig.
- */
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
+const STICK_THRESHOLD_PX = 96;
 
 function linkifyText(text: string): Array<string | JSX.Element> {
   return text.split(URL_PATTERN).map((part, i) =>
@@ -42,38 +31,109 @@ function linkifyText(text: string): Array<string | JSX.Element> {
       </a>
     ) : (
       part
-    ),
+    )
   );
 }
 
+/**
+ * ChatGPT-stable coach layout:
+ * header (shrink) + thread scroller (flex) + composer (shrink).
+ * Auto-stick only when the user is already near the bottom.
+ */
 export function CoachPage() {
-
-  // [F-1] Konversation lebt in der URL (?c=...) und wird beim Öffnen
-  // aus der jüngsten passenden Konversation fortgesetzt — nie im
-  // flüchtigen Komponenten-State.
+  const { locale, t } = useI18n();
+  const coachT = useMemo(() => createCoachTranslator(locale), [locale]);
+  const chips = useMemo(
+    () => [
+      { label: t('coach.chipObjection'), text: t('coach.chipObjectionPrompt') },
+      { label: t('coach.chipMessage'), text: t('coach.chipMessagePrompt') },
+      { label: t('coach.chipPrep'), text: t('coach.chipPrepPrompt') },
+    ],
+    [t]
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const contactId = searchParams.get('kontakt');
+  const partnerName = searchParams.get('partner');
+  const partnerMid = searchParams.get('mid');
   const conversationId = searchParams.get('c');
   const { data: contact } = useCoachContact(contactId);
-  const setConversationId = (id: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('c', id);
-    setSearchParams(next, { replace: true });
-  };
+  const { intelligence, isMorning, isLoading: intelLoading } = useCoachOrgIntelligence(true);
+  const partnerInsight = findPersonInsight(intelligence, partnerMid);
+
+  const setConversationId = useCallback(
+    (id: string) => {
+      const next = new URLSearchParams(searchParams);
+      next.set('c', id);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  // When contact context changes, drop a stale convo id so we resolve the
+  // contact-scoped latest thread instead of mixing banner + wrong history.
+  const prevContactRef = useRef(contactId);
+  useEffect(() => {
+    if (prevContactRef.current === contactId) return;
+    prevContactRef.current = contactId;
+    if (conversationId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('c');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactId]);
+
   const { data: latestConvoId } = useLatestConvo(contactId, !conversationId);
   useEffect(() => {
     if (!conversationId && latestConvoId) setConversationId(latestConvoId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latestConvoId, conversationId]);
+  }, [latestConvoId, conversationId, setConversationId]);
 
-  const [input, setInput] = useState('');
+  const {
+    value: { text: input },
+    patch: patchInputDraft,
+    clear: clearInputDraft,
+  } = usePersistedDraft(DRAFT_SCOPES.coachInput, { text: '' });
+  const setInput = (text: string) => patchInputDraft({ text });
   const [error, setError] = useState<string | null>(null);
-  const { data: messages } = useCoachMessages(conversationId);
+  const { data: messages, isPending: messagesPending } = useCoachMessages(conversationId);
   const send = useSendToCoach();
-  const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const [animateIds, setAnimateIds] = useState<Set<string>>(() => new Set());
+
+  const updateStick = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distance <= STICK_THRESHOLD_PX;
+  }, []);
+
+  useLayoutEffect(() => {
+    const list = messages ?? [];
+    const fresh = list.filter((m) => !seenIdsRef.current.has(m.id)).map((m) => m.id);
+    if (fresh.length) {
+      fresh.forEach((id) => seenIdsRef.current.add(id));
+      setAnimateIds((prev) => {
+        const next = new Set(prev);
+        fresh.forEach((id) => next.add(id));
+        return next;
+      });
+      // Drop animation flags after the spring finishes so remounts stay quiet.
+      window.setTimeout(() => {
+        setAnimateIds((prev) => {
+          const next = new Set(prev);
+          fresh.forEach((id) => next.delete(id));
+          return next;
+        });
+      }, 700);
+    }
+
+    if (!stickToBottomRef.current) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages, send.isPending]);
 
   const submit = async (text: string) => {
@@ -81,111 +141,185 @@ export function CoachPage() {
     if (!message || send.isPending) return;
     setError(null);
     setInput('');
+    stickToBottomRef.current = true;
     try {
       const result = await send.mutateAsync({ message, conversationId, contactId });
+      await clearInputDraft();
       setConversationId(result.conversationId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ascent ist gerade nicht erreichbar.');
-      setInput(message); // Eingabe nicht verlieren
+      setError(e instanceof Error ? e.message : coachT('chat.unreachable'));
+      setInput(message);
     }
   };
 
+  const showWelcome = !send.isPending && !messages?.length && !(conversationId && messagesPending);
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="space-y-3 pb-3">
-        <img
-          src="/brand/ascendos-symbol-mono-v2.png"
-          alt="Ascent"
-          className="h-8 w-auto"
+    <div className="coach-page">
+      <div className="coach-page__header space-y-3">
+        <div className="flex items-center gap-3">
+          <img src="/brand/ascendos-symbol-mono-v2.png" alt="" className="h-8 w-auto" aria-hidden />
+          <div>
+            <p className="text-lg font-bold leading-tight">{t('coach.name')}</p>
+            <p className="text-xs text-muted">{t('coach.subtitle')}</p>
+          </div>
+        </div>
+
+        <CoachBriefingPanel
+          intelligence={intelligence}
+          isMorning={isMorning}
+          isLoading={intelLoading}
+          onAskAbout={(text) => setInput(text)}
         />
-        {contact ? (
-          <Card className="py-3">
+
+        {partnerInsight ? (
+          <Card padding="sm">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              Ascent kennt bereits
+              {t('coach.analysis', { name: partnerInsight.name })}
+            </p>
+            <p className="mt-0.5 text-sm font-semibold">{partnerInsight.currentSituation}</p>
+            <p className="mt-2 text-xs font-medium text-ink">{partnerInsight.nextBestAction}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {t('coach.whyPrefix', { reason: partnerInsight.nextBestActionWhy })}
+            </p>
+            {partnerInsight.possibleObjection ? (
+              <p className="mt-1 text-xs text-muted">
+                {t('coach.possibleObjection', { text: partnerInsight.possibleObjection })}
+              </p>
+            ) : null}
+            <p className="mt-2 whitespace-pre-wrap text-xs text-ink">
+              {partnerInsight.suggestedWhatsApp}
+            </p>
+            <p className="mt-2 text-xs text-muted">
+              {t('coach.probs', {
+                reg: partnerInsight.probabilityOfRegistration,
+                inactive: partnerInsight.probabilityOfInactivity,
+                risk: partnerInsight.riskScore,
+              })}
+            </p>
+            {partnerInsight.recommendation ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  setInput(
+                    t('coach.improveDraft', {
+                      name: partnerInsight.name,
+                      draft: partnerInsight.suggestedWhatsApp,
+                    })
+                  );
+                }}
+              >
+                {t('coach.prepMessage')}
+              </Button>
+            ) : null}
+          </Card>
+        ) : null}
+
+        {contact ? (
+          <Card padding="sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              {t('coach.knowsAlready')}
             </p>
             <p className="mt-0.5 text-sm font-semibold">
-              {contact.name} · {phaseLabel(contact.phase)}
+              {contact.name} · {phaseLabel(contact.phase, t)}
               <Link to={`/kontakte/${contact.id}`} className="ml-2 font-medium text-primary">
-                Kontakt ansehen
+                {t('coach.viewContact')}
               </Link>
             </p>
+            <p className="mt-0.5 text-xs text-muted">{t('coach.contextHint')}</p>
+          </Card>
+        ) : partnerName ? (
+          <Card padding="sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              {t('coach.teamContext')}
+            </p>
+            <p className="mt-0.5 text-sm font-semibold">{partnerName}</p>
             <p className="mt-0.5 text-xs text-muted">
-              Phase, letzte Ereignisse und dein geplanter nächster Schritt werden automatisch
-              mitgegeben — du musst nichts erklären.
+              {t('coach.teamContextHint', { name: partnerName })}
+              {partnerMid ? t('coach.andTeamStructure') : ''}.
             </p>
           </Card>
         ) : null}
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pb-3">
-        {!messages?.length && !send.isPending ? (
-          <Card>
-            <p className="text-sm font-medium">Womit kann ich dich weiterbringen?</p>
-            <p className="mt-1 text-sm text-muted">
-              Ich arbeite mit deiner Pipeline und den Teamdokumenten — und ende immer mit einem
-              konkreten nächsten Schritt.
-            </p>
-          </Card>
+      <div ref={scrollerRef} className="coach-page__thread coach-thread" onScroll={updateStick}>
+        {showWelcome ? (
+          <CoachBubble animate>
+            <CoachMarkdown content={t('coach.welcome')} />
+          </CoachBubble>
         ) : null}
 
-        {messages?.map((m) => (
-          <div
-            key={m.id}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm ${
-              m.role === 'user'
-                ? 'ml-auto bg-primary text-primary-ink'
-                : 'border border-line bg-surface'
-            }`}
-          >
-            {linkifyText(m.content)}
-          </div>
-        ))}
+        {messages?.map((m) =>
+          m.role === 'user' ? (
+            <UserBubble key={m.id} animate={animateIds.has(m.id)}>
+              {linkifyText(m.content)}
+            </UserBubble>
+          ) : (
+            <CoachBubble key={m.id} animate={animateIds.has(m.id)}>
+              <CoachMarkdown content={m.content} animate={animateIds.has(m.id)} />
+            </CoachBubble>
+          )
+        )}
 
-        {send.isPending ? (
-          <div className="max-w-[85%] rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-            Ascent denkt nach …
-          </div>
-        ) : null}
+        {send.isPending ? <CoachBubble pending animate /> : null}
 
         {error ? <Alert tone="error">{error}</Alert> : null}
-        <div ref={bottomRef} />
       </div>
 
-      <div className="space-y-2 border-t border-line pt-3">
-        {!messages?.length ? (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {CHIPS.map((chip) => (
-              <button
+      <div className="coach-page__composer space-y-2 border-t border-line pt-3">
+        {showWelcome ? (
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {chips.map((chip) => (
+              <Button
                 key={chip.label}
+                type="button"
+                variant="secondary"
+                size="chip"
+                fullWidth={false}
                 onClick={() => setInput(chip.text)}
-                className="whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink"
               >
                 {chip.label}
-              </button>
+              </Button>
             ))}
           </div>
         ) : null}
         <form
-          className="flex gap-2"
+          className="flex items-end gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             void submit(input);
           }}
         >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={contact ? `Frage zu ${contact.name.split(' ')[0]} …` : 'Deine Frage …'}
-            className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-base placeholder:text-muted focus:border-primary focus:outline-none"
-          />
-          <button
+          <div className="min-w-0 flex-1">
+            <Input
+              label={t('coach.inputLabel')}
+              hideLabel
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={
+                contact
+                  ? t('coach.contactPlaceholder', {
+                      name: contact.name.split(' ')[0] ?? contact.name,
+                    })
+                  : t('coach.inputPlaceholder')
+              }
+              autoComplete="off"
+              enterKeyHint="send"
+            />
+          </div>
+          <Button
             type="submit"
+            size="md"
+            fullWidth={false}
             disabled={send.isPending || !input.trim()}
-            aria-label="Senden"
-            className="h-12 shrink-0 rounded-xl bg-primary px-4 font-semibold text-primary-ink disabled:opacity-50"
+            aria-label={t('coach.send')}
+            className="!px-4"
           >
             →
-          </button>
+          </Button>
         </form>
       </div>
     </div>

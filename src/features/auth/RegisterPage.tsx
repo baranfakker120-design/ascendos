@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@shared/api/supabase';
+import { useI18n } from '@shared/i18n';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -20,6 +21,7 @@ interface InviteInfo {
  *    Profil inkl. Sponsor/Team transaktional an (ADR-021).
  */
 export function RegisterPage() {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const [code, setCode] = useState(params.get('code') ?? '');
   const [invite, setInvite] = useState<InviteInfo | null>(null);
@@ -42,11 +44,11 @@ export function RegisterPage() {
     setBusy(false);
     if (fnError) {
       const ctx = await (fnError as { context?: Response }).context?.json?.().catch(() => null);
-      setError(ctx?.error ?? 'Der Code konnte nicht geprüft werden. Bitte versuche es erneut.');
+      setError(ctx?.error ?? t('auth.invalidCode'));
       return;
     }
     if (!data?.valid) {
-      setError('Dieser Einladungscode ist ungültig, abgelaufen oder wurde bereits verwendet.');
+      setError(t('auth.invalidCode'));
       return;
     }
     setInvite(data);
@@ -73,7 +75,7 @@ export function RegisterPage() {
       // Trigger-Fehler (z.B. Benutzername vergeben) kommen als Datenbank-
       // Meldung mit "AscendOS:"-Präfix zurück — die zeigen wir direkt an.
       const dbMessage = signUpError.message.match(/AscendOS: (.+)/)?.[1];
-      setError(dbMessage ?? 'Registrierung fehlgeschlagen. Bitte prüfe deine Angaben.');
+      setError(dbMessage ?? t('common.errorGeneric'));
       return;
     }
     // Bei aktiver Session (lokal, Bestätigung aus) leitet der Router
@@ -83,33 +85,31 @@ export function RegisterPage() {
     if (!data.session) {
       setError(null);
       setInvite(null);
-      alert('Fast geschafft: Bitte bestätige deine E-Mail-Adresse und melde dich dann an.');
+      alert(t('auth.emailConfirmHint'));
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Registrieren</h1>
-        <p className="mt-1 text-sm text-muted">
-          AscendOS ist einladungsbasiert. Dein Sponsor hat dir einen Code oder Link geschickt.
-        </p>
+        <h1 className="text-2xl font-bold">{t('auth.registerTitle')}</h1>
+        <p className="mt-1 text-sm text-muted">{t('auth.registerSubtitle')}</p>
       </div>
 
       {!invite ? (
         <form onSubmit={checkInvite} className="space-y-4">
           <Input
-            label="Einladungscode"
+            label={t('auth.inviteCode')}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="z. B. K7XP2M9QRT"
+            placeholder={t('auth.inviteCodePlaceholder')}
             autoCapitalize="characters"
             autoComplete="off"
             required
           />
           {error ? <Alert tone="error">{error}</Alert> : null}
           <Button type="submit" disabled={busy || code.trim().length < 6}>
-            {busy ? 'Wird geprüft …' : 'Code prüfen'}
+            {busy ? t('auth.checkingCode') : t('auth.checkCode')}
           </Button>
         </form>
       ) : (
@@ -117,8 +117,8 @@ export function RegisterPage() {
           <Card>
             <p className="text-sm">
               {invite.sponsor_first_name
-                ? `${invite.sponsor_first_name} lädt dich ein zu`
-                : 'Du wurdest eingeladen zu'}
+                ? t('auth.invitedBy', { name: invite.sponsor_first_name })
+                : t('auth.invitedGeneric')}
             </p>
             <p className="mt-0.5 font-semibold">
               {invite.team_name} · {invite.org_name}
@@ -126,14 +126,14 @@ export function RegisterPage() {
           </Card>
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Vorname"
+              label={t('auth.firstName')}
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               autoComplete="given-name"
               required
             />
             <Input
-              label="Nachname"
+              label={t('auth.lastName')}
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               autoComplete="family-name"
@@ -141,16 +141,16 @@ export function RegisterPage() {
             />
           </div>
           <Input
-            label="Benutzername"
+            label={t('auth.username')}
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase())}
-            hint="3–30 Zeichen: Kleinbuchstaben, Zahlen, Punkt, Unterstrich."
+            hint={t('auth.usernameHint')}
             pattern="[a-z0-9_.]{3,30}"
             autoComplete="username"
             required
           />
           <Input
-            label="E-Mail"
+            label={t('auth.email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -158,21 +158,21 @@ export function RegisterPage() {
             required
           />
           <Input
-            label="Passwort"
+            label={t('auth.password')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            hint="Mindestens 8 Zeichen."
+            hint={t('auth.passwordHint')}
             minLength={8}
             autoComplete="new-password"
             required
           />
           {error ? <Alert tone="error">{error}</Alert> : null}
           <Button type="submit" disabled={busy}>
-            {busy ? 'Konto wird erstellt …' : 'Konto erstellen'}
+            {busy ? t('auth.creatingAccount') : t('auth.createAccount')}
           </Button>
           <Button type="button" variant="ghost" onClick={() => setInvite(null)}>
-            Anderen Code verwenden
+            {t('auth.useOtherCode')}
           </Button>
         </form>
       )}
@@ -180,7 +180,7 @@ export function RegisterPage() {
       <p className="text-center text-sm text-muted">
         Schon ein Konto?{' '}
         <Link to="/login" className="font-medium text-primary">
-          Anmelden
+          {t('auth.signIn')}
         </Link>
       </p>
     </div>

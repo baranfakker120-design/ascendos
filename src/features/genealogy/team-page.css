@@ -1,0 +1,7 @@
+.team-page {
+  min-height: 0;
+}
+
+.team-page .genealogy-toolbar input[type='search']::-webkit-search-cancel-button {
+  appearance: none;
+}

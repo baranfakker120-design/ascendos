@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
+import { useI18n } from '@shared/i18n';
 
 interface Props {
   onFiles: (files: File[]) => void;
@@ -13,6 +14,7 @@ interface Props {
  * ist primär eine Handy-App.
  */
 export function DropZone({ onFiles, disabled = false }: Props) {
+  const { t } = useI18n();
   const [over, setOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -59,10 +61,8 @@ export function DropZone({ onFiles, disabled = false }: Props) {
         <span aria-hidden className="text-2xl leading-none">
           📄
         </span>
-        <p className="text-sm font-semibold text-ink">
-          Dateien hierher ziehen oder tippen
-        </p>
-        <p className="text-xs text-muted">PDF, DOCX, TXT, Markdown — mehrere gleichzeitig möglich</p>
+        <p className="text-sm font-semibold text-ink">{t('knowledge.dropTitle')}</p>
+        <p className="text-xs text-muted">{t('knowledge.dropTypes')}</p>
       </div>
       <input
         ref={inputRef}
@@ -76,10 +76,7 @@ export function DropZone({ onFiles, disabled = false }: Props) {
           e.target.value = '';
         }}
       />
-      <p className="mt-2 text-xs text-muted">
-        Die Dateien selbst werden nicht hochgeladen. Der Text wird im Browser
-        ausgelesen und nur dieser an AscendOS übertragen.
-      </p>
+      <p className="mt-2 text-xs text-muted">{t('knowledge.dropPrivacy')}</p>
     </div>
   );
 }

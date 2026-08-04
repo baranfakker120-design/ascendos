@@ -51,7 +51,9 @@ if (!existsSync(BOOTSTRAP)) throw new Error(`Bootstrap fehlt: ${BOOTSTRAP}`);
 
 const parts = [HEADER];
 for (const file of migrations) {
-  parts.push(`\n-- ############ ${file} ############\n${readFileSync(join(MIGRATIONS_DIR, file), 'utf8').trim()}\n`);
+  parts.push(
+    `\n-- ############ ${file} ############\n${readFileSync(join(MIGRATIONS_DIR, file), 'utf8').trim()}\n`
+  );
 }
 parts.push('\n' + readFileSync(BOOTSTRAP, 'utf8').trim() + '\n');
 
@@ -67,5 +69,7 @@ if (process.argv.includes('--check')) {
   console.log(`✓ setup-complete.sql aktuell (${migrations.length} Migrationen)`);
 } else {
   writeFileSync(OUT, next);
-  console.log(`${current === next ? '=' : '→'} setup/setup-complete.sql (${migrations.length} Migrationen + Bootstrap)`);
+  console.log(
+    `${current === next ? '=' : '→'} setup/setup-complete.sql (${migrations.length} Migrationen + Bootstrap)`
+  );
 }

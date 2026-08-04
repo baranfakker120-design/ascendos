@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <defs>
+    <clipPath id="frClip">
+      <circle cx="32" cy="32" r="26"/>
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="28.5" fill="#F7F6F3" stroke="#B8935A" stroke-width="2.5"/>
+  <g clip-path="url(#frClip)">
+    <rect x="6" y="6" width="17.34" height="52" fill="#0055A4"/>
+    <rect x="23.34" y="6" width="17.32" height="52" fill="#FFFFFF"/>
+    <rect x="40.66" y="6" width="17.34" height="52" fill="#EF4135"/>
+  </g>
+  <circle cx="32" cy="32" r="28.5" fill="none" stroke="#B8935A" stroke-width="2.5"/>
+</svg>

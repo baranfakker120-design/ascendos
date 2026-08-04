@@ -11,7 +11,8 @@ import type { Database } from './database.types';
 
 // ---------- Fachliche Unions (Quelle: CHECK-Constraints im Schema) ----------
 
-export type UserRole = 'super_admin' | 'leader' | 'berater';
+/** Rollen an der Mitgliedschaft (Canonical). profiles.role ist nur Spiegel. */
+export type UserRole = 'super_admin' | 'admin' | 'leader' | 'berater' | 'developer';
 
 export type PipelineEventType =
   | 'contact_created'
@@ -50,23 +51,57 @@ export type MissionType =
 export type MissionStatus = 'pending' | 'done' | 'deferred' | 'skipped';
 
 // ---------- Zeilen-Aliase (überleben eine Regeneration) ----------
+// Generator liefert CHECK-Spalten als string — hier auf Unions verengt.
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Team = Database['public']['Tables']['teams']['Row'];
 export type Organization = Database['public']['Tables']['organizations']['Row'];
 export type Contact = Database['public']['Tables']['contacts']['Row'];
-export type PipelineEvent = Database['public']['Tables']['pipeline_events']['Row'];
-export type ContactPhaseRow = Database['public']['Views']['contact_phases']['Row'];
-export type ExternalTool = Database['public']['Tables']['external_tools']['Row'];
+export type PipelineEvent = Omit<
+  Database['public']['Tables']['pipeline_events']['Row'],
+  'event_type'
+> & { event_type: PipelineEventType };
+export type ContactPhaseRow = Omit<
+  Database['public']['Views']['contact_phases']['Row'],
+  'phase'
+> & { phase: ContactPhase };
+export type ExternalTool = Omit<
+  Database['public']['Tables']['external_tools']['Row'],
+  'share_event_type' | 'result_event_type'
+> & {
+  share_event_type: PipelineEventType;
+  result_event_type: PipelineEventType | null;
+};
 export type DailyPlan = Database['public']['Tables']['daily_plans']['Row'];
-export type DailyPlanItem = Database['public']['Tables']['daily_plan_items']['Row'];
+export type DailyPlanItem = Omit<
+  Database['public']['Tables']['daily_plan_items']['Row'],
+  'mission_type' | 'status'
+> & { mission_type: MissionType; status: MissionStatus };
 export type Journey = Database['public']['Tables']['journeys']['Row'];
 export type JourneyStep = Database['public']['Tables']['journey_steps']['Row'];
 export type UserProgress = Database['public']['Tables']['user_progress']['Row'];
 export type Achievement = Database['public']['Tables']['achievements']['Row'];
 export type UserAchievement = Database['public']['Tables']['user_achievements']['Row'];
-export type FirstlineProgress =
-  Database['public']['Views']['firstline_journey_progress']['Row'];
+export type FirstlineProgress = {
+  user_id: string;
+  first_name: string;
+  username: string | null;
+  journey_id: string | null;
+  journey_title: string | null;
+  completed_steps: number;
+  total_steps: number;
+  current_day: number;
+  total_days: number;
+};
+export type Membership = Database['public']['Tables']['memberships']['Row'];
+export type Rank = Database['public']['Tables']['ranks']['Row'];
+export type ProfilesPublic = Database['public']['Views']['profiles_public']['Row'];
+
+/** Rückgabe von public.rank_for_ap — Schwelle + Rahmen-Schlüssel. */
+export type RankForAp = Database['public']['Functions']['rank_for_ap']['Returns'][number];
+
+/** Rückgabe von public.next_rank_for_ap — nächste Schwelle oder leer. */
+export type NextRankForAp = Database['public']['Functions']['next_rank_for_ap']['Returns'][number];
 
 /** Inhalt eines Journey-Schritts (content-JSONB, ADR-005). */
 export interface JourneyStepContent {

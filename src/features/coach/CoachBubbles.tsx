@@ -1,0 +1,98 @@
+import type { ReactNode } from 'react';
+import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
+import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
+import { RankFrame } from '@shared/ui/RankFrame';
+import { useProfileDetail } from '@features/profile/profileApi';
+import './coach-chat.css';
+
+export function CoachAvatar({ size = 40 }: { size?: number }) {
+  return (
+    <div className="coach-avatar" style={{ width: size, height: size }} aria-hidden>
+      <img
+        src="/brand/ascendos-symbol-mono-v2.png"
+        alt=""
+        className="coach-avatar__img"
+        draggable={false}
+      />
+      <span className="coach-avatar__ring" />
+    </div>
+  );
+}
+
+/** User avatar with active RankFrame — same identity as Profile. */
+export function CoachUserAvatar() {
+  const { profile, role } = useAuth();
+  const { t } = useI18n();
+  const { data } = useProfileDetail();
+  const name =
+    profile != null
+      ? `${profile.first_name} ${profile.last_name}`.trim() || profile.username
+      : t('coach.you');
+  const frameKey = resolveDisplayFrameKey({
+    role,
+    rankFrameKey: data?.rank.current?.frame_asset ?? null,
+    isBeraterDesMonats: data?.rank.isBeraterDesMonats ?? false,
+  });
+
+  return (
+    <div className="coach-user-avatar">
+      <RankFrame frameKey={frameKey} src={profile?.avatar_url} name={name} size="xs" />
+    </div>
+  );
+}
+
+/** Apple-level typing indicator — three springy dots. */
+export function CoachTypingDots() {
+  const { t } = useI18n();
+  return (
+    <span className="coach-typing" aria-label={t('coach.typing')} role="status">
+      <span className="coach-typing__dot" />
+      <span className="coach-typing__dot" />
+      <span className="coach-typing__dot" />
+    </span>
+  );
+}
+
+export function CoachBubble({
+  children,
+  pending = false,
+  animate = false,
+}: {
+  children?: ReactNode;
+  pending?: boolean;
+  /** Enter animation only for newly appended messages — never on refetch. */
+  animate?: boolean;
+}) {
+  return (
+    <div className={`coach-row coach-row--assistant ${animate ? 'coach-row--in' : ''}`}>
+      <div className={`coach-avatar-wrap ${animate ? '' : 'coach-avatar-wrap--static'}`}>
+        <CoachAvatar />
+      </div>
+      <div
+        className={`coach-bubble coach-bubble--assistant ${animate ? 'coach-bubble--pop' : ''} ${pending ? 'coach-bubble--pending' : ''}`}
+      >
+        {pending ? <CoachTypingDots /> : children}
+      </div>
+    </div>
+  );
+}
+
+export function UserBubble({
+  children,
+  animate = false,
+}: {
+  children: ReactNode;
+  animate?: boolean;
+}) {
+  return (
+    <div className={`coach-row coach-row--user ${animate ? 'coach-row--in' : ''}`}>
+      <div className={`coach-bubble coach-bubble--user ${animate ? 'coach-bubble--pop' : ''}`}>
+        {children}
+      </div>
+      <div className={`coach-user-avatar-wrap ${animate ? '' : 'coach-user-avatar-wrap--static'}`}>
+        <CoachUserAvatar />
+      </div>
+    </div>
+  );
+}

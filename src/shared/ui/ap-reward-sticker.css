@@ -1,0 +1,212 @@
+/* Collectible loot chip — glass coin / metal reward */
+
+.ap-reward-sticker {
+  --ars-gold-hi: #fff6d4;
+  --ars-gold: #e8bf4a;
+  --ars-gold-mid: #c99228;
+  --ars-gold-deep: #6e4c0c;
+  --ars-ink: #2a1e05;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 999px;
+  padding: 0.34em 0.78em 0.34em 0.5em;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ars-ink);
+  background:
+    radial-gradient(circle at 18% 22%, rgb(255 255 255 / 0.75), transparent 38%),
+    radial-gradient(circle at 78% 78%, rgb(120 70 10 / 0.35), transparent 45%),
+    linear-gradient(
+      158deg,
+      var(--ars-gold-hi) 0%,
+      var(--ars-gold) 28%,
+      var(--ars-gold-mid) 55%,
+      #a87418 78%,
+      var(--ars-gold-deep) 100%
+    );
+  border: 1.5px solid rgb(255 255 255 / 0.62);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.85) inset,
+    0 -3px 4px rgb(50 30 0 / 0.35) inset,
+    0 1px 0 rgb(255 230 150 / 0.35),
+    0 6px 16px rgb(120 80 15 / 0.38),
+    0 0 0 1px rgb(100 70 15 / 0.35);
+  transform-origin: center;
+  user-select: none;
+  white-space: nowrap;
+  transform: translateZ(0);
+}
+
+.ap-reward-sticker--sm {
+  font-size: 11px;
+}
+
+.ap-reward-sticker--md {
+  font-size: 12.5px;
+}
+
+.ap-reward-sticker--lg {
+  font-size: 14px;
+  padding: 0.4em 0.92em 0.4em 0.58em;
+}
+
+.ap-reward-sticker--rare {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.85) inset,
+    0 -3px 4px rgb(50 30 0 / 0.35) inset,
+    0 6px 16px rgb(120 80 15 / 0.4),
+    0 0 16px rgb(212 175 55 / 0.3);
+}
+
+.ap-reward-sticker--epic {
+  --ars-gold-hi: #fff9e0;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 -3px 4px rgb(50 30 0 / 0.38) inset,
+    0 7px 18px rgb(170 100 15 / 0.45),
+    0 0 20px rgb(255 190 70 / 0.4);
+}
+
+.ap-reward-sticker--legendary {
+  --ars-gold-hi: #fffbeb;
+  --ars-gold: #f5c84f;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.92) inset,
+    0 -3px 4px rgb(50 30 0 / 0.4) inset,
+    0 8px 20px rgb(180 95 10 / 0.5),
+    0 0 26px rgb(255 175 50 / 0.5);
+}
+
+.ap-reward-sticker--mythic {
+  --ars-gold-hi: #fffef5;
+  --ars-gold: #ffd86f;
+  background:
+    radial-gradient(circle at 18% 22%, rgb(255 255 255 / 0.9), transparent 40%),
+    linear-gradient(158deg, #fffef5 0%, #ffd86f 26%, #f0b028 52%, #c47810 78%, #7a4508 100%);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.95) inset,
+    0 -3px 4px rgb(50 30 0 / 0.42) inset,
+    0 10px 24px rgb(200 110 15 / 0.55),
+    0 0 32px rgb(255 190 70 / 0.6);
+}
+
+.ap-reward-sticker__bevel {
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  border-radius: inherit;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  box-shadow: inset 0 0 0 1px rgb(90 55 10 / 0.18);
+  pointer-events: none;
+}
+
+.ap-reward-sticker__glow {
+  position: absolute;
+  inset: -50%;
+  z-index: 0;
+  background: radial-gradient(circle at 28% 28%, rgb(255 248 210 / 0.75), transparent 52%);
+  pointer-events: none;
+}
+
+.ap-reward-sticker__glass {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.55) 0%,
+    rgb(255 255 255 / 0.12) 34%,
+    transparent 55%,
+    rgb(70 40 0 / 0.16) 100%
+  );
+  mix-blend-mode: soft-light;
+}
+
+.ap-reward-sticker__sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(112deg, transparent 30%, rgb(255 255 255 / 0.8) 47%, transparent 62%);
+  transform: translate3d(-135%, 0, 0);
+  animation: ap-reward-sheen 4.4s cubic-bezier(0.22, 1.2, 0.36, 1) infinite;
+}
+
+.ap-reward-sticker__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ap-reward-sticker__mark,
+.ap-reward-sticker__value,
+.ap-reward-sticker__unit {
+  position: relative;
+  z-index: 4;
+}
+
+.ap-reward-sticker__mark {
+  font-size: 1.08em;
+  line-height: 1;
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.45));
+}
+
+.ap-reward-sticker__value {
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 1px 0 rgb(255 255 255 / 0.5),
+    0 -1px 0 rgb(80 50 5 / 0.2);
+}
+
+.ap-reward-sticker__unit {
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
+}
+
+.ap-reward-sticker--in {
+  animation: ap-reward-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes ap-reward-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.62);
+  }
+  62% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes ap-reward-sheen {
+  0%,
+  48% {
+    transform: translate3d(-135%, 0, 0);
+  }
+  70%,
+  100% {
+    transform: translate3d(135%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-reward-sticker--in,
+  .ap-reward-sticker__sheen {
+    animation: none;
+  }
+}

@@ -10,16 +10,16 @@
 
 ## 1. Identität und Beteiligte
 
-| | |
-|---|---|
-| **Produkt** | AscendOS — KI-Betriebssystem für Network Marketing `[B]` |
-| **KI-Coach** | „Ascent" (umbenannt von „Coach", um Kollision mit der Journey zu vermeiden) `[V]` |
-| **Mutterunternehmen** | Chogan `[B]` |
-| **Team** | Team Seyda `[B]` |
-| **Weitere Marke** | Essence Tribe Network (Logo-Assets in der Designphase verwendet) `[B]` |
-| **Baran** | Gründer, `super_admin` `[B]` |
-| **Seyda** | Mitgründerin, `super_admin`, Freigabeinstanz für Wissen `[B]` |
-| **Arbeitsumgebung** | ausschließlich iPhone, kein Terminal, kein PC `[B]` |
+|                       |                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------- |
+| **Produkt**           | AscendOS — KI-Betriebssystem für Network Marketing `[B]`                          |
+| **KI-Coach**          | „Ascent" (umbenannt von „Coach", um Kollision mit der Journey zu vermeiden) `[V]` |
+| **Mutterunternehmen** | Chogan `[B]`                                                                      |
+| **Team**              | Team Seyda `[B]`                                                                  |
+| **Weitere Marke**     | Essence Tribe Network (Logo-Assets in der Designphase verwendet) `[B]`            |
+| **Baran**             | Gründer, `super_admin` `[B]`                                                      |
+| **Seyda**             | Mitgründerin, `super_admin`, Freigabeinstanz für Wissen `[B]`                     |
+| **Arbeitsumgebung**   | ausschließlich iPhone, kein Terminal, kein PC `[B]`                               |
 
 ---
 
@@ -103,18 +103,18 @@ AscendOS ist Generation 2 und soll diese langfristig absorbieren. Technisch als 
 
 Diese Themen aus deiner Liste sind in den zugänglichen Chats **nie inhaltlich vorgekommen** — nur als Kategorie oder Dateiname:
 
-| Thema | Was fehlt |
-|---|---|
-| **Vergütungsplan** | Keine Stufe, kein Prozentsatz, keine Karrierelogik |
-| **Produkte** | Keine Produktlinie, kein Name, keine Zielgruppe, keine Preislogik |
-| **Einwandbehandlung** | Keine einzige erprobte Antwort. Nur die Einwände als Stichwort (Keine Zeit, Kein Geld, Pyramide?, Muss überlegen, Partner dagegen) |
-| **Recruiting** | Business Fit Check und 3-Way-Call sind benannt, aber Ablauf, Rollen und Fehlerquellen nicht beschrieben |
-| **Duftparty** | Nur als Kategorie. Kein Ablauf, keine Gastgeber-Logik |
-| **Zoom-Prozesse** | Als Wissensquelle vorgesehen, Transkriptions-Pipeline auf v1.1 verschoben. Kein Prozess dokumentiert |
-| **Onboarding / Schulungen** | „Erste 90 Tage" als Titel vorhanden, Inhalt nicht |
-| **Links** | Keine sammelbaren URLs in den Chats |
+| Thema                       | Was fehlt                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Vergütungsplan**          | Keine Stufe, kein Prozentsatz, keine Karrierelogik                                                                                 |
+| **Produkte**                | Keine Produktlinie, kein Name, keine Zielgruppe, keine Preislogik                                                                  |
+| **Einwandbehandlung**       | Keine einzige erprobte Antwort. Nur die Einwände als Stichwort (Keine Zeit, Kein Geld, Pyramide?, Muss überlegen, Partner dagegen) |
+| **Recruiting**              | Business Fit Check und 3-Way-Call sind benannt, aber Ablauf, Rollen und Fehlerquellen nicht beschrieben                            |
+| **Duftparty**               | Nur als Kategorie. Kein Ablauf, keine Gastgeber-Logik                                                                              |
+| **Zoom-Prozesse**           | Als Wissensquelle vorgesehen, Transkriptions-Pipeline auf v1.1 verschoben. Kein Prozess dokumentiert                               |
+| **Onboarding / Schulungen** | „Erste 90 Tage" als Titel vorhanden, Inhalt nicht                                                                                  |
+| **Links**                   | Keine sammelbaren URLs in den Chats                                                                                                |
 
-**Warum:** Diese Unterhaltung war eine Bau-Unterhaltung. Wir haben über die Architektur *für* dieses Wissen gesprochen, nicht über das Wissen.
+**Warum:** Diese Unterhaltung war eine Bau-Unterhaltung. Wir haben über die Architektur _für_ dieses Wissen gesprochen, nicht über das Wissen.
 
 ---
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createTranslator } from '@shared/i18n';
 import {
   EVENT_LABELS,
   MANUAL_EVENT_TYPES,
@@ -6,13 +7,18 @@ import {
   PHASE_ORDER,
   activityLabel,
   daysSince,
+  eventLabel,
   isPhaseAfter,
+  phaseLabel,
 } from './pipeline';
+
+const t = createTranslator('de');
 
 describe('pipeline phases', () => {
   it('hat für jede Phase genau ein Label', () => {
     for (const phase of PHASE_ORDER) {
       expect(PHASE_LABELS[phase]).toBeTruthy();
+      expect(phaseLabel(phase, t)).toBe(PHASE_LABELS[phase]);
     }
     expect(Object.keys(PHASE_LABELS)).toHaveLength(PHASE_ORDER.length);
   });
@@ -27,6 +33,7 @@ describe('pipeline phases', () => {
   it('kennt für jeden manuellen Event-Typ ein Label', () => {
     for (const type of MANUAL_EVENT_TYPES) {
       expect(EVENT_LABELS[type]).toBeTruthy();
+      expect(eventLabel(type, t)).toBe(EVENT_LABELS[type]);
     }
   });
 });
@@ -42,6 +49,7 @@ describe('daysSince / activityLabel', () => {
   });
 
   it('liefert lesbare Aktivitäts-Labels', () => {
+    expect(activityLabel(null, t)).toBe('Noch keine Aktivität');
     expect(activityLabel(null)).toBe('Noch keine Aktivität');
   });
 });

@@ -1,25 +1,51 @@
-import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
+import { Navigate, Outlet, createBrowserRouter, useLocation } from 'react-router-dom';
 import { AppShell } from '@app/layouts/AppShell';
 import { AuthLayout } from '@app/layouts/AuthLayout';
+import { RouteErrorBoundary } from '@app/RouteErrorBoundary';
 import { CoachPage } from '@features/coach/CoachPage';
 import { ContactDetailPage } from '@features/contacts/ContactDetailPage';
 import { ContactFormPage } from '@features/contacts/ContactFormPage';
 import { ContactsPage } from '@features/contacts/ContactsPage';
 import { KnowledgePage } from '@features/knowledge/KnowledgePage';
+import { KnowledgeCenterPage } from '@features/knowledge-center/KnowledgeCenterPage';
+import { LiveCoachingAdminPage } from '@features/live-coaching/LiveCoachingAdminPage';
+import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
+import { StoriesAdminPage } from '@features/stories/StoriesAdminPage';
+import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
 import { TodayPage } from '@features/daily-plan/TodayPage';
 import { MorePage } from '@features/more/MorePage';
 import { JourneyToday } from '@features/onboarding/JourneyToday';
 import { useJourneyState } from '@features/onboarding/journeyApi';
 import { ProgressPage } from '@features/progress/ProgressPage';
+import { InstallGuidePage } from '@features/first-launch';
+import { ProfileEditPage } from '@features/profile/ProfileEditPage';
+import { ProfilePage } from '@features/profile/ProfilePage';
+import { SettingsPage } from '@features/settings/SettingsPage';
+import { TeamPage } from '@features/genealogy/TeamPage';
+import { QualificationsPage } from '@features/leadership/QualificationsPage';
+import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
+import { Button } from '@shared/ui/Button';
+import { Card } from '@shared/ui/Card';
 
 function FullScreenSpinner() {
+  const { t } = useI18n();
   return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-sm text-muted">AscendOS wird geladen …</p>
+      <p className="text-sm text-muted">{t('common.loading')}</p>
     </div>
+  );
+}
+
+function ShellOutlet() {
+  const { pathname } = useLocation();
+  return (
+    <RouteErrorBoundary resetKey={pathname}>
+      <Outlet />
+    </RouteErrorBoundary>
   );
 }
 
@@ -28,11 +54,35 @@ function FullScreenSpinner() {
  * ist — danach dem Daily Plan. Die Entscheidung lebt bewusst im
  * App-Layer (Features bleiben isoliert, ADR-012); solange die Journey
  * läuft, wird generate_daily_plan gar nicht erst aufgerufen.
+ *
+ * Sprint 5.1: Live Coaching sits above both surfaces (additive).
+ * Sprint 5.2: Ascend Stories at the very top (additive).
  */
 function TodayRoute() {
-  const { data: state, isLoading } = useJourneyState();
-  if (isLoading) return <FullScreenSpinner />;
-  if (state && state.journey && !state.isComplete) return <JourneyToday />;
+  const { t } = useI18n();
+  const { data: state, isPending, isError, refetch } = useJourneyState();
+  if (isPending) return <FullScreenSpinner />;
+  if (isError) {
+    return (
+      <Card className="mt-4 space-y-3 text-center">
+        <p className="font-medium">{t('today.loadErrorTitle')}</p>
+        <p className="text-sm text-muted">{t('today.loadErrorBody')}</p>
+        <Button fullWidth={false} variant="secondary" onClick={() => void refetch()}>
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
+  }
+  const isJourney = !!(state && state.journey && !state.isComplete);
+  if (isJourney) {
+    return (
+      <div className="space-y-4">
+        <TodayStoriesSlot />
+        <TodayLiveCoachingSlot />
+        <JourneyToday />
+      </div>
+    );
+  }
   return <TodayPage />;
 }
 
@@ -51,12 +101,20 @@ function RequireAuth() {
  * dass Berater auf eine Seite geraten, auf der jede Aktion scheitert.
  */
 function RequireSuperAdmin() {
-  const { session, profile } = useAuth();
+  const { session, isSuperAdmin } = useAuth();
   if (session === undefined) return <FullScreenSpinner />;
   if (session === null) return <Navigate to="/login" replace />;
-  // profile lädt asynchron nach der Session nach.
-  if (profile === null) return <FullScreenSpinner />;
-  if (profile.role !== 'super_admin') return <Navigate to="/mehr" replace />;
+  // Rolle kommt ausschließlich aus der aktiven Mitgliedschaft.
+  if (!isSuperAdmin) return <Navigate to="/more" replace />;
+  return <Outlet />;
+}
+
+/** Sprint 5.1 — SuperAdmin oder Developer (Knowledge Center / Live Coaching). */
+function RequireCoachContentManager() {
+  const { session, canManageCoachContent } = useAuth();
+  if (session === undefined) return <FullScreenSpinner />;
+  if (session === null) return <Navigate to="/login" replace />;
+  if (!canManageCoachContent) return <Navigate to="/more" replace />;
   return <Outlet />;
 }
 
@@ -87,17 +145,38 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: '/', element: <TodayRoute /> },
-          { path: '/reise', element: <ProgressPage /> },
-          { path: '/kontakte', element: <ContactsPage /> },
-          { path: '/kontakte/neu', element: <ContactFormPage /> },
-          { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
-          { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
-          { path: '/coach', element: <CoachPage /> },
-          { path: '/mehr', element: <MorePage /> },
           {
-            element: <RequireSuperAdmin />,
-            children: [{ path: '/wissen', element: <KnowledgePage /> }],
+            element: <ShellOutlet />,
+            children: [
+              { path: '/', element: <TodayRoute /> },
+              { path: '/reise', element: <ProgressPage /> },
+              { path: '/kontakte', element: <ContactsPage /> },
+              { path: '/kontakte/neu', element: <ContactFormPage /> },
+              { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
+              { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
+              { path: '/coach', element: <CoachPage /> },
+              { path: '/team', element: <TeamPage /> },
+              { path: '/qualifikationen', element: <QualificationsPage /> },
+              { path: '/team-seyda', element: <TeamSeydaPage /> },
+              { path: '/more', element: <MorePage /> },
+              { path: '/mehr', element: <Navigate to="/more" replace /> },
+              { path: '/settings', element: <SettingsPage /> },
+              { path: '/profil', element: <ProfilePage /> },
+              { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
+              { path: '/hilfe/installation', element: <InstallGuidePage /> },
+              {
+                element: <RequireSuperAdmin />,
+                children: [{ path: '/wissen', element: <KnowledgePage /> }],
+              },
+              {
+                element: <RequireCoachContentManager />,
+                children: [
+                  { path: '/knowledge-center', element: <KnowledgeCenterPage /> },
+                  { path: '/live-coaching', element: <LiveCoachingAdminPage /> },
+                  { path: '/stories', element: <StoriesAdminPage /> },
+                ],
+              },
+            ],
           },
         ],
       },

@@ -1,10 +1,16 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { useQuery } from '@tanstack/react-query';
+import { scoreJourneyStep } from '@shared/lib/apScoring';
+import { displayShareTool, renameWayToMoonLabel } from '@shared/lib/shareToolsDisplay';
 import type { ExternalTool, JourneyStep, JourneyStepContent } from '@shared/types/domain';
-import { Button } from '@shared/ui/Button';
+import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
+import { Button, buttonClassName } from '@shared/ui/Button';
+import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
+import { EnergyCore } from '@shared/ui/EnergyCore';
 import { useCompleteStep, useJourneyState } from './journeyApi';
 
 /**
@@ -13,21 +19,36 @@ import { useCompleteStep, useJourneyState } from './journeyApi';
  * Gerendert über TodayRoute (app/router), nicht vom daily-plan-Feature.
  */
 export function JourneyToday() {
+  const { t } = useI18n();
   const { profile } = useAuth();
-  const { data: state, isLoading } = useJourneyState();
+  const { data: state, isPending, isError, refetch } = useJourneyState();
   const complete = useCompleteStep();
+  const pendingStepId = complete.isPending ? (complete.variables ?? null) : null;
+  const [stepError, setStepError] = useState<string | null>(null);
   const { data: tools } = useQuery({
     queryKey: ['external-tools-journey'],
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*');
       if (error) throw error;
-      return data;
+      return (data ?? []) as ExternalTool[];
     },
     staleTime: 5 * 60_000,
   });
 
-  if (isLoading || !state?.journey) {
-    return <p className="text-sm text-muted">Deine Reise wird geladen …</p>;
+  if (isPending) {
+    return <p className="text-sm text-muted">{t('journey.loading')}</p>;
+  }
+
+  if (isError || !state?.journey) {
+    return (
+      <Card>
+        <p className="font-medium">{t('journey.loadError')}</p>
+        <p className="mt-1 text-sm text-muted">{t('common.connectionHint')}</p>
+        <Button className="mt-3" variant="secondary" onClick={() => void refetch()}>
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
   }
 
   const daySteps = state.steps.filter((s) => s.day_number === state.currentDay);
@@ -38,19 +59,28 @@ export function JourneyToday() {
     <div className="space-y-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
-          Tag {state.currentDay} von {state.totalDays}
+          {t('journey.dayOf', { current: state.currentDay, total: state.totalDays })}
         </p>
         <h1 className="mt-1 text-2xl font-bold">
-          {profile ? `${profile.first_name}, ` : ''}deine erste Woche
+          {profile ? `${profile.first_name}, ` : ''}
+          {t('journey.firstWeek')}
         </h1>
         <p className="mt-1 text-sm text-muted">{state.journey.title}</p>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-          <div
-            className="h-full rounded-full bg-accent transition-all"
-            style={{ width: `${Math.round((totalDone / Math.max(state.steps.length, 1)) * 100)}%` }}
-          />
-        </div>
+        <EnergyCore
+          ap={totalDone}
+          currentThreshold={0}
+          nextThreshold={state.steps.length}
+          showLabel={false}
+          size="md"
+          className="mt-3"
+        />
       </div>
+
+      {stepError ? (
+        <Card>
+          <p className="text-sm text-muted">{stepError}</p>
+        </Card>
+      ) : null}
 
       <ol className="space-y-3">
         {daySteps.map((step) => (
@@ -58,20 +88,26 @@ export function JourneyToday() {
             key={step.id}
             step={step}
             done={state.completedStepIds.has(step.id)}
+            doneToday={doneToday}
             tools={tools ?? []}
-            busy={complete.isPending}
-            onComplete={() => void complete.mutateAsync(step.id)}
+            busy={pendingStepId === step.id}
+            onComplete={() => {
+              setStepError(null);
+              void complete.mutateAsync(step.id).catch(() => {
+                setStepError(t('journey.saveFailed'));
+              });
+            }}
           />
         ))}
       </ol>
 
       {doneToday === daySteps.length && daySteps.length > 0 ? (
         <Card>
-          <p className="font-semibold">Tag {state.currentDay} geschafft. 💪</p>
+          <p className="font-semibold">{t('journey.dayDone', { day: state.currentDay })}</p>
           <p className="mt-1 text-sm text-muted">
             {state.currentDay < state.totalDays
-              ? `Tag ${state.currentDay + 1} ist jetzt freigeschaltet — mach direkt weiter oder komm morgen zurück.`
-              : 'Das war deine erste Woche! Ab jetzt übernimmt dein täglicher Plan.'}
+              ? t('journey.nextDayUnlocked', { day: state.currentDay + 1 })
+              : t('journey.weekDone')}
           </p>
         </Card>
       ) : null}
@@ -82,24 +118,36 @@ export function JourneyToday() {
 function JourneyStepCard({
   step,
   done,
+  doneToday,
   tools,
   busy,
   onComplete,
 }: {
   step: JourneyStep;
   done: boolean;
+  doneToday: number;
   tools: ExternalTool[];
   busy: boolean;
   onComplete: () => void;
 }) {
+  const { t } = useI18n();
   const content = (step.content ?? {}) as JourneyStepContent;
-  const tool = content.tool_key ? tools.find((t) => t.key === content.tool_key) : null;
+  const rawTool = content.tool_key ? tools.find((tool) => tool.key === content.tool_key) : null;
+  const tool = rawTool ? displayShareTool(rawTool) : null;
+  const ap = scoreJourneyStep(step.content_type, step.day_number, doneToday);
+  const visibleTitle = renameWayToMoonLabel(step.title);
+  const visibleBody = content.body ? renameWayToMoonLabel(content.body) : null;
 
   return (
     <li>
       <Card className={done ? 'opacity-60' : ''}>
-        <p className={`font-semibold ${done ? 'line-through' : ''}`}>{step.title}</p>
-        {content.body ? <p className="mt-1 text-sm text-muted">{content.body}</p> : null}
+        <div className="flex items-start justify-between gap-2">
+          <p className={`min-w-0 flex-1 font-semibold ${done ? 'line-through' : ''}`}>
+            {visibleTitle}
+          </p>
+          <ApRewardSticker ap={ap} size="sm" animate={!done} />
+        </div>
+        {visibleBody ? <p className="mt-1 text-sm text-muted">{visibleBody}</p> : null}
 
         {!done ? (
           <div className="mt-3 space-y-2">
@@ -108,21 +156,22 @@ function JourneyStepCard({
                 href={tool.url}
                 target="_blank"
                 rel="noreferrer"
-                className="block w-full rounded-xl border border-line bg-bg px-4 py-2.5 text-center text-sm font-medium text-primary"
+                className={buttonClassName({ variant: 'secondary' })}
               >
-                {tool.name} öffnen ↗
+                <span className="ui-btn__label">{t('journey.openTool', { name: tool.name })}</span>
               </a>
             ) : null}
             {content.link ? (
-              <Link
-                to={content.link}
-                className="block w-full rounded-xl border border-line bg-bg px-4 py-2.5 text-center text-sm font-medium text-primary"
-              >
-                {content.cta ?? 'Öffnen'}
-              </Link>
+              <ButtonLink to={content.link} variant="secondary">
+                {content.cta ?? t('common.open')}
+              </ButtonLink>
             ) : null}
-            <Button onClick={onComplete} disabled={busy}>
-              {step.content_type === 'info' ? 'Verstanden ✓' : 'Erledigt ✓'}
+            <Button onClick={onComplete} disabled={busy} aria-busy={busy}>
+              {busy
+                ? t('today.saving')
+                : step.content_type === 'info'
+                  ? t('journey.understood')
+                  : t('journey.doneCheck')}
             </Button>
           </div>
         ) : null}

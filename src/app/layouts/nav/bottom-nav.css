@@ -1,0 +1,306 @@
+/* AscendOS cinematic bottom nav — transform / opacity / blur only */
+
+.nav-shell {
+  isolation: isolate;
+}
+
+.nav-center-disc {
+  transition:
+    transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1.2, 0.36, 1);
+  will-change: transform;
+}
+
+.nav-center-disc-active {
+  transform: scale(1.08);
+  box-shadow:
+    0 10px 32px rgb(184 147 90 / 0.32),
+    0 2px 10px rgb(17 18 20 / 0.08);
+}
+
+.nav-icon-active-glow {
+  filter: drop-shadow(0 0 6px rgb(184 147 90 / 0.35));
+}
+
+.nav-ascend-active {
+  filter: drop-shadow(0 0 10px rgb(184 147 90 / 0.45));
+}
+
+.nav-ascend-pulse {
+  animation: nav-ascend-pulse 360ms cubic-bezier(0.34, 1.45, 0.64, 1);
+  will-change: transform, filter;
+}
+
+@keyframes nav-ascend-pulse {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 0 8px rgb(184 147 90 / 0.3));
+  }
+  45% {
+    transform: translate3d(0, -2px, 0) scale(1.06);
+    filter: drop-shadow(0 0 16px rgb(184 147 90 / 0.55));
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 0 10px rgb(184 147 90 / 0.4));
+  }
+}
+
+/* Heute — calm lake ripple */
+.nav-ripple {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 9999px;
+  border: 1px solid rgb(184 147 90 / 0.45);
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0.4);
+  will-change: transform, opacity;
+}
+
+.nav-ripple-a {
+  animation: nav-water-ripple 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.nav-ripple-b {
+  animation: nav-water-ripple 700ms cubic-bezier(0.16, 1, 0.3, 1) 90ms forwards;
+}
+
+@keyframes nav-water-ripple {
+  0% {
+    opacity: 0.55;
+    transform: translate3d(0, 0, 0) scale(0.35);
+    filter: blur(0px);
+  }
+  70% {
+    opacity: 0.2;
+    filter: blur(0.4px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(2.6);
+    filter: blur(1px);
+  }
+}
+
+/* Kontakte — separate ~4px then reunite */
+.nav-contacts-left,
+.nav-contacts-right,
+.nav-team-left,
+.nav-team-center,
+.nav-team-right {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.nav-contacts-left {
+  animation: nav-contacts-left 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  will-change: transform;
+}
+
+.nav-contacts-right {
+  animation: nav-contacts-right 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  will-change: transform;
+}
+
+@keyframes nav-contacts-left {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40% {
+    transform: translate3d(-2px, 0, 0);
+  }
+}
+
+@keyframes nav-contacts-right {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40% {
+    transform: translate3d(2px, 0, 0);
+  }
+}
+
+/* Team Seyda — gather toward center + tiny scale */
+.nav-team-burst .nav-team-left {
+  animation: nav-team-left 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  will-change: transform;
+}
+
+.nav-team-burst .nav-team-right {
+  animation: nav-team-right 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  will-change: transform;
+}
+
+.nav-team-burst .nav-team-center {
+  animation: nav-team-center 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  will-change: transform;
+  transform-origin: 12px 12px;
+}
+
+@keyframes nav-team-left {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  45% {
+    transform: translate3d(1.5px, 0.4px, 0) scale(0.96);
+  }
+}
+
+@keyframes nav-team-right {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  45% {
+    transform: translate3d(-1.5px, 0.4px, 0) scale(0.96);
+  }
+}
+
+@keyframes nav-team-center {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.04);
+  }
+}
+
+/* Profil — ring draw + silhouette fade */
+@keyframes nav-profile-ring {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nav-profile-sil {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Profile expandable stack */
+.profile-stack-anchor {
+  transform: scale(1.05);
+  transition: transform 300ms cubic-bezier(0.34, 1.45, 0.64, 1);
+  will-change: transform;
+}
+
+.profile-stack-in .stack-orb,
+.profile-stack-out .stack-orb {
+  will-change: transform, opacity, filter;
+}
+
+.profile-stack-in .stack-orb-settings {
+  animation: stack-orb-in 300ms cubic-bezier(0.34, 1.45, 0.64, 1) 35ms both;
+}
+
+.profile-stack-in .stack-orb-more {
+  animation: stack-orb-in 300ms cubic-bezier(0.34, 1.45, 0.64, 1) 70ms both;
+}
+
+.profile-stack-out .stack-orb-more {
+  animation: stack-orb-out 280ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+.profile-stack-out .stack-orb-settings {
+  animation: stack-orb-out 280ms cubic-bezier(0.34, 1.45, 0.64, 1) 35ms both;
+}
+
+@keyframes stack-orb-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.88);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes stack-orb-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.88);
+    filter: blur(6px);
+  }
+}
+
+/* Language floating menu */
+.lang-menu-in {
+  animation: lang-menu-in 300ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  transform-origin: top right;
+  will-change: transform, opacity, filter;
+}
+
+.lang-menu-out {
+  animation: lang-menu-out 260ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  transform-origin: top right;
+  will-change: transform, opacity, filter;
+}
+
+.lang-menu-in .lang-menu-item {
+  animation: stack-orb-in 280ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+@keyframes lang-menu-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) scale(0.92);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes lang-menu-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) scale(0.92);
+    filter: blur(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-center-disc,
+  .nav-ascend-pulse,
+  .nav-ripple,
+  .nav-contacts-left,
+  .nav-contacts-right,
+  .nav-team-burst .nav-team-left,
+  .nav-team-burst .nav-team-right,
+  .nav-team-burst .nav-team-center,
+  .profile-stack-in .stack-orb,
+  .profile-stack-out .stack-orb,
+  .profile-stack-anchor,
+  .lang-menu-in,
+  .lang-menu-out,
+  .lang-menu-in .lang-menu-item {
+    animation: none !important;
+    transition: none !important;
+    filter: none !important;
+  }
+}

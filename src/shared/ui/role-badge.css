@@ -1,0 +1,92 @@
+/* Role badges — Super Admin: premium violet, metallic, soft glow */
+
+.role-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-ink));
+}
+
+.role-badge--default,
+.role-badge--berater,
+.role-badge--leader,
+.role-badge--admin {
+  color: rgb(var(--color-muted));
+}
+
+.role-badge--developer {
+  border-color: rgb(184 147 90 / 0.45);
+  color: rgb(var(--color-accent-deep));
+  background: linear-gradient(165deg, rgb(255 255 255), rgb(247 246 243));
+}
+
+.role-badge--super_admin {
+  --sa-violet: #6b3fa0;
+  --sa-violet-hi: #b48cff;
+  --sa-violet-deep: #3a1f63;
+  --sa-metal: #d8c6f2;
+
+  color: #f7f2ff;
+  border-color: rgb(180 140 255 / 0.55);
+  background: linear-gradient(
+    135deg,
+    #4a2a78 0%,
+    #6b3fa0 28%,
+    #9b6fe0 52%,
+    #5a348c 78%,
+    #3a1f63 100%
+  );
+  box-shadow:
+    0 0 0 1px rgb(180 140 255 / 0.25),
+    0 0 18px rgb(107 63 160 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    inset 0 -1px 0 rgb(30 10 60 / 0.35);
+  text-shadow: 0 1px 2px rgb(30 10 60 / 0.45);
+}
+
+.role-badge__sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.45) 48%,
+    transparent 62%
+  );
+  transform: translateX(-130%);
+  animation: role-badge-sheen 5.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.role-badge__label {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes role-badge-sheen {
+  0%,
+  60% {
+    transform: translateX(-130%);
+  }
+  78%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-badge__sheen {
+    animation: none;
+  }
+}

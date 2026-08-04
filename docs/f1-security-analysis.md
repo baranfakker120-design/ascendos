@@ -51,40 +51,40 @@ Legende: `uid` = prüft `auth.uid()`, `org` = prüft Organisation, `own` = prüf
 
 ### 4.1 Gruppe A: Fremdparameter ohne Prüfung, Handlungsbedarf
 
-| Funktion | Aufrufbar von | Ergebnis sichtbar für | DEFINER nötig? | uid | org | own | rol | Befund |
-|---|---|---|---|---|---|---|---|---|
-| `plan_contact_state(p_user)` | anon, auth, PUBLIC | jeden Aufrufer | **nein** | fehlt | fehlt | fehlt | nein | Kontaktdaten Dritter |
-| `plan_signal_fit_check(p_user, p_date)` | anon, auth, PUBLIC | jeden Aufrufer | **nein** | fehlt | fehlt | fehlt | nein | Kontaktnamen |
-| `plan_signal_next_step(p_user, p_date)` | anon, auth, PUBLIC | jeden Aufrufer | **nein** | fehlt | fehlt | fehlt | nein | Kontaktnamen |
-| `plan_signal_presentation(p_user, p_date)` | anon, auth, PUBLIC | jeden Aufrufer | **nein** | fehlt | fehlt | fehlt | nein | Kontaktnamen |
-| `plan_signal_follow_up(p_user, p_date)` | anon, auth, PUBLIC | jeden Aufrufer | **nein** | fehlt | fehlt | fehlt | nein | Kontaktnamen |
-| `plan_signal_reactivate(p_user, p_date)` | anon, auth, PUBLIC | jeden Aufrufer | **nein** | fehlt | fehlt | fehlt | nein | Kontaktnamen |
-| `get_downline(root_user_id)` | anon, auth, PUBLIC | jeden Aufrufer | ja | fehlt | **fehlt** | fehlt | nein | Genealogie, mandantenübergreifend |
-| `coach_messages_today(p_user)` | anon, auth, PUBLIC | jeden Aufrufer | ja | fehlt | fehlt | fehlt | nein | Nutzungszahl Dritter |
-| `track_usage(p_user, p_event, p_meta)` | PUBLIC | schreibend | ja | fehlt | teilweise | fehlt | nein | **Fälschung von Aktivität** |
+| Funktion                                   | Aufrufbar von      | Ergebnis sichtbar für | DEFINER nötig? | uid   | org       | own   | rol  | Befund                            |
+| ------------------------------------------ | ------------------ | --------------------- | -------------- | ----- | --------- | ----- | ---- | --------------------------------- |
+| `plan_contact_state(p_user)`               | anon, auth, PUBLIC | jeden Aufrufer        | **nein**       | fehlt | fehlt     | fehlt | nein | Kontaktdaten Dritter              |
+| `plan_signal_fit_check(p_user, p_date)`    | anon, auth, PUBLIC | jeden Aufrufer        | **nein**       | fehlt | fehlt     | fehlt | nein | Kontaktnamen                      |
+| `plan_signal_next_step(p_user, p_date)`    | anon, auth, PUBLIC | jeden Aufrufer        | **nein**       | fehlt | fehlt     | fehlt | nein | Kontaktnamen                      |
+| `plan_signal_presentation(p_user, p_date)` | anon, auth, PUBLIC | jeden Aufrufer        | **nein**       | fehlt | fehlt     | fehlt | nein | Kontaktnamen                      |
+| `plan_signal_follow_up(p_user, p_date)`    | anon, auth, PUBLIC | jeden Aufrufer        | **nein**       | fehlt | fehlt     | fehlt | nein | Kontaktnamen                      |
+| `plan_signal_reactivate(p_user, p_date)`   | anon, auth, PUBLIC | jeden Aufrufer        | **nein**       | fehlt | fehlt     | fehlt | nein | Kontaktnamen                      |
+| `get_downline(root_user_id)`               | anon, auth, PUBLIC | jeden Aufrufer        | ja             | fehlt | **fehlt** | fehlt | nein | Genealogie, mandantenübergreifend |
+| `coach_messages_today(p_user)`             | anon, auth, PUBLIC | jeden Aufrufer        | ja             | fehlt | fehlt     | fehlt | nein | Nutzungszahl Dritter              |
+| `track_usage(p_user, p_event, p_meta)`     | PUBLIC             | schreibend            | ja             | fehlt | teilweise | fehlt | nein | **Fälschung von Aktivität**       |
 
 ### 4.2 Gruppe B: DEFINER mit korrekter Prüfung, nur Rechte einschränken
 
-| Funktion | Prüfung vorhanden | DEFINER nötig? | Handlungsbedarf |
-|---|---|---|---|
-| `check_achievements()` | `auth.uid()`, kein Parameter | ja, schreibt `user_achievements` | EXECUTE von `anon` entziehen |
-| `commit_daily_plan(p_plan_id)` | `auth.uid()` gegen Plan-Eigentümer | ja | EXECUTE von `anon` entziehen |
-| `complete_journey_step(p_step_id)` | `auth.uid()` und `org_id` | ja | EXECUTE von `anon` entziehen |
-| `correct_pipeline_event(p_event_id)` | `auth.uid()` und `org_id` | ja | EXECUTE von `anon` entziehen |
-| `create_invite(invite_role)` | `auth.uid()`, Rollenprüfung für leader und admin | ja | EXECUTE von `anon` entziehen |
-| `generate_daily_plan(p_date)` | `auth.uid()`, kein Fremdparameter | ja, schreibt Plan | Aufrufe an neue Signaturen anpassen |
-| `update_mission_status(p_item_id, ...)` | `auth.uid()` und `org_id` | ja | EXECUTE von `anon` entziehen |
-| `validate_invite(invite_code)` | keine, **so gewollt** | ja | EXECUTE von `anon` entziehen, siehe unten |
+| Funktion                                | Prüfung vorhanden                                | DEFINER nötig?                   | Handlungsbedarf                           |
+| --------------------------------------- | ------------------------------------------------ | -------------------------------- | ----------------------------------------- |
+| `check_achievements()`                  | `auth.uid()`, kein Parameter                     | ja, schreibt `user_achievements` | EXECUTE von `anon` entziehen              |
+| `commit_daily_plan(p_plan_id)`          | `auth.uid()` gegen Plan-Eigentümer               | ja                               | EXECUTE von `anon` entziehen              |
+| `complete_journey_step(p_step_id)`      | `auth.uid()` und `org_id`                        | ja                               | EXECUTE von `anon` entziehen              |
+| `correct_pipeline_event(p_event_id)`    | `auth.uid()` und `org_id`                        | ja                               | EXECUTE von `anon` entziehen              |
+| `create_invite(invite_role)`            | `auth.uid()`, Rollenprüfung für leader und admin | ja                               | EXECUTE von `anon` entziehen              |
+| `generate_daily_plan(p_date)`           | `auth.uid()`, kein Fremdparameter                | ja, schreibt Plan                | Aufrufe an neue Signaturen anpassen       |
+| `update_mission_status(p_item_id, ...)` | `auth.uid()` und `org_id`                        | ja                               | EXECUTE von `anon` entziehen              |
+| `validate_invite(invite_code)`          | keine, **so gewollt**                            | ja                               | EXECUTE von `anon` entziehen, siehe unten |
 
 Zu `validate_invite`: Die Funktion muss ohne Anmeldung funktionieren, weil sie in der Registrierung genutzt wird. Geprüft: Die Edge Function `validate-invite` verwendet `SUPABASE_SERVICE_ROLE_KEY`. Der Aufruf läuft also nicht über `anon`, und das Recht kann entzogen werden. Die Ratenbegrenzung liegt in der Edge Function über `invite_validation_attempts`, nicht in der Funktion. Das bleibt so.
 
 ### 4.3 Gruppe C: Helferfunktionen, die in Policies aufgerufen werden
 
-| Funktion | Vorkommen in Policies | Rechte |
-|---|---|---|
-| `current_org_id()` | 31 | **EXECUTE muss für `anon` bleiben** |
-| `is_super_admin()` | 19 | **EXECUTE muss für `anon` bleiben** |
-| `current_user_role()` | 1 | **EXECUTE muss für `anon` bleiben** |
+| Funktion              | Vorkommen in Policies | Rechte                              |
+| --------------------- | --------------------- | ----------------------------------- |
+| `current_org_id()`    | 31                    | **EXECUTE muss für `anon` bleiben** |
+| `is_super_admin()`    | 19                    | **EXECUTE muss für `anon` bleiben** |
+| `current_user_role()` | 1                     | **EXECUTE muss für `anon` bleiben** |
 
 Das ist die wichtigste Einschränkung der ganzen Migration. Eine RLS-Policy wird mit den Rechten der abfragenden Rolle ausgewertet. Entzieht man `anon` das Ausführungsrecht auf eine Funktion, die in einer Policy steht, führt jede Abfrage dieser Rolle zu `permission denied for function` statt zu einem leeren Ergebnis.
 
@@ -92,21 +92,21 @@ Ein pauschales `revoke execute on all functions from anon` würde die Anwendung 
 
 ### 4.4 Gruppe D: Trigger-Funktionen
 
-| Funktion | Trigger auf | DEFINER nötig? | Handlungsbedarf |
-|---|---|---|---|
-| `handle_new_user()` | `auth.users` | ja, schreibt `profiles` an RLS vorbei | Direktaufruf unterbinden |
-| `log_contact_created()` | `contacts` | ja | Direktaufruf unterbinden |
-| `protect_profile_columns()` | `profiles` | nein, invoker korrekt | **`search_path` fehlt** |
-| `set_updated_at()` | `contacts`, `profiles`, `products` | nein | **`search_path` fehlt** |
+| Funktion                    | Trigger auf                        | DEFINER nötig?                        | Handlungsbedarf          |
+| --------------------------- | ---------------------------------- | ------------------------------------- | ------------------------ |
+| `handle_new_user()`         | `auth.users`                       | ja, schreibt `profiles` an RLS vorbei | Direktaufruf unterbinden |
+| `log_contact_created()`     | `contacts`                         | ja                                    | Direktaufruf unterbinden |
+| `protect_profile_columns()` | `profiles`                         | nein, invoker korrekt                 | **`search_path` fehlt**  |
+| `set_updated_at()`          | `contacts`, `profiles`, `products` | nein                                  | **`search_path` fehlt**  |
 
 Zu `set_updated_at`: Diese Funktion wird auch von einem Trigger auf `products` genutzt, einer Tabelle des Fremdprojekts. Das Ergänzen von `search_path` ändert das Verhalten nicht, die Funktion setzt lediglich `new.updated_at`. Der Eingriff ist unkritisch, wird aber vermerkt.
 
 ### 4.5 Gruppe E: Härtung ohne akute Lücke
 
-| Funktion | Modus | Befund |
-|---|---|---|
-| `match_knowledge(...)` | invoker | `search_path` fehlt, `p_org_id` ist ein scheinbarer Berechtigungsparameter |
-| `event_phase_rank(p_event_type)` | invoker, immutable | `search_path` fehlt, rein rechnend, geringes Risiko |
+| Funktion                         | Modus              | Befund                                                                     |
+| -------------------------------- | ------------------ | -------------------------------------------------------------------------- |
+| `match_knowledge(...)`           | invoker            | `search_path` fehlt, `p_org_id` ist ein scheinbarer Berechtigungsparameter |
+| `event_phase_rank(p_event_type)` | invoker, immutable | `search_path` fehlt, rein rechnend, geringes Risiko                        |
 
 Zu `match_knowledge`: Der Parameter `p_org_id` sieht wie eine Berechtigungsgrenze aus, ist aber keine. Die tatsächliche Trennung leistet die Policy `knowledge_docs_select_approved` mit `org_id = current_org_id()`. Ein Aufrufer, der eine fremde Organisation übergibt, erhält deshalb nichts. Der Parameter ist damit irreführend, nicht unsicher. Er erhält eine Prüfung, damit er hält, was er suggeriert.
 
@@ -114,12 +114,12 @@ Wichtig bei `search_path` für `match_knowledge`: Der Operator `<=>` und der Typ
 
 ### 4.6 Views
 
-| View | `security_invoker` | Bewertung |
-|---|---|---|
-| `contact_phases` | true | korrekt |
-| `effective_pipeline_events` | true | korrekt |
-| `firstline_journey_progress` | true | korrekt |
-| `profiles_public` | nicht gesetzt | **beabsichtigt**, siehe Abschnitt 3, keine Änderung |
+| View                         | `security_invoker` | Bewertung                                           |
+| ---------------------------- | ------------------ | --------------------------------------------------- |
+| `contact_phases`             | true               | korrekt                                             |
+| `effective_pipeline_events`  | true               | korrekt                                             |
+| `firstline_journey_progress` | true               | korrekt                                             |
+| `profiles_public`            | nicht gesetzt      | **beabsichtigt**, siehe Abschnitt 3, keine Änderung |
 
 ---
 
@@ -170,16 +170,16 @@ Leere Rückgabe statt Ausnahme: Eine Ausnahme würde bestätigen, dass die Kennu
 
 **Vollständige Aufrufsuche, nachgeholt am 25. Juli 2026:**
 
-| Funktion | Aufgerufen von |
-|---|---|
-| `track_usage` | `commit_daily_plan`, `complete_journey_step`, `log_contact_created`, `update_mission_status` |
-| `get_downline` | `check_achievements` |
-| `plan_contact_state` | alle fünf `plan_signal_*` |
-| `plan_signal_*` | `generate_daily_plan` |
-| `event_phase_rank` | `check_achievements`, View `contact_phases`, `plan_contact_state` |
-| `coach_messages_today` | keiner in der Datenbank, Aufruf aus `coach-chat` |
-| `match_knowledge` | keiner in der Datenbank, Aufruf aus `coach-chat` |
-| `is_ancestor_of` | `get_downline`, neu in dieser Migration |
+| Funktion               | Aufgerufen von                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| `track_usage`          | `commit_daily_plan`, `complete_journey_step`, `log_contact_created`, `update_mission_status` |
+| `get_downline`         | `check_achievements`                                                                         |
+| `plan_contact_state`   | alle fünf `plan_signal_*`                                                                    |
+| `plan_signal_*`        | `generate_daily_plan`                                                                        |
+| `event_phase_rank`     | `check_achievements`, View `contact_phases`, `plan_contact_state`                            |
+| `coach_messages_today` | keiner in der Datenbank, Aufruf aus `coach-chat`                                             |
+| `match_knowledge`      | keiner in der Datenbank, Aufruf aus `coach-chat`                                             |
+| `is_ancestor_of`       | `get_downline`, neu in dieser Migration                                                      |
 
 `track_usage` hat also **vier** Aufrufer, nicht null. Drei davon übergeben `auth.uid()`, der Trigger übergibt `new.owner_id`, was durch die Policy `contacts_owner_all` gleich `auth.uid()` ist. Die korrigierte Fassung trägt alle vier Wege.
 
@@ -207,7 +207,7 @@ Hier ist eine Ausnahme richtig und keine leere Rückgabe: Der Rückgabewert steu
 
 > **KORREKTUR vom 25. Juli 2026.** Die erste Fassung dieses Abschnitts behauptete, die Funktion habe keinen Aufrufer und sei toter Code. **Das war falsch.** Aufrufer ist der Trigger `log_contact_created`, der in Migration 8 um `perform public.track_usage(new.owner_id, 'contact_created')` erweitert wurde.
 >
-> Ursache des Fehlers: Ich habe geprüft, welche Funktionen an einen Trigger *gebunden* sind, und im Frontend sowie in den Edge Functions nach Aufrufen gesucht. Ich habe die Migrationen nicht danach durchsucht, wer die Funktion *aufruft*. Migration 3 definierte `log_contact_created` noch ohne diesen Aufruf, Migration 8 fügte ihn hinzu.
+> Ursache des Fehlers: Ich habe geprüft, welche Funktionen an einen Trigger _gebunden_ sind, und im Frontend sowie in den Edge Functions nach Aufrufen gesucht. Ich habe die Migrationen nicht danach durchsucht, wer die Funktion _aufruft_. Migration 3 definierte `log_contact_created` noch ohne diesen Aufruf, Migration 8 fügte ihn hinzu.
 >
 > Aufgefallen ist es erst beim ersten Testlauf in Sprint 0.
 
@@ -252,12 +252,12 @@ Der Vermerk für eine Aufräum-Migration entfällt. Die Funktion ist in Gebrauch
 
 Selektiv, nie pauschal.
 
-| Aktion | Betrifft |
-|---|---|
-| EXECUTE für `anon` entziehen | alle Funktionen außer `current_org_id`, `is_super_admin`, `current_user_role` |
-| EXECUTE für `PUBLIC` entziehen | alle Funktionen der Gruppen A, B, D |
-| EXECUTE nur für `service_role` | `handle_new_user`, `log_contact_created`, `track_usage` |
-| EXECUTE für `authenticated` erhalten | alle vom Frontend genutzten RPC |
+| Aktion                               | Betrifft                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| EXECUTE für `anon` entziehen         | alle Funktionen außer `current_org_id`, `is_super_admin`, `current_user_role` |
+| EXECUTE für `PUBLIC` entziehen       | alle Funktionen der Gruppen A, B, D                                           |
+| EXECUTE nur für `service_role`       | `handle_new_user`, `log_contact_created`, `track_usage`                       |
+| EXECUTE für `authenticated` erhalten | alle vom Frontend genutzten RPC                                               |
 
 Die drei Policy-Helfer behalten ihr Recht für `anon`. Begründung in 4.3.
 

@@ -4900,6 +4900,2526 @@ on conflict do nothing;
 --   d) Mindestteilnehmerzahl fuer die monatliche Auszeichnung.
 -- ============================================================
 
+-- ############ 20260806000019_avatar_storage.sql ############
+-- ============================================================
+-- Migration 19, Sprint 4 Phase 2: Speicher-Bucket fuer Profilbilder
+--
+-- SETZT MIGRATIONEN 15 BIS 18 VORAUS (memberships, Profilspiegel).
+--
+-- ZIEL
+--   profiles.avatar_url bekommt einen echten Upload-Pfad. Bisher
+--   existierte die Spalte ohne Bucket (Sprint-4-Plan Abschnitt 1.3).
+--
+-- REGELN
+--   1. Pfadkonvention: {auth.uid()}/avatar.<ext>
+--      Der erste Pfadabschnitt IST die Identitaet. Policies pruefen
+--      das serverseitig — das UI darf den Pfad nicht "frei" waehlen.
+--   2. Oeffentlich LESBAR: Avatar-URLs stehen in profiles /
+--      profiles_public und werden als <img src> geladen. Ein privater
+--      Bucket wuerde fuer jedes Bild eine signierte URL verlangen und
+--      die Mitgliederliste unbrauchbar machen.
+--   3. Schreiben nur fuer den eigenen Ordner. Kein org-weiter Upload.
+--   4. MIME und Groesse am Bucket begrenzt (Defense in Depth).
+--   5. Keine Geschaeftsregel aendert sich. Nur Infrastruktur fuer
+--      eine bereits vorhandene Spalte (Golden Rule / PROJECT_BIBLE).
+-- ============================================================
+
+-- ---------- Bucket -------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'avatare',
+  'avatare',
+  true,
+  2097152, -- 2 MiB
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public             = excluded.public,
+  file_size_limit    = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- ---------- Policies auf storage.objects ---------------------------
+-- Idempotent: alte Policies gleichen Namens entfernen, falls ein
+-- Teil-Lauf haengen blieb.
+
+drop policy if exists avatare_select_public     on storage.objects;
+drop policy if exists avatare_insert_own        on storage.objects;
+drop policy if exists avatare_update_own        on storage.objects;
+drop policy if exists avatare_delete_own        on storage.objects;
+
+-- Lesen: oeffentlich (Bucket public=true + SELECT fuer authenticated/
+-- anon, damit Studio und Client-Listen konsistent sind).
+create policy avatare_select_public
+  on storage.objects
+  for select
+  to public
+  using (bucket_id = 'avatare');
+
+-- Anlegen: nur im eigenen Ordner {uid}/...
+create policy avatare_insert_own
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'avatare'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Ersetzen: nur eigener Ordner
+create policy avatare_update_own
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'avatare'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'avatare'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Loeschen: nur eigener Ordner
+create policy avatare_delete_own
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'avatare'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ############ 20260807000020_auth_membership_authority.sql ############
+-- ============================================================
+-- Migration 20: memberships.role is the only authority
+--
+-- profiles.role/org_id/team_id remain a read-only mirror (sync from
+-- memberships). active_membership_id() keeps the explicit
+-- x-ascendos-org selector and the single-membership auto-resolve;
+-- when multiple memberships exist without a header, the profile
+-- mirror org_id is used as a non-authoritative fallback so existing
+-- single-org sessions keep working.
+--
+-- RLS policies are NOT changed.
+-- ============================================================
+
+-- 1) Ensure every profile has an active membership (idempotent).
+insert into public.memberships
+  (identity_id, org_id, team_id, role, status, country, goals, joined_at, created_at)
+select p.id, p.org_id, p.team_id, p.role, 'active', p.country, p.goals, p.created_at, p.created_at
+from public.profiles p
+where p.org_id is not null
+  and p.team_id is not null
+  and not exists (
+    select 1 from public.memberships m
+    where m.identity_id = p.id
+      and m.org_id = p.org_id
+      and m.status = 'active'
+  );
+
+-- 2) Mirror: membership wins. Repair drifted profiles.role / org / team.
+-- Prefer the membership that already matches profiles.org_id; else oldest.
+do $$
+begin
+  perform set_config('ascendos.mirror_sync', 'on', true);
+
+  update public.profiles p
+  set role    = s.role,
+      org_id  = s.org_id,
+      team_id = s.team_id
+  from (
+    select distinct on (m.identity_id)
+      m.identity_id,
+      m.role,
+      m.org_id,
+      m.team_id
+    from public.memberships m
+    join public.profiles pr on pr.id = m.identity_id
+    where m.status = 'active'
+    order by
+      m.identity_id,
+      (m.org_id = pr.org_id) desc,
+      m.joined_at asc nulls last,
+      m.created_at asc
+  ) s
+  where p.id = s.identity_id
+    and (
+      p.role is distinct from s.role
+      or p.org_id is distinct from s.org_id
+      or p.team_id is distinct from s.team_id
+    );
+end $$;
+
+-- 3) active_membership_id — same contract + mirror-org fallback
+create or replace function public.active_membership_id()
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid      uuid := auth.uid();
+  v_selektor uuid;
+  v_treffer  uuid;
+  v_anzahl   int;
+  v_mirror   uuid;
+begin
+  if v_uid is null then
+    return null;
+  end if;
+
+  begin
+    v_selektor := nullif(
+      (current_setting('request.headers', true)::json ->> 'x-ascendos-org'), ''
+    )::uuid;
+  exception when others then
+    v_selektor := null;
+  end;
+
+  if v_selektor is not null then
+    select m.id into v_treffer
+    from public.memberships m
+    where m.identity_id = v_uid
+      and m.org_id      = v_selektor
+      and m.status      = 'active';
+    return v_treffer;
+  end if;
+
+  select count(*) into v_anzahl
+  from public.memberships m
+  where m.identity_id = v_uid and m.status = 'active';
+
+  if v_anzahl = 1 then
+    select m.id into v_treffer
+    from public.memberships m
+    where m.identity_id = v_uid and m.status = 'active';
+    return v_treffer;
+  end if;
+
+  if v_anzahl < 1 then
+    return null;
+  end if;
+
+  -- Multiple memberships, no header: prefer mirrored profiles.org_id.
+  select p.org_id into v_mirror from public.profiles p where p.id = v_uid;
+
+  if v_mirror is not null then
+    select m.id into v_treffer
+    from public.memberships m
+    where m.identity_id = v_uid
+      and m.org_id = v_mirror
+      and m.status = 'active';
+    if v_treffer is not null then
+      return v_treffer;
+    end if;
+  end if;
+
+  return null;
+end;
+$$;
+
+comment on function public.active_membership_id() is
+  'Validated active membership. Selector x-ascendos-org preferred; single active membership auto-resolves; multi without header falls back to profiles.org_id mirror.';
+
+-- Helpers stay membership-backed (reassert for clarity; no policy changes).
+create or replace function public.current_user_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.role from public.memberships m
+  where m.id = public.active_membership_id();
+$$;
+
+create or replace function public.is_super_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select m.role = 'super_admin' from public.memberships m
+     where m.id = public.active_membership_id()),
+    false
+  );
+$$;
+
+grant execute on function public.active_membership_id() to anon, authenticated, service_role;
+grant execute on function public.current_user_role()    to anon, authenticated, service_role;
+grant execute on function public.is_super_admin()       to anon, authenticated, service_role;
+
+-- Allow reading organization names for every org the identity belongs to
+-- (needed for the active-org switcher). Existing select policy kept.
+drop policy if exists organizations_select_own_memberships on public.organizations;
+create policy organizations_select_own_memberships
+  on public.organizations for select
+  using (
+    exists (
+      select 1 from public.memberships m
+      where m.identity_id = auth.uid()
+        and m.org_id = organizations.id
+        and m.status = 'active'
+    )
+  );
+
+-- ############ 20260808000021_fix_create_invite_pgcrypto.sql ############
+-- ============================================================
+-- Migration 21: Fix create_invite random bytes (pgcrypto)
+--
+-- Migration 7 already qualified extensions.gen_random_bytes.
+-- Migration 16 rewrote create_invite for memberships and
+-- accidentally used bare gen_random_bytes() again. With
+-- search_path = public that fails: function does not exist.
+--
+-- Applied migrations are never edited (ADR-018) — fix here.
+-- ============================================================
+
+create extension if not exists pgcrypto with schema extensions;
+
+create or replace function public.create_invite(invite_role text default 'berater')
+returns table (invite_code text, invite_expires_at timestamptz)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_membership public.memberships;
+  v_code text;
+begin
+  select * into v_membership
+  from public.memberships
+  where id = public.active_membership_id();
+
+  if v_membership.id is null then
+    raise exception 'AscendOS: Keine aktive Mitgliedschaft für diesen Nutzer.';
+  end if;
+
+  if invite_role <> 'berater' and v_membership.role <> 'super_admin' then
+    raise exception 'AscendOS: Nur Super-Admins können Admin- oder Leader-Einladungen erstellen.';
+  end if;
+
+  -- 10 Zeichen, gut vorlesbar (keine 0/O, 1/I); pgcrypto explizit
+  -- über das extensions-Schema angesprochen.
+  v_code := upper(
+    substring(replace(replace(replace(replace(
+      encode(extensions.gen_random_bytes(8), 'base64'),
+      '/', 'A'), '+', 'B'), '0', 'C'), 'O', 'D')
+    from 1 for 10)
+  );
+
+  insert into public.invites (code, org_id, team_id, sponsor_id, role, created_by)
+  values (v_code, v_membership.org_id, v_membership.team_id,
+          v_membership.identity_id, invite_role, v_membership.identity_id);
+
+  return query
+    select i.code, i.expires_at from public.invites i where i.code = v_code;
+end;
+$$;
+
+revoke execute on function public.create_invite(text) from PUBLIC, anon;
+grant  execute on function public.create_invite(text) to authenticated, service_role;
+
+comment on function public.create_invite(text) is
+  'Creates an invite from the active membership. Uses extensions.gen_random_bytes (pgcrypto).';
+
+-- ############ 20260809000022_developer_role_special_frames.sql ############
+-- ============================================================
+-- Migration 22: Rolle `developer` + Sonderrahmen (kein AP-Rang)
+--
+-- frame-08 = Developer, frame-09 = Super Admin — Anzeige über Rolle.
+-- ranks / threshold_ap / seed-Ränge bleiben unverändert.
+-- ============================================================
+
+-- memberships.role: developer zulassen (Constraint-Name ist Postgres-Default).
+alter table public.memberships drop constraint if exists memberships_role_check;
+alter table public.memberships
+  add constraint memberships_role_check
+  check (role in ('super_admin', 'admin', 'berater', 'leader', 'developer'));
+
+-- profiles.role ist nur Spiegel — muss denselben Wertebereich erlauben.
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('super_admin', 'admin', 'berater', 'leader', 'developer'));
+
+-- Kosmetik-Katalog: Sonderrahmen ohne rank_key (nicht über AP freischaltbar).
+insert into public.cosmetic_items (org_id, kind, key, label, asset_path, rank_key, sort_order)
+select o.id, 'frame', 'special-developer', 'Developer', 'frame-08', null, 98
+from public.organizations o
+on conflict (org_id, kind, key) do nothing;
+
+insert into public.cosmetic_items (org_id, kind, key, label, asset_path, rank_key, sort_order)
+select o.id, 'frame', 'special-super-admin', 'Super Admin', 'frame-09', null, 99
+from public.organizations o
+on conflict (org_id, kind, key) do nothing;
+
+-- ############ 20260810000023_aaa_ap_game_economy.sql ############
+-- ============================================================
+-- AAA Game Economy: automatische AP-Vergabe nach Design-Score
+--
+-- Spiegel von src/shared/lib/apScoring.ts
+-- Dimensionen: Schwierigkeit, Dauer, Impact, Priorität, Seltenheit
+-- → Reward-Tiers 10 / 25 / 50 / 75 / 100 / 150 / 250 / 500
+-- ============================================================
+
+-- 1) Pipeline-Regeln mit kalibrierten Werten füllen
+update public.ap_rules r
+set ap = v.ap,
+    note = 'Auto-Score (Game Design): ' || v.et,
+    updated_at = now()
+from (values
+  ('contact_created', 10),
+  ('first_touch', 25),
+  ('follow_up', 50),
+  ('presentation_sent', 50),
+  ('presentation_viewed', 75),
+  ('fit_check_sent', 75),
+  ('fit_check_completed', 150),
+  ('waytomoon_sent', 75),
+  ('three_way_call_done', 250),
+  ('party_scheduled', 100),
+  ('party_done', 250),
+  ('became_customer', 250),
+  ('registered', 500)
+) as v(et, ap)
+where r.source_kind = 'pipeline_event'
+  and r.event_type = v.et
+  and r.is_active;
+
+-- 2) Usage-Regeln
+update public.ap_rules r
+set ap = v.ap,
+    note = 'Auto-Score (Game Design): ' || v.et,
+    updated_at = now()
+from (values
+  ('app_opened', 10),
+  ('coach_message_sent', 25),
+  ('contact_created', 10),
+  ('journey_step_completed', 50),
+  ('mission_skipped', 0),
+  ('plan_committed', 25)
+) as v(et, ap)
+where r.source_kind = 'usage_event'
+  and r.event_type = v.et
+  and r.is_active;
+
+-- 3) mission_completed Regel anlegen (Basis; Trigger überschreibt per Typ)
+insert into public.ap_rules (org_id, source_kind, event_type, ap, note)
+select o.id, 'usage_event', 'mission_completed', 50,
+       'Auto-Score Basis; Delta folgt mission_type aus metadata'
+from public.organizations o
+where not exists (
+  select 1 from public.ap_rules r
+  where r.org_id = o.id
+    and r.source_kind = 'usage_event'
+    and r.event_type = 'mission_completed'
+    and r.is_active
+);
+
+update public.ap_rules
+set ap = 50,
+    note = 'Auto-Score Basis; Delta folgt mission_type aus metadata',
+    updated_at = now()
+where source_kind = 'usage_event'
+  and event_type = 'mission_completed'
+  and is_active;
+
+-- 4) Award-Trigger: mission_completed nach Mission-Typ bewerten
+create or replace function public.ap_design_score_mission(p_mission_type text)
+returns int
+language sql
+immutable
+as $$
+  select case p_mission_type
+    when 'new_contacts' then 25
+    when 'follow_up_overdue' then 50
+    when 'reactivate_contact' then 50
+    when 'presentation_pending' then 75
+    when 'next_step_due' then 50
+    when 'fit_check_next_step' then 100
+    else 50
+  end;
+$$;
+
+comment on function public.ap_design_score_mission(text) is
+  'Game-Design AP für Missions-Typen — Spiegel von apScoring.ts scoreMission.';
+
+create or replace function public.ap_award_from_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_identity    uuid;
+  v_org         uuid;
+  v_event_type  text;
+  v_source_kind text;
+  v_membership  uuid;
+  v_rule        public.ap_rules;
+  v_orig_type   text;
+  v_delta       int;
+  v_mission     text;
+  v_meta        jsonb;
+begin
+  if TG_TABLE_NAME = 'pipeline_events' then
+    v_identity := new.created_by; v_org := new.org_id;
+    v_event_type := new.event_type; v_source_kind := 'pipeline_event';
+    v_meta := coalesce(new.payload, '{}'::jsonb);
+  elsif TG_TABLE_NAME = 'usage_events' then
+    v_identity := new.user_id; v_org := new.org_id;
+    v_event_type := new.event_type; v_source_kind := 'usage_event';
+    v_meta := coalesce(new.metadata, '{}'::jsonb);
+  else
+    return new;
+  end if;
+
+  if v_identity is null or v_org is null then return new; end if;
+
+  select m.id into v_membership
+  from public.memberships m
+  where m.identity_id = v_identity and m.org_id = v_org and m.status = 'active';
+
+  if v_membership is null then return new; end if;
+
+  -- Korrektur: Gegenbuchung
+  if v_source_kind = 'pipeline_event' and v_event_type = 'correction' then
+    v_orig_type := new.payload ->> 'corrected_event_type';
+    if v_orig_type is null then return new; end if;
+
+    select * into v_rule from public.ap_rules r
+    where r.org_id = v_org and r.source_kind = 'pipeline_event'
+      and r.event_type = v_orig_type and r.is_active
+      and r.valid_from <= now()
+      and (r.valid_until is null or r.valid_until > now())
+    limit 1;
+
+    if v_rule.id is null or v_rule.ap = 0 then return new; end if;
+
+    insert into public.ap_ledger
+      (membership_id, delta, reason, rule_id, source_kind, source_event_id, season_id)
+    values (v_membership, -v_rule.ap, 'Korrektur: ' || v_orig_type,
+            v_rule.id, 'correction', new.id, v_rule.season_id)
+    on conflict do nothing;
+    return new;
+  end if;
+
+  select * into v_rule from public.ap_rules r
+  where r.org_id = v_org and r.source_kind = v_source_kind
+    and r.event_type = v_event_type and r.is_active
+    and r.valid_from <= now()
+    and (r.valid_until is null or r.valid_until > now())
+  limit 1;
+
+  if v_rule.id is null then return new; end if;
+
+  v_delta := v_rule.ap;
+
+  -- Missionen: Delta aus Game-Design-Score (nicht pauschal)
+  if v_source_kind = 'usage_event' and v_event_type = 'mission_completed' then
+    v_mission := v_meta ->> 'mission_type';
+    if v_mission is not null then
+      v_delta := public.ap_design_score_mission(v_mission);
+    end if;
+  end if;
+
+  if v_delta = 0 then return new; end if;
+
+  insert into public.ap_ledger
+    (membership_id, delta, reason, rule_id, source_kind, source_event_id, season_id)
+  values (v_membership, v_delta, v_event_type,
+          v_rule.id, v_source_kind, new.id, v_rule.season_id)
+  on conflict do nothing;
+
+  return new;
+end;
+$$;
+
+-- ############ 20260811000024_ascent_mentor_personality.sql ############
+-- ============================================================
+-- Ascent Mentor-Persönlichkeit: Spezialisten-Prompts angleichen
+-- CORE_RULES leben in der Edge Function; agents.system_prompt
+-- ergänzt nur die Fach-Spezialisierung — in derselben Stimme.
+-- ============================================================
+
+update public.agents
+set system_prompt =
+  'Du bist Ascents Recruiting-Spezialist — immer noch derselbe Mentor, nur mit Fokus auf Interessenten: qualifizieren, Einwände klären, Präsentation → Fit Check → 3-Way-Call → Registrierung. Du nimmst Angst ernst, baust keinen Druck auf und führst konsequent zur nächsten konkreten Aktion.'
+where key = 'recruiting';
+
+update public.agents
+set system_prompt =
+  'Du bist Ascents Sales-Spezialist — derselbe Mentor, Fokus Produkte und Kunden: Nutzen statt Druck, Duftpartys planen und nachbereiten, aus Käufern Stammkunden machen. Immer: eine klare Einsicht, warum sie wirkt, und der nächste Schritt heute.'
+where key = 'sales';
+
+update public.agents
+set system_prompt =
+  'Du bist Ascents Knowledge-Spezialist — derselbe Mentor, Fokus Präzision: Produkte, Vergütung, Abläufe, Schulung. Antworte auf Basis der Teamdokumente; fehlen sie, sagst du das klar. Auch Fakten enden mit einem umsetzbaren nächsten Schritt.'
+where key = 'knowledge';
+
+-- ############ 20260812000025_restore_org_ambiguity_reject.sql ############
+-- ============================================================
+-- Migration 25: Restore F2 Fall 4 — never guess the active org
+--
+-- Migration 20 added a profiles.org_id mirror fallback when an
+-- identity has multiple active memberships and no x-ascendos-org
+-- header. That contradicts F2 Teil 1.3 Fall 4 (ABWEISEN, nicht
+-- raten) and the pgTAP suite that encodes it.
+--
+-- Single-membership auto-resolve (Fall 3) and the explicit
+-- selector (Fall 1/2) stay unchanged. The frontend always sets
+-- x-ascendos-org after AuthProvider resolves the active org.
+-- ============================================================
+
+create or replace function public.active_membership_id()
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid      uuid := auth.uid();
+  v_selektor uuid;
+  v_treffer  uuid;
+  v_anzahl   int;
+begin
+  if v_uid is null then
+    return null;
+  end if;
+
+  begin
+    v_selektor := nullif(
+      (current_setting('request.headers', true)::json ->> 'x-ascendos-org'), ''
+    )::uuid;
+  exception when others then
+    v_selektor := null;
+  end;
+
+  if v_selektor is not null then
+    select m.id into v_treffer
+    from public.memberships m
+    where m.identity_id = v_uid
+      and m.org_id      = v_selektor
+      and m.status      = 'active';
+    return v_treffer;
+  end if;
+
+  select count(*) into v_anzahl
+  from public.memberships m
+  where m.identity_id = v_uid and m.status = 'active';
+
+  if v_anzahl = 1 then
+    select m.id into v_treffer
+    from public.memberships m
+    where m.identity_id = v_uid and m.status = 'active';
+    return v_treffer;
+  end if;
+
+  -- Fall 4: multiple active memberships, no selector → reject.
+  return null;
+end;
+$$;
+
+comment on function public.active_membership_id() is
+  'Validated active membership. Selector x-ascendos-org preferred; single active membership auto-resolves; multi without header returns null (F2 Fall 4).';
+
+-- System pipeline events (source = system) may have no acting user.
+-- log_contact_created always sets owner_id; other system writers may omit it.
+-- AP award treats a null created_by as "no membership to credit".
+alter table public.pipeline_events
+  alter column created_by drop not null;
+
+-- AAA mission scorer was introduced without a pinned search_path (F1).
+create or replace function public.ap_design_score_mission(p_mission_type text)
+returns int
+language sql
+immutable
+set search_path = public
+as $$
+  select case p_mission_type
+    when 'new_contacts' then 25
+    when 'follow_up_overdue' then 50
+    when 'reactivate_contact' then 50
+    when 'presentation_pending' then 75
+    when 'next_step_due' then 50
+    when 'fit_check_next_step' then 100
+    else 50
+  end;
+$$;
+
+-- ============================================================
+-- Gamification table privileges (Sprint 4 intent)
+--
+-- Migration 13 sets default ALL on future tables for anon and
+-- authenticated. Migration 18 then granted SELECT (+ limited UPDATE)
+-- but never revoked the inherited ALL. Result:
+--   - UPDATE ap_rules as berater updates 0 rows (RLS) with no error
+--     instead of 42501 (M8)
+--   - authenticated still has INSERT on ap_ledger (O5)
+--   - anon still has SELECT on payouts (O6)
+--
+-- RLS remains the row boundary; table privileges match the
+-- documented write surface: service_role writes catalogs/ledger;
+-- authenticated reads; limited UPDATE only where policies allow.
+-- ============================================================
+
+revoke all on table
+  public.seasons,
+  public.ap_rules,
+  public.ranks,
+  public.cosmetic_items,
+  public.ap_ledger,
+  public.membership_cosmetics,
+  public.payouts,
+  public.monthly_awards
+from anon, authenticated;
+
+grant select on
+  public.seasons,
+  public.ap_rules,
+  public.ranks,
+  public.cosmetic_items,
+  public.ap_ledger,
+  public.membership_cosmetics,
+  public.payouts,
+  public.monthly_awards
+to authenticated;
+
+grant update on public.membership_cosmetics to authenticated;
+grant update on public.payouts to authenticated;
+
+grant all on
+  public.seasons,
+  public.ap_rules,
+  public.ranks,
+  public.cosmetic_items,
+  public.ap_ledger,
+  public.membership_cosmetics,
+  public.payouts,
+  public.monthly_awards
+to service_role;
+
+-- ############ 20260813000026_genealogy_engine.sql ############
+-- ============================================================
+-- Migration 26: Genealogy Engine — tree payload + last seen
+--
+-- Sprint 4.1. get_downline returns (user_id, depth). Leaders need
+-- one enriched, authorization-safe payload for the canvas.
+-- Sidelines stay invisible: CTE is rooted in an authorized membership.
+-- ============================================================
+
+alter table public.memberships
+  add column if not exists last_app_opened_at timestamptz;
+
+comment on column public.memberships.last_app_opened_at is
+  'Last app_opened usage_event for this membership (presence proxy).';
+
+update public.memberships m
+set last_app_opened_at = sub.mx
+from (
+  select ue.user_id, ue.org_id, max(ue.created_at) as mx
+  from public.usage_events ue
+  where ue.event_type = 'app_opened'
+  group by ue.user_id, ue.org_id
+) sub
+where m.identity_id = sub.user_id
+  and m.org_id = sub.org_id
+  and m.last_app_opened_at is null;
+
+create or replace function public.sync_membership_last_app_opened()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.event_type is distinct from 'app_opened' then
+    return new;
+  end if;
+
+  update public.memberships
+  set last_app_opened_at = greatest(
+    coalesce(last_app_opened_at, new.created_at),
+    new.created_at
+  )
+  where identity_id = new.user_id
+    and org_id = new.org_id
+    and status = 'active';
+
+  return new;
+end;
+$$;
+
+drop trigger if exists usage_events_sync_last_app_opened on public.usage_events;
+create trigger usage_events_sync_last_app_opened
+  after insert on public.usage_events
+  for each row execute function public.sync_membership_last_app_opened();
+
+create or replace function public.get_genealogy_tree(p_root_identity uuid default null)
+returns table (
+  membership_id uuid,
+  identity_id uuid,
+  sponsor_membership_id uuid,
+  depth int,
+  first_name text,
+  last_name text,
+  username text,
+  avatar_url text,
+  phone text,
+  role text,
+  ap_total int,
+  rank_key text,
+  rank_label text,
+  frame_asset text,
+  direct_count int,
+  team_count int,
+  last_app_opened_at timestamptz,
+  is_berater_des_monats boolean,
+  joined_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_org uuid := public.current_org_id();
+  v_root_identity uuid;
+  v_root_membership uuid;
+  v_period date := date_trunc('month', now())::date;
+begin
+  if v_caller is null or v_org is null then
+    return;
+  end if;
+
+  v_root_identity := coalesce(p_root_identity, v_caller);
+
+  select m.id into v_root_membership
+  from public.memberships m
+  where m.identity_id = v_root_identity
+    and m.org_id = v_org
+    and m.status = 'active';
+
+  if v_root_membership is null then
+    return;
+  end if;
+
+  if not (
+    v_root_identity = v_caller
+    or public.is_ancestor_of(v_root_identity)
+    or public.is_super_admin()
+  ) then
+    return;
+  end if;
+
+  return query
+  with recursive tree as (
+    select
+      m.id as mid,
+      m.identity_id as iid,
+      m.sponsor_membership_id as sponsor_mid,
+      0 as lvl,
+      array[m.id] as path
+    from public.memberships m
+    where m.id = v_root_membership
+
+    union all
+
+    select
+      c.id,
+      c.identity_id,
+      c.sponsor_membership_id,
+      t.lvl + 1,
+      t.path || c.id
+    from public.memberships c
+    join tree t on c.sponsor_membership_id = t.mid
+    where c.org_id = v_org
+      and c.status = 'active'
+      and not (c.id = any (t.path))
+  )
+  select
+    t.mid,
+    t.iid,
+    t.sponsor_mid,
+    t.lvl,
+    coalesce(p.first_name, '')::text,
+    coalesce(p.last_name, '')::text,
+    coalesce(p.username, '')::text,
+    p.avatar_url,
+    p.phone,
+    m.role::text,
+    coalesce(m.ap_total, 0)::int,
+    r.key::text,
+    r.label::text,
+    r.frame_asset::text,
+    (
+      select count(*)::int from tree d where d.sponsor_mid = t.mid
+    ),
+    (
+      select count(*)::int
+      from tree d
+      where t.mid = any (d.path) and d.mid <> t.mid
+    ),
+    m.last_app_opened_at,
+    exists (
+      select 1
+      from public.monthly_awards ma
+      where ma.membership_id = t.mid
+        and ma.period = v_period
+    ),
+    m.joined_at
+  from tree t
+  join public.memberships m on m.id = t.mid
+  left join public.profiles p on p.id = t.iid
+  left join lateral (
+    select rk.key, rk.label, rk.frame_asset
+    from public.rank_for_ap(v_org, coalesce(m.ap_total, 0)) rk
+  ) r on true
+  order by t.lvl, p.first_name, p.last_name;
+end;
+$$;
+
+comment on function public.get_genealogy_tree(uuid) is
+  'Enriched genealogy tree for the active org. Root defaults to caller. Auth matches get_downline.';
+
+revoke all on function public.get_genealogy_tree(uuid) from public, anon;
+grant execute on function public.get_genealogy_tree(uuid) to authenticated, service_role;
+
+-- ############ 20260814000027_leader_experience.sql ############
+-- ============================================================
+-- Migration 27: Leader Experience (Sprint 4.2)
+--
+-- Favorites, notes, AP task catalog + completions (anti-cheat),
+-- TeamLeader qualification (5 active firstlines → rank/frame/€100),
+-- leader dashboard / leaderboard / insights / warnings RPCs,
+-- enriched genealogy fields (ICP month, streak, favorite, sponsor).
+-- ============================================================
+
+-- ---------- Columns on memberships ----------
+alter table public.memberships
+  add column if not exists streak_days integer not null default 0,
+  add column if not exists streak_updated_on date,
+  add column if not exists team_leader_qualified_at timestamptz;
+
+comment on column public.memberships.streak_days is
+  'Consecutive calendar days with app_opened.';
+comment on column public.memberships.team_leader_qualified_at is
+  'Set when 5 active firstline business partners are present.';
+
+-- ---------- Favorites & notes ----------
+create table if not exists public.leadership_favorites (
+  owner_membership_id uuid not null references public.memberships(id) on delete cascade,
+  target_membership_id uuid not null references public.memberships(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (owner_membership_id, target_membership_id),
+  check (owner_membership_id <> target_membership_id)
+);
+
+create table if not exists public.leadership_notes (
+  id uuid primary key default gen_random_uuid(),
+  owner_membership_id uuid not null references public.memberships(id) on delete cascade,
+  target_membership_id uuid not null references public.memberships(id) on delete cascade,
+  body text not null check (char_length(body) between 1 and 2000),
+  updated_at timestamptz not null default now(),
+  unique (owner_membership_id, target_membership_id)
+);
+
+alter table public.leadership_favorites enable row level security;
+alter table public.leadership_notes enable row level security;
+
+create policy leadership_favorites_own on public.leadership_favorites
+  for all using (
+    owner_membership_id = public.active_membership_id()
+  ) with check (
+    owner_membership_id = public.active_membership_id()
+  );
+
+create policy leadership_notes_own on public.leadership_notes
+  for all using (
+    owner_membership_id = public.active_membership_id()
+  ) with check (
+    owner_membership_id = public.active_membership_id()
+  );
+
+grant select, insert, update, delete on public.leadership_favorites to authenticated;
+grant select, insert, update, delete on public.leadership_notes to authenticated;
+grant all on public.leadership_favorites, public.leadership_notes to service_role;
+
+-- ---------- AP Task catalog (manual completions → ledger) ----------
+create table if not exists public.ap_task_defs (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references public.organizations(id) on delete cascade,
+  key text not null,
+  title text not null,
+  description text,
+  category text not null default 'activity'
+    check (category in ('outreach','follow_up','meeting','sale','recruit','rank','other')),
+  difficulty text not null default 'normal'
+    check (difficulty in ('easy','normal','hard','epic')),
+  ap integer not null check (ap > 0),
+  repeatable boolean not null default true,
+  cooldown_hours integer check (cooldown_hours is null or cooldown_hours >= 0),
+  is_active boolean not null default true,
+  sort_order integer not null default 100,
+  created_at timestamptz not null default now(),
+  unique (org_id, key)
+);
+
+create table if not exists public.ap_task_completions (
+  id uuid primary key default gen_random_uuid(),
+  membership_id uuid not null references public.memberships(id) on delete cascade,
+  task_id uuid not null references public.ap_task_defs(id) on delete restrict,
+  status text not null default 'done'
+    check (status in ('open','in_progress','done')),
+  ap_awarded integer not null default 0,
+  ledger_id uuid references public.ap_ledger(id) on delete set null,
+  note text,
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  -- Anti-cheat: one DONE completion per non-repeatable task
+  unique (membership_id, task_id, completed_at)
+);
+
+-- Anti-cheat: each ledger credit can only bind once; one-time tasks enforced in complete_ap_task().
+create unique index if not exists ap_task_completions_ledger_once
+  on public.ap_task_completions (ledger_id)
+  where ledger_id is not null;
+
+alter table public.ap_task_defs enable row level security;
+alter table public.ap_task_completions enable row level security;
+
+create policy ap_task_defs_select_org on public.ap_task_defs for select
+  using (org_id = public.current_org_id());
+create policy ap_task_defs_admin_write on public.ap_task_defs for all
+  using (public.is_super_admin() and org_id = public.current_org_id())
+  with check (public.is_super_admin() and org_id = public.current_org_id());
+
+create policy ap_task_completions_select on public.ap_task_completions for select
+  using (
+    membership_id = public.active_membership_id()
+    or exists (
+      select 1 from public.memberships m
+      where m.id = ap_task_completions.membership_id
+        and m.org_id = public.current_org_id()
+        and (
+          public.is_super_admin()
+          or public.is_ancestor_of(m.identity_id)
+        )
+    )
+  );
+
+create policy ap_task_completions_insert_own on public.ap_task_completions for insert
+  with check (membership_id = public.active_membership_id());
+
+grant select on public.ap_task_defs to authenticated;
+grant select, insert on public.ap_task_completions to authenticated;
+grant all on public.ap_task_defs, public.ap_task_completions to service_role;
+
+-- Seed default tasks for every org
+insert into public.ap_task_defs (org_id, key, title, description, category, difficulty, ap, repeatable, cooldown_hours, sort_order)
+select o.id, v.key, v.title, v.description, v.category, v.difficulty, v.ap, v.repeatable, v.cooldown, v.sort
+from public.organizations o
+cross join (values
+  ('prospect_messaged', 'Interessent angeschrieben', 'Kurze persönliche Nachricht gesendet.', 'outreach', 'easy', 5, true, 4, 10),
+  ('follow_up_done', 'Follow-up durchgeführt', 'Dokumentiertes Nachfassen.', 'follow_up', 'normal', 10, true, 4, 20),
+  ('zoom_invited', 'Zoom eingeladen', 'Termin/Einladung verschickt.', 'meeting', 'normal', 15, true, 8, 30),
+  ('product_consult', 'Produktberatung abgeschlossen', 'Beratung mit Interessent beendet.', 'meeting', 'hard', 20, true, 12, 40),
+  ('new_customer', 'Neuer Kunde', 'Kunde gewonnen und dokumentiert.', 'sale', 'hard', 30, true, 24, 50),
+  ('new_partner', 'Neuer Businesspartner', 'Partner registriert unter dir.', 'recruit', 'hard', 50, true, 24, 60),
+  ('first_sale_of_partner', 'Erster Verkauf des neuen Partners', 'Dein Partner hat den ersten Verkauf.', 'sale', 'epic', 100, true, 24, 70),
+  ('rank_reached', 'Neuer Rang erreicht', 'Rangaufstieg bestätigt.', 'rank', 'epic', 250, false, null, 80)
+) as v(key, title, description, category, difficulty, ap, repeatable, cooldown, sort)
+on conflict (org_id, key) do nothing;
+
+-- Complete task → AP once (SECURITY DEFINER)
+create or replace function public.complete_ap_task(p_task_key text, p_note text default null)
+returns table (completion_id uuid, ap_awarded int, new_ap_total int)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := public.active_membership_id();
+  v_org uuid := public.current_org_id();
+  v_task public.ap_task_defs;
+  v_recent timestamptz;
+  v_completion_id uuid;
+  v_ledger_id uuid;
+  v_total int;
+begin
+  if auth.uid() is null or v_mid is null or v_org is null then
+    raise exception 'AscendOS: Nicht angemeldet.';
+  end if;
+
+  select * into v_task
+  from public.ap_task_defs t
+  where t.org_id = v_org and t.key = p_task_key and t.is_active;
+
+  if v_task.id is null then
+    raise exception 'AscendOS: Aufgabe unbekannt.';
+  end if;
+
+  if not v_task.repeatable then
+    if exists (
+      select 1 from public.ap_task_completions c
+      where c.membership_id = v_mid and c.task_id = v_task.id and c.status = 'done'
+    ) then
+      raise exception 'AscendOS: Aufgabe bereits abgeschlossen.';
+    end if;
+  elsif v_task.cooldown_hours is not null then
+    select max(c.completed_at) into v_recent
+    from public.ap_task_completions c
+    where c.membership_id = v_mid and c.task_id = v_task.id and c.status = 'done';
+    if v_recent is not null and v_recent > now() - make_interval(hours => v_task.cooldown_hours) then
+      raise exception 'AscendOS: Aufgabe noch in Abkühlzeit.';
+    end if;
+  end if;
+
+  insert into public.ap_ledger (membership_id, delta, reason, source_kind, source_event_id)
+  values (v_mid, v_task.ap, 'Aufgabe: ' || v_task.title, 'manual', gen_random_uuid())
+  returning id into v_ledger_id;
+
+  insert into public.ap_task_completions
+    (membership_id, task_id, status, ap_awarded, ledger_id, note, started_at, completed_at)
+  values
+    (v_mid, v_task.id, 'done', v_task.ap, v_ledger_id, p_note, now(), now())
+  returning id into v_completion_id;
+
+  select ap_total into v_total from public.memberships where id = v_mid;
+
+  return query select v_completion_id, v_task.ap, coalesce(v_total, 0);
+end;
+$$;
+
+revoke all on function public.complete_ap_task(text, text) from public, anon;
+grant execute on function public.complete_ap_task(text, text) to authenticated, service_role;
+
+-- ---------- Streak update on app_opened ----------
+create or replace function public.sync_membership_streak()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_today date := (new.created_at at time zone 'utc')::date;
+begin
+  if new.event_type is distinct from 'app_opened' then
+    return new;
+  end if;
+
+  update public.memberships m
+  set
+    streak_days = case
+      when m.streak_updated_on = v_today then m.streak_days
+      when m.streak_updated_on = v_today - 1 then m.streak_days + 1
+      else 1
+    end,
+    streak_updated_on = v_today,
+    last_app_opened_at = greatest(coalesce(m.last_app_opened_at, new.created_at), new.created_at)
+  where m.identity_id = new.user_id
+    and m.org_id = new.org_id
+    and m.status = 'active';
+
+  return new;
+end;
+$$;
+
+-- Replace previous last_app_opened-only trigger with streak-aware one
+drop trigger if exists usage_events_sync_last_app_opened on public.usage_events;
+drop trigger if exists usage_events_sync_streak on public.usage_events;
+create trigger usage_events_sync_streak
+  after insert on public.usage_events
+  for each row execute function public.sync_membership_streak();
+
+-- Keep old function harmless if referenced
+create or replace function public.sync_membership_last_app_opened()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return new; -- superseded by sync_membership_streak
+end;
+$$;
+
+-- ---------- TeamLeader qualification (5 active firstlines) ----------
+-- Active firstline = status active AND (last_app_opened_at within 30 days OR joined within 30 days)
+create or replace function public.count_active_firstlines(p_membership uuid)
+returns int
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select count(*)::int
+  from public.memberships d
+  where d.sponsor_membership_id = p_membership
+    and d.status = 'active'
+    and (
+      public.current_org_id() is null
+      or d.org_id = public.current_org_id()
+      or public.is_super_admin()
+    )
+    and (
+      d.last_app_opened_at >= now() - interval '30 days'
+      or d.joined_at >= now() - interval '30 days'
+    );
+$$;
+
+create or replace function public.evaluate_team_leader_qualification(p_membership uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count int;
+  v_org uuid;
+  v_identity uuid;
+  v_already timestamptz;
+  v_rank record;
+begin
+  select org_id, identity_id, team_leader_qualified_at
+    into v_org, v_identity, v_already
+  from public.memberships where id = p_membership;
+
+  if v_org is null then return false; end if;
+
+  -- JWT path: only same org (or super-admin). Triggers may run without org header.
+  if auth.uid() is not null and public.current_org_id() is not null then
+    if v_org is distinct from public.current_org_id() and not public.is_super_admin() then
+      return false;
+    end if;
+  end if;
+
+  v_count := public.count_active_firstlines(p_membership);
+
+  if v_count < 5 then
+    return false;
+  end if;
+
+  if v_already is not null then
+    return true;
+  end if;
+
+  update public.memberships
+  set team_leader_qualified_at = now()
+  where id = p_membership and team_leader_qualified_at is null;
+
+  -- Unlock team_leader frame cosmetics if present
+  insert into public.membership_cosmetics (membership_id, item_id, kind)
+  select p_membership, ci.id, ci.kind
+  from public.cosmetic_items ci
+  where ci.org_id = v_org and ci.is_active and ci.rank_key = 'team_leader'
+  on conflict (membership_id, item_id) do nothing;
+
+  -- €100 bonus once — ONLY via this qualification path
+  select * into v_rank
+  from public.ranks
+  where org_id = v_org and key = 'team_leader' and is_active
+  limit 1;
+
+  if v_rank.id is not null and v_rank.payout_cents is not null then
+    insert into public.payouts
+      (identity_id, kind, amount_cents, awarded_for_membership_id, note)
+    values (
+      v_identity,
+      coalesce(v_rank.payout_kind, 'team_leader_bonus'),
+      v_rank.payout_cents,
+      p_membership,
+      'TeamLeader: 5 aktive Firstlines erreicht'
+    )
+    on conflict (identity_id, kind) do nothing;
+  end if;
+
+  return true;
+end;
+$$;
+
+create or replace function public.trg_eval_team_leader_on_membership()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.sponsor_membership_id is not null then
+    perform public.evaluate_team_leader_qualification(new.sponsor_membership_id);
+  end if;
+  if tg_op = 'UPDATE' and old.sponsor_membership_id is distinct from new.sponsor_membership_id
+     and old.sponsor_membership_id is not null then
+    perform public.evaluate_team_leader_qualification(old.sponsor_membership_id);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists memberships_eval_team_leader on public.memberships;
+create trigger memberships_eval_team_leader
+  after insert or update of status, sponsor_membership_id, last_app_opened_at
+  on public.memberships
+  for each row execute function public.trg_eval_team_leader_on_membership();
+
+-- AP path must NOT auto-create team_leader_bonus (qualification owns it)
+create or replace function public.ap_apply_to_total()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_total    integer;
+  v_org      uuid;
+  v_identity uuid;
+  v_rank     record;
+begin
+  update public.memberships
+  set ap_total = ap_total + new.delta
+  where id = new.membership_id
+  returning ap_total, org_id, identity_id into v_total, v_org, v_identity;
+
+  if v_org is null then return new; end if;
+
+  insert into public.membership_cosmetics (membership_id, item_id, kind)
+  select new.membership_id, ci.id, ci.kind
+  from public.cosmetic_items ci
+  join public.ranks r on r.org_id = ci.org_id and r.key = ci.rank_key
+  where ci.org_id = v_org and ci.is_active
+    and ci.rank_key is not null and r.is_active
+    and r.threshold_ap <= v_total
+    and ci.rank_key is distinct from 'team_leader'
+  on conflict (membership_id, item_id) do nothing;
+
+  for v_rank in
+    select * from public.ranks
+    where org_id = v_org and is_active
+      and payout_cents is not null and threshold_ap <= v_total
+      and key is distinct from 'team_leader'
+  loop
+    insert into public.payouts
+      (identity_id, kind, amount_cents, awarded_for_membership_id, note)
+    values (v_identity, v_rank.payout_kind, v_rank.payout_cents, new.membership_id,
+            'Automatisch erkannt beim Erreichen von ' || v_rank.label)
+    on conflict (identity_id, kind) do nothing;
+  end loop;
+
+  return new;
+end;
+$$;
+
+-- ---------- Progress RPC ----------
+create or replace function public.get_team_leader_progress(p_membership uuid default null)
+returns table (
+  membership_id uuid,
+  active_firstlines int,
+  required_firstlines int,
+  qualified boolean,
+  qualified_at timestamptz,
+  bonus_entitled boolean,
+  bonus_paid boolean,
+  bonus_amount_cents int
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := coalesce(p_membership, public.active_membership_id());
+  v_identity uuid;
+  v_org uuid;
+begin
+  if auth.uid() is null or v_mid is null then return; end if;
+
+  select m.identity_id, m.org_id into v_identity, v_org
+  from public.memberships m where m.id = v_mid;
+  if v_org is null then return; end if;
+
+  if not (
+    v_identity = auth.uid()
+    or public.is_ancestor_of(v_identity)
+    or public.is_super_admin()
+  ) then
+    return;
+  end if;
+
+  -- Refresh evaluation opportunistically
+  perform public.evaluate_team_leader_qualification(v_mid);
+
+  return query
+  select
+    v_mid,
+    public.count_active_firstlines(v_mid),
+    5,
+    (m.team_leader_qualified_at is not null),
+    m.team_leader_qualified_at,
+    (m.team_leader_qualified_at is not null),
+    exists (
+      select 1 from public.payouts p
+      where p.identity_id = m.identity_id
+        and p.kind = 'team_leader_bonus'
+        and p.confirmed_paid_at is not null
+    ),
+    coalesce((
+      select r.payout_cents from public.ranks r
+      where r.org_id = m.org_id and r.key = 'team_leader' limit 1
+    ), 10000)
+  from public.memberships m where m.id = v_mid;
+end;
+$$;
+
+revoke all on function public.get_team_leader_progress(uuid) from public, anon;
+grant execute on function public.get_team_leader_progress(uuid) to authenticated, service_role;
+
+-- ---------- Leader dashboard ----------
+create or replace function public.get_leader_dashboard()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := public.active_membership_id();
+  v_org uuid := public.current_org_id();
+  v_today date := current_date;
+  v_month_start date := date_trunc('month', now())::date;
+  v_result jsonb;
+begin
+  if v_mid is null or v_org is null then
+    return '{}'::jsonb;
+  end if;
+
+  with tree as (
+    select * from public.get_genealogy_tree(null)
+  ),
+  team_ids as (
+    select membership_id from tree where depth > 0
+  )
+  select jsonb_build_object(
+    'active_today', (
+      select count(*) from tree t
+      where t.depth > 0 and t.last_app_opened_at::date = v_today
+    ),
+    'new_registrations_month', (
+      select count(*) from tree t
+      where t.depth > 0 and t.joined_at::date >= v_month_start
+    ),
+    'team_ap', (
+      select coalesce(sum(t.ap_total), 0) from tree t where t.depth > 0
+    ),
+    'team_size', (select count(*) from tree t where t.depth > 0),
+    'direct_count', (select count(*) from tree t where t.depth = 1),
+    'inactive_14d', (
+      select count(*) from tree t
+      where t.depth > 0 and (
+        t.last_app_opened_at is null
+        or t.last_app_opened_at < now() - interval '14 days'
+      )
+    ),
+    'tasks_done_today', (
+      select count(*) from public.ap_task_completions c
+      join team_ids ti on ti.membership_id = c.membership_id
+      where c.status = 'done' and c.completed_at::date = v_today
+    ),
+    'icp_month', (
+      select coalesce(sum(l.delta), 0)
+      from public.ap_ledger l
+      where l.membership_id = v_mid
+        and l.delta > 0
+        and l.created_at >= v_month_start
+    ),
+    'month_goal_ap', 2500,
+    'goal_progress', least(100, round(
+      100.0 * coalesce((select ap_total from public.memberships where id = v_mid),0)
+      / nullif(2500,0)
+    )::numeric, 1),
+    'my_ap_total', (select ap_total from public.memberships where id = v_mid),
+    'new_customers_month', (
+      select count(*) from public.pipeline_events e
+      where e.org_id = v_org
+        and e.created_by = (select identity_id from public.memberships where id = v_mid)
+        and e.event_type = 'fit_check_completed'
+        and e.created_at >= v_month_start
+    ),
+    'open_followups', (
+      select count(*) from public.contacts c
+      where c.org_id = v_org
+        and c.owner_id = (select identity_id from public.memberships where id = v_mid)
+        and c.next_step_due is not null
+        and c.next_step_due::date <= current_date
+    ),
+    'tasks_done_by_team_today', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'membership_id', x.membership_id,
+        'name', x.name,
+        'ap', x.ap,
+        'tasks', x.tasks
+      ) order by x.ap desc), '[]'::jsonb)
+      from (
+        select c.membership_id,
+               trim(both from coalesce(p.first_name,'')||' '||coalesce(p.last_name,'')) as name,
+               sum(c.ap_awarded)::int as ap,
+               count(*)::int as tasks
+        from public.ap_task_completions c
+        join team_ids ti on ti.membership_id = c.membership_id
+        join public.memberships m on m.id = c.membership_id
+        left join public.profiles p on p.id = m.identity_id
+        where c.status = 'done' and c.completed_at::date = v_today
+        group by c.membership_id, p.first_name, p.last_name
+        limit 20
+      ) x
+    )
+  ) into v_result;
+
+  return coalesce(v_result, '{}'::jsonb);
+end;
+$$;
+
+revoke all on function public.get_leader_dashboard() from public, anon;
+grant execute on function public.get_leader_dashboard() to authenticated, service_role;
+
+-- ---------- Leaderboard ----------
+create or replace function public.get_team_leaderboard(
+  p_period text default 'month',
+  p_sort text default 'ap'
+)
+returns table (
+  membership_id uuid,
+  identity_id uuid,
+  first_name text,
+  last_name text,
+  avatar_url text,
+  rank_label text,
+  frame_asset text,
+  metric numeric,
+  ap_total int,
+  direct_count int
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_since timestamptz;
+begin
+  if public.active_membership_id() is null then return; end if;
+
+  v_since := case p_period
+    when 'today' then date_trunc('day', now())
+    when 'week' then date_trunc('week', now())
+    when 'year' then date_trunc('year', now())
+    else date_trunc('month', now())
+  end;
+
+  return query
+  with tree as (
+    select * from public.get_genealogy_tree(null)
+  ),
+  scored as (
+    select
+      t.*,
+      coalesce((
+        select sum(l.delta)::numeric
+        from public.ap_ledger l
+        where l.membership_id = t.membership_id
+          and l.delta > 0
+          and l.created_at >= v_since
+      ), 0) as period_ap,
+      coalesce((
+        select count(*)::numeric
+        from public.memberships d
+        where d.sponsor_membership_id = t.membership_id
+          and d.status = 'active'
+          and d.joined_at >= v_since
+      ), 0) as new_partners,
+      coalesce((
+        select count(*)::numeric
+        from public.ap_task_completions c
+        where c.membership_id = t.membership_id
+          and c.status = 'done'
+          and c.completed_at >= v_since
+      ), 0) as activity_score
+    from tree t
+    where t.depth >= 0
+  )
+  select
+    s.membership_id,
+    s.identity_id,
+    s.first_name,
+    s.last_name,
+    s.avatar_url,
+    s.rank_label,
+    s.frame_asset,
+    case p_sort
+      when 'icp' then s.period_ap
+      when 'new_partners' then s.new_partners
+      when 'activity' then s.activity_score
+      else s.period_ap
+    end as metric,
+    s.ap_total,
+    s.direct_count
+  from scored s
+  order by metric desc, s.ap_total desc
+  limit 50;
+end;
+$$;
+
+revoke all on function public.get_team_leaderboard(text, text) from public, anon;
+grant execute on function public.get_team_leaderboard(text, text) to authenticated, service_role;
+
+-- ---------- Insights ----------
+create or replace function public.get_team_insights()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_items jsonb := '[]'::jsonb;
+  v_row record;
+begin
+  if public.active_membership_id() is null then
+    return v_items;
+  end if;
+
+  -- Most active (recent open)
+  select * into v_row from public.get_genealogy_tree(null) t
+  where t.depth > 0
+  order by t.last_app_opened_at desc nulls last
+  limit 1;
+  if found then
+    v_items := v_items || jsonb_build_array(jsonb_build_object(
+      'kind','most_active','emoji','🔥','title','Aktivster Partner',
+      'membership_id', v_row.membership_id,
+      'name', trim(both from v_row.first_name||' '||v_row.last_name),
+      'detail','Zuletzt aktiv'
+    ));
+  end if;
+
+  -- Fastest growth (most directs)
+  select * into v_row from public.get_genealogy_tree(null) t
+  where t.depth > 0
+  order by t.direct_count desc, t.joined_at desc
+  limit 1;
+  if found and v_row.direct_count > 0 then
+    v_items := v_items || jsonb_build_array(jsonb_build_object(
+      'kind','fastest_growth','emoji','🚀','title','Schnellstes Wachstum',
+      'membership_id', v_row.membership_id,
+      'name', trim(both from v_row.first_name||' '||v_row.last_name),
+      'detail', v_row.direct_count || ' Direkte'
+    ));
+  end if;
+
+  -- Rising (highest AP among depth>0)
+  select * into v_row from public.get_genealogy_tree(null) t
+  where t.depth > 0
+  order by t.ap_total desc
+  limit 1;
+  if found then
+    v_items := v_items || jsonb_build_array(jsonb_build_object(
+      'kind','rising_star','emoji','⭐','title','Aufsteiger',
+      'membership_id', v_row.membership_id,
+      'name', trim(both from v_row.first_name||' '||v_row.last_name),
+      'detail', v_row.ap_total || ' AP'
+    ));
+  end if;
+
+  -- Inactive long
+  select * into v_row from public.get_genealogy_tree(null) t
+  where t.depth > 0
+    and (t.last_app_opened_at is null or t.last_app_opened_at < now() - interval '14 days')
+  order by t.last_app_opened_at asc nulls first
+  limit 1;
+  if found then
+    v_items := v_items || jsonb_build_array(jsonb_build_object(
+      'kind','inactive','emoji','💤','title','Lange inaktiv',
+      'membership_id', v_row.membership_id,
+      'name', trim(both from v_row.first_name||' '||v_row.last_name),
+      'detail','Melde dich persönlich'
+    ));
+  end if;
+
+  -- Near next rank
+  select t.*, (
+    select min(r.threshold_ap) - t.ap_total
+    from public.ranks r
+    where r.org_id = public.current_org_id() and r.is_active and r.threshold_ap > t.ap_total
+  ) as gap
+  into v_row
+  from public.get_genealogy_tree(null) t
+  where t.depth > 0
+  order by (
+    select min(r.threshold_ap) - t.ap_total
+    from public.ranks r
+    where r.org_id = public.current_org_id() and r.is_active and r.threshold_ap > t.ap_total
+  ) asc nulls last
+  limit 1;
+  if found and v_row.gap is not null and v_row.gap > 0 and v_row.gap <= 500 then
+    v_items := v_items || jsonb_build_array(jsonb_build_object(
+      'kind','near_rank','emoji','🎯','title','Kurz vor nächstem Rang',
+      'membership_id', v_row.membership_id,
+      'name', trim(both from v_row.first_name||' '||v_row.last_name),
+      'detail', 'Noch '||v_row.gap||' AP'
+    ));
+  end if;
+
+  return v_items;
+end;
+$$;
+
+revoke all on function public.get_team_insights() from public, anon;
+grant execute on function public.get_team_insights() to authenticated, service_role;
+
+-- ---------- Smart warnings ----------
+create or replace function public.get_smart_warnings()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_items jsonb := '[]'::jsonb;
+  r record;
+begin
+  if public.active_membership_id() is null then return v_items; end if;
+
+  for r in
+    select * from public.get_genealogy_tree(null) t where t.depth > 0
+  loop
+    if r.last_app_opened_at is null or r.last_app_opened_at < now() - interval '7 days' then
+      v_items := v_items || jsonb_build_array(jsonb_build_object(
+        'kind','no_activity_7d',
+        'membership_id', r.membership_id,
+        'name', trim(both from r.first_name||' '||r.last_name),
+        'title','7 Tage keine Aktivität',
+        'action','Schreib eine kurze WhatsApp: „Wie kann ich dich diese Woche unterstützen?“'
+      ));
+    end if;
+    if r.last_app_opened_at is null or r.last_app_opened_at < now() - interval '30 days' then
+      v_items := v_items || jsonb_build_array(jsonb_build_object(
+        'kind','no_order_proxy_30d',
+        'membership_id', r.membership_id,
+        'name', trim(both from r.first_name||' '||r.last_name),
+        'title','30 Tage ohne App-Aktivität',
+        'action','Vereinbare ein 10-Minuten-Check-in und setze ein gemeinsames Tagesziel.'
+      ));
+    end if;
+  end loop;
+
+  -- Cap noise for leaders
+  if jsonb_array_length(v_items) > 40 then
+    select jsonb_agg(e) into v_items
+    from (
+      select e from jsonb_array_elements(v_items) with ordinality as t(e, ord)
+      order by ord
+      limit 40
+    ) s;
+  end if;
+
+  return coalesce(v_items, '[]'::jsonb);
+end;
+$$;
+
+revoke all on function public.get_smart_warnings() from public, anon;
+grant execute on function public.get_smart_warnings() to authenticated, service_role;
+
+-- ---------- Toggle favorite ----------
+create or replace function public.toggle_leadership_favorite(p_target_membership uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owner uuid := public.active_membership_id();
+  v_exists boolean;
+begin
+  if auth.uid() is null or v_owner is null then
+    raise exception 'AscendOS: Nicht angemeldet.';
+  end if;
+  if p_target_membership = v_owner then
+    raise exception 'AscendOS: Dich selbst kannst du nicht anpinnen.';
+  end if;
+  -- Must be in downline or self-org ancestor path
+  if not exists (
+    select 1 from public.get_genealogy_tree(null) t where t.membership_id = p_target_membership
+  ) then
+    raise exception 'AscendOS: Nur Partner in deiner Struktur.';
+  end if;
+
+  select exists (
+    select 1 from public.leadership_favorites f
+    where f.owner_membership_id = v_owner and f.target_membership_id = p_target_membership
+  ) into v_exists;
+
+  if v_exists then
+    delete from public.leadership_favorites
+    where owner_membership_id = v_owner and target_membership_id = p_target_membership;
+    return false;
+  else
+    insert into public.leadership_favorites (owner_membership_id, target_membership_id)
+    values (v_owner, p_target_membership);
+    return true;
+  end if;
+end;
+$$;
+
+revoke all on function public.toggle_leadership_favorite(uuid) from public, anon;
+grant execute on function public.toggle_leadership_favorite(uuid) to authenticated, service_role;
+
+-- ---------- Upsert note ----------
+create or replace function public.upsert_leadership_note(p_target_membership uuid, p_body text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owner uuid := public.active_membership_id();
+  v_id uuid;
+begin
+  if auth.uid() is null or v_owner is null then
+    raise exception 'AscendOS: Nicht angemeldet.';
+  end if;
+  if not exists (
+    select 1 from public.get_genealogy_tree(null) t where t.membership_id = p_target_membership
+  ) then
+    raise exception 'AscendOS: Nur Partner in deiner Struktur.';
+  end if;
+
+  insert into public.leadership_notes (owner_membership_id, target_membership_id, body, updated_at)
+  values (v_owner, p_target_membership, left(trim(p_body), 2000), now())
+  on conflict (owner_membership_id, target_membership_id)
+  do update set body = excluded.body, updated_at = now()
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.upsert_leadership_note(uuid, text) from public, anon;
+grant execute on function public.upsert_leadership_note(uuid, text) to authenticated, service_role;
+
+
+-- ---------- Enrich genealogy tree (Sprint 4.2 fields) ----------
+drop function if exists public.get_genealogy_tree(uuid);
+
+create function public.get_genealogy_tree(p_root_identity uuid default null)
+returns table (
+  membership_id uuid,
+  identity_id uuid,
+  sponsor_membership_id uuid,
+  depth int,
+  first_name text,
+  last_name text,
+  username text,
+  avatar_url text,
+  phone text,
+  role text,
+  ap_total int,
+  rank_key text,
+  rank_label text,
+  frame_asset text,
+  direct_count int,
+  team_count int,
+  last_app_opened_at timestamptz,
+  is_berater_des_monats boolean,
+  joined_at timestamptz,
+  icp_month int,
+  streak_days int,
+  is_favorite boolean,
+  sponsor_name text,
+  message_badge int
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_org uuid := public.current_org_id();
+  v_root_identity uuid;
+  v_root_membership uuid;
+  v_viewer uuid := public.active_membership_id();
+  v_period date := date_trunc('month', now())::date;
+  v_month_start timestamptz := date_trunc('month', now());
+begin
+  if v_caller is null or v_org is null then
+    return;
+  end if;
+
+  v_root_identity := coalesce(p_root_identity, v_caller);
+
+  select m.id into v_root_membership
+  from public.memberships m
+  where m.identity_id = v_root_identity
+    and m.org_id = v_org
+    and m.status = 'active';
+
+  if v_root_membership is null then
+    return;
+  end if;
+
+  if not (
+    v_root_identity = v_caller
+    or public.is_ancestor_of(v_root_identity)
+    or public.is_super_admin()
+  ) then
+    return;
+  end if;
+
+  return query
+  with recursive tree as (
+    select
+      m.id as mid,
+      m.identity_id as iid,
+      m.sponsor_membership_id as sponsor_mid,
+      0 as lvl,
+      array[m.id] as path
+    from public.memberships m
+    where m.id = v_root_membership
+
+    union all
+
+    select
+      c.id,
+      c.identity_id,
+      c.sponsor_membership_id,
+      t.lvl + 1,
+      t.path || c.id
+    from public.memberships c
+    join tree t on c.sponsor_membership_id = t.mid
+    where c.org_id = v_org
+      and c.status = 'active'
+      and not (c.id = any (t.path))
+  )
+  select
+    t.mid,
+    t.iid,
+    t.sponsor_mid,
+    t.lvl,
+    coalesce(p.first_name, '')::text,
+    coalesce(p.last_name, '')::text,
+    coalesce(p.username, '')::text,
+    p.avatar_url,
+    p.phone,
+    m.role::text,
+    coalesce(m.ap_total, 0)::int,
+    coalesce(disp.key, r.key)::text,
+    coalesce(disp.label, r.label)::text,
+    coalesce(disp.frame_asset, r.frame_asset)::text,
+    (
+      select count(*)::int from tree d where d.sponsor_mid = t.mid
+    ),
+    (
+      select count(*)::int
+      from tree d
+      where t.mid = any (d.path) and d.mid <> t.mid
+    ),
+    m.last_app_opened_at,
+    exists (
+      select 1
+      from public.monthly_awards ma
+      where ma.membership_id = t.mid
+        and ma.period = v_period
+    ),
+    m.joined_at,
+    coalesce((
+      select sum(l.delta)::int
+      from public.ap_ledger l
+      where l.membership_id = t.mid
+        and l.delta > 0
+        and l.created_at >= v_month_start
+    ), 0),
+    coalesce(m.streak_days, 0)::int,
+    exists (
+      select 1 from public.leadership_favorites f
+      where f.owner_membership_id = v_viewer
+        and f.target_membership_id = t.mid
+    ),
+    nullif(trim(both from coalesce(sp.first_name,'') || ' ' || coalesce(sp.last_name,'')), ''),
+    0::int
+  from tree t
+  join public.memberships m on m.id = t.mid
+  left join public.profiles p on p.id = t.iid
+  left join public.memberships sm on sm.id = t.sponsor_mid
+  left join public.profiles sp on sp.id = sm.identity_id
+  left join lateral (
+    select rk.key, rk.label, rk.frame_asset
+    from public.rank_for_ap(v_org, coalesce(m.ap_total, 0)) rk
+    where rk.key is distinct from 'team_leader'
+       or m.team_leader_qualified_at is not null
+  ) r on true
+  left join lateral (
+    select rk.key, rk.label, rk.frame_asset
+    from public.ranks rk
+    where rk.org_id = v_org and rk.is_active and rk.key = 'team_leader'
+      and m.team_leader_qualified_at is not null
+      and coalesce(m.ap_total, 0) < coalesce((
+        select min(x.threshold_ap) from public.ranks x
+        where x.org_id = v_org and x.is_active and x.threshold_ap > rk.threshold_ap
+      ), 2147483647)
+  ) disp on true
+  order by
+    exists (
+      select 1 from public.leadership_favorites f
+      where f.owner_membership_id = v_viewer and f.target_membership_id = t.mid
+    ) desc,
+    t.lvl,
+    p.first_name,
+    p.last_name;
+end;
+$$;
+
+comment on function public.get_genealogy_tree(uuid) is
+  'Enriched genealogy tree (4.2: ICP, streak, favorite, sponsor). Auth matches get_downline.';
+
+revoke all on function public.get_genealogy_tree(uuid) from public, anon;
+grant execute on function public.get_genealogy_tree(uuid) to authenticated, service_role;
+
+-- ---------- Qualification progress (current / next rank) ----------
+create or replace function public.get_qualification_progress(p_membership uuid default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := coalesce(p_membership, public.active_membership_id());
+  v_org uuid;
+  v_identity uuid;
+  v_ap int;
+  v_tl timestamptz;
+  v_current record;
+  v_next record;
+  v_tl_progress record;
+begin
+  if auth.uid() is null or v_mid is null then
+    return '{}'::jsonb;
+  end if;
+
+  select org_id, identity_id, ap_total, team_leader_qualified_at
+    into v_org, v_identity, v_ap, v_tl
+  from public.memberships where id = v_mid;
+
+  if v_org is null then return '{}'::jsonb; end if;
+  if not (
+    v_identity = auth.uid() or public.is_ancestor_of(v_identity) or public.is_super_admin()
+  ) then
+    return '{}'::jsonb;
+  end if;
+
+  select * into v_current from public.rank_for_ap(v_org, coalesce(v_ap,0));
+  if v_current.key = 'team_leader' and v_tl is null then
+    select r.key, r.label, r.threshold_ap, r.frame_asset, r.sort_order
+      into v_current
+    from public.ranks r
+    where r.org_id = v_org and r.is_active and r.key is distinct from 'team_leader'
+      and r.threshold_ap <= coalesce(v_ap,0)
+    order by r.threshold_ap desc
+    limit 1;
+  end if;
+  if v_tl is not null and (v_current.key is null or v_current.threshold_ap < (
+    select threshold_ap from public.ranks where org_id = v_org and key = 'team_leader' limit 1
+  )) then
+    select r.key, r.label, r.threshold_ap, r.frame_asset, r.sort_order
+      into v_current
+    from public.ranks r where r.org_id = v_org and r.key = 'team_leader' limit 1;
+  end if;
+
+  select * into v_next from public.next_rank_for_ap(v_org, coalesce(v_ap,0));
+  if v_next.key = 'team_leader' and v_tl is null then
+    -- Next "rank" for TL is firstline qualification, still show AP next after TL if any
+    null;
+  end if;
+
+  select * into v_tl_progress from public.get_team_leader_progress(v_mid);
+
+  return jsonb_build_object(
+    'membership_id', v_mid,
+    'ap_total', coalesce(v_ap,0),
+    'current_rank', case when v_current.key is null then null else jsonb_build_object(
+      'key', v_current.key, 'label', v_current.label,
+      'threshold_ap', v_current.threshold_ap, 'frame_asset', v_current.frame_asset
+    ) end,
+    'next_rank', case when v_next.key is null then null else jsonb_build_object(
+      'key', v_next.key, 'label', v_next.label, 'threshold_ap', v_next.threshold_ap,
+      'remaining_ap', greatest(0, v_next.threshold_ap - coalesce(v_ap,0))
+    ) end,
+    'team_leader', jsonb_build_object(
+      'qualified', coalesce(v_tl_progress.qualified, false),
+      'active_firstlines', coalesce(v_tl_progress.active_firstlines, 0),
+      'required_firstlines', coalesce(v_tl_progress.required_firstlines, 5),
+      'bonus_amount_cents', coalesce(v_tl_progress.bonus_amount_cents, 10000),
+      'bonus_paid', coalesce(v_tl_progress.bonus_paid, false),
+      'qualified_at', v_tl_progress.qualified_at
+    ),
+    'unlocked_rewards', coalesce((
+      select jsonb_agg(jsonb_build_object('kind', p.kind, 'amount_cents', p.amount_cents, 'note', p.note))
+      from public.payouts p where p.identity_id = v_identity
+    ), '[]'::jsonb)
+  );
+end;
+$$;
+
+revoke all on function public.get_qualification_progress(uuid) from public, anon;
+grant execute on function public.get_qualification_progress(uuid) to authenticated, service_role;
+
+-- List active AP tasks for current org
+create or replace function public.list_ap_tasks()
+returns setof public.ap_task_defs
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select t.*
+  from public.ap_task_defs t
+  where t.org_id = public.current_org_id() and t.is_active
+  order by t.sort_order, t.ap;
+$$;
+
+revoke all on function public.list_ap_tasks() from public, anon;
+grant execute on function public.list_ap_tasks() to authenticated, service_role;
+
+-- Seed AP tasks when a new organization is created
+create or replace function public.seed_default_ap_tasks()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.ap_task_defs (org_id, key, title, description, category, difficulty, ap, repeatable, cooldown_hours, sort_order)
+  select new.id, v.key, v.title, v.description, v.category, v.difficulty, v.ap, v.repeatable, v.cooldown, v.sort
+  from (values
+    ('prospect_messaged', 'Interessent angeschrieben', 'Kurze persönliche Nachricht gesendet.', 'outreach', 'easy', 5, true, 4, 10),
+    ('follow_up_done', 'Follow-up durchgeführt', 'Dokumentiertes Nachfassen.', 'follow_up', 'normal', 10, true, 4, 20),
+    ('zoom_invited', 'Zoom eingeladen', 'Termin/Einladung verschickt.', 'meeting', 'normal', 15, true, 8, 30),
+    ('product_consult', 'Produktberatung abgeschlossen', 'Beratung mit Interessent beendet.', 'meeting', 'hard', 20, true, 12, 40),
+    ('new_customer', 'Neuer Kunde', 'Kunde gewonnen und dokumentiert.', 'sale', 'hard', 30, true, 24, 50),
+    ('new_partner', 'Neuer Businesspartner', 'Partner registriert unter dir.', 'recruit', 'hard', 50, true, 24, 60),
+    ('first_sale_of_partner', 'Erster Verkauf des neuen Partners', 'Dein Partner hat den ersten Verkauf.', 'sale', 'epic', 100, true, 24, 70),
+    ('rank_reached', 'Neuer Rang erreicht', 'Rangaufstieg bestätigt.', 'rank', 'epic', 250, false, null::int, 80)
+  ) as v(key, title, description, category, difficulty, ap, repeatable, cooldown, sort)
+  on conflict (org_id, key) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists organizations_seed_ap_tasks on public.organizations;
+create trigger organizations_seed_ap_tasks
+  after insert on public.organizations
+  for each row execute function public.seed_default_ap_tasks();
+
+-- ############ 20260815000028_sprint_5_1_knowledge_live_coaching.sql ############
+-- Sprint 5.1 — Coach Knowledge Center + Live Coaching Center (additive only).
+-- Does not alter genealogy, AP, rewards, rankings, permissions RPCs, or existing knowledge_docs.
+
+-- ---------------------------------------------------------------------------
+-- Helpers (new): SuperAdmin OR Developer may manage coach content
+-- ---------------------------------------------------------------------------
+create or replace function public.is_coach_content_manager()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  -- memberships.role is the only authority (same pattern as is_super_admin).
+  select coalesce(
+    (
+      select m.role in ('super_admin', 'developer')
+      from public.memberships m
+      where m.id = public.active_membership_id()
+    ),
+    false
+  );
+$$;
+
+revoke all on function public.is_coach_content_manager() from public;
+grant execute on function public.is_coach_content_manager() to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Knowledge Center articles (separate from knowledge_docs RAG ingest)
+-- ---------------------------------------------------------------------------
+create table if not exists public.coach_knowledge_articles (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  slug text not null unique,
+  body_markdown text not null default '',
+  body_html text not null default '',
+  category text not null default 'Allgemein',
+  tags text[] not null default '{}',
+  status text not null default 'draft'
+    check (status in ('draft', 'needs_review', 'approved', 'archived')),
+  contradiction_flags jsonb not null default '[]'::jsonb,
+  contradiction_summary text,
+  active boolean not null default false,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  approved_by uuid references public.profiles(id) on delete set null,
+  approved_at timestamptz,
+  current_version int not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint coach_knowledge_active_requires_approved
+    check (not active or status = 'approved')
+);
+
+create index if not exists coach_knowledge_articles_status_idx
+  on public.coach_knowledge_articles (status, active);
+create index if not exists coach_knowledge_articles_category_idx
+  on public.coach_knowledge_articles (category);
+create index if not exists coach_knowledge_articles_tags_gin
+  on public.coach_knowledge_articles using gin (tags);
+create index if not exists coach_knowledge_articles_search_idx
+  on public.coach_knowledge_articles
+  using gin (to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(body_markdown, '')));
+
+drop trigger if exists coach_knowledge_articles_set_updated_at on public.coach_knowledge_articles;
+create trigger coach_knowledge_articles_set_updated_at
+before update on public.coach_knowledge_articles
+for each row execute function public.set_updated_at();
+
+create table if not exists public.coach_knowledge_versions (
+  id uuid primary key default gen_random_uuid(),
+  article_id uuid not null references public.coach_knowledge_articles(id) on delete cascade,
+  version int not null,
+  title text not null,
+  body_markdown text not null,
+  body_html text not null default '',
+  category text not null,
+  tags text[] not null default '{}',
+  status text not null,
+  change_summary text,
+  contradiction_flags jsonb not null default '[]'::jsonb,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (article_id, version)
+);
+
+create index if not exists coach_knowledge_versions_article_idx
+  on public.coach_knowledge_versions (article_id, version desc);
+
+create table if not exists public.coach_knowledge_change_log (
+  id uuid primary key default gen_random_uuid(),
+  article_id uuid not null references public.coach_knowledge_articles(id) on delete cascade,
+  version int,
+  action text not null,
+  detail text,
+  actor_id uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists coach_knowledge_change_log_article_idx
+  on public.coach_knowledge_change_log (article_id, created_at desc);
+
+alter table public.coach_knowledge_articles enable row level security;
+alter table public.coach_knowledge_versions enable row level security;
+alter table public.coach_knowledge_change_log enable row level security;
+
+drop policy if exists "coach_knowledge_articles_select" on public.coach_knowledge_articles;
+create policy "coach_knowledge_articles_select"
+on public.coach_knowledge_articles for select to authenticated
+using (
+  public.is_coach_content_manager()
+  or (active = true and status = 'approved')
+);
+
+drop policy if exists "coach_knowledge_articles_write" on public.coach_knowledge_articles;
+create policy "coach_knowledge_articles_write"
+on public.coach_knowledge_articles for all to authenticated
+using (public.is_coach_content_manager())
+with check (public.is_coach_content_manager());
+
+drop policy if exists "coach_knowledge_versions_select" on public.coach_knowledge_versions;
+create policy "coach_knowledge_versions_select"
+on public.coach_knowledge_versions for select to authenticated
+using (
+  public.is_coach_content_manager()
+  or exists (
+    select 1 from public.coach_knowledge_articles a
+    where a.id = article_id and a.active = true and a.status = 'approved'
+  )
+);
+
+drop policy if exists "coach_knowledge_versions_write" on public.coach_knowledge_versions;
+create policy "coach_knowledge_versions_write"
+on public.coach_knowledge_versions for all to authenticated
+using (public.is_coach_content_manager())
+with check (public.is_coach_content_manager());
+
+drop policy if exists "coach_knowledge_change_log_select" on public.coach_knowledge_change_log;
+create policy "coach_knowledge_change_log_select"
+on public.coach_knowledge_change_log for select to authenticated
+using (public.is_coach_content_manager());
+
+drop policy if exists "coach_knowledge_change_log_write" on public.coach_knowledge_change_log;
+create policy "coach_knowledge_change_log_write"
+on public.coach_knowledge_change_log for all to authenticated
+using (public.is_coach_content_manager())
+with check (public.is_coach_content_manager());
+
+-- ---------------------------------------------------------------------------
+-- Live Coaching events
+-- ---------------------------------------------------------------------------
+create table if not exists public.live_coaching_events (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  subtitle text,
+  description text,
+  coach_name text not null default 'Coach',
+  category text not null default 'Live Coaching',
+  language text not null default 'de',
+  starts_at timestamptz not null,
+  duration_minutes int not null default 60 check (duration_minutes > 0 and duration_minutes <= 480),
+  zoom_url text,
+  repeat_rule text not null default 'none'
+    check (repeat_rule in ('none', 'daily', 'weekly', 'biweekly', 'monthly')),
+  media_type text not null check (media_type in ('image', 'video')),
+  media_path text,
+  media_url text,
+  active boolean not null default false,
+  published_at timestamptz,
+  published_by uuid references public.profiles(id) on delete set null,
+  -- Future-ready additive columns (unused until later sprints)
+  replay_url text,
+  recording_url text,
+  guest_speakers jsonb not null default '[]'::jsonb,
+  library_visible boolean not null default false,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists live_coaching_events_active_starts_idx
+  on public.live_coaching_events (active, starts_at);
+create index if not exists live_coaching_events_category_idx
+  on public.live_coaching_events (category);
+
+drop trigger if exists live_coaching_events_set_updated_at on public.live_coaching_events;
+create trigger live_coaching_events_set_updated_at
+before update on public.live_coaching_events
+for each row execute function public.set_updated_at();
+
+alter table public.live_coaching_events enable row level security;
+
+drop policy if exists "live_coaching_events_select" on public.live_coaching_events;
+create policy "live_coaching_events_select"
+on public.live_coaching_events for select to authenticated
+using (
+  public.is_coach_content_manager()
+  or active = true
+);
+
+drop policy if exists "live_coaching_events_write" on public.live_coaching_events;
+create policy "live_coaching_events_write"
+on public.live_coaching_events for all to authenticated
+using (public.is_coach_content_manager())
+with check (public.is_coach_content_manager());
+
+-- ---------------------------------------------------------------------------
+-- Push notification subscriptions + outbox (Web Push / local scheduling)
+-- ---------------------------------------------------------------------------
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, endpoint)
+);
+
+create index if not exists push_subscriptions_user_idx
+  on public.push_subscriptions (user_id);
+
+drop trigger if exists push_subscriptions_set_updated_at on public.push_subscriptions;
+create trigger push_subscriptions_set_updated_at
+before update on public.push_subscriptions
+for each row execute function public.set_updated_at();
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists "push_subscriptions_own" on public.push_subscriptions;
+create policy "push_subscriptions_own"
+on public.push_subscriptions for all to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create table if not exists public.coaching_notification_outbox (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.live_coaching_events(id) on delete cascade,
+  kind text not null check (kind in ('published', 't_minus_30', 't_minus_5')),
+  scheduled_for timestamptz not null,
+  title text not null,
+  body text not null,
+  sent_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (event_id, kind)
+);
+
+create index if not exists coaching_notification_outbox_due_idx
+  on public.coaching_notification_outbox (scheduled_for)
+  where sent_at is null;
+
+alter table public.coaching_notification_outbox enable row level security;
+
+drop policy if exists "coaching_notification_outbox_select" on public.coaching_notification_outbox;
+create policy "coaching_notification_outbox_select"
+on public.coaching_notification_outbox for select to authenticated
+using (true);
+
+drop policy if exists "coaching_notification_outbox_write" on public.coaching_notification_outbox;
+create policy "coaching_notification_outbox_write"
+on public.coaching_notification_outbox for all to authenticated
+using (public.is_coach_content_manager())
+with check (public.is_coach_content_manager());
+
+-- ---------------------------------------------------------------------------
+-- Storage bucket for coaching media (9:16 image / short mp4)
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'coaching-media',
+  'coaching-media',
+  true,
+  52428800,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "coaching_media_public_read" on storage.objects;
+create policy "coaching_media_public_read"
+on storage.objects for select
+using (bucket_id = 'coaching-media');
+
+drop policy if exists "coaching_media_manager_insert" on storage.objects;
+create policy "coaching_media_manager_insert"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'coaching-media'
+  and public.is_coach_content_manager()
+);
+
+drop policy if exists "coaching_media_manager_update" on storage.objects;
+create policy "coaching_media_manager_update"
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'coaching-media'
+  and public.is_coach_content_manager()
+)
+with check (
+  bucket_id = 'coaching-media'
+  and public.is_coach_content_manager()
+);
+
+drop policy if exists "coaching_media_manager_delete" on storage.objects;
+create policy "coaching_media_manager_delete"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'coaching-media'
+  and public.is_coach_content_manager()
+);
+
+-- ############ 20260816000029_sprint_5_2_ascend_stories.sql ############
+-- Sprint 5.2 — Ascend Stories (additive only).
+-- Does not alter genealogy, AP, rewards, rankings, permissions RPCs, or Sprint 5.1 tables.
+
+create table if not exists public.ascend_stories (
+  id uuid primary key default gen_random_uuid(),
+  story_type text not null
+    check (story_type in (
+      'achievements',
+      'onboarding',
+      'presentations',
+      'zoom',
+      'qualifications',
+      'customers',
+      'partners',
+      'coach_highlights',
+      'admin'
+    )),
+  -- Future-ready media kinds (text is default for Sprint 5.2)
+  media_kind text not null default 'text'
+    check (media_kind in ('text', 'image', 'video', 'voice')),
+  title text not null,
+  body text not null,
+  author_label text not null default 'Ascend',
+  subject_name text,
+  subject_membership_id uuid,
+  media_path text,
+  media_url text,
+  tone text not null default 'celebrate'
+    check (tone in ('motivate', 'celebrate', 'inspire')),
+  source text not null default 'admin'
+    check (source in ('coach', 'admin', 'system')),
+  active boolean not null default true,
+  published_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint ascend_stories_expires_after_publish
+    check (expires_at > published_at)
+);
+
+create index if not exists ascend_stories_active_expires_idx
+  on public.ascend_stories (active, expires_at desc);
+create index if not exists ascend_stories_type_idx
+  on public.ascend_stories (story_type);
+create index if not exists ascend_stories_published_idx
+  on public.ascend_stories (published_at desc);
+
+drop trigger if exists ascend_stories_set_updated_at on public.ascend_stories;
+create trigger ascend_stories_set_updated_at
+before update on public.ascend_stories
+for each row execute function public.set_updated_at();
+
+alter table public.ascend_stories enable row level security;
+
+-- Everyone authenticated may read active, non-expired stories.
+drop policy if exists "ascend_stories_select" on public.ascend_stories;
+create policy "ascend_stories_select"
+on public.ascend_stories for select to authenticated
+using (
+  public.is_coach_content_manager()
+  or (active = true and expires_at > now())
+);
+
+-- SuperAdmin / Developer may publish & manage.
+drop policy if exists "ascend_stories_write" on public.ascend_stories;
+create policy "ascend_stories_write"
+on public.ascend_stories for all to authenticated
+using (public.is_coach_content_manager())
+with check (public.is_coach_content_manager());
+
 -- ============================================================
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================
@@ -4945,15 +7465,15 @@ values
 insert into public.agents (org_id, key, name, system_prompt, retrieval_categories) values
   ('00000000-0000-0000-0000-000000000001', 'recruiting',
    'Recruiting Coach',
-   'Du bist der Recruiting-Coach. Deine Spezialgebiete: Interessenten qualifizieren, Einwände behandeln, den Prozess Präsentation -> Business Fit Check -> 3-Way-Call -> Registrierung führen. Du kennst die Angst vor dem ersten Schritt und nimmst sie ernst, ohne Druck aufzubauen.',
+   'Du bist Ascents Recruiting-Spezialist — immer noch derselbe Mentor, nur mit Fokus auf Interessenten: qualifizieren, Einwände klären, Präsentation → Fit Check → 3-Way-Call → Registrierung. Du nimmst Angst ernst, baust keinen Druck auf und führst konsequent zur nächsten konkreten Aktion.',
    '{recruiting,einwaende,prozess}'),
   ('00000000-0000-0000-0000-000000000001', 'sales',
    'Sales Coach',
-   'Du bist der Sales-Coach. Deine Spezialgebiete: Produkte, Kundengespräche, Duftpartys planen und nachbereiten, aus Kunden Stammkunden machen. Du verkaufst über Nutzen und Erlebnis, nie über Druck.',
+   'Du bist Ascents Sales-Spezialist — derselbe Mentor, Fokus Produkte und Kunden: Nutzen statt Druck, Duftpartys planen und nachbereiten, aus Käufern Stammkunden machen. Immer: eine klare Einsicht, warum sie wirkt, und der nächste Schritt heute.',
    '{produkte,verkauf,duftparty}'),
   ('00000000-0000-0000-0000-000000000001', 'knowledge',
    'Knowledge Coach',
-   'Du bist der Knowledge-Coach. Deine Spezialgebiete: Produkte, Vergütungsplan, Abläufe und Schulungsinhalte präzise erklären. Du antwortest nur auf Basis der Teamdokumente; fehlen sie, sagst du das klar.',
+   'Du bist Ascents Knowledge-Spezialist — derselbe Mentor, Fokus Präzision: Produkte, Vergütung, Abläufe, Schulung. Antworte auf Basis der Teamdokumente; fehlen sie, sagst du das klar. Auch Fakten enden mit einem umsetzbaren nächsten Schritt.',
    '{produkte,verguetung,schulung,faq,prozess}');
 
 -- ============================================================

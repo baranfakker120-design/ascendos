@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <defs>
+    <clipPath id="trClip">
+      <circle cx="32" cy="32" r="26"/>
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="28.5" fill="#F7F6F3" stroke="#B8935A" stroke-width="2.5"/>
+  <g clip-path="url(#trClip)">
+    <rect x="6" y="6" width="52" height="52" fill="#E30A17"/>
+    <circle cx="28" cy="32" r="11" fill="#FFFFFF"/>
+    <circle cx="31.5" cy="32" r="8.5" fill="#E30A17"/>
+    <path fill="#FFFFFF" d="M38.2 32 L46.5 34.7 L40.4 39.8 L40.9 31.3 L46.8 27.8 L39.1 28.9 Z"/>
+  </g>
+  <circle cx="32" cy="32" r="28.5" fill="none" stroke="#B8935A" stroke-width="2.5"/>
+</svg>

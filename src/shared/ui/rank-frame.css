@@ -1,0 +1,86 @@
+/* Luxury watch specular — white-metal catch on FRAME PIXELS ONLY.
+   Root cause of invisible shimmer: CSS mask-image + WebP → transparent mask on iOS.
+   Fix: animate a brightened duplicate of the frame asset (alpha keeps the hole clean). */
+
+.rank-frame-layer {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.rank-frame-asset {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  image-rendering: auto;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.rank-frame-sheen {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.rank-frame-sheen-asset {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  /* Soft specular boost — only opaque frame metal/ornament paints */
+  filter: brightness(1.85) contrast(1.05);
+  /* ~30° diagonal band via polygon (image stays registered) */
+  clip-path: polygon(-35% -10%, -12% -10%, 8% 110%, -15% 110%);
+  animation: rank-frame-sheen 7s ease-in-out infinite;
+}
+
+/*
+  Narrow light catch sweeps the metal, then rests.
+  No scanner fill, no glow bloom, no card paint (PNG alpha).
+*/
+@keyframes rank-frame-sheen {
+  0%,
+  62% {
+    opacity: 0;
+    clip-path: polygon(-40% -10%, -16% -10%, 4% 110%, -20% 110%);
+  }
+  68% {
+    opacity: 0.7;
+  }
+  74% {
+    opacity: 0.55;
+    clip-path: polygon(28% -10%, 52% -10%, 72% 110%, 48% 110%);
+  }
+  82% {
+    opacity: 0;
+    clip-path: polygon(88% -10%, 112% -10%, 132% 110%, 108% 110%);
+  }
+  83%,
+  100% {
+    opacity: 0;
+    clip-path: polygon(-40% -10%, -16% -10%, 4% 110%, -20% 110%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-frame-sheen-asset {
+    animation: none !important;
+    opacity: 0 !important;
+    filter: none !important;
+  }
+}

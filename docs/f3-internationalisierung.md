@@ -15,15 +15,15 @@ Diese Architektur beruht nicht auf allgemeinen Annahmen zur Mehrsprachigkeit, so
 
 Aus `07_ONBOARDING.md`, Status BELEGT. Sieben Tonalitätsgruppen, neun Sprachen:
 
-| Sprache | Dokumentierte Tonalität |
-|---|---|
-| Deutsch | sachlich und strukturiert |
-| Polnisch | direkt und respektvoll |
-| Türkisch | warm und familiär |
+| Sprache                       | Dokumentierte Tonalität                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------- |
+| Deutsch                       | sachlich und strukturiert                                                             |
+| Polnisch                      | direkt und respektvoll                                                                |
+| Türkisch                      | warm und familiär                                                                     |
 | Bosnisch, Serbisch, Kroatisch | herzlich, loyal, gemeinschaftsorientiert. Grundhaltung: wir ziehen das zusammen durch |
-| Spanisch | enthusiastisch |
-| Englisch | professionell |
-| Griechisch | warm |
+| Spanisch                      | enthusiastisch                                                                        |
+| Englisch                      | professionell                                                                         |
+| Griechisch                    | warm                                                                                  |
 
 Dazu aus `03_CHOGAN.md` die Sprachen der Quellkataloge: vorhanden DE, EN, PT, ES, RO, teils IT und FR. Nicht vorhanden und daher zu erzeugen: TR, EL, BS, PL.
 
@@ -33,21 +33,21 @@ Damit umfasst der belegte Sprachraum bis zu **vierzehn** Sprachen: DE, EN, TR, P
 
 ## 0.2 Vier verbindliche Regeln aus dem Bestand
 
-| Regel | Quelle |
-|---|---|
-| **Produktnamen, Codes und Preise werden nicht übersetzt** | 15_WORKFLOWS.md, 17_BEST_PRACTICES.md |
-| **Kulturelle Tonalität pro Sprache, nicht generisch übersetzen** | 15_WORKFLOWS.md, 17_BEST_PRACTICES.md |
-| **Griechisch, Bosnisch und Polnisch vor dem Livegang muttersprachlich prüfen** | 15_WORKFLOWS.md, 17_BEST_PRACTICES.md |
-| **Anzeigetexte mit echten Umlauten, interne Bezeichner ASCII** | 03_CHOGAN.md, Beispiel Parfüm gegen parfum |
+| Regel                                                                          | Quelle                                     |
+| ------------------------------------------------------------------------------ | ------------------------------------------ |
+| **Produktnamen, Codes und Preise werden nicht übersetzt**                      | 15_WORKFLOWS.md, 17_BEST_PRACTICES.md      |
+| **Kulturelle Tonalität pro Sprache, nicht generisch übersetzen**               | 15_WORKFLOWS.md, 17_BEST_PRACTICES.md      |
+| **Griechisch, Bosnisch und Polnisch vor dem Livegang muttersprachlich prüfen** | 15_WORKFLOWS.md, 17_BEST_PRACTICES.md      |
+| **Anzeigetexte mit echten Umlauten, interne Bezeichner ASCII**                 | 03_CHOGAN.md, Beispiel Parfüm gegen parfum |
 
 Die dritte Regel ist architektonisch folgenreich: Sie verlangt einen **Prüfstatus je Übersetzung je Sprache**. Ein Modell, das Übersetzungen nur als Wert speichert, kann diese Regel nicht abbilden.
 
 ## 0.3 Zwei belegte Fehlerquellen
 
-| Fehlerquelle | Quelle |
-|---|---|
+| Fehlerquelle                                                                             | Quelle          |
+| ---------------------------------------------------------------------------------------- | --------------- |
 | Apostrophe in türkischen Suffixen brechen Zeichenketten, Beispiele `Euro'dan`, `80'inde` | 15_WORKFLOWS.md |
-| Doppelte Quelldateien mit Leerzeichen im Namen | 03_CHOGAN.md |
+| Doppelte Quelldateien mit Leerzeichen im Namen                                           | 03_CHOGAN.md    |
 
 ## 0.4 Der wichtigste Satz für diese Architektur
 
@@ -69,23 +69,23 @@ Jede Entscheidung in diesem Dokument beantwortet deshalb zuerst: Was passiert, w
 
 Der häufigste Konstruktionsfehler in Internationalisierungsarchitekturen ist die Annahme, ein Nutzer habe **eine** Sprache. Er hat vier, und sie können gleichzeitig verschieden sein.
 
-| Dimension | Was sie steuert | Wo sie hängt | Fällt zurück auf |
-|---|---|---|---|
-| **Oberflächensprache** | Menüs, Schaltflächen, Beschriftungen, Fehlermeldungen | **Identität** | Organisationsvorgabe, dann Englisch |
-| **Inhaltssprache** | Wissen, Trainings, Nachrichten, Produkte | **Organisation** | Kette je Sprache, dann Ausgangssprache mit Kennzeichnung |
-| **Kommunikationssprache** | Benachrichtigungen, E-Mails, PDF | **Identität** | Oberflächensprache |
-| **Gesprächssprache** | Ascent | **je Konversation** | Oberflächensprache |
+| Dimension                 | Was sie steuert                                       | Wo sie hängt        | Fällt zurück auf                                         |
+| ------------------------- | ----------------------------------------------------- | ------------------- | -------------------------------------------------------- |
+| **Oberflächensprache**    | Menüs, Schaltflächen, Beschriftungen, Fehlermeldungen | **Identität**       | Organisationsvorgabe, dann Englisch                      |
+| **Inhaltssprache**        | Wissen, Trainings, Nachrichten, Produkte              | **Organisation**    | Kette je Sprache, dann Ausgangssprache mit Kennzeichnung |
+| **Kommunikationssprache** | Benachrichtigungen, E-Mails, PDF                      | **Identität**       | Oberflächensprache                                       |
+| **Gesprächssprache**      | Ascent                                                | **je Konversation** | Oberflächensprache                                       |
 
 ## 1.1 Warum die Trennung nicht theoretisch ist
 
 Der belegte Normalfall bei Team Şeyda: Ein türkischsprachiger Berater in einer deutschsprachigen Organisation.
 
-| Dimension | Wert | Begründung |
-|---|---|---|
-| Oberflächensprache | Türkisch | seine Wahl |
-| Inhaltssprache | Deutsch | die Lerninhalte existieren nur auf Deutsch, belegt in 07_ONBOARDING.md |
-| Kommunikationssprache | Türkisch | seine Wahl |
-| Gesprächssprache | Türkisch | er schreibt Ascent auf Türkisch |
+| Dimension             | Wert     | Begründung                                                             |
+| --------------------- | -------- | ---------------------------------------------------------------------- |
+| Oberflächensprache    | Türkisch | seine Wahl                                                             |
+| Inhaltssprache        | Deutsch  | die Lerninhalte existieren nur auf Deutsch, belegt in 07_ONBOARDING.md |
+| Kommunikationssprache | Türkisch | seine Wahl                                                             |
+| Gesprächssprache      | Türkisch | er schreibt Ascent auf Türkisch                                        |
 
 Alle vier gleichzeitig, drei davon Türkisch, eine Deutsch. Ein Modell mit einer einzigen Spracheinstellung müsste hier entweder die Oberfläche auf Deutsch zwingen oder behaupten, die Inhalte lägen auf Türkisch vor. Beides ist falsch.
 
@@ -101,22 +101,22 @@ Verbindlich: **Die Ausgangssprache führt. Übersetzungen sind abgeleitet und k�
 
 Kein einzelner Fallback, sondern eine Kette je Sprache. Sie folgt Sprachverwandtschaft und tatsächlicher Verständlichkeit, nicht einer Standardliste.
 
-| Angeforderte Sprache | Kette |
-|---|---|
-| Bosnisch | Bosnisch, Kroatisch, Serbisch, Englisch, Ausgangssprache |
-| Serbisch | Serbisch, Bosnisch, Kroatisch, Englisch, Ausgangssprache |
-| Kroatisch | Kroatisch, Bosnisch, Serbisch, Englisch, Ausgangssprache |
-| Türkisch | Türkisch, Englisch, Ausgangssprache |
-| Polnisch | Polnisch, Englisch, Ausgangssprache |
-| Griechisch | Griechisch, Englisch, Ausgangssprache |
-| Spanisch | Spanisch, Portugiesisch, Englisch, Ausgangssprache |
-| Portugiesisch | Portugiesisch, Spanisch, Englisch, Ausgangssprache |
-| Italienisch | Italienisch, Englisch, Ausgangssprache |
-| Rumänisch | Rumänisch, Italienisch, Englisch, Ausgangssprache |
-| Französisch | Französisch, Englisch, Ausgangssprache |
-| Arabisch | Arabisch, Englisch, Ausgangssprache |
-| Englisch | Englisch, Ausgangssprache |
-| Deutsch | Deutsch, Englisch |
+| Angeforderte Sprache | Kette                                                    |
+| -------------------- | -------------------------------------------------------- |
+| Bosnisch             | Bosnisch, Kroatisch, Serbisch, Englisch, Ausgangssprache |
+| Serbisch             | Serbisch, Bosnisch, Kroatisch, Englisch, Ausgangssprache |
+| Kroatisch            | Kroatisch, Bosnisch, Serbisch, Englisch, Ausgangssprache |
+| Türkisch             | Türkisch, Englisch, Ausgangssprache                      |
+| Polnisch             | Polnisch, Englisch, Ausgangssprache                      |
+| Griechisch           | Griechisch, Englisch, Ausgangssprache                    |
+| Spanisch             | Spanisch, Portugiesisch, Englisch, Ausgangssprache       |
+| Portugiesisch        | Portugiesisch, Spanisch, Englisch, Ausgangssprache       |
+| Italienisch          | Italienisch, Englisch, Ausgangssprache                   |
+| Rumänisch            | Rumänisch, Italienisch, Englisch, Ausgangssprache        |
+| Französisch          | Französisch, Englisch, Ausgangssprache                   |
+| Arabisch             | Arabisch, Englisch, Ausgangssprache                      |
+| Englisch             | Englisch, Ausgangssprache                                |
+| Deutsch              | Deutsch, Englisch                                        |
 
 Die Gruppe Bosnisch, Serbisch, Kroatisch bildet die Wissensdatenbank bereits als eine Tonalitätsgruppe ab. Sprachlich sind die drei weitgehend gegenseitig verständlich, weshalb sie füreinander der beste Fallback sind, deutlich besser als Englisch.
 
@@ -137,11 +137,11 @@ Die Wissensdatenbank stellt an mindestens sechs Stellen die Regel auf, dass kein
 
 Diese Regel bindet nicht an die Sprache, sondern an den **Rechtsraum**:
 
-| Person | Sprache | Rechtsraum | Welche Regeln gelten |
-|---|---|---|---|
-| Türkischsprachiger Berater in Deutschland | Türkisch | Deutschland | deutsche |
-| Deutschsprachiger Berater in Österreich | Deutsch | Österreich | österreichische |
-| Türkischsprachiger Berater in der Türkei | Türkisch | Türkei | türkische |
+| Person                                    | Sprache  | Rechtsraum  | Welche Regeln gelten |
+| ----------------------------------------- | -------- | ----------- | -------------------- |
+| Türkischsprachiger Berater in Deutschland | Türkisch | Deutschland | deutsche             |
+| Deutschsprachiger Berater in Österreich   | Deutsch  | Österreich  | österreichische      |
+| Türkischsprachiger Berater in der Türkei  | Türkisch | Türkei      | türkische            |
 
 Eine Compliance-Regel an die Sprache zu binden wäre in allen drei Fällen falsch. Sprache steuert **Tonalität**, Rechtsraum steuert **Zulässigkeit**.
 
@@ -149,13 +149,13 @@ Eine Compliance-Regel an die Sprache zu binden wäre in allen drei Fällen falsc
 
 `profiles.country` existiert bereits im Bestand und wird nach F2 zum Feld der Mitgliedschaft. Es ist der Schlüssel für den Rechtsraum.
 
-| Was | Bindet an | Beispiel |
-|---|---|---|
-| Tonalität, Anrede, Wärme | Sprache | Türkisch warm und familiär |
-| Verbot von Einkommensversprechen | Rechtsraum | Deutschland |
-| Zulässige Produktaussagen | Rechtsraum | Heilaussagen, Nahrungsergänzung |
-| Pflichtangaben und Widerruf | Rechtsraum | |
-| Steuerliche Hinweise | Rechtsraum | |
+| Was                              | Bindet an  | Beispiel                        |
+| -------------------------------- | ---------- | ------------------------------- |
+| Tonalität, Anrede, Wärme         | Sprache    | Türkisch warm und familiär      |
+| Verbot von Einkommensversprechen | Rechtsraum | Deutschland                     |
+| Zulässige Produktaussagen        | Rechtsraum | Heilaussagen, Nahrungsergänzung |
+| Pflichtangaben und Widerruf      | Rechtsraum |                                 |
+| Steuerliche Hinweise             | Rechtsraum |                                 |
 
 **Verbindlich für die Systemanweisung von Ascent:** Sie besteht aus zwei getrennten Teilen. Der Tonalitätsteil wird je Sprache gepflegt. Der Compliance-Teil wird je Rechtsraum gepflegt und **in jede Sprache mit maximaler Genauigkeit übersetzt und muttersprachlich geprüft**. Der Compliance-Teil darf bei der Übersetzung nicht weicher werden.
 
@@ -175,37 +175,37 @@ Grundlage ist die vollständige Erhebung aller Textspalten der 22 AscendOS-Tabel
 
 Inhalt, den eine Organisation selbst erstellt und der in mehreren Sprachen vorliegen kann.
 
-| Tabelle | Spalten | Bemerkung |
-|---|---|---|
-| `achievements` | `title`, `description` | `key` und `icon` bleiben unübersetzt |
-| `agents` | `name`, `system_prompt` | **Sonderfall, siehe 3.5** |
-| `external_tools` | `name`, `description` | `url` unübersetzt, aber siehe 3.6 |
-| `journeys` | `title`, `description` | |
-| `journey_steps` | `title` | |
-| `knowledge_docs` | `title` | Inhalt liegt in `knowledge_chunks`, siehe Teil 6 |
-| Künftig: `catalog_products` | `description`, `application`, `benefits` | **nicht** `name`, `code`, `price_eur` |
-| Künftig: `events` | `title`, `description` | |
-| Künftig: `news_posts` | `title`, `body` | |
-| Künftig: `notification_templates` | Nachrichtentext | |
+| Tabelle                           | Spalten                                  | Bemerkung                                        |
+| --------------------------------- | ---------------------------------------- | ------------------------------------------------ |
+| `achievements`                    | `title`, `description`                   | `key` und `icon` bleiben unübersetzt             |
+| `agents`                          | `name`, `system_prompt`                  | **Sonderfall, siehe 3.5**                        |
+| `external_tools`                  | `name`, `description`                    | `url` unübersetzt, aber siehe 3.6                |
+| `journeys`                        | `title`, `description`                   |                                                  |
+| `journey_steps`                   | `title`                                  |                                                  |
+| `knowledge_docs`                  | `title`                                  | Inhalt liegt in `knowledge_chunks`, siehe Teil 6 |
+| Künftig: `catalog_products`       | `description`, `application`, `benefits` | **nicht** `name`, `code`, `price_eur`            |
+| Künftig: `events`                 | `title`, `description`                   |                                                  |
+| Künftig: `news_posts`             | `title`, `body`                          |                                                  |
+| Künftig: `notification_templates` | Nachrichtentext                          |                                                  |
 
 ## 3.2 Klasse B: niemals übersetzen, technische Bezeichner
 
 Diese Werte sind Schlüssel, nicht Text. Eine Übersetzung würde Vergleiche und Verknüpfungen brechen.
 
-| Tabelle | Spalten |
-|---|---|
-| `achievements` | `key` |
-| `agents` | `key`, `model` |
-| `coach_convos` | `agent_key` |
-| `coach_messages` | `role` |
-| `daily_plan_items` | `mission_type`, `status` |
-| `external_tools` | `key`, `share_event_type`, `result_event_type` |
-| `invites` | `code`, `role` |
-| `journey_steps` | `content_type` |
-| `knowledge_docs` | `category`, `status`, `source_type` |
-| `pipeline_events` | `event_type`, `source` |
-| `profiles` | `role` |
-| `usage_events` | `event_type` |
+| Tabelle            | Spalten                                        |
+| ------------------ | ---------------------------------------------- |
+| `achievements`     | `key`                                          |
+| `agents`           | `key`, `model`                                 |
+| `coach_convos`     | `agent_key`                                    |
+| `coach_messages`   | `role`                                         |
+| `daily_plan_items` | `mission_type`, `status`                       |
+| `external_tools`   | `key`, `share_event_type`, `result_event_type` |
+| `invites`          | `code`, `role`                                 |
+| `journey_steps`    | `content_type`                                 |
+| `knowledge_docs`   | `category`, `status`, `source_type`            |
+| `pipeline_events`  | `event_type`, `source`                         |
+| `profiles`         | `role`                                         |
+| `usage_events`     | `event_type`                                   |
 
 Damit ist die Regel aus `03_CHOGAN.md` erfüllt: interne Bezeichner ASCII, Anzeigetexte mit echten Umlauten. Der Anzeigetext zu `category = 'produkte'` ist eine Übersetzung, der Wert `produkte` selbst nie.
 
@@ -213,15 +213,15 @@ Damit ist die Regel aus `03_CHOGAN.md` erfüllt: interne Bezeichner ASCII, Anzei
 
 ## 3.3 Klasse C: niemals übersetzen, Nutzer- und Personendaten
 
-| Tabelle | Spalten | Begründung |
-|---|---|---|
-| `contacts` | `name`, `phone`, `email`, `notes`, `next_step` | Eingaben des Nutzers. Eine Übersetzung wäre eine Verfälschung |
-| `profiles` | `first_name`, `last_name`, `username`, `phone`, `avatar_url` | Personennamen werden nicht übersetzt |
-| `organizations` | `name` | Eigenname. Team Şeyda bleibt Team Şeyda |
-| `teams` | `name` | Eigenname |
-| `coach_messages` | `content` | Gesprächsverlauf. Bleibt in der Sprache des Gesprächs |
-| `knowledge_gaps` | `question` | Bereits anonymisierte Nutzerfrage. Bleibt in der Originalsprache, sonst verliert die Auswertung ihren Wert |
-| `invite_validation_attempts` | `ip` | technisch |
+| Tabelle                      | Spalten                                                      | Begründung                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `contacts`                   | `name`, `phone`, `email`, `notes`, `next_step`               | Eingaben des Nutzers. Eine Übersetzung wäre eine Verfälschung                                              |
+| `profiles`                   | `first_name`, `last_name`, `username`, `phone`, `avatar_url` | Personennamen werden nicht übersetzt                                                                       |
+| `organizations`              | `name`                                                       | Eigenname. Team Şeyda bleibt Team Şeyda                                                                    |
+| `teams`                      | `name`                                                       | Eigenname                                                                                                  |
+| `coach_messages`             | `content`                                                    | Gesprächsverlauf. Bleibt in der Sprache des Gesprächs                                                      |
+| `knowledge_gaps`             | `question`                                                   | Bereits anonymisierte Nutzerfrage. Bleibt in der Originalsprache, sonst verliert die Auswertung ihren Wert |
+| `invite_validation_attempts` | `ip`                                                         | technisch                                                                                                  |
 
 `knowledge_gaps.question` verdient eine Anmerkung: Es ist verlockend, die Lücken zur besseren Auswertung in eine Sprache zu übersetzen. Das wäre ein Fehler. Die Formulierung der Frage ist selbst ein Signal, und ein Bündel türkischer Fragen zu einem Thema bedeutet etwas anderes als ein deutsches Bündel: Es zeigt, dass Inhalte in Türkisch fehlen.
 
@@ -229,12 +229,12 @@ Damit ist die Regel aus `03_CHOGAN.md` erfüllt: interne Bezeichner ASCII, Anzei
 
 Werte, die nicht übersetzt, sondern formatiert werden. Behandlung in Teil 7.
 
-| Art | Beispiele |
-|---|---|
-| Datum und Zeit | `created_at`, `plan_date`, `occurred_at`, `next_step_due` |
-| Zahlen | Punkte, Provisionsprozente, Mengen |
-| Währung | Preise, künftig `price_eur` |
-| Namenssortierung | Teamlisten, Kontaktlisten |
+| Art              | Beispiele                                                 |
+| ---------------- | --------------------------------------------------------- |
+| Datum und Zeit   | `created_at`, `plan_date`, `occurred_at`, `next_step_due` |
+| Zahlen           | Punkte, Provisionsprozente, Mengen                        |
+| Währung          | Preise, künftig `price_eur`                               |
+| Namenssortierung | Teamlisten, Kontaktlisten                                 |
 
 ## 3.5 Sonderfall `agents.system_prompt`
 
@@ -257,14 +257,14 @@ Ohne diese Angabe würde ein türkischsprachiger Nutzer aus einer türkischen Ob
 
 ## 3.7 Global gegen organisationsbezogen
 
-| Inhalt | Ebene | Begründung |
-|---|---|---|
-| Oberflächentexte | **global**, ausgeliefert mit der Anwendung | ändern sich mit dem Code |
-| Fehlermeldungen | global | |
-| Standard-Auszeichnungen | global, je Organisation überschreibbar | Plattform liefert Vorlagen, Organisation darf abweichen |
-| Wissen, Trainings, Nachrichten | **organisationsbezogen** | gehört der Organisation |
-| Produktdaten | organisationsbezogen mit globaler Grundlage | Chogan-Sortiment ist gemeinsam, Beschreibungen dürfen abweichen |
-| Systemanweisungen | organisationsbezogen | `agents` trägt bereits `org_id` |
+| Inhalt                         | Ebene                                       | Begründung                                                      |
+| ------------------------------ | ------------------------------------------- | --------------------------------------------------------------- |
+| Oberflächentexte               | **global**, ausgeliefert mit der Anwendung  | ändern sich mit dem Code                                        |
+| Fehlermeldungen                | global                                      |                                                                 |
+| Standard-Auszeichnungen        | global, je Organisation überschreibbar      | Plattform liefert Vorlagen, Organisation darf abweichen         |
+| Wissen, Trainings, Nachrichten | **organisationsbezogen**                    | gehört der Organisation                                         |
+| Produktdaten                   | organisationsbezogen mit globaler Grundlage | Chogan-Sortiment ist gemeinsam, Beschreibungen dürfen abweichen |
+| Systemanweisungen              | organisationsbezogen                        | `agents` trägt bereits `org_id`                                 |
 
 Auflösungsregel, gleiches Muster wie beim Karriereplan in F2: **Existiert eine organisationsbezogene Übersetzung, gewinnt sie. Sonst gilt die globale.** Ein Vorrang, keine Vermischung.
 
@@ -282,28 +282,28 @@ Begründung im Detail: Ein Feld, das alle Sprachen als Wertesammlung enthält, k
 
 Ein **eigenständiger Übersetzungsbestand**, fachlich beschrieben, ohne Schemafestlegung:
 
-| Bestandteil | Zweck |
-|---|---|
-| Bezug auf Inhaltsart und Inhalt | welcher Datensatz |
-| Feld | welche Spalte |
-| Sprache | |
-| Wert | die Übersetzung |
-| Ausgangssprache | woraus übersetzt wurde |
-| Prüfstatus | Entwurf, übersetzt, muttersprachlich geprüft, freigegeben |
-| Geprüft von, geprüft am | Nachweis für die Regel aus 0.2 |
-| Fassung der Quelle | siehe 4.4 |
-| Organisation | leer für global, gesetzt für organisationsbezogen |
+| Bestandteil                     | Zweck                                                     |
+| ------------------------------- | --------------------------------------------------------- |
+| Bezug auf Inhaltsart und Inhalt | welcher Datensatz                                         |
+| Feld                            | welche Spalte                                             |
+| Sprache                         |                                                           |
+| Wert                            | die Übersetzung                                           |
+| Ausgangssprache                 | woraus übersetzt wurde                                    |
+| Prüfstatus                      | Entwurf, übersetzt, muttersprachlich geprüft, freigegeben |
+| Geprüft von, geprüft am         | Nachweis für die Regel aus 0.2                            |
+| Fassung der Quelle              | siehe 4.4                                                 |
+| Organisation                    | leer für global, gesetzt für organisationsbezogen         |
 
 Die Organisation direkt an der Übersetzungszeile ist eine bewusste Entscheidung. Sie macht die Zugriffsregel einfach: Sichtbar ist, was zur aktiven Organisation gehört oder global ist. Ohne dieses Feld müsste die Zugriffsregel für jede Inhaltsart einen eigenen Weg zur Organisation kennen, und das ist genau die Art verschachtelter Prüfung, die in F1 zu neun offenen Funktionen geführt hat.
 
 ## 4.3 Prüfstatus, vier Stufen
 
-| Status | Bedeutung | Auslieferung |
-|---|---|---|
-| `draft` | angelegt, unvollständig | nein |
+| Status       | Bedeutung                | Auslieferung                               |
+| ------------ | ------------------------ | ------------------------------------------ |
+| `draft`      | angelegt, unvollständig  | nein                                       |
 | `translated` | übersetzt, nicht geprüft | nur wenn die Sprache keine Prüfpflicht hat |
-| `reviewed` | muttersprachlich geprüft | ja |
-| `stale` | Quelle hat sich geändert | ja, **mit Kennzeichnung** |
+| `reviewed`   | muttersprachlich geprüft | ja                                         |
+| `stale`      | Quelle hat sich geändert | ja, **mit Kennzeichnung**                  |
 
 **Prüfpflichtige Sprachen sind Griechisch, Bosnisch und Polnisch**, belegt in 15_WORKFLOWS.md. Für diese drei wird `translated` nicht ausgeliefert. Für andere Sprachen ist `translated` ausreichend, aber `reviewed` bleibt das Ziel.
 
@@ -335,10 +335,10 @@ Zulässig ist maschinelle Übersetzung als **Vorschlag** im Status `draft`, den 
 
 Verbindliche Trennung:
 
-| Art | Ort | Begründung |
-|---|---|---|
+| Art                                                              | Ort                                      | Begründung                                                            |
+| ---------------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
 | Oberflächentexte, Schaltflächen, Beschriftungen, Fehlermeldungen | **Nachrichtenkataloge in der Anwendung** | ändern sich mit dem Code, müssen ohne Datenbankzugriff verfügbar sein |
-| Inhalte | **Datenbank**, siehe Teil 4 | gehören der Organisation, ändern sich unabhängig vom Code |
+| Inhalte                                                          | **Datenbank**, siehe Teil 4              | gehören der Organisation, ändern sich unabhängig vom Code             |
 
 Die häufige Fehlentscheidung an dieser Stelle lautet, alle Texte in eine Tabelle zu legen. Folge: Die Anwendung kann vor dem ersten Datenbankzugriff nichts anzeigen, jede Anmeldeseite braucht einen Rundlauf, und Texte lassen sich nicht mit dem Code prüfen.
 
@@ -346,25 +346,25 @@ Die häufige Fehlentscheidung an dieser Stelle lautet, alle Texte in eine Tabell
 
 ## 5.2 Istzustand und Umfang
 
-| Befund | Wert |
-|---|---|
-| Dateien in `src/` | 48 |
-| Davon mit deutschen Texten im Quelltext | **36** |
-| Vorhandene Übersetzungsbibliothek | **keine** |
+| Befund                                      | Wert      |
+| ------------------------------------------- | --------- |
+| Dateien in `src/`                           | 48        |
+| Davon mit deutschen Texten im Quelltext     | **36**    |
+| Vorhandene Übersetzungsbibliothek           | **keine** |
 | Fest hinterlegte Gebietseinstellung `de-DE` | 3 Stellen |
 
 Das ist Umsetzungsarbeit, kein Architekturmangel. Der Umfang ist trotzdem zu benennen: Drei Viertel aller Oberflächendateien sind betroffen.
 
 ## 5.3 Anforderungen an den Nachrichtenkatalog
 
-| Anforderung | Begründung |
-|---|---|
-| Schlüssel statt Text im Code | ein deutscher Text im Code ist kein Schlüssel, sondern eine Sprache |
-| Pluralformen nach ICU-Regeln | siehe 7.5 |
-| Platzhalter mit Benennung | Reihenfolge ändert sich zwischen Sprachen |
-| Fehlender Schlüssel fällt auf die Kette zurück und wird protokolliert | ein leerer Text ist schlimmer als ein englischer |
-| Katalog wird beim Bau geprüft | fehlende Schlüssel brechen die Auslieferung, nicht die Laufzeit |
-| Kataloge werden nach Sprache getrennt geladen | vierzehn Sprachen im Startpaket wären ein Ladezeitproblem auf dem Mobilgerät |
+| Anforderung                                                           | Begründung                                                                   |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Schlüssel statt Text im Code                                          | ein deutscher Text im Code ist kein Schlüssel, sondern eine Sprache          |
+| Pluralformen nach ICU-Regeln                                          | siehe 7.5                                                                    |
+| Platzhalter mit Benennung                                             | Reihenfolge ändert sich zwischen Sprachen                                    |
+| Fehlender Schlüssel fällt auf die Kette zurück und wird protokolliert | ein leerer Text ist schlimmer als ein englischer                             |
+| Katalog wird beim Bau geprüft                                         | fehlende Schlüssel brechen die Auslieferung, nicht die Laufzeit              |
+| Kataloge werden nach Sprache getrennt geladen                         | vierzehn Sprachen im Startpaket wären ein Ladezeitproblem auf dem Mobilgerät |
 
 Der letzte Punkt ist auf einem Mobilgerät wesentlich. Vierzehn vollständige Kataloge im ersten Ladevorgang würden die Startzeit messbar verschlechtern, und AscendOS wird laut Wissensdatenbank überwiegend vom Telefon genutzt.
 
@@ -376,11 +376,11 @@ Der anspruchsvollste Teil, weil hier vier Sprachen gleichzeitig auftreten könne
 
 ## 6.1 Spracherkennung
 
-| Ebene | Verfahren |
-|---|---|
-| Grundlage | Oberflächensprache der Identität |
-| Je Konversation | Sprache der ersten Nutzernachricht, wenn sie eindeutig abweicht |
-| Innerhalb einer Konversation | **kein automatischer Wechsel** |
+| Ebene                        | Verfahren                                                       |
+| ---------------------------- | --------------------------------------------------------------- |
+| Grundlage                    | Oberflächensprache der Identität                                |
+| Je Konversation              | Sprache der ersten Nutzernachricht, wenn sie eindeutig abweicht |
+| Innerhalb einer Konversation | **kein automatischer Wechsel**                                  |
 
 Die dritte Regel ist wichtig. Ein Nutzer, der ein deutsches Zitat in eine türkische Unterhaltung einfügt, wechselt nicht die Sprache. Eine Erkennung je Nachricht würde die Antwortsprache mitten im Gespräch umschlagen lassen. Das wirkt wie ein Fehler.
 
@@ -390,11 +390,11 @@ Ein Wechsel erfolgt nur auf ausdrückliche Anforderung oder beim Beginn einer ne
 
 Drei Teile mit unterschiedlicher Bindung. Diese Trennung ist die Umsetzung von Teil 2.
 
-| Teil | Bindet an | Pflege |
-|---|---|---|
-| Verhaltens- und Tonalitätsregeln | **Sprache** | eigenständig verfasst je Sprache, nach der Tonalitätstabelle |
-| Compliance-Regeln | **Rechtsraum** | je Rechtsraum verfasst, dann genau übersetzt und geprüft |
-| Fachliche Spezialisierung | Sprache | `agents.system_prompt` je Sprache |
+| Teil                             | Bindet an      | Pflege                                                       |
+| -------------------------------- | -------------- | ------------------------------------------------------------ |
+| Verhaltens- und Tonalitätsregeln | **Sprache**    | eigenständig verfasst je Sprache, nach der Tonalitätstabelle |
+| Compliance-Regeln                | **Rechtsraum** | je Rechtsraum verfasst, dann genau übersetzt und geprüft     |
+| Fachliche Spezialisierung        | Sprache        | `agents.system_prompt` je Sprache                            |
 
 Zusätzlich verbindlich: Die Anweisung enthält die Anweisung, **in welcher Sprache zu antworten ist**, ausdrücklich und nicht implizit. Ein Modell, das deutsche Dokumente im Kontext hat und eine türkische Frage liest, neigt ohne ausdrückliche Anweisung dazu, in der Sprache der Dokumente zu antworten.
 
@@ -402,11 +402,11 @@ Zusätzlich verbindlich: Die Anweisung enthält die Anweisung, **in welcher Spra
 
 Drei Möglichkeiten, mit unterschiedlichen Fehlermodi:
 
-| Möglichkeit | Verhalten | Fehlermodus |
-|---|---|---|
-| A: nur Nutzersprache | filtert streng | **Bei Inhalten, die nur auf Deutsch existieren, findet ein türkischer Nutzer nichts.** Ascent meldet eine Wissenslücke, obwohl das Wissen vorhanden ist |
-| B: sprachneutral | kein Filter | Ascent übersetzt Ausschnitte selbst, auch compliance-kritische. Unkontrollierte Übersetzung |
-| C: **bevorzugt, dann Kette, mit Kennzeichnung** | zuerst Nutzersprache, bei zu wenig Treffern die Kette | keiner der beiden oben |
+| Möglichkeit                                     | Verhalten                                             | Fehlermodus                                                                                                                                             |
+| ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A: nur Nutzersprache                            | filtert streng                                        | **Bei Inhalten, die nur auf Deutsch existieren, findet ein türkischer Nutzer nichts.** Ascent meldet eine Wissenslücke, obwohl das Wissen vorhanden ist |
+| B: sprachneutral                                | kein Filter                                           | Ascent übersetzt Ausschnitte selbst, auch compliance-kritische. Unkontrollierte Übersetzung                                                             |
+| C: **bevorzugt, dann Kette, mit Kennzeichnung** | zuerst Nutzersprache, bei zu wenig Treffern die Kette | keiner der beiden oben                                                                                                                                  |
 
 **Verbindlich ist C.**
 
@@ -428,12 +428,12 @@ Punkt 5 ist die Ausnahme, die das Compliance-Risiko schließt, ohne die Wissensb
 
 ## 6.4 Einbettungen
 
-| Frage | Antwort |
-|---|---|
-| Ein Vektorraum oder mehrere? | **einer** |
-| Getrennte Indizes je Sprache? | **nein** |
-| Modell | `gemini-embedding-001`, mehrsprachig |
-| Dimension | 1536, unverändert |
+| Frage                         | Antwort                              |
+| ----------------------------- | ------------------------------------ |
+| Ein Vektorraum oder mehrere?  | **einer**                            |
+| Getrennte Indizes je Sprache? | **nein**                             |
+| Modell                        | `gemini-embedding-001`, mehrsprachig |
+| Dimension                     | 1536, unverändert                    |
 
 Begründung: Das Modell ist mehrsprachig trainiert. Eine türkische Frage und ein deutsches Dokument mit gleicher Bedeutung liegen im selben Raum nahe beieinander. Genau das macht Möglichkeit C überhaupt erst möglich. Getrennte Räume je Sprache würden sprachübergreifende Suche ausschließen und wären ein Rückschritt.
 
@@ -461,13 +461,13 @@ Das ist der wertvollste einzelne Zusatz dieses Teils. Ohne Sprachangabe sieht ei
 
 ## 6.7 Sprachwechsel
 
-| Wechsel | Wirkung |
-|---|---|
-| Oberflächensprache | sofort, keine Datenänderung |
-| Laufende Unterhaltung | **keine.** Bestehende Unterhaltungen behalten ihre Sprache |
-| Neue Unterhaltung | neue Sprache |
-| Gespeicherte Tagesplaneinträge | siehe Teil 9, Befund T1 |
-| Benachrichtigungen | ab dem Wechsel |
+| Wechsel                        | Wirkung                                                    |
+| ------------------------------ | ---------------------------------------------------------- |
+| Oberflächensprache             | sofort, keine Datenänderung                                |
+| Laufende Unterhaltung          | **keine.** Bestehende Unterhaltungen behalten ihre Sprache |
+| Neue Unterhaltung              | neue Sprache                                               |
+| Gespeicherte Tagesplaneinträge | siehe Teil 9, Befund T1                                    |
+| Benachrichtigungen             | ab dem Wechsel                                             |
 
 Bestehende Unterhaltungen nicht umzustellen ist bewusst. Ein Verlauf, dessen frühere Nachrichten in einer anderen Sprache stehen als die neuen, ist unvermeidbar, weil die alten Nachrichten nicht rückwirkend übersetzt werden. Ein Übersetzen des Verlaufs wäre eine Verfälschung des Gesprächs.
 
@@ -479,9 +479,9 @@ Bestehende Unterhaltungen nicht umzustellen ist bewusst. Ein Verlauf, dessen fr�
 
 **Befund im Bestand:** Es gibt zwei verschiedene Begriffe von „heute", und keine Zeitzone ist gespeichert.
 
-| Ort | Wie „heute" bestimmt wird |
-|---|---|
-| Tagesplan | clientseitig, lokales Datum des Geräts |
+| Ort              | Wie „heute" bestimmt wird                                             |
+| ---------------- | --------------------------------------------------------------------- |
+| Tagesplan        | clientseitig, lokales Datum des Geräts                                |
 | Coach-Tageslimit | serverseitig, `date_trunc('day', now())`, also nach Datenbankzeitzone |
 
 Für einen Nutzer in der Türkei um 01:30 Ortszeit ist das lokale Datum bereits der neue Tag, die Datenbank steht aber noch bei 22:30 des Vortages. Der Tagesplan ist neu, das Nachrichtenlimit nicht zurückgesetzt.
@@ -505,12 +505,12 @@ Zu beachten: Kalenderwochen beginnen je Land verschieden, und der EOM ist laut W
 
 ## 7.3 Währung
 
-| Regel | Begründung |
-|---|---|
-| **Führend ist der Euro** | Chogan ist italienischer Hersteller, Preise werden in Euro gesetzt |
-| Anzeige in Landeswährung nur mit Kurs und Datum | ein Preis ohne Kursdatum ist keine Information |
-| **Provisions- und Punkteberechnung ausschließlich in Euro und PT** | die Umrechnung 1 PT zu 1,27 Euro ist Teil des Plans |
-| Umgerechnete Beträge werden **nie** als Berechnungsgrundlage gespeichert | sonst hängt ein Provisionsanspruch am Kurs des Erfassungstages |
+| Regel                                                                    | Begründung                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **Führend ist der Euro**                                                 | Chogan ist italienischer Hersteller, Preise werden in Euro gesetzt |
+| Anzeige in Landeswährung nur mit Kurs und Datum                          | ein Preis ohne Kursdatum ist keine Information                     |
+| **Provisions- und Punkteberechnung ausschließlich in Euro und PT**       | die Umrechnung 1 PT zu 1,27 Euro ist Teil des Plans                |
+| Umgerechnete Beträge werden **nie** als Berechnungsgrundlage gespeichert | sonst hängt ein Provisionsanspruch am Kurs des Erfassungstages     |
 
 Die letzte Regel ist die wichtigste. Der belegte Sprachraum umfasst Länder außerhalb der Eurozone, darunter Polen, Rumänien, die Türkei, Serbien und Bosnien. Würde eine Provision in Landeswährung berechnet und gespeichert, wäre sie nachträglich nicht mehr nachvollziehbar.
 
@@ -524,12 +524,12 @@ Betroffen sind Teamlisten, Kontaktlisten, Produktlisten und jede alphabetische A
 
 ## 7.5 Pluralformen
 
-| Sprache | Formen | Beispiel |
-|---|---|---|
-| Deutsch, Englisch | 2 | 1 Tag, 2 Tage |
-| Türkisch | 1 nach Zahlwort | 2 gün, nicht günler |
-| Polnisch | 3 | 1, 2 bis 4, 5 und mehr |
-| Arabisch | 6 | |
+| Sprache           | Formen          | Beispiel               |
+| ----------------- | --------------- | ---------------------- |
+| Deutsch, Englisch | 2               | 1 Tag, 2 Tage          |
+| Türkisch          | 1 nach Zahlwort | 2 gün, nicht günler    |
+| Polnisch          | 3               | 1, 2 bis 4, 5 und mehr |
+| Arabisch          | 6               |                        |
 
 Der Bestand umgeht das Problem mit der Schreibweise `Tag(en)`. Das ist im Deutschen ein akzeptabler Behelf und in den anderen Sprachen keine Lösung, weil dort nicht die Endung, sondern die Wortwahl variiert.
 
@@ -539,14 +539,14 @@ Verbindlich: Pluralformen nach ICU-Regeln im Nachrichtenkatalog, nicht durch Zei
 
 Arabisch ist belegt. Betroffen sind:
 
-| Bereich | Anforderung |
-|---|---|
-| Layoutrichtung | logische CSS-Eigenschaften statt links und rechts |
-| Navigation | Reihenfolge spiegelt sich |
-| Fortschrittsbalken, Diagramme | Laufrichtung spiegelt sich |
-| Symbole mit Richtung | Pfeile spiegeln sich, Uhren nicht |
-| **Das Logo** | **spiegelt sich nicht.** Das Symbol ist eine Marke, keine Richtungsangabe |
-| Zahlen | westarabische Ziffern beibehalten, ostarabische nur auf Wunsch |
+| Bereich                       | Anforderung                                                               |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| Layoutrichtung                | logische CSS-Eigenschaften statt links und rechts                         |
+| Navigation                    | Reihenfolge spiegelt sich                                                 |
+| Fortschrittsbalken, Diagramme | Laufrichtung spiegelt sich                                                |
+| Symbole mit Richtung          | Pfeile spiegeln sich, Uhren nicht                                         |
+| **Das Logo**                  | **spiegelt sich nicht.** Das Symbol ist eine Marke, keine Richtungsangabe |
+| Zahlen                        | westarabische Ziffern beibehalten, ostarabische nur auf Wunsch            |
 
 **Verbindlich ab sofort, unabhängig davon, wann Arabisch kommt:** Neue Oberflächen verwenden logische CSS-Eigenschaften. Begründung in Teil 9, Befund T4.
 
@@ -576,23 +576,23 @@ In AscendOS betrifft das nicht den Anwendungscode, weil dort keine Texte in Zeic
 
 Nach F2 gilt: Was in zwei Organisationen unterschiedlich sein darf, gehört an die Mitgliedschaft.
 
-| Angabe | Ebene | Begründung |
-|---|---|---|
-| Oberflächensprache | **Identität** | Ein Mensch hat eine Sprache, unabhängig von der Zahl seiner Organisationen |
+| Angabe                | Ebene                                                    | Begründung                                                                         |
+| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Oberflächensprache    | **Identität**                                            | Ein Mensch hat eine Sprache, unabhängig von der Zahl seiner Organisationen         |
 | Kommunikationssprache | **Identität**, kann von der Oberflächensprache abweichen | manche lesen die Oberfläche auf Englisch, wollen Nachrichten aber muttersprachlich |
-| Zeitzone | **Identität** | hängt am Wohnort, nicht an der Organisation |
-| Rechtsraum | **Mitgliedschaft** | eine Person kann für Organisationen in verschiedenen Ländern tätig sein |
-| Vorgabesprache | **Organisation** | greift nur, wenn die Identität nichts gewählt hat |
-| Inhaltssprachen | **Organisation** | welche Sprachen sie pflegt |
+| Zeitzone              | **Identität**                                            | hängt am Wohnort, nicht an der Organisation                                        |
+| Rechtsraum            | **Mitgliedschaft**                                       | eine Person kann für Organisationen in verschiedenen Ländern tätig sein            |
+| Vorgabesprache        | **Organisation**                                         | greift nur, wenn die Identität nichts gewählt hat                                  |
+| Inhaltssprachen       | **Organisation**                                         | welche Sprachen sie pflegt                                                         |
 
 Der Rechtsraum an der Mitgliedschaft ist eine bewusste Abweichung von der Sprache. Begründung in Teil 2: Sprache folgt der Person, Zulässigkeit folgt der Organisation und ihrem Markt.
 
 ## 8.2 Überschreiben
 
-| Ebene | Darf überschreiben |
-|---|---|
-| Identität | die Vorgabe der Organisation, immer |
-| Organisation | **nichts** an der Identität |
+| Ebene        | Darf überschreiben                  |
+| ------------ | ----------------------------------- |
+| Identität    | die Vorgabe der Organisation, immer |
+| Organisation | **nichts** an der Identität         |
 
 Eine Organisation darf einer Person keine Anzeigesprache aufzwingen. Begründung: Die Sprache ist eine persönliche Zugänglichkeitseinstellung. Eine Vorgabe, die die Wahl der Person überschreibt, kann für Menschen, die die Vorgabesprache nicht beherrschen, den Zugang zum System verhindern.
 
@@ -604,20 +604,20 @@ Kette: Kommunikationssprache der Identität, dann Oberflächensprache, dann Vorg
 
 Zwei Sonderfälle:
 
-| Fall | Sprache |
-|---|---|
+| Fall                                                                | Sprache                                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Benachrichtigung mit rechtlichem Bezug, etwa Fristablauf der Lizenz | Sprache der Identität **und** Verweis auf die maßgebliche Fassung im Rechtsraum |
-| Benachrichtigung an einen Sponsor über eine andere Person | Sprache des **Empfängers**, nicht der betroffenen Person |
+| Benachrichtigung an einen Sponsor über eine andere Person           | Sprache des **Empfängers**, nicht der betroffenen Person                        |
 
 Der zweite Fall ist leicht zu übersehen. Eine Fristwarnung, die an den Sponsor geht, muss in dessen Sprache verfasst sein, auch wenn die betroffene Person eine andere spricht.
 
 ## 8.4 Auskunft und Löschung
 
-| Frage | Antwort |
-|---|---|
-| Sprache der Auskunft nach Artikel 15 | Sprache der Identität. Eine Auskunft in einer Sprache, die die Person nicht versteht, erfüllt den Zweck nicht |
-| Sind Spracheinstellungen personenbezogene Daten? | ja, sie gehören in die Auskunft |
-| Verrät die Sprache mehr als nötig? | möglicherweise. Sprache kann auf Herkunft hindeuten, also auf eine besondere Datenkategorie |
+| Frage                                            | Antwort                                                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Sprache der Auskunft nach Artikel 15             | Sprache der Identität. Eine Auskunft in einer Sprache, die die Person nicht versteht, erfüllt den Zweck nicht |
+| Sind Spracheinstellungen personenbezogene Daten? | ja, sie gehören in die Auskunft                                                                               |
+| Verrät die Sprache mehr als nötig?               | möglicherweise. Sprache kann auf Herkunft hindeuten, also auf eine besondere Datenkategorie                   |
 
 Zum dritten Punkt: Die Spracheinstellung ist funktional notwendig und ihre Verarbeitung dadurch gedeckt. Sie darf aber **nicht** für Auswertungen nach Herkunft verwendet werden. Verbindlich: Sprache erscheint in keiner Auswertung als Gliederungsmerkmal über Personen. Eine Auswertung, welche Inhaltssprachen fehlen, ist zulässig, weil sie Inhalte betrifft. Eine Auswertung, welche Sprachgruppen weniger verkaufen, ist es nicht.
 
@@ -739,17 +739,17 @@ Befund und Lösung in 7.1.
 
 ## Übersicht
 
-| Befund | Schwere | Jetzt | Später |
-|---|---|---|---|
-| T1 Tagesplan speichert Sätze | **hoch** | nahezu kostenlos | **nicht heilbar** |
-| T2 Keine Zeitzone | **hoch** | eine Angabe plus Logik | Vergangenheit nicht korrigierbar |
-| T3 `match_knowledge` ohne Sprache | mittel | mit dem nächsten Eingriff | drei Bausteine gleichzeitig |
-| T4 Keine logischen CSS-Eigenschaften | mittel | kostenlos für Neues | 36 Dateien plus Sichtprüfung |
-| T5 Keine Fassungsangabe | mittel | eine Angabe je Tabelle | vollständige Neuprüfung |
-| T6 Lücken ohne Sprache | niedrig | eine Angabe | Erfasstes nicht zuzuordnen |
-| T7 Kategorietexte im Code | niedrig | Teil der Katalogeinführung | unverändert |
-| T8 Schwedischer Behelf | niedrig | mit T2 | unverändert |
-| T9 Keine Bibliothek | niedrig | Umsetzung | wächst mit jeder Oberfläche |
+| Befund                               | Schwere  | Jetzt                      | Später                           |
+| ------------------------------------ | -------- | -------------------------- | -------------------------------- |
+| T1 Tagesplan speichert Sätze         | **hoch** | nahezu kostenlos           | **nicht heilbar**                |
+| T2 Keine Zeitzone                    | **hoch** | eine Angabe plus Logik     | Vergangenheit nicht korrigierbar |
+| T3 `match_knowledge` ohne Sprache    | mittel   | mit dem nächsten Eingriff  | drei Bausteine gleichzeitig      |
+| T4 Keine logischen CSS-Eigenschaften | mittel   | kostenlos für Neues        | 36 Dateien plus Sichtprüfung     |
+| T5 Keine Fassungsangabe              | mittel   | eine Angabe je Tabelle     | vollständige Neuprüfung          |
+| T6 Lücken ohne Sprache               | niedrig  | eine Angabe                | Erfasstes nicht zuzuordnen       |
+| T7 Kategorietexte im Code            | niedrig  | Teil der Katalogeinführung | unverändert                      |
+| T8 Schwedischer Behelf               | niedrig  | mit T2                     | unverändert                      |
+| T9 Keine Bibliothek                  | niedrig  | Umsetzung                  | wächst mit jeder Oberfläche      |
 
 ---
 
@@ -757,42 +757,42 @@ Befund und Lösung in 7.1.
 
 ## 10.1 Bewertung
 
-| Bereich | Bewertung | Begründung |
-|---|---|---|
-| **Skalierbarkeit** | tragfähig | Neue Sprache heißt: Eintrag in der Sprachliste, Kette ergänzen, Katalog liefern, Inhalte übersetzen. Kein Schemaeingriff |
-| **Wartbarkeit** | gut, mit einer Einschränkung | Ein Übersetzungsbestand statt neun Nebentabellen. Einschränkung: Der Bestand ist polymorph und verliert dadurch die Verweisintegrität zum Inhalt. Verwaiste Übersetzungen sind harmlos und werden aufgeräumt |
-| **Performance** | tragfähig, zwei Punkte zu beachten | Kataloge werden je Sprache getrennt geladen, das ist auf dem Mobilgerät wesentlich. Übersetzungen werden je Inhaltsart und Sprache gebündelt abgefragt, nicht je Datensatz |
-| **KI** | tragfähig, neu bewertet | Ein Vektorraum, mehrsprachiges Modell, Kette mit Kennzeichnung, Ausnahme für compliance-kritische Kategorien |
-| **Mehrmandantenfähigkeit** | tragfähig | Organisation an der Übersetzungszeile, Vorrang der organisationsbezogenen Fassung, gleiches Muster wie beim Karriereplan |
-| **Suche** | tragfähig | Sortierung je Abfrage statt global. Volltextsuche braucht später Sprachkonfigurationen je Sprache, siehe offene Punkte |
-| **Wissensdatenbank** | tragfähig | `language` vorhanden, muss an den Ausschnitt vererbt werden, gleiche Vererbung wie Status und Zielgruppe |
-| **Übersetzbarkeit** | vollständig geklärt | Vier Klassen, jede Spalte der 22 Tabellen zugeordnet |
-| **Risiken** | sieben, siehe 10.2 | |
+| Bereich                    | Bewertung                          | Begründung                                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Skalierbarkeit**         | tragfähig                          | Neue Sprache heißt: Eintrag in der Sprachliste, Kette ergänzen, Katalog liefern, Inhalte übersetzen. Kein Schemaeingriff                                                                                     |
+| **Wartbarkeit**            | gut, mit einer Einschränkung       | Ein Übersetzungsbestand statt neun Nebentabellen. Einschränkung: Der Bestand ist polymorph und verliert dadurch die Verweisintegrität zum Inhalt. Verwaiste Übersetzungen sind harmlos und werden aufgeräumt |
+| **Performance**            | tragfähig, zwei Punkte zu beachten | Kataloge werden je Sprache getrennt geladen, das ist auf dem Mobilgerät wesentlich. Übersetzungen werden je Inhaltsart und Sprache gebündelt abgefragt, nicht je Datensatz                                   |
+| **KI**                     | tragfähig, neu bewertet            | Ein Vektorraum, mehrsprachiges Modell, Kette mit Kennzeichnung, Ausnahme für compliance-kritische Kategorien                                                                                                 |
+| **Mehrmandantenfähigkeit** | tragfähig                          | Organisation an der Übersetzungszeile, Vorrang der organisationsbezogenen Fassung, gleiches Muster wie beim Karriereplan                                                                                     |
+| **Suche**                  | tragfähig                          | Sortierung je Abfrage statt global. Volltextsuche braucht später Sprachkonfigurationen je Sprache, siehe offene Punkte                                                                                       |
+| **Wissensdatenbank**       | tragfähig                          | `language` vorhanden, muss an den Ausschnitt vererbt werden, gleiche Vererbung wie Status und Zielgruppe                                                                                                     |
+| **Übersetzbarkeit**        | vollständig geklärt                | Vier Klassen, jede Spalte der 22 Tabellen zugeordnet                                                                                                                                                         |
+| **Risiken**                | sieben, siehe 10.2                 |                                                                                                                                                                                                              |
 
 ## 10.2 Risiken
 
-| Priorität | Risiko | Bewertung |
-|---|---|---|
-| 1 | **T1 nicht vor dem breiten Einsatz behoben** | Der Verlauf bleibt dauerhaft deutsch. Nicht heilbar |
-| 2 | **T2 nicht behoben, Nutzung über Zeitzonen hinweg** | Monats- und Periodengrenzen rückwirkend falsch. Bei Provisionen ein Abrechnungsfehler |
-| 3 | **Compliance-Inhalte werden bei der Übersetzung weicher** | Teil 2.2. Rechtsrisiko, nicht Qualitätsmangel. Gegenmaßnahme ist muttersprachliche Prüfung mit Rechtsbezug |
-| 4 | Inhaltslücken werden als Wissenslücken wahrgenommen | Gegenmaßnahme ist Möglichkeit C in 6.3 plus T6 |
-| 5 | Schwelle nicht je Sprachpaar kalibriert | Sprachübergreifende Treffer erscheinen nie oder zu viel Unpassendes durchläuft |
-| 6 | Veraltete Übersetzungen werden stillschweigend ausgeliefert | Gegenmaßnahme ist T5 plus Status `stale` |
-| 7 | Sprache wird zum Auswertungsmerkmal über Personen | Teil 8.4. Gegenmaßnahme ist eine ausdrückliche Grenze, technisch nicht erzwingbar |
+| Priorität | Risiko                                                      | Bewertung                                                                                                  |
+| --------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1         | **T1 nicht vor dem breiten Einsatz behoben**                | Der Verlauf bleibt dauerhaft deutsch. Nicht heilbar                                                        |
+| 2         | **T2 nicht behoben, Nutzung über Zeitzonen hinweg**         | Monats- und Periodengrenzen rückwirkend falsch. Bei Provisionen ein Abrechnungsfehler                      |
+| 3         | **Compliance-Inhalte werden bei der Übersetzung weicher**   | Teil 2.2. Rechtsrisiko, nicht Qualitätsmangel. Gegenmaßnahme ist muttersprachliche Prüfung mit Rechtsbezug |
+| 4         | Inhaltslücken werden als Wissenslücken wahrgenommen         | Gegenmaßnahme ist Möglichkeit C in 6.3 plus T6                                                             |
+| 5         | Schwelle nicht je Sprachpaar kalibriert                     | Sprachübergreifende Treffer erscheinen nie oder zu viel Unpassendes durchläuft                             |
+| 6         | Veraltete Übersetzungen werden stillschweigend ausgeliefert | Gegenmaßnahme ist T5 plus Status `stale`                                                                   |
+| 7         | Sprache wird zum Auswertungsmerkmal über Personen           | Teil 8.4. Gegenmaßnahme ist eine ausdrückliche Grenze, technisch nicht erzwingbar                          |
 
 Risiko 7 verdient eine Anmerkung: Es ist das einzige, das technisch nicht verhindert werden kann. Eine Auswertung nach Sprachgruppen ist mit den vorhandenen Daten jederzeit möglich. Die Grenze ist eine Festlegung, keine Sperre.
 
 ## 10.3 Offene Punkte
 
-| # | Punkt | Art | Entscheider |
-|---|---|---|---|
-| O1 | Welche Sprachen zum Start, und in welcher Reihenfolge | geschäftlich | Sie |
-| O2 | Compliance-Regeln je Rechtsraum, inhaltlich | rechtlich | Rechtsberatung |
-| O3 | Kommt Arabisch, und damit die Rechts-nach-links-Darstellung | geschäftlich | Sie |
-| O4 | Volltextsuche neben der Vektorsuche, und mit welchen Sprachkonfigurationen | Architektur, später | ich, wenn Volltextsuche ansteht |
-| O5 | Benutzernamen auf einen festgelegten Zeichenumfang begrenzen oder normalisieren | Architektur | ich, mit Ihrer Bestätigung |
-| O6 | Wer übersetzt, und wer prüft muttersprachlich | organisatorisch | Sie |
+| #   | Punkt                                                                           | Art                 | Entscheider                     |
+| --- | ------------------------------------------------------------------------------- | ------------------- | ------------------------------- |
+| O1  | Welche Sprachen zum Start, und in welcher Reihenfolge                           | geschäftlich        | Sie                             |
+| O2  | Compliance-Regeln je Rechtsraum, inhaltlich                                     | rechtlich           | Rechtsberatung                  |
+| O3  | Kommt Arabisch, und damit die Rechts-nach-links-Darstellung                     | geschäftlich        | Sie                             |
+| O4  | Volltextsuche neben der Vektorsuche, und mit welchen Sprachkonfigurationen      | Architektur, später | ich, wenn Volltextsuche ansteht |
+| O5  | Benutzernamen auf einen festgelegten Zeichenumfang begrenzen oder normalisieren | Architektur         | ich, mit Ihrer Bestätigung      |
+| O6  | Wer übersetzt, und wer prüft muttersprachlich                                   | organisatorisch     | Sie                             |
 
 O6 ist kein technischer Punkt und trotdem der kritischste für den Erfolg. Die Architektur stellt Prüfstatus und Nachweis bereit. Ob für Griechisch, Bosnisch und Polnisch tatsächlich Muttersprachler zur Verfügung stehen, entscheidet, ob diese Sprachen ausgeliefert werden können. Ohne Prüfer bleibt der Status `translated`, und diese drei Sprachen werden nach 4.3 nicht ausgeliefert.
 

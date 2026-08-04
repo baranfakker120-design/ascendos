@@ -1,37 +1,76 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useI18n } from '@shared/i18n';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Input } from '@shared/ui/Input';
+import { TextArea } from '@shared/ui/TextArea';
 import { useContact, useContactMutations } from './contactsApi';
+import type { Contact } from '@shared/types/domain';
 
 /** Ein Formular für beide Fälle: /kontakte/neu und /kontakte/:id/bearbeiten */
 export function ContactFormPage() {
+  const { t } = useI18n();
   const { contactId } = useParams();
   const isEdit = !!contactId;
+  const { data: existing, isPending, isError } = useContact(contactId ?? '');
+
+  if (isEdit && isPending) {
+    return <p className="text-sm text-muted">{t('contacts.loading')}</p>;
+  }
+
+  if (isEdit && (isError || !existing)) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted">
+          {isError ? t('contacts.loadFailed') : t('contacts.gone')}
+        </p>
+        <Link to="/kontakte" className="text-sm font-medium text-primary">
+          {t('contacts.backToList')}
+        </Link>
+      </div>
+    );
+  }
+
+  // Remount when the loaded contact identity changes so local state
+  // initializes from server data once — no setState-during-render hydrate.
+  return (
+    <ContactForm
+      key={existing?.id ?? 'new'}
+      isEdit={isEdit}
+      contactId={contactId}
+      existing={existing ?? null}
+    />
+  );
+}
+
+function ContactForm({
+  isEdit,
+  contactId,
+  existing,
+}: {
+  isEdit: boolean;
+  contactId?: string;
+  existing: Contact | null;
+}) {
+  const { t } = useI18n();
   const navigate = useNavigate();
-  const { data: existing } = useContact(contactId ?? '');
   const { createContact, updateContact } = useContactMutations();
 
-  const [name, setName] = useState(existing?.name ?? '');
-  const [phone, setPhone] = useState(existing?.phone ?? '');
-  const [email, setEmail] = useState(existing?.email ?? '');
-  const [nextStep, setNextStep] = useState(existing?.next_step ?? '');
-  const [nextStepDue, setNextStepDue] = useState(existing?.next_step_due ?? '');
-  const [notes, setNotes] = useState(existing?.notes ?? '');
+  const {
+    value: { name, phone, email, nextStep, nextStepDue, notes },
+    patch,
+    clear: clearContactDraft,
+  } = usePersistedDraft(isEdit ? DRAFT_SCOPES.contactEdit(contactId!) : DRAFT_SCOPES.contactNew, {
+    name: existing?.name ?? '',
+    phone: existing?.phone ?? '',
+    email: existing?.email ?? '',
+    nextStep: existing?.next_step ?? '',
+    nextStepDue: existing?.next_step_due ?? '',
+    notes: existing?.notes ?? '',
+  });
   const [error, setError] = useState<string | null>(null);
-
-  // Bearbeiten: sobald der Kontakt geladen ist, Felder einmalig befüllen.
-  const [hydrated, setHydrated] = useState(false);
-  if (isEdit && existing && !hydrated) {
-    setName(existing.name);
-    setPhone(existing.phone ?? '');
-    setEmail(existing.email ?? '');
-    setNextStep(existing.next_step ?? '');
-    setNextStepDue(existing.next_step_due ?? '');
-    setNotes(existing.notes ?? '');
-    setHydrated(true);
-  }
 
   const busy = createContact.isPending || updateContact.isPending;
 
@@ -48,71 +87,77 @@ export function ContactFormPage() {
     };
     try {
       if (isEdit) {
-        await updateContact.mutateAsync({ id: contactId, ...input });
+        const status = await updateContact.mutateAsync({ id: contactId!, ...input });
+        if (status === 'synced') await clearContactDraft();
         navigate(`/kontakte/${contactId}`);
       } else {
         const created = await createContact.mutateAsync(input);
-        navigate(`/kontakte/${created.id}`, { replace: true });
+        if (created.id.startsWith('local-')) {
+          navigate('/kontakte', { replace: true });
+        } else {
+          await clearContactDraft();
+          navigate(`/kontakte/${created.id}`, { replace: true });
+        }
       }
     } catch {
-      setError('Speichern fehlgeschlagen. Bitte versuche es erneut.');
+      setError(t('contacts.saveFailed'));
     }
   };
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{isEdit ? 'Kontakt bearbeiten' : 'Neuer Kontakt'}</h1>
+      <h1 className="text-2xl font-bold">
+        {isEdit ? t('contacts.editTitle') : t('contacts.newTitle')}
+      </h1>
       <form onSubmit={submit} className="space-y-4">
-        <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <Input
-          label="Telefon (optional)"
+          label={t('contacts.name')}
+          value={name}
+          onChange={(e) => patch({ name: e.target.value })}
+          required
+        />
+        <Input
+          label={t('contacts.phoneOptional')}
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => patch({ phone: e.target.value })}
           autoComplete="off"
         />
         <Input
-          label="E-Mail (optional)"
+          label={t('contacts.emailOptional')}
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => patch({ email: e.target.value })}
           autoComplete="off"
         />
         <Input
-          label="Nächster Schritt (optional)"
+          label={t('contacts.nextStepOptional')}
           value={nextStep}
-          onChange={(e) => setNextStep(e.target.value)}
-          placeholder="z. B. Nach der Präsentation anrufen"
+          onChange={(e) => patch({ nextStep: e.target.value })}
+          placeholder={t('contacts.nextStepPlaceholder')}
         />
         <Input
-          label="Fällig am (optional)"
+          label={t('contacts.dueOptional')}
           type="date"
           value={nextStepDue}
-          onChange={(e) => setNextStepDue(e.target.value)}
-          hint="Terminierte Schritte erscheinen am Fälligkeitstag als Top-Mission in deinem Tagesplan."
+          onChange={(e) => patch({ nextStepDue: e.target.value })}
+          hint={t('contacts.dueHint')}
         />
-        <div className="space-y-1.5">
-          <label htmlFor="notes" className="block text-sm font-medium text-ink">
-            Notizen (optional)
-          </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            placeholder="Kontext fürs nächste Gespräch"
-          />
-          <p className="text-xs text-muted">
-            Bitte nur geschäftlich Relevantes notieren — keine sensiblen persönlichen Angaben.
-          </p>
-        </div>
+        <TextArea
+          label={t('contacts.notesOptional')}
+          id="notes"
+          value={notes}
+          onChange={(e) => patch({ notes: e.target.value })}
+          rows={3}
+          placeholder={t('contacts.notesPlaceholder')}
+          hint={t('contacts.notesHint')}
+        />
         {error ? <Alert tone="error">{error}</Alert> : null}
         <Button type="submit" disabled={busy || !name.trim()}>
-          {busy ? 'Wird gespeichert …' : isEdit ? 'Änderungen speichern' : 'Kontakt anlegen'}
+          {busy ? t('common.saving') : isEdit ? t('contacts.saveChanges') : t('contacts.create')}
         </Button>
         <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
-          Abbrechen
+          {t('common.cancel')}
         </Button>
       </form>
     </div>

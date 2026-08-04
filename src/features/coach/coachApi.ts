@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
+import { readStoredLocale } from '@shared/lib/locale';
+import { createCoachTranslator } from './i18n';
 
 export interface CoachMessage {
   id: string;
@@ -8,19 +10,28 @@ export interface CoachMessage {
   created_at: string;
 }
 
+const messagesKey = (conversationId: string | null) =>
+  ['coach-messages', conversationId ?? '__pending__'] as const;
+
 export function useCoachMessages(conversationId: string | null) {
+  const qc = useQueryClient();
   return useQuery({
-    queryKey: ['coach-messages', conversationId],
-    enabled: !!conversationId,
+    queryKey: messagesKey(conversationId),
     queryFn: async (): Promise<CoachMessage[]> => {
+      // Pending / brand-new thread: serve optimistic cache only.
+      if (!conversationId) {
+        return qc.getQueryData<CoachMessage[]>(messagesKey(null)) ?? [];
+      }
       const { data, error } = await supabase
         .from('coach_messages')
         .select('id, role, content, created_at')
-        .eq('convo_id', conversationId!)
+        .eq('convo_id', conversationId)
         .order('created_at');
       if (error) throw error;
       return data as CoachMessage[];
     },
+    // Keep prior messages visible while refetching after send.
+    placeholderData: (prev) => prev,
   });
 }
 
@@ -36,26 +47,89 @@ interface SendResult {
   reply: string;
 }
 
+type SendContext = {
+  previous: CoachMessage[] | undefined;
+  optimisticKey: ReturnType<typeof messagesKey>;
+  tempUserId: string;
+};
+
 export function useSendToCoach() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SendInput): Promise<SendResult> => {
+      // Resolve at send time so a language switch never leaves the mutation
+      // with a stale locale captured by an earlier render.
+      const locale = readStoredLocale();
       const { data, error } = await supabase.functions.invoke('coach-chat', {
         body: {
           message: input.message,
           conversationId: input.conversationId,
           contactId: input.contactId,
+          locale,
         },
       });
       if (error) {
-        // Fehlertext der Function (z. B. Tageslimit) durchreichen
         const context = await (error as { context?: Response }).context?.json?.().catch(() => null);
-        throw new Error(context?.error ?? 'Ascent ist gerade nicht erreichbar.');
+        throw new Error(context?.error ?? createCoachTranslator(locale)('chat.unreachable'));
       }
       return data as SendResult;
     },
-    onSuccess: (result) => {
-      void qc.invalidateQueries({ queryKey: ['coach-messages', result.conversationId] });
+    onMutate: async (input): Promise<SendContext> => {
+      const optimisticKey = messagesKey(input.conversationId);
+      await qc.cancelQueries({ queryKey: optimisticKey });
+      const previous = qc.getQueryData<CoachMessage[]>(optimisticKey);
+      const tempUserId = `temp-user-${Date.now()}`;
+      const optimisticUser: CoachMessage = {
+        id: tempUserId,
+        role: 'user',
+        content: input.message,
+        created_at: new Date().toISOString(),
+      };
+      qc.setQueryData<CoachMessage[]>(optimisticKey, [...(previous ?? []), optimisticUser]);
+      return { previous, optimisticKey, tempUserId };
+    },
+    onError: (_err, input, ctx) => {
+      if (!ctx) return;
+      qc.setQueryData(ctx.optimisticKey, ctx.previous);
+      // If we were on a real convo id, also restore that key.
+      if (input.conversationId) {
+        qc.setQueryData(messagesKey(input.conversationId), ctx.previous);
+      }
+    },
+    onSuccess: (result, input, ctx) => {
+      const targetKey = messagesKey(result.conversationId);
+      const sourceKey = ctx?.optimisticKey ?? messagesKey(input.conversationId);
+
+      const fromSource = qc.getQueryData<CoachMessage[]>(sourceKey) ?? [];
+      const withoutTemp = fromSource.filter((m) => !m.id.startsWith('temp-'));
+      const hasUser = withoutTemp.some((m) => m.role === 'user' && m.content === input.message);
+      const next: CoachMessage[] = [
+        ...withoutTemp,
+        ...(hasUser
+          ? []
+          : [
+              {
+                id: `local-user-${Date.now()}`,
+                role: 'user' as const,
+                content: input.message,
+                created_at: new Date().toISOString(),
+              },
+            ]),
+        {
+          id: `local-assistant-${Date.now()}`,
+          role: 'assistant' as const,
+          content: result.reply,
+          created_at: new Date().toISOString(),
+        },
+      ];
+
+      qc.setQueryData(targetKey, next);
+      if (sourceKey[1] !== targetKey[1]) {
+        qc.removeQueries({ queryKey: sourceKey });
+      }
+
+      // Reconcile with server IDs without blanking the thread.
+      void qc.invalidateQueries({ queryKey: targetKey });
     },
   });
 }
@@ -92,7 +166,10 @@ export function useCoachContact(contactId: string | null) {
         supabase.from('contact_phases').select('phase').eq('contact_id', contactId!).single(),
       ]);
       if (contact.error) throw contact.error;
-      return { ...contact.data, phase: phase.data?.phase ?? 'lead' };
+      return {
+        ...contact.data,
+        phase: (phase.data?.phase ?? 'lead') as import('@shared/types/domain').ContactPhase,
+      };
     },
   });
 }

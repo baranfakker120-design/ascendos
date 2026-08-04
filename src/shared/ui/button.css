@@ -1,0 +1,217 @@
+/* Material button — one language for the whole app */
+
+.ui-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid transparent;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0) scale(1);
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 240ms cubic-bezier(0.22, 1.2, 0.36, 1),
+    background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, box-shadow;
+}
+
+.ui-btn--block {
+  width: 100%;
+}
+
+.ui-btn--inline {
+  width: auto;
+}
+
+.ui-btn--md {
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+}
+
+.ui-btn--lg {
+  height: 3.25rem;
+  padding: 0 1.15rem;
+  border-radius: 0.85rem;
+  font-size: 1.05rem;
+}
+
+.ui-btn--sm {
+  height: 2.5rem;
+  padding: 0 0.85rem;
+  border-radius: 0.65rem;
+  font-size: 0.875rem;
+}
+
+.ui-btn--chip {
+  height: auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ui-btn--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1rem;
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid rgb(var(--color-primary));
+  outline-offset: 2px;
+}
+
+.ui-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.ui-btn:disabled .ui-btn__ripple {
+  display: none;
+}
+
+.ui-btn__label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ui-btn__ripple {
+  position: absolute;
+  z-index: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.35) 0%, rgb(255 255 255 / 0) 70%);
+  transform: scale(0);
+  opacity: 0.65;
+  animation: ui-btn-ripple 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ui-btn--primary {
+  background: linear-gradient(180deg, #2a2c32 0%, #1a1b1e 55%, #121316 100%);
+  color: rgb(var(--color-primary-ink));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.1) inset,
+    0 6px 16px rgb(17 18 20 / 0.22);
+}
+
+.ui-btn--primary:hover:not(:disabled) {
+  transform: translate3d(0, -1.5px, 0) scale(1.015);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.14) inset,
+    0 12px 26px rgb(17 18 20 / 0.3);
+}
+
+.ui-btn--primary:active:not(:disabled) {
+  transform: translate3d(0, 1.5px, 0) scale(0.97);
+}
+
+.ui-btn--secondary {
+  background: rgb(var(--color-surface));
+  border-color: rgb(var(--color-line));
+  color: rgb(var(--color-ink));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.8) inset,
+    0 4px 12px rgb(17 18 20 / 0.04);
+}
+
+.ui-btn--secondary:hover:not(:disabled) {
+  transform: translate3d(0, -1px, 0) scale(1.01);
+  background: rgb(var(--color-bg));
+}
+
+.ui-btn--secondary:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0) scale(0.975);
+}
+
+.ui-btn--secondary .ui-btn__ripple {
+  background: radial-gradient(circle, rgb(17 18 20 / 0.1) 0%, rgb(17 18 20 / 0) 70%);
+}
+
+.ui-btn--ghost {
+  background: transparent;
+  color: rgb(var(--color-muted));
+  box-shadow: none;
+}
+
+.ui-btn--ghost:hover:not(:disabled) {
+  color: rgb(var(--color-ink));
+  transform: translate3d(0, -1px, 0);
+  background: rgb(17 18 20 / 0.04);
+}
+
+.ui-btn--ghost:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0) scale(0.98);
+}
+
+.ui-btn--ghost .ui-btn__ripple {
+  background: radial-gradient(circle, rgb(17 18 20 / 0.08) 0%, rgb(17 18 20 / 0) 70%);
+}
+
+.ui-btn--danger {
+  background: linear-gradient(180deg, #d45a4c 0%, #c0392b 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgb(192 57 43 / 0.28);
+}
+
+.ui-btn--danger:hover:not(:disabled) {
+  transform: translate3d(0, -1px, 0) scale(1.01);
+}
+
+.ui-btn--chip.ui-btn--primary {
+  box-shadow: 0 4px 12px rgb(17 18 20 / 0.18);
+}
+
+@keyframes ui-btn-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn {
+    transition: none;
+  }
+
+  .ui-btn:hover:not(:disabled),
+  .ui-btn:active:not(:disabled) {
+    transform: none;
+  }
+
+  .ui-btn__ripple {
+    animation: none;
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .ui-btn--primary:hover:not(:disabled),
+  .ui-btn--secondary:hover:not(:disabled),
+  .ui-btn--ghost:hover:not(:disabled),
+  .ui-btn--danger:hover:not(:disabled) {
+    transform: none;
+  }
+}

@@ -19,8 +19,8 @@ selbst baut (empfohlen).
    Konfigurations-Hinweis):**
    - `VITE_SUPABASE_URL` = URL deines Staging-/Production-Supabase-Projekts
    - `VITE_SUPABASE_ANON_KEY` = zugehöriger anon key
-   (Site settings → Environment variables; für Deploy Previews Staging-Werte,
-   für Production Production-Werte — Kontexte trennen, ADR-018.)
+     (Site settings → Environment variables; für Deploy Previews Staging-Werte,
+     für Production Production-Werte — Kontexte trennen, ADR-018.)
 4. Deploy auslösen. Jeder Push auf `main` deployt Production, jeder PR
    bekommt eine Preview-URL.
 
@@ -52,12 +52,12 @@ sie zur Build-Zeit ein).
 
 ☐ Startseite lädt (Login sichtbar, Wortmarke „ASCENDOS")
 ☐ Direktaufruf einer Unterroute (z. B. `/registrieren`) lädt — kein 404
-   (beweist SPA-Fallback)
+(beweist SPA-Fallback)
 ☐ Ohne Env-Vars: Konfigurations-Hinweis statt weißer Seite
 ☐ Mit Env-Vars: Registrierung per Invite funktioniert
-   (erfordert deployte Edge Functions: `supabase functions deploy
+(erfordert deployte Edge Functions: `supabase functions deploy
    validate-invite coach-chat ingest-knowledge` + Secrets per
-   `supabase secrets set`)
+`supabase secrets set`)
 ☐ Lighthouse: PWA installierbar (Manifest + Icons vorhanden)
 
 ## Ehrliche Einschränkung

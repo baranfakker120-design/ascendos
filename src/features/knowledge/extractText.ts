@@ -110,11 +110,7 @@ async function extractPdf(file: File): Promise<ExtractResult> {
   const parts: string[] = [];
   for (let page = 1; page <= doc.numPages; page++) {
     const content = await (await doc.getPage(page)).getTextContent();
-    parts.push(
-      content.items
-        .map((item) => ('str' in item ? item.str : ''))
-        .join(' ')
-    );
+    parts.push(content.items.map((item) => ('str' in item ? item.str : '')).join(' '));
   }
   const pages = doc.numPages;
   await loadingTask.destroy();

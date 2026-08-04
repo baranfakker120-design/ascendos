@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <!-- Mehr  ellipsis in circle with dial notch -->
+  <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.45"/>
+  <path d="M12 20.25v1.35" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+  <circle cx="8.2" cy="12" r="1.05" fill="currentColor"/>
+  <circle cx="12" cy="12" r="1.05" fill="currentColor"/>
+  <circle cx="15.8" cy="12" r="1.05" fill="currentColor"/>
+</svg>

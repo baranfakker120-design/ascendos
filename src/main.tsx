@@ -6,6 +6,8 @@ import { ErrorBoundary } from '@app/ErrorBoundary';
 import { Providers } from '@app/providers';
 import { router } from '@app/router';
 import { envReady } from '@shared/config/env';
+import { createTranslator } from '@shared/i18n';
+import { readStoredLocale } from '@shared/lib/locale';
 import './index.css';
 
 /**
@@ -31,19 +33,23 @@ import './index.css';
 registerSW({ immediate: true });
 
 function ConfigMissing() {
+  const t = createTranslator(readStoredLocale());
   return (
     <div
       style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 12,
-        padding: 24, textAlign: 'center', fontFamily: 'system-ui',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        padding: 24,
+        textAlign: 'center',
+        fontFamily: 'system-ui',
       }}
     >
-      <p style={{ fontSize: 18, fontWeight: 700 }}>AscendOS ist noch nicht konfiguriert.</p>
-      <p style={{ maxWidth: 420, color: '#6E7075' }}>
-        Die Umgebungsvariablen VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY fehlen.
-        In Netlify unter Site settings → Environment variables setzen und neu deployen.
-      </p>
+      <p style={{ fontSize: 18, fontWeight: 700 }}>{t('boot.configMissingTitle')}</p>
+      <p style={{ maxWidth: 420, color: '#6E7075' }}>{t('boot.configMissingBody')}</p>
     </div>
   );
 }

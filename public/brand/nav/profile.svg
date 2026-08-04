@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <!-- Profile ring + silhouette  Profil -->
+  <circle data-ring="true" cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.45"/>
+  <g data-silhouette="true">
+    <circle cx="12" cy="9.4" r="2.2" stroke="currentColor" stroke-width="1.4"/>
+    <path d="M7.6 17.2c.7-2.45 2.35-3.7 4.4-3.7s3.7 1.25 4.4 3.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+</svg>

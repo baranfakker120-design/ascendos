@@ -1,0 +1,388 @@
+{
+  "common": {
+    "leader": "Leader",
+    "partner": "Partner",
+    "informalYou": "tu",
+    "firstPerson": "io"
+  },
+  "grade": {
+    "excellent": "Eccellente",
+    "healthy": "In salute",
+    "growing": "In crescita",
+    "needsAttention": "Richiede attenzione",
+    "critical": "Critico",
+    "strong": "Solido",
+    "building": "In costruzione",
+    "fragile": "Fragile"
+  },
+  "health": {
+    "org": {
+      "noData": "I dati dell’organizzazione non sono ancora sufficienti per una valutazione affidabile.",
+      "inactiveHigh": "{count} partner sono inattivi da oltre 14 giorni — la struttura ne risente.",
+      "inactiveMedium": "{count} partner inattivi richiedono una riattivazione mirata.",
+      "inactiveLow": "L’inattività è entro livelli sani — le fondamenta tengono.",
+      "followupsHigh": "{count} follow-up aperti — la pressione sulla pipeline sta aumentando.",
+      "followupsMedium": "{count} follow-up attendono la tua attenzione.",
+      "followupsNone": "Nessun follow-up in ritardo — ottima disciplina della pipeline.",
+      "registrationsGrowth": "+{count} registrazioni questo mese — la crescita è concreta.",
+      "registrationsNone": "Nessuna nuova registrazione di consulenti per il momento questo mese.",
+      "activeToday": "{count} partner attivi oggi — il team ha slancio.",
+      "teamLeaderNear": "Mancano solo {count} firstline attive alla qualifica di Team Leader — l’obiettivo è a portata di mano.",
+      "pendingProofs": "{count} prove AP sono in attesa — l’integrità viene prima dei punti.",
+      "stable": "La situazione è stabile — continua a definire le priorità e a guidare."
+    },
+    "branch": {
+      "inactive": "{count} persone di questa linea sono ferme da oltre 14 giorni.",
+      "strongStreak": "{name} mantiene una serie di {days} giorni — un ottimo esempio per il team.",
+      "noStreak": "{name} non ha una serie attiva.",
+      "producing": "ICP mensile: {count} — questa linea sta producendo.",
+      "newWithoutTeam": "Nuova firstline senza un proprio team — dai priorità all’onboarding e al supporto.",
+      "stable": "Firstline solida — continua a monitorarla e rafforzarla.",
+      "label": "{name} · {grade}"
+    }
+  },
+  "person": {
+    "default": {
+      "headline": "Situazione stabile — continua a monitorarla.",
+      "situation": "{name} procede con stabilità — continua a osservare l’evoluzione.",
+      "action": "Fai un rapido check-in e definisci il prossimo obiettivo.",
+      "why": "Una leadership costante protegge lo slancio prima che emergano problemi."
+    },
+    "inactive": {
+      "headlineNever": "Non ha mai utilizzato attivamente l’app.",
+      "headlineDays": "Inattivo da {days} giorni.",
+      "situationNever": "{name} non è ancora diventato attivo.",
+      "situationDays": "{name} è inattivo da {days} giorni.",
+      "bullet": "Riattiva senza pressione — con un confronto breve e sincero.",
+      "action": "Invia un messaggio vocale o fai una breve chiamata di riattivazione.",
+      "whyNever": "Lo consiglio perché {name} non è mai stato attivo e, senza un contatto, la probabilità di coinvolgimento continuerà a diminuire.",
+      "whyDays": "Lo consiglio perché {name} è inattivo da {days} giorni e, senza un contatto, la probabilità di coinvolgimento continuerà a diminuire.",
+      "objection": "«Non ho avuto tempo / ero in vacanza.»",
+      "weakness": "Silenzio prolungato"
+    },
+    "slowing": {
+      "headline": "Inattivo da {days} giorni.",
+      "situation": "{name} sta perdendo slancio — {days} giorni senza aprire l’app.",
+      "bullet": "Lo slancio rischia di calare — invia un messaggio vocale o fai una breve chiamata.",
+      "action": "Chiama {name} oggi o invia un messaggio vocale.",
+      "why": "Consiglio la chiamata perché {name} è inattivo da {days} giorni.",
+      "whyWithOnboarding": "Consiglio la chiamata perché {name} è inattivo da {days} giorni e attualmente ha {count} partner diretti in attesa dell’onboarding.",
+      "objection": "«In questo momento non ho chiaro quale sia il prossimo passo.»",
+      "weakness": "Serie a rischio"
+    },
+    "streakRisk": {
+      "headline": "La serie sta rallentando — un incoraggiamento può aiutare.",
+      "situation": "La serie di {name} è scesa a {days} giorno/i.",
+      "action": "Offri un riconoscimento sincero e un piccolo passo concreto per oggi.",
+      "why": "La serie è scesa a {days} giorni — un incoraggiamento tempestivo può evitare il disimpegno.",
+      "weakness": "Rischio di perdere la serie"
+    },
+    "active": {
+      "headline": "Molto attivo — grande costanza.",
+      "situation": "{name} mantiene una serie di {days} giorni.",
+      "bullet": "Una serie di {days} giorni merita riconoscimento.",
+      "strengthConsistency": "Grande costanza",
+      "strengthExample": "Esempio positivo",
+      "action": "Esprimi il tuo riconoscimento e definisci il prossimo obiettivo di leadership.",
+      "why": "Una costanza così forte merita visibilità — rafforza la cultura del team."
+    },
+    "newConsultant": {
+      "headline": "Nuovo consulente — onboarding in primo piano.",
+      "situation": "{name} si è registrato da {days} giorni — assicurati che l’onboarding venga completato.",
+      "bullet": "Controlla: onboarding inviato? Accesso al gruppo di confronto e alle informazioni Nina confermato?",
+      "action": "Invia il link dell’onboarding e spiega come accedere ai gruppi.",
+      "why": "I nuovi consulenti hanno bisogno dell’ultimo passaggio di attivazione dopo la registrazione — altrimenti si creano lacune nell’onboarding.",
+      "objection": "«Ci guarderò più tardi.»",
+      "weakness": "Onboarding forse ancora incompleto"
+    },
+    "leadership": {
+      "headline": "Potenziale futuro leader.",
+      "situation": "{name} guida {count} partner diretti e rimane attivo.",
+      "bullet": "La firstline sta crescendo — proponi un confronto sulla leadership.",
+      "strengthGrowth": "Crescita del team",
+      "strengthActive": "Leadership attiva",
+      "action": "Proponi un coaching di leadership o una call su Zoom.",
+      "why": "Una firstline in crescita unita a un’attività costante indica potenziale di leadership."
+    },
+    "momentum": {
+      "headline": "Ottimo slancio.",
+      "situation": "{name} genera ICP ({count}) mantenendo una serie attiva.",
+      "bullet": "ICP e attività procedono bene — fai i complimenti e definisci il prossimo obiettivo.",
+      "strength": "Produzione ICP",
+      "action": "Fai i complimenti e concorda il prossimo obiettivo.",
+      "why": "I risultati visibili diventano ancora più forti quando vengono riconosciuti rapidamente."
+    },
+    "metrics": {
+      "apTotal": "AP totali: {count}.",
+      "rank": "Rango: {rank}.",
+      "strengthAp": "Solida base AP",
+      "strengthFirstline": "Firstline ampia",
+      "weaknessNoTeam": "Non ha ancora un proprio team"
+    },
+    "message": {
+      "onboarding": "Ciao {name}, ecco il tuo onboarding — l’ultimo passo dopo la registrazione: http://waytomoon.netlify.app\nSe qualcosa non è chiaro, scrivimi pure.",
+      "reactivation": "Ciao {name}, ho notato che è passato un po’ di tempo senza sentirci. Nessuna pressione — come stai e c’è qualcosa in cui posso alleggerirti?",
+      "recognition": "Ciao {name}, un breve messaggio: la tua attività si nota davvero. Continua così — vedo il tuo impegno.",
+      "checkIn": "Ciao {name}, volevo fare un rapido punto sul prossimo passo. Ti andrebbe una breve chiamata oggi o domani?"
+    }
+  },
+  "followUp": {
+    "hot": "Prospect molto interessato — fai follow-up rapidamente prima che la finestra si chiuda.",
+    "forgotten": "Nessuna attività da {days} giorni — essere dimenticati costa più di un breve contatto.",
+    "lost": "Silenzio prolungato — prova una riattivazione sincera oppure scegli con chiarezza di lasciare andare.",
+    "interested": "Interessato, ma senza contatti recenti — definisci il prossimo passo."
+  },
+  "onboarding": {
+    "registered": "Registrato — invia WayToMoon → Onboarding come ultimo passaggio di attivazione.",
+    "opened": "App aperta — verifica che l’onboarding sia completo e che l’accesso ai gruppi sia chiaro.",
+    "completed": "L’attività è visibile — conferma l’accesso al gruppo di confronto e al gruppo informazioni Nina.",
+    "fullyOnboarded": "L’onboarding sembra completato — passa all’accompagnamento sulla leadership.",
+    "stuck": "La persona è bloccata — fai un check-in personale e condividi nuovamente il link dell’onboarding."
+  },
+  "priority": {
+    "call": "Chiama {name}",
+    "followUp": "Fai follow-up con {name}",
+    "needsTouch": "{name} ha bisogno di un contatto",
+    "onboardingHelp": "{name} ha bisogno di supporto nell’onboarding",
+    "teamLeaderNearTitle": "Mancano solo {count} firstline attive alla qualifica di Team Leader",
+    "teamLeaderNearWhy": "La qualifica di leadership a lungo termine è a portata di mano — mantieni attive le firstline.",
+    "pendingProofsTitle": "{count} prove AP ancora aperte",
+    "pendingProofsWhy": "Nessun AP senza verifica — Pending → Verified, mai punti non reali.",
+    "planTitle": "Il piano giornaliero non è ancora iniziato",
+    "planWhy": "{count} missioni attendono — la concentrazione batte il caos.",
+    "encouragementTitle": "{name} ha bisogno di incoraggiamento",
+    "encouragementWhy": "La serie è scesa a {days} giorno/i — un riconoscimento tempestivo può evitare il disimpegno.",
+    "strongLegTitle": "La linea di {name} cresce più rapidamente",
+    "strongLegWhy": "Confronto tra firstline: {strong} mostra più slancio ICP e maggiore costanza rispetto a {weak}.",
+    "weakLegTitle": "La linea di {name} richiede attenzione",
+    "weakLegWhy": "La linea intorno a {name} è la firstline più debole — scegli il coaching, non la pressione."
+  },
+  "manager": {
+    "callToday": "Dovresti chiamare {name} oggi.",
+    "manyFollowups": "Oggi ho notato {count} persone che non hanno ancora ricevuto un follow-up.",
+    "manyFollowupsWhy": "I contatti dimenticati si raffreddano — tre interazioni mirate spesso recuperano più valore di dieci nuovi lead.",
+    "ignoredContact": "Hai lasciato un contatto ({name}) senza attenzione troppo a lungo.",
+    "oneOnboardingGap": "{name} sta ancora aspettando supporto per l’onboarding.",
+    "manyOnboardingGaps": "Al momento hai {count} lacune nell’onboarding.",
+    "onboardingWhy": "L’onboarding è l’ultimo passaggio di attivazione dopo la registrazione — ogni lacuna può costare un futuro leader.",
+    "teamLeaderNear": "Sei a sole {count} firstline attive dalla qualifica di Team Leader.",
+    "teamLeaderWhy": "La qualifica è a portata di mano — mantenere attive le firstline conta più dell’urgenza a breve termine.",
+    "pendingProofs": "{count} prove AP sono ancora in attesa di conferma.",
+    "pendingProofsWhy": "Integrità AP: Pending → Verified. Nessun AP fittizio e nessuna assegnazione doppia.",
+    "unevenLegs": "La linea di {strong} cresce sensibilmente più in fretta di quella di {weak}.",
+    "unevenLegsWhy": "È normale che le linee crescano a velocità diverse — quella più debole ha bisogno di coaching, non di essere ignorata.",
+    "healthy": "La gerarchia degli sponsor appare sana.",
+    "healthyFallbackWhy": "L’attività e la disciplina nei follow-up mantengono stabile la struttura.",
+    "congratulations": "Complimenti — questa settimana la tua organizzazione è sensibilmente più attiva.",
+    "congratulationsWhy": "{count} partner sono attivi oggi — riconosci il valore del team prima di spingere soltanto sui numeri."
+  },
+  "briefing": {
+    "teamAp": "AP totali del team: {count}",
+    "registrations": "+{count} registrazioni questo mese",
+    "followups": "{count} follow-up richiedono attenzione",
+    "inactive": "{count} partner inattivi da oltre 14 giorni",
+    "activity": "{active} attivi oggi · {tasks} attività del team oggi",
+    "noData": "La panoramica della tua organizzazione è in costruzione — ti aggiornerò non appena i dati saranno disponibili.",
+    "onboardingHelp": "{count} persone hanno ancora bisogno di supporto nell’onboarding",
+    "greeting": "Buongiorno, {name}."
+  },
+  "evening": {
+    "tasksDone": "{count} attività del team completate oggi",
+    "active": "{count} partner attivi oggi",
+    "registrations": "{count} registrazioni questo mese",
+    "followupsOpen": "{count} follow-up restano aperti",
+    "inactive": "{count} partner inattivi senza riattivazione",
+    "missionsDone": "{count} missioni personali completate oggi",
+    "missionsOpen": "{count} missioni ancora aperte",
+    "proofsPending": "{count} prove AP ancora in attesa",
+    "tomorrowFallback": "Completa i primi follow-up e i controlli di onboarding entro mezzogiorno",
+    "greeting": "Buonasera, {name}."
+  },
+  "executive": {
+    "momentum": {
+      "noData": "Lo slancio richiede dati di attività aggiornati — la base è ancora in costruzione.",
+      "active": "{count} partner attivi oggi — l’energia quotidiana del team è visibile.",
+      "noActivity": "Nessuna attività del team per il momento oggi — serve un primo impulso.",
+      "tasks": "{count} attività del team completate — esecuzione prima dell’intenzione.",
+      "registrations": "+{count} registrazioni questo mese — la crescita alimenta lo slancio.",
+      "streaks": "{count} partner con una serie di almeno 3 giorni — la costanza moltiplica lo slancio.",
+      "inactive": "Un tasso di inattività elevato rallenta lo slancio del team.",
+      "driverActivity": "Attività quotidiana",
+      "driverTasks": "Completamento delle attività",
+      "driverRegistrations": "Registrazioni",
+      "driverStreaks": "Serie"
+    },
+    "leadership": {
+      "missionsDone": "{count} missioni personali completate — guidare attraverso l’azione.",
+      "missionsOpen": "{count} missioni aperte — affina le priorità prima di guidare.",
+      "pipelineClean": "La pipeline è ordinata — la disciplina nei follow-up è leadership.",
+      "followupsOpen": "{count} follow-up aperti stanno assorbendo capacità di leadership.",
+      "qualified": "Qualifica di Team Leader raggiunta — lo standard è definito.",
+      "nearQualification": "La qualifica è vicina — mancano {count} firstline attive.",
+      "focusPartners": "Identifichi i partner prioritari — leadership mirata invece di un approccio dispersivo.",
+      "pendingProofs": "Prove AP aperte — proteggere l’integrità dei dati significa proteggere la fiducia.",
+      "driverExecution": "Esecuzione personale",
+      "driverPipeline": "Disciplina della pipeline",
+      "driverQualification": "Qualifica",
+      "driverQualificationPath": "Percorso di qualifica",
+      "driverFocus": "Partner prioritari"
+    },
+    "bottleneck": {
+      "pipelineArea": "Pipeline",
+      "followupsTitle": "Accumulo di follow-up",
+      "followupsWhy": "{count} follow-up aperti bloccano nuove conversazioni.",
+      "followupsUnlock": "Porta avanti oggi i 3 contatti più caldi prima di fissare nuovi appuntamenti.",
+      "activationArea": "Attivazione",
+      "inactiveTitle": "Nucleo di inattività",
+      "inactiveWhy": "{count} partner non mostrano attività nell’app da oltre 14 giorni.",
+      "inactiveUnlock": "Invia due brevi messaggi vocali ai partner prioritari — poco attrito, segnale forte.",
+      "onboardingArea": "Onboarding",
+      "onboardingTitle": "Collo di bottiglia nell’onboarding",
+      "onboardingWhy": "{count} firstline sono bloccate nelle prime fasi senza slancio AP.",
+      "onboardingUnlock": "Chiarisci con {name} il prossimo passo dell’onboarding.",
+      "focusArea": "Priorità",
+      "focusTitle": "Troppe missioni in parallelo",
+      "focusWhy": "{count} missioni giornaliere aperte disperdono l’impatto.",
+      "focusUnlock": "Completa una missione prima di iniziare la successiva."
+    },
+    "roi": {
+      "highLift": "Grande impatto sulla salute del team e sulla pipeline",
+      "solidLift": "Impatto solido con poco sforzo aggiuntivo",
+      "defaultAction": "Due follow-up entro mezzogiorno",
+      "defaultWhy": "Lavorare presto sulla pipeline protegge il pomeriggio per la leadership.",
+      "defaultLift": "Meno attività rimandate e una visione serale più chiara"
+    },
+    "dna": {
+      "executionTrait": "Capacità di esecuzione",
+      "executionEvidence": "{count} missioni completate oggi",
+      "executionWhy": "I team seguono ciò che il loro leader porta personalmente a termine.",
+      "careTrait": "Cura & Costanza",
+      "careEvidence": "Follow-up sotto controllo",
+      "careWhy": "Un follow-up affidabile costruisce fiducia nella firstline.",
+      "growthTrait": "Orientamento alla crescita",
+      "growthEvidence": "+{count} registrazioni",
+      "growthWhy": "Stai creando nuovi ingressi, non soltanto amministrando.",
+      "cultureTrait": "Cultura della costanza",
+      "cultureEvidence": "{count} partner con serie solide",
+      "cultureWhy": "La ripetizione è il DNA delle organizzazioni sostenibili.",
+      "builderTrait": "Mentalità da costruttore",
+      "builderEvidence": "L’organizzazione viene guidata attivamente",
+      "builderWhy": "Anche senza numeri da record, conta la volontà di costruire una struttura."
+    },
+    "timeline": {
+      "tasksTitle": "{count} attività del team oggi",
+      "tasksWhy": "L’esecuzione genera progressi concreti e misurabili.",
+      "registrationsTitle": "{count} registrazioni questo mese",
+      "registrationsWhy": "I nuovi ingressi ampliano lo spazio della leadership.",
+      "inactiveTitle": "{count} partner inattivi",
+      "inactiveWhy": "Individuati presto — la riattivazione è ancora poco costosa."
+    },
+    "forecast": {
+      "sevenStrong": "7 giorni: lo slancio può consolidarsi",
+      "sevenActivation": "7 giorni: una spinta all’attivazione può cambiare la curva",
+      "sevenWhy": "Il comportamento delle firstline nel breve periodo determinerà l’andamento della settimana.",
+      "thirtyGrowth": "30 giorni: il percorso di crescita rimane aperto",
+      "thirtyFocus": "30 giorni: priorità a nuovi ingressi e onboarding",
+      "thirtyGrowthWhy": "Le registrazioni mostrano che il funnel sta funzionando.",
+      "thirtyFocusWhy": "Senza nuovi ingressi, la base di leadership ristagnerà.",
+      "ninetyScale": "90 giorni: lo standard di leadership può scalare",
+      "ninetyBuild": "90 giorni: consolida il DNA, poi scala",
+      "ninetyWhy": "Nel lungo periodo vince una qualità di leadership replicabile."
+    },
+    "happened": {
+      "activityHeadline": "{active} attivi oggi · {tasks} attività",
+      "activityWhy": "L’attività quotidiana e i compiti completati sono i segnali attuali più affidabili.",
+      "pipelineHeadline": "{followups} follow-up aperti · {inactive} inattivi (14 g)",
+      "pipelineWhy": "La pipeline e l’inattività spiegano la pressione attuale.",
+      "growthHeadline": "+{count} registrazioni questo mese",
+      "growthWhy": "I nuovi consulenti sono il segnale di crescita più chiaro dell’organizzazione."
+    },
+    "matters": {
+      "healthHeadline": "Salute della linea {score}/100 · {label}",
+      "healthWhy": "La salute della struttura determina quanta capacità di leadership rimane disponibile.",
+      "momentumHeadline": "Slancio {score}/100 · {label}",
+      "momentumWhy": "Lo slancio mostra se l’energia sta crescendo o rallentando.",
+      "leadershipHeadline": "Leadership {score}/100 · {label}",
+      "leadershipWhy": "La qualità della leadership moltiplica ogni segnale del team."
+    }
+  },
+  "draft": {
+    "welcome": {
+      "title": "Benvenuto",
+      "body": "Ciao {name}, benvenuto nel team. Sono {sponsor}, il tuo sponsor. Se vuoi, possiamo vedere insieme i tuoi primi passi. Non sei solo."
+    },
+    "congratulations": {
+      "title": "Congratulazioni",
+      "body": "Ciao {name}, un breve messaggio: hai fatto davvero un ottimo lavoro. Una costanza così costruisce una leadership autentica. Continua così — vedo il tuo impegno."
+    },
+    "reminder": {
+      "title": "Promemoria",
+      "body": "Ciao {name}, solo un rapido promemoria sul nostro prossimo passo. Se in questo momento hai poco tempo, dimmelo — troveremo una soluzione realistica."
+    },
+    "reactivation": {
+      "title": "Riattivazione",
+      "body": "Ciao {name}, ho notato che è passato un po’ di tempo senza sentirci. Nessuna pressione — volevo solo sapere come stai e se posso aiutarti ad alleggerire qualcosa."
+    },
+    "follow_up": {
+      "title": "Follow-up",
+      "body": "Ciao {name}, torno rapidamente sulla nostra ultima conversazione. Hai ancora domande o vogliamo rendere concreto il prossimo passo?"
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "body": "Ciao {name}, ecco il tuo onboarding — l’ultimo passaggio di attivazione dopo la registrazione:\nhttp://waytomoon.netlify.app\n\nTroverai le basi del business, il piano compensi, i primi passi, le aspettative del team e l’accesso al gruppo di confronto e al gruppo informazioni Nina. Se ti blocchi, contattami direttamente."
+    },
+    "zoom_invitation": {
+      "title": "Invito su Zoom",
+      "body": "Ciao {name}, vorrei invitarti a una breve call su Zoom. L’obiettivo è fare chiarezza, non una maratona di slide. Preferisci questa sera o domani?"
+    },
+    "birthday": {
+      "title": "Compleanno",
+      "body": "Ciao {name}, tanti auguri di buon compleanno. È bello averti nel team — non vedo l’ora di affrontare insieme la prossima tappa."
+    },
+    "qualification": {
+      "title": "Qualifica",
+      "body": "Ciao {name}, sei vicino alla prossima qualifica. Vediamo rapidamente che cosa manca e come completare il percorso nel modo giusto."
+    },
+    "recognition": {
+      "title": "Riconoscimento",
+      "body": "Ciao {name}, voglio riconoscere il tuo lavoro: il tuo atteggiamento e la tua attività si distinguono in positivo. Questa è leadership nella pratica."
+    }
+  },
+  "reading": {
+    "mistake": "Errore più grande",
+    "tip": "Consiglio da professionista",
+    "action": "Il tuo prossimo passo",
+    "why": "Perché è importante",
+    "important": "Importante"
+  },
+  "story": {
+    "author": "Coach Ascent",
+    "titleOnboarding": "Slancio nell’onboarding",
+    "titleTeamEnergy": "Energia del team",
+    "titleMomentum": "Slancio",
+    "titleQualification": "Qualifica",
+    "titleToday": "Oggi",
+    "titleBranchHealth": "Salute della linea",
+    "growth": "La mia analisi mostra che la tua organizzazione sta accogliendo nuove persone — {line}.",
+    "teamEnergy": "{line} — la costanza sta moltiplicando i risultati.",
+    "orgMomentum": "Lo slancio dell’organizzazione è {label} ({score}/100). {why}",
+    "advisorCandidate": "La mia analisi indica che {name} potrebbe diventare Advisor del mese — {strength}.",
+    "consistency": "{name} mostra una costanza eccezionale — {strength}.",
+    "building": "{name} sta costruendo un forte slancio — l’attività verificata rimane sana.",
+    "personStrength": "{name} si distingue: {strength}.",
+    "personMomentum": "{name} sta facendo progressi sani — continua a riconoscerne l’impegno."
+  },
+  "chat": {
+    "unreachable": "Ascent non è momentaneamente disponibile."
+  },
+  "warning": {
+    "no_activity_7d": {
+      "title": "Nessuna attività da 7 giorni",
+      "action": "Invia un breve WhatsApp: “Come posso supportarti questa settimana?”"
+    },
+    "no_order_proxy_30d": {
+      "title": "30 giorni senza attività nell’app",
+      "action": "Fissa un check-in di 10 minuti e un obiettivo giornaliero condiviso."
+    }
+  }
+}

@@ -1,0 +1,388 @@
+{
+  "common": {
+    "leader": "Lider",
+    "partner": "Partner",
+    "informalYou": "sen",
+    "firstPerson": "ben"
+  },
+  "grade": {
+    "excellent": "Mükemmel",
+    "healthy": "Sağlıklı",
+    "growing": "Gelişiyor",
+    "needsAttention": "İlgi Gerektiriyor",
+    "critical": "Kritik",
+    "strong": "Güçlü",
+    "building": "Gelişim Aşamasında",
+    "fragile": "Kırılgan"
+  },
+  "health": {
+    "org": {
+      "noData": "Güvenilir bir değerlendirme için henüz yeterli organizasyon verisi yok.",
+      "inactiveHigh": "{count} partner 14 günden uzun süredir aktif değil — bu durum yapıyı zayıflatıyor.",
+      "inactiveMedium": "{count} aktif olmayan partner için hedefli bir yeniden aktivasyon gerekiyor.",
+      "inactiveLow": "Hareketsizlik sağlıklı aralıkta — temel sağlam duruyor.",
+      "followupsHigh": "{count} açık takip var — pipeline üzerindeki baskı artıyor.",
+      "followupsMedium": "{count} takip ilgini bekliyor.",
+      "followupsNone": "Gecikmiş takip yok — güçlü bir pipeline disiplini.",
+      "registrationsGrowth": "Bu ay +{count} kayıt — büyüme devam ediyor.",
+      "registrationsNone": "Bu ay henüz yeni danışman kaydı yok.",
+      "activeToday": "Bugün {count} aktif partner — ekipte ivme var.",
+      "teamLeaderNear": "Team Leader için yalnızca {count} aktif firstline kaldı — yeterlilik ulaşılabilir durumda.",
+      "pendingProofs": "{count} AP kanıtı bekliyor — puandan önce güvenilirlik.",
+      "stable": "Durum istikrarlı — önceliklendirmeye ve liderlik etmeye devam et."
+    },
+    "branch": {
+      "inactive": "Bu hattaki {count} kişi 14 günden uzun süredir sessiz.",
+      "strongStreak": "{name}, {days} günlük serisini koruyor — ekibe güçlü bir örnek oluyor.",
+      "noStreak": "{name} için aktif bir seri bulunmuyor.",
+      "producing": "Aylık ICP: {count} — bu hat üretim yapıyor.",
+      "newWithoutTeam": "Henüz ekibi olmayan yeni firstline — onboarding ve desteğe öncelik ver.",
+      "stable": "Sağlam bir firstline — izlemeye ve güçlendirmeye devam et.",
+      "label": "{name} · {grade}"
+    }
+  },
+  "person": {
+    "default": {
+      "headline": "İstikrarlı — takipte kal.",
+      "situation": "{name} istikrarlı ilerliyor — takip etmeye devam et.",
+      "action": "Kısa bir görüşme yap ve bir sonraki hedefi belirle.",
+      "why": "Düzenli liderlik, sorunlar ortaya çıkmadan ivmeyi korur."
+    },
+    "inactive": {
+      "headlineNever": "Uygulamada henüz hiç aktif olmadı.",
+      "headlineDays": "{days} gündür aktif değil.",
+      "situationNever": "{name} henüz aktif hale gelmedi.",
+      "situationDays": "{name}, {days} gündür aktif değil.",
+      "bullet": "Baskı kurmadan yeniden harekete geçir — kısa ve samimi bir görüşme yap.",
+      "action": "Yeniden aktivasyon için sesli mesaj gönder veya kısa bir arama yap.",
+      "whyNever": "Bunu öneriyorum çünkü {name} henüz hiç aktif olmadı ve temas kurulmadıkça katılım olasılığı düşmeye devam edecek.",
+      "whyDays": "Bunu öneriyorum çünkü {name}, {days} gündür aktif değil ve temas kurulmadıkça katılım olasılığı düşmeye devam edecek.",
+      "objection": "“Vaktim yoktu / tatildeydim.”",
+      "weakness": "Uzun süren sessizlik"
+    },
+    "slowing": {
+      "headline": "{days} gündür aktif değil.",
+      "situation": "{name} ivme kaybediyor — uygulamayı açmadan geçen {days} gün.",
+      "bullet": "İvme kaybolabilir — sesli mesaj gönder veya kısa bir arama yap.",
+      "action": "Bugün {name} adlı partneri ara veya sesli mesaj gönder.",
+      "why": "Aramayı öneriyorum çünkü {name}, {days} gündür aktif değil.",
+      "whyWithOnboarding": "Aramayı öneriyorum çünkü {name}, {days} gündür aktif değil ve şu anda {count} doğrudan partneri onboarding bekliyor.",
+      "objection": "“Şu anda bir sonraki adım konusunda net değilim.”",
+      "weakness": "Seri riski"
+    },
+    "streakRisk": {
+      "headline": "Seri zayıflıyor — destek fark yaratabilir.",
+      "situation": "{name} için seri {days} güne düştü.",
+      "action": "Kısa bir takdir mesajı ver ve bugün için somut, küçük bir adım belirle.",
+      "why": "Seri {days} güne düştü — erken teşvik, kopuşu önleyebilir.",
+      "weakness": "Seriyi kaybetme riski"
+    },
+    "active": {
+      "headline": "Çok aktif — güçlü istikrar.",
+      "situation": "{name}, {days} günlük serisini koruyor.",
+      "bullet": "{days} günlük seri takdiri hak ediyor.",
+      "strengthConsistency": "Güçlü istikrar",
+      "strengthExample": "Örnek liderlik",
+      "action": "Takdirini paylaş ve bir sonraki liderlik hedefini belirle.",
+      "why": "Güçlü istikrar görünür olmayı hak eder — bu, ekip kültürünü pekiştirir."
+    },
+    "newConsultant": {
+      "headline": "Yeni danışman — onboarding öncelikli.",
+      "situation": "{name}, {days} gün önce kaydoldu — onboarding sürecinin tamamlandığından emin ol.",
+      "bullet": "Kontrol et: Onboarding gönderildi mi? Paylaşım grubuna ve Nina bilgilendirmesine erişim sağlandı mı?",
+      "action": "Onboarding bağlantısını gönder ve grup erişimlerini açıkla.",
+      "why": "Yeni danışmanların kayıttan sonra son aktivasyon adımına ihtiyacı vardır — aksi halde onboarding boşlukları oluşur.",
+      "objection": "“Daha sonra bakarım.”",
+      "weakness": "Onboarding henüz tamamlanmamış olabilir"
+    },
+    "leadership": {
+      "headline": "Geleceğin lideri olma potansiyeli.",
+      "situation": "{name}, {count} doğrudan partnere liderlik ediyor ve aktif kalıyor.",
+      "bullet": "Firstline büyüyor — liderlik görüşmesi teklif et.",
+      "strengthGrowth": "Ekip büyümesi",
+      "strengthActive": "Aktif liderlik",
+      "action": "Liderlik koçluğu veya Zoom görüşmesi teklif et.",
+      "why": "Büyüyen bir firstline ile düzenli aktivite, liderlik potansiyeline işaret eder."
+    },
+    "momentum": {
+      "headline": "Güçlü ivme.",
+      "situation": "{name}, aktif serisini korurken ICP ({count}) üretiyor.",
+      "bullet": "ICP ve aktivite güçlü ilerliyor — tebrik et ve bir sonraki hedefi belirle.",
+      "strength": "ICP üretimi",
+      "action": "Tebrik et ve bir sonraki hedef üzerinde anlaş.",
+      "why": "Görünür başarılar zamanında takdir edildiğinde daha da güçlenir."
+    },
+    "metrics": {
+      "apTotal": "Toplam AP: {count}.",
+      "rank": "Rütbe: {rank}.",
+      "strengthAp": "Sağlam AP temeli",
+      "strengthFirstline": "Geniş firstline",
+      "weaknessNoTeam": "Henüz kendi ekibi yok"
+    },
+    "message": {
+      "onboarding": "Merhaba {name}, onboarding bağlantın burada — kayıttan sonraki son adım: http://waytomoon.netlify.app\nNet olmayan bir konu varsa bana yazabilirsin.",
+      "reactivation": "Merhaba {name}, bir süredir sessizlik olduğunu fark ettim. Baskı yok — nasılsın, yükünü hafifletebileceğim bir konu var mı?",
+      "recognition": "Merhaba {name}, kısa bir not: Aktiviten gerçekten dikkat çekiyor. Böyle devam et — emeğini görüyorum.",
+      "checkIn": "Merhaba {name}, bir sonraki adımla ilgili kısa bir kontrol yapmak istedim. Bugün veya yarın kısa bir görüşme sana uyar mı?"
+    }
+  },
+  "followUp": {
+    "hot": "İlgisi yüksek aday — fırsat penceresi kapanmadan hızlıca takip et.",
+    "forgotten": "{days} gündür hareket yok — unutulmak, kısa bir temastan daha maliyetlidir.",
+    "lost": "Uzun süren sessizlik — bilinçli şekilde yeniden harekete geçir veya dürüstçe bırak.",
+    "interested": "İlgili ancak yakın zamanda temas kurulmamış — bir sonraki adımı netleştir."
+  },
+  "onboarding": {
+    "registered": "Kaydoldu — son aktivasyon adımı olarak WayToMoon → Onboarding bağlantısını gönder.",
+    "opened": "Uygulama açıldı — onboarding sürecinin tamamlandığını ve grup erişimlerinin net olduğunu kontrol et.",
+    "completed": "Aktivite görünür durumda — paylaşım grubuna ve Nina bilgilendirme grubuna erişimi güvence altına al.",
+    "fullyOnboarded": "Onboarding tamamlanmış görünüyor — liderlik desteğine geçir.",
+    "stuck": "Takılmış durumda — kişisel olarak iletişime geç ve onboarding bağlantısını yeniden paylaş."
+  },
+  "priority": {
+    "call": "{name} adlı kişiyi ara",
+    "followUp": "{name} ile takip görüşmesi yap",
+    "needsTouch": "{name} için temas gerekiyor",
+    "onboardingHelp": "{name} onboarding desteğine ihtiyaç duyuyor",
+    "teamLeaderNearTitle": "Team Leader için yalnızca {count} aktif firstline kaldı",
+    "teamLeaderNearWhy": "Uzun vadeli liderlik yeterliliği ulaşılabilir durumda — firstline’ları aktif tut.",
+    "pendingProofsTitle": "{count} AP kanıtı açık",
+    "pendingProofsWhy": "Doğrulama olmadan AP yok — Pending → Verified, asla gerçek dışı puan yok.",
+    "planTitle": "Günlük plan henüz başlamadı",
+    "planWhy": "{count} görev bekliyor — odaklanmak karmaşadan daha güçlüdür.",
+    "encouragementTitle": "{name} desteğe ihtiyaç duyuyor",
+    "encouragementWhy": "Seri yalnızca {days} güne düştü — erken takdir, kopuşu önleyebilir.",
+    "strongLegTitle": "{name} hattı daha hızlı büyüyor",
+    "strongLegWhy": "Firstline karşılaştırması: {strong}, {weak} hattına göre daha güçlü ICP ve seri ivmesi gösteriyor.",
+    "weakLegTitle": "{name} hattı ilgi gerektiriyor",
+    "weakLegWhy": "{name} çevresindeki hat en zayıf firstline — baskı yerine koçluk uygula."
+  },
+  "manager": {
+    "callToday": "Bugün {name} adlı kişiyi aramalısın.",
+    "manyFollowups": "Bugün henüz takip yapılmamış {count} kişi fark ettim.",
+    "manyFollowupsWhy": "Unutulan bağlantılar soğur — üç hedefli temas çoğu zaman on yeni adaydan daha fazla değer kurtarır.",
+    "ignoredContact": "Bir bağlantıyı ({name}) çok uzun süre ilgisiz bıraktın.",
+    "oneOnboardingGap": "{name} hâlâ onboarding desteği bekliyor.",
+    "manyOnboardingGaps": "Şu anda {count} onboarding boşluğun var.",
+    "onboardingWhy": "Onboarding, kayıttan sonraki son aktivasyon adımıdır — boşluklar geleceğin liderlerine mal olabilir.",
+    "teamLeaderNear": "Team Leader için yalnızca {count} aktif firstline kaldı.",
+    "teamLeaderWhy": "Yeterlilik ulaşılabilir durumda — firstline’ları aktif tutmak, kısa vadeli telaştan daha değerlidir.",
+    "pendingProofs": "{count} AP kanıtı hâlâ onay bekliyor.",
+    "pendingProofsWhy": "AP güvenilirliği: Pending → Verified. Gerçek dışı AP ve çift puanlama yok.",
+    "unevenLegs": "{strong} hattı, {weak} hattından belirgin biçimde daha hızlı büyüyor.",
+    "unevenLegsWhy": "Hatların farklı hızlarda büyümesi normaldir — zayıf hat ihmal değil, koçluk ister.",
+    "healthy": "Sponsor hiyerarşisi sağlıklı görünüyor.",
+    "healthyFallbackWhy": "Aktivite ve takip disiplini yapının istikrarını koruyor.",
+    "congratulations": "Tebrikler — organizasyonun bu hafta belirgin biçimde daha aktif.",
+    "congratulationsWhy": "Bugün {count} partner aktif — yalnızca sayıları zorlamak yerine ekibin emeğini takdir et."
+  },
+  "briefing": {
+    "teamAp": "Toplam ekip AP: {count}",
+    "registrations": "Bu ay +{count} kayıt",
+    "followups": "{count} takip ilgi gerektiriyor",
+    "inactive": "{count} partner 14 günden uzun süredir aktif değil",
+    "activity": "Bugün {active} aktif · {tasks} ekip görevi",
+    "noData": "Organizasyon görünümün oluşturuluyor — veriler hazır olduğunda seni bilgilendireceğim.",
+    "onboardingHelp": "{count} kişi hâlâ onboarding desteğine ihtiyaç duyuyor",
+    "greeting": "Günaydın, {name}."
+  },
+  "evening": {
+    "tasksDone": "Bugün {count} ekip görevi tamamlandı",
+    "active": "Bugün {count} partner aktif",
+    "registrations": "Bu ay {count} kayıt",
+    "followupsOpen": "{count} takip açık kaldı",
+    "inactive": "{count} aktif olmayan partner henüz yeniden harekete geçirilmedi",
+    "missionsDone": "Bugün {count} kişisel görev tamamlandı",
+    "missionsOpen": "{count} görev hâlâ açık",
+    "proofsPending": "{count} AP kanıtı hâlâ beklemede",
+    "tomorrowFallback": "İlk takipleri ve onboarding kontrollerini öğleden önce tamamla",
+    "greeting": "İyi akşamlar, {name}."
+  },
+  "executive": {
+    "momentum": {
+      "noData": "İvme için güncel aktivite verileri gerekiyor — temel görünüm hâlâ oluşturuluyor.",
+      "active": "Bugün {count} partner aktif — ekibin günlük enerjisi görünür durumda.",
+      "noActivity": "Bugün henüz ekip aktivitesi yok — ivme için ilk hareket gerekiyor.",
+      "tasks": "{count} ekip görevi tamamlandı — niyet yerine uygulama.",
+      "registrations": "Bu ay +{count} kayıt — büyüme ivmeyi destekliyor.",
+      "streaks": "{count} partnerin serisi 3 gün veya üzeri — istikrar ivmeyi çoğaltır.",
+      "inactive": "Yüksek hareketsizlik oranı ekip ivmesini yavaşlatıyor.",
+      "driverActivity": "Günlük aktivite",
+      "driverTasks": "Görev tamamlama",
+      "driverRegistrations": "Kayıtlar",
+      "driverStreaks": "Seriler"
+    },
+    "leadership": {
+      "missionsDone": "{count} kişisel görev tamamlandı — yaparak liderlik.",
+      "missionsOpen": "{count} açık görev — liderlik etmeden önce odağını netleştir.",
+      "pipelineClean": "Pipeline düzenli — takip disiplini liderliğin bir parçasıdır.",
+      "followupsOpen": "{count} açık takip, liderlik kapasitesini tüketiyor.",
+      "qualified": "Team Leader yeterliliğine ulaşıldı — standart belirlendi.",
+      "nearQualification": "Yeterlilik yakın — yalnızca {count} aktif firstline kaldı.",
+      "focusPartners": "Öncelikli partnerlerini işaretliyorsun — dağınık yaklaşım yerine hedefli liderlik.",
+      "pendingProofs": "Açık AP kanıtları var — verilerin güvenilirliğini korumak, güveni korur.",
+      "driverExecution": "Kişisel uygulama",
+      "driverPipeline": "Pipeline disiplini",
+      "driverQualification": "Yeterlilik",
+      "driverQualificationPath": "Yeterlilik yolu",
+      "driverFocus": "Öncelikli partnerler"
+    },
+    "bottleneck": {
+      "pipelineArea": "Pipeline",
+      "followupsTitle": "Takip birikmesi",
+      "followupsWhy": "{count} açık takip yeni görüşmeleri engelliyor.",
+      "followupsUnlock": "Yeni randevulara geçmeden önce bugün en sıcak 3 bağlantıyı sonuçlandır.",
+      "activationArea": "Aktivasyon",
+      "inactiveTitle": "Hareketsizlik kümesi",
+      "inactiveWhy": "{count} partner 14 günden uzun süredir uygulama sinyali vermedi.",
+      "inactiveUnlock": "Öncelikli partnerlere iki kısa sesli mesaj gönder — düşük efor, güçlü etki.",
+      "onboardingArea": "Onboarding",
+      "onboardingTitle": "Onboarding darboğazı",
+      "onboardingWhy": "{count} firstline, erken aşamada AP ivmesi olmadan takılmış durumda.",
+      "onboardingUnlock": "{name} ile bir sonraki onboarding adımını netleştir.",
+      "focusArea": "Odak",
+      "focusTitle": "Aynı anda çok fazla görev",
+      "focusWhy": "{count} açık günlük görev etkiyi dağıtıyor.",
+      "focusUnlock": "Bir sonraki göreve başlamadan önce mevcut görevi tamamla."
+    },
+    "roi": {
+      "highLift": "Ekip sağlığı ve pipeline üzerinde yüksek etki",
+      "solidLift": "Düşük ek eforla sağlam etki",
+      "defaultAction": "Öğleden önce iki takip",
+      "defaultWhy": "Pipeline çalışmalarını erken yapmak, öğleden sonrayı liderliğe ayırmanı sağlar.",
+      "defaultLift": "Daha az devreden iş, akşam için daha net bir tablo"
+    },
+    "dna": {
+      "executionTrait": "Uygulama Gücü",
+      "executionEvidence": "Bugün {count} görev tamamlandı",
+      "executionWhy": "Ekipler, liderlerinin bizzat tamamladığı işleri örnek alır.",
+      "careTrait": "Özen & İstikrar",
+      "careEvidence": "Takipler kontrol altında",
+      "careWhy": "Güvenilir takip, firstline içinde güven oluşturur.",
+      "growthTrait": "Büyüme Odaklılık",
+      "growthEvidence": "+{count} kayıt",
+      "growthWhy": "Yalnızca yönetmiyor, yeni başlangıçlar oluşturuyorsun.",
+      "cultureTrait": "İstikrar Kültürü",
+      "cultureEvidence": "{count} partner güçlü serilere sahip",
+      "cultureWhy": "Tekrar, sürdürülebilir organizasyonların DNA’sıdır.",
+      "builderTrait": "Kurucu Zihniyet",
+      "builderEvidence": "Organizasyona aktif şekilde liderlik ediliyor",
+      "builderWhy": "Zirve rakamlar olmasa bile yapı kurma kararlılığı değerlidir."
+    },
+    "timeline": {
+      "tasksTitle": "Bugün {count} ekip görevi",
+      "tasksWhy": "Uygulama, ölçülebilir ilerleme anları oluşturur.",
+      "registrationsTitle": "Bu ay {count} kayıt",
+      "registrationsWhy": "Yeni katılımlar liderlik alanını genişletir.",
+      "inactiveTitle": "{count} aktif olmayan partner",
+      "inactiveWhy": "Erken fark edildi — yeniden aktivasyon hâlâ düşük maliyetli."
+    },
+    "forecast": {
+      "sevenStrong": "7 gün: İvme kalıcı hale gelebilir",
+      "sevenActivation": "7 gün: Bir aktivasyon hamlesi eğriyi değiştirebilir",
+      "sevenWhy": "Firstline’ın kısa vadeli davranışı haftanın yönünü belirleyecek.",
+      "thirtyGrowth": "30 gün: Büyüme yolu açık kalıyor",
+      "thirtyFocus": "30 gün: Yeni katılımlara ve onboardinge odaklan",
+      "thirtyGrowthWhy": "Kayıtlar, funnel’ın çalıştığını gösteriyor.",
+      "thirtyFocusWhy": "Yeni katılımlar olmadan liderlik tabanı durağanlaşır.",
+      "ninetyScale": "90 gün: Liderlik standardı ölçeklenebilir",
+      "ninetyBuild": "90 gün: Önce DNA’yı güçlendir, sonra ölçekle",
+      "ninetyWhy": "Uzun vadede tekrarlanabilir liderlik kalitesi kazanır."
+    },
+    "happened": {
+      "activityHeadline": "Bugün {active} aktif · {tasks} görev",
+      "activityWhy": "Günlük aktivite ve tamamlanan görevler, mevcut durumu gösteren en güçlü sinyallerdir.",
+      "pipelineHeadline": "{followups} açık takip · {inactive} aktif değil (14 gün)",
+      "pipelineWhy": "Pipeline ve hareketsizlik, mevcut baskıyı açıklıyor.",
+      "growthHeadline": "Bu ay +{count} kayıt",
+      "growthWhy": "Yeni danışman katılımları, organizasyonun en net büyüme sinyalidir."
+    },
+    "matters": {
+      "healthHeadline": "Hat Sağlığı {score}/100 · {label}",
+      "healthWhy": "Yapının sağlığı, ne kadar liderlik kapasitesinin kullanılabilir olduğunu belirler.",
+      "momentumHeadline": "İvme {score}/100 · {label}",
+      "momentumWhy": "İvme, enerjinin yükselip yükselmediğini veya yavaşladığını gösterir.",
+      "leadershipHeadline": "Liderlik {score}/100 · {label}",
+      "leadershipWhy": "Liderlik kalitesi, ekipten gelen her sinyalin etkisini çoğaltır."
+    }
+  },
+  "draft": {
+    "welcome": {
+      "title": "Hoş Geldin",
+      "body": "Merhaba {name}, ekibe hoş geldin. Ben {sponsor}, sponsorunum. İstersen ilk adımlarını birlikte gözden geçirebiliriz. Bu süreçte yalnız değilsin."
+    },
+    "congratulations": {
+      "title": "Tebrikler",
+      "body": "Merhaba {name}, kısa bir not: Gerçekten çok iyi bir iş çıkardın. Bu tür bir istikrar, güçlü liderlik oluşturur. Böyle devam et — emeğini görüyorum."
+    },
+    "reminder": {
+      "title": "Hatırlatma",
+      "body": "Merhaba {name}, bir sonraki adımımızla ilgili kısa bir hatırlatma. Şu sıralar yoğunluk varsa bana söyle — gerçekçi bir yol buluruz."
+    },
+    "reactivation": {
+      "title": "Yeniden Aktivasyon",
+      "body": "Merhaba {name}, bir süredir sessizlik olduğunu fark ettim. Baskı yok — sadece nasıl olduğunu ve yükünü hafifletebileceğim bir konu olup olmadığını merak ettim."
+    },
+    "follow_up": {
+      "title": "Takip",
+      "body": "Merhaba {name}, son görüşmemizle ilgili kısa bir takip yapmak istedim. Hâlâ soruların var mı, yoksa bir sonraki adımı netleştirelim mi?"
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "body": "Merhaba {name}, onboarding bağlantın burada — kayıttan sonraki son aktivasyon adımı:\nhttp://waytomoon.netlify.app\n\nİçerikte işin temelleri, kazanç planı, ilk adımlar, ekip beklentileri, paylaşım grubu ve Nina bilgilendirme grubuna erişim yer alıyor. Takıldığın yerde doğrudan bana yaz."
+    },
+    "zoom_invitation": {
+      "title": "Zoom Daveti",
+      "body": "Merhaba {name}, seni kısa bir Zoom görüşmesine davet etmek istiyorum. Amacımız uzun bir sunum değil, netlik kazanmak. Bu akşam mı, yarın mı sana daha uygun?"
+    },
+    "birthday": {
+      "title": "Doğum Günü",
+      "body": "Merhaba {name}, doğum günün kutlu olsun. Ekibin bir parçası olman çok güzel — bir sonraki aşamayı birlikte karşılamayı sabırsızlıkla bekliyorum."
+    },
+    "qualification": {
+      "title": "Yeterlilik",
+      "body": "Merhaba {name}, bir sonraki yeterliliğe çok yakınsın. Eksik kalan noktaları ve süreci sağlam şekilde nasıl tamamlayacağımızı birlikte gözden geçirelim."
+    },
+    "recognition": {
+      "title": "Takdir",
+      "body": "Merhaba {name}, seni özellikle takdir etmek istiyorum: Tutumun ve aktiviten olumlu biçimde öne çıkıyor. Liderlik pratikte tam olarak budur."
+    }
+  },
+  "reading": {
+    "mistake": "En büyük hata",
+    "tip": "Uzman ipucu",
+    "action": "Bir sonraki adımın",
+    "why": "Neden önemli",
+    "important": "Önemli"
+  },
+  "story": {
+    "author": "Ascent Koçu",
+    "titleOnboarding": "Onboarding İvmesi",
+    "titleTeamEnergy": "Ekip Enerjisi",
+    "titleMomentum": "İvme",
+    "titleQualification": "Yeterlilik",
+    "titleToday": "Bugün",
+    "titleBranchHealth": "Hat Sağlığı",
+    "growth": "Analizim, organizasyonunun yeni katılımlarla büyüdüğünü gösteriyor — {line}.",
+    "teamEnergy": "{line} — istikrarın etkisi giderek büyüyor.",
+    "orgMomentum": "Organizasyonun ivmesi {label} seviyesinde ({score}/100). {why}",
+    "advisorCandidate": "Analizime göre {name}, Ayın Advisor’ı olma potansiyeline sahip — {strength}.",
+    "consistency": "{name} olağanüstü bir istikrar gösteriyor — {strength}.",
+    "building": "{name} güçlü bir ivme oluşturuyor — doğrulanmış aktivite sağlıklı kalıyor.",
+    "personStrength": "{name} olumlu biçimde öne çıkıyor: {strength}.",
+    "personMomentum": "{name} sağlıklı şekilde ilerliyor — gösterdiği emeği takdir etmeye devam et."
+  },
+  "chat": {
+    "unreachable": "Ascent şu anda kullanılamıyor."
+  },
+  "warning": {
+    "no_activity_7d": {
+      "title": "7 gündür aktivite yok",
+      "action": "Kısa bir WhatsApp yaz: “Bu hafta sana nasıl destek olabilirim?”"
+    },
+    "no_order_proxy_30d": {
+      "title": "30 gündür uygulama aktivitesi yok",
+      "action": "10 dakikalık bir check-in ayarla ve ortak bir günlük hedef koyun."
+    }
+  }
+}

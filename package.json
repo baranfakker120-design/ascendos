@@ -23,17 +23,22 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > src/shared/types/database.types.ts",
+    "db:types": "supabase gen types typescript --local > src/shared/types/database.types.ts && prettier --write src/shared/types/database.types.ts",
     "knowledge:ingest": "node scripts/ingest-knowledge.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "@tanstack/query-persist-client-core": "^5.101.4",
     "@tanstack/react-query": "^5.51.0",
+    "@tanstack/react-query-persist-client": "^5.101.4",
+    "idb-keyval": "^6.3.0",
     "mammoth": "^1.9.0",
     "pdfjs-dist": "^6.1.200",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.0"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.26.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
