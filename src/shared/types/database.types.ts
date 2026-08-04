@@ -3106,6 +3106,14 @@ export type Database = {
           username: string;
         }[];
       };
+      has_seen_advisor_hero: {
+        Args: { p_period?: string };
+        Returns: boolean;
+      };
+      mark_advisor_hero_seen: {
+        Args: { p_period?: string };
+        Returns: undefined;
+      };
       redeem_invite: {
         Args: { invite_code: string };
         Returns: {

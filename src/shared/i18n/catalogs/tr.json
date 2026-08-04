@@ -705,7 +705,11 @@
     "advisorPlace1": "1. sıra",
     "advisorPlace2": "2. sıra",
     "advisorPlace3": "3. sıra",
-    "advisorYou": "sen"
+    "advisorYou": "sen",
+    "heroEyebrow": "Takdir",
+    "heroTitle": "Ayın Danışmanı",
+    "heroSubtitle": "Geçen ayın en yüksek AP’si — bu ayın podyumu.",
+    "heroYouWon": "1. sıradasın. Çerçeveyi gururla taşı."
   },
   "team": {
     "title": "Takımın",

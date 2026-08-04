@@ -705,7 +705,11 @@
     "advisorPlace1": "1° posto",
     "advisorPlace2": "2° posto",
     "advisorPlace3": "3° posto",
-    "advisorYou": "tu"
+    "advisorYou": "tu",
+    "heroEyebrow": "Riconoscimento",
+    "heroTitle": "Consulente del mese",
+    "heroSubtitle": "I migliori AP del mese scorso — il vostro podio di questo mese.",
+    "heroYouWon": "Sei al 1° posto. Porta la cornice con orgoglio."
   },
   "team": {
     "title": "Il tuo team",

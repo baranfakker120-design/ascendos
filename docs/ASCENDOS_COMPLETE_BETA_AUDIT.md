@@ -12,20 +12,20 @@
 
 AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half-finished recognition / notification / content platform**.
 
-| Layer                                           | Honest read                                               |
-| ----------------------------------------------- | --------------------------------------------------------- |
-| Contacts + pipeline + offline queue             | 🟢 Real product                                           |
-| Coach chat + RAG + person conversation          | 🟢 Real product                                           |
-| Daily Plan / Closing Loop / Journey week-1      | 🟢 Real product                                           |
-| Rank frames 01–10 display + collection/equip    | 🟢 Complete (Sprint 6 System 1)                           |
-| Team tree pan/zoom                              | 🟡 Works; scale claims oversold                           |
-| Live Coaching Today card                        | 🟡 Works as “one Zoom event”; not a platform              |
-| Advisor of the Month                            | 🟢 Calculator + cron + catch-up + history UI              |
-| AAA Cinema / Hero cinema                        | 🔴 **Does not exist** (RankUpOverlay shipped in System 1) |
-| Push / scheduled notifications                  | 🔴 Tables + Settings theater; **no delivery**             |
-| Multi-org content tenancy (Stories / Live / KC) | 🔴 **No `org_id` — global to all authenticated users**    |
-| Gamification XP/Levels                          | 🔴 **Does not exist** (AP economy does)                   |
-| Settings (theme, delete account, sync controls) | 🔴 Mostly copy / fake                                     |
+| Layer                                           | Honest read                                            |
+| ----------------------------------------------- | ------------------------------------------------------ |
+| Contacts + pipeline + offline queue             | 🟢 Real product                                        |
+| Coach chat + RAG + person conversation          | 🟢 Real product                                        |
+| Daily Plan / Closing Loop / Journey week-1      | 🟢 Real product                                        |
+| Rank frames 01–10 display + collection/equip    | 🟢 Complete (Sprint 6 System 1)                        |
+| Team tree pan/zoom                              | 🟡 Works; scale claims oversold                        |
+| Live Coaching Today card                        | 🟡 Works as “one Zoom event”; not a platform           |
+| Advisor of the Month                            | 🟢 Calculator + cron + catch-up + history UI           |
+| AAA Cinema / Hero cinema                        | 🟢 RankUp + Advisor HeroScreen (Sprint 6)              |
+| Push / scheduled notifications                  | 🔴 Tables + Settings theater; **no delivery**          |
+| Multi-org content tenancy (Stories / Live / KC) | 🔴 **No `org_id` — global to all authenticated users** |
+| Gamification XP/Levels                          | 🔴 **Does not exist** (AP economy does)                |
+| Settings (theme, delete account, sync controls) | 🔴 Mostly copy / fake                                  |
 
 **Ship beta only if** you accept: single-org deployment, device-local CRM retention after logout, no push reminders, and Knowledge Center content **not** feeding the Coach (until later Sprint 6 systems land).
 
@@ -69,7 +69,7 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Top Recruiter                    | **No assets, no schema, no product rule** — cannot implement without new design. Deferred.                      |
 | Special Event / Temporary frames | Schema placeholders only (`seasons` / `unlock_condition`) — no content. Deferred until seasons are productized. |
-| AAA Cinema / HeroScreen          | **System 3** (not frame plumbing).                                                                              |
+| AAA Cinema / HeroScreen          | **Done in System 3** (`AdvisorHeroScreen` + RankUp).                                                            |
 | Advisor auto-calculation / cron  | **Done in System 2.**                                                                                           |
 
 ### What Sprint 6 System 1 implemented
@@ -105,7 +105,7 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 | Storage?                  | `monthly_awards` filled by job/catch-up; unique on `(org, period, place)` and `(org, period, membership)`.                                                      |
 | History UI?               | **Yes.** Profile `AdvisorAwardsHistory` — current podium + past title months via `list_monthly_awards`.                                                         |
 | UI / badge / frame?       | Frame-10 + gold team-node when place=1 for **current title month**; place 1 also unlocks `hero-berater-des-monats` cosmetic.                                    |
-| Animation / popup?        | Advisor **AAA Cinema / HeroScreen** remains **System 3**. Rank-up overlay is AP ranks only (by design).                                                         |
+| Animation / popup?        | 🟢 `AdvisorHeroScreen` (System 3) + RankUp for AP ranks.                                                                                                        |
 | Functional?               | **Yes** end-to-end with cron secrets + client catch-up safety net.                                                                                              |
 
 ### Semantics
@@ -133,25 +133,36 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 
 ---
 
-# 3. AAA Cinema
+# 3. AAA Cinema / Recognition Cinema
 
-## Status: 🔴 Broken / Missing · Priority: P0 (if product expected it)
+## Status: 🟢 Complete · Priority: P0 · Remediated Sprint 6 System 3 (2026-08-04)
 
-**There is no feature, route, component, table, unlock, popup, history, or reset named AAA Cinema / Cinema / Kino.**
+**Product clarification:** There is no separate feature named “AAA Cinema / Kino.” In this codebase “AAA” was a marketing adjective. The **planned recognition cinema** (Sprint 4) is:
 
-| Claim                                                  | Reality                                                                     |
-| ------------------------------------------------------ | --------------------------------------------------------------------------- |
-| “AAA” in repo                                          | Marketing adjective for AP economy migration, EnergyCore, bottom-nav polish |
-| Closest planned product                                | Sprint 4 **HeroScreen** + **RankUpOverlay** — **never built**               |
-| Trigger / timing / requirements                        | Undefined                                                                   |
-| Animation / unlock / popup / history / reset / storage | Absent                                                                      |
+| Piece            | Role                                         | Status                            |
+| ---------------- | -------------------------------------------- | --------------------------------- |
+| `RankUpOverlay`  | AP rank-up celebration                       | 🟢 System 1                       |
+| `HeroScreen`     | Berater des Monats podium (places 1–3)       | 🟢 System 3 (`AdvisorHeroScreen`) |
+| Seen persistence | `usage_events.hero_seen` + `metadata.period` | 🟢 Cross-device via RPC           |
+
+| Question        | Finding                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| Trigger         | Current title-month awards exist + user has not `hero_seen` for that period                       |
+| Timing          | On authenticated AppShell load (after awards catch-up)                                            |
+| Animation       | CSS choreography (scrim, stage, staggered podium, glow) — no three.js (Sprint 4 performance rule) |
+| Unlock / popup  | Full-screen modal; Escape / Continue dismisses                                                    |
+| History / reset | Once per title month per user; next month new awards → shows again                                |
+| Storage         | `usage_events` (`hero_seen`) + monthly_awards podium                                              |
 
 Do not confuse with: cinematic BottomNav CSS, `EnergyCore` canvas, `ApRewardSticker` particles, TeamLeader sessionStorage dialog.
 
 ### Evidence
 
-- Repo search: no `HeroScreen`, `RankUpOverlay`, `Cinema`
-- Plan only: `docs/sprint-4-plan.md`
+- `supabase/migrations/20260819000032_sprint6_recognition_cinema.sql`
+- `src/features/profile/AdvisorHeroScreen.tsx`, `advisorHeroLogic.ts`, `advisor-hero.css`
+- `src/features/profile/RankUpOverlay.tsx` (System 1)
+- `src/app/layouts/AppShell.tsx`
+- `supabase/tests/database/recognition_cinema.test.sql`
 
 ---
 
@@ -201,7 +212,7 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 | Zoom reminder                 | Local Notification API       | Publisher device schedule                   | Audience never gets it               | 🔴 Theater            |
 | Coach reminder                | Automation prefs             | Default OFF; no runner                      | Never                                | 🔴 Stub               |
 | Advisor of the Month          | Frame-10 + Profile history   | Job + catch-up + display                    | Title month works                    | 🟢 Award path         |
-| AAA Cinema                    | No                           | —                                           | —                                    | 🔴                    |
+| AAA Cinema                    | Advisor HeroScreen           | Title-month awards + not seen               | Once per period                      | 🟢                    |
 | Achievement unlocked          | DB `check_achievements`      | On Progress/Journey open                    | Unlocks quietly; **no toast/push**   | 🟡 Silent             |
 | Push notification             | Settings toggle              | Requests permission                         | No VAPID / SW push / subscribe write | 🔴 UI only            |
 | Browser notification          | Coaching path                | `showCoachingNotification`                  | Local only                           | 🟡                    |
@@ -488,7 +499,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 | --- | ----------------------------------- | ------ | ---------- |
 | 1   | Avatar & Frame display              | 🟢     | —          |
 | 2   | Advisor of the Month                | 🟢     | —          |
-| 3   | AAA Cinema                          | 🔴     | P0         |
+| 3   | AAA Cinema / Recognition cinema     | 🟢     | —          |
 | 4   | Zoom / Live Coaching                | 🟡     | P0 honesty |
 | 5   | Notifications                       | 🔴     | P0         |
 | 6   | Automations / Cron                  | 🔴     | P0         |
@@ -512,7 +523,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 # P0 Punch List (must decide before Sprint 6)
 
-1. **Do not market push / Zoom reminders / AAA Cinema** — they do not work.
+1. **Do not market push / Zoom reminders** — they do not work.
 2. **Fix or quarantine Sprint 5 content tenancy** (Stories, Live Coaching, Knowledge Center, outbox) — add `org_id` or freeze to single-org only.
 3. **Connect or rename Knowledge systems** — operators editing Knowledge Center does not feed Coach.
 4. **Clear offline stores on sign-out** — shared devices retain CRM + coach history.
@@ -549,22 +560,22 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 # Dead Code / Unused / Never Triggered (inventory)
 
-| Item                                     | Why                       |
-| ---------------------------------------- | ------------------------- |
-| `push_subscriptions`                     | No writers                |
-| `coaching_notification_outbox` processor | No reader/worker          |
-| `monthly_awards` auto-fill               | **Done** — job + catch-up |
-| `HeroScreen` / AAA Cinema                | Never created (System 3)  |
-| `RankUpOverlay` / Collection UI          | **Done** (System 1)       |
-| `messageDrafts` production UI            | Tests only                |
-| Coach `automation.ts` runners            | Prefs only; default OFF   |
-| `ApBadge` in features                    | Unused                    |
-| Genealogy `messageBadge` UI              | Always 0                  |
-| `LIVE_COACHING_FUTURE` surfaces          | All false                 |
-| Settings theme/privacy/general controls  | Copy only                 |
-| Settings delete account                  | Fake confirm              |
-| Event/temporary frame evaluators         | Schema only               |
-| XP / Levels                              | Absent                    |
+| Item                                     | Why                                     |
+| ---------------------------------------- | --------------------------------------- |
+| `push_subscriptions`                     | No writers                              |
+| `coaching_notification_outbox` processor | No reader/worker                        |
+| `monthly_awards` auto-fill               | **Done** — job + catch-up               |
+| `HeroScreen` / AAA Cinema                | **Done** as Advisor HeroScreen + RankUp |
+| `RankUpOverlay` / Collection UI          | **Done** (System 1)                     |
+| `messageDrafts` production UI            | Tests only                              |
+| Coach `automation.ts` runners            | Prefs only; default OFF                 |
+| `ApBadge` in features                    | Unused                                  |
+| Genealogy `messageBadge` UI              | Always 0                                |
+| `LIVE_COACHING_FUTURE` surfaces          | All false                               |
+| Settings theme/privacy/general controls  | Copy only                               |
+| Settings delete account                  | Fake confirm                            |
+| Event/temporary frame evaluators         | Schema only                             |
+| XP / Levels                              | Absent                                  |
 
 ---
 
@@ -580,16 +591,14 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 8. Ascend Stories bar when content exists
 9. i18n catalogs (de/en/fr/it/tr) for shipped surfaces
 10. **Advisor of the Month** calculator + schedule + Profile history (Sprint 6 System 2)
-11. CI: lint, typecheck, unit tests, build assert for `VITE_*`, pgTAP RLS suite
+11. **Recognition cinema** — RankUpOverlay + Advisor HeroScreen podium (Sprint 6 System 3)
+12. CI: lint, typecheck, unit tests, build assert for `VITE_*`, pgTAP RLS suite
 
 ---
 
 # Recommendation for Sprint 6 Gate
 
-**Do not start Sprint 6 feature work** until P0 punch list is either:
-
-- **Fixed**, or
-- **Explicitly deferred in writing** with product copy that does not claim those capabilities.
+Sprint 6 is **in progress** (Systems 1–3 green). Remaining P0 items still block marketing claims for push, Zoom reminders, multi-org content tenancy, dual knowledge, and logout hygiene.
 
 This audit is verification-only. No code was changed for this document.
 
