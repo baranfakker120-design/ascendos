@@ -22,8 +22,10 @@ import {
   useCoachWorkspace,
   type ConversationKind,
 } from './workspace';
+import { buildProactiveSuggestions } from './executive';
 import './coach-chat.css';
 import './workspace/coach-workspace.css';
+import './executive/executive.css';
 
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 const STICK_THRESHOLD_PX = 96;
@@ -61,24 +63,21 @@ function linkifyText(text: string): Array<string | JSX.Element> {
 export function CoachPage() {
   const { locale, t } = useI18n();
   const coachT = useMemo(() => createCoachTranslator(locale), [locale]);
-  const chips = useMemo(
-    () => [
-      { label: t('coach.chipObjection'), text: t('coach.chipObjectionPrompt') },
-      { label: t('coach.chipMessage'), text: t('coach.chipMessagePrompt') },
-      { label: t('coach.chipPrep'), text: t('coach.chipPrepPrompt') },
-    ],
-    [t]
-  );
 
   const [searchParams, setSearchParams] = useSearchParams();
   const workspace = useCoachWorkspace();
   const [newOpen, setNewOpen] = useState(false);
   const deepLinkHandled = useRef<string | null>(null);
+  const pendingSeedRef = useRef<string | null | undefined>(undefined);
+  if (pendingSeedRef.current === undefined) {
+    pendingSeedRef.current = readPendingSeed();
+  }
 
   const contactIdParam = searchParams.get('kontakt');
   const partnerNameParam = searchParams.get('partner');
   const partnerMidParam = searchParams.get('mid');
   const urlConvo = searchParams.get('c');
+  const kindParam = searchParams.get('kind');
 
   const active = workspace.active;
   const contactId = active?.contactId ?? contactIdParam;
@@ -89,6 +88,18 @@ export function CoachPage() {
   const { data: contact } = useCoachContact(contactId);
   const { intelligence, isMorning, isLoading: intelLoading } = useCoachOrgIntelligence(true);
   const partnerInsight = findPersonInsight(intelligence, partnerMid);
+
+  const chips = useMemo(() => {
+    const proactive = buildProactiveSuggestions(intelligence, t).slice(0, 5);
+    if (proactive.length) {
+      return proactive.map((s) => ({ label: s.label, text: s.prompt }));
+    }
+    return [
+      { label: t('coach.chipObjection'), text: t('coach.chipObjectionPrompt') },
+      { label: t('coach.chipMessage'), text: t('coach.chipMessagePrompt') },
+      { label: t('coach.chipPrep'), text: t('coach.chipPrepPrompt') },
+    ];
+  }, [intelligence, t]);
 
   const draftScope = DRAFT_SCOPES.coachThread(active?.id ?? 'none');
   const {
@@ -135,17 +146,26 @@ export function CoachPage() {
     if (cur !== nxt) setSearchParams(next, { replace: true });
   }, [active, workspace.hydrated, setSearchParams]);
 
-  // Deep links: contact / genealogy person → find-or-create dedicated conversation.
+  // Deep links: contact / genealogy person / kind+seed → find-or-create conversation.
   useEffect(() => {
     if (!workspace.hydrated) return;
-    const seed = readPendingSeed();
+    const seed = pendingSeedRef.current;
     const deepKey = [
       contactIdParam ?? '',
       partnerMidParam ?? '',
       partnerNameParam ?? '',
-      seed ?? '',
+      kindParam ?? '',
+      urlConvo ?? '',
+      seed ? 'seed' : '',
     ].join('|');
-    if (!contactIdParam && !partnerMidParam && !partnerNameParam && !urlConvo) {
+    if (
+      !contactIdParam &&
+      !partnerMidParam &&
+      !partnerNameParam &&
+      !urlConvo &&
+      !kindParam &&
+      !seed
+    ) {
       deepLinkHandled.current = null;
       return;
     }
@@ -187,6 +207,22 @@ export function CoachPage() {
       return;
     }
 
+    if (kindParam === 'ceo' || kindParam === 'leadership' || kindParam === 'general') {
+      workspace.ensureKind(kindParam, {
+        title: defaultTitleForKind(kindParam, t),
+        seedPrompt: seed,
+      });
+      return;
+    }
+
+    if (seed) {
+      workspace.ensureKind('ceo', {
+        title: defaultTitleForKind('ceo', t),
+        seedPrompt: seed,
+      });
+      return;
+    }
+
     if (urlConvo) {
       workspace.ensureKind('general', {
         title: t('coach.ws.defaultTitle.general'),
@@ -199,6 +235,7 @@ export function CoachPage() {
     contactIdParam,
     partnerMidParam,
     partnerNameParam,
+    kindParam,
     urlConvo,
     intelligence,
     contact?.name,

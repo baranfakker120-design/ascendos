@@ -1,5 +1,7 @@
+import { SyncStatusIndicator } from '@shared/offline';
 import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
+import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executive';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
 import { DayReview } from './components/DayReview';
@@ -7,22 +9,27 @@ import { FocusMode } from './components/FocusMode';
 import { MorningCommit } from './components/MorningCommit';
 import { useDailyPlan, useDailyPlanMutations } from './dailyPlanApi';
 import { missionProgress, orderMissions } from './missionOrder';
+import '@features/coach/executive/executive.css';
 
 /**
- * Daily Command Center (Sprint 3): drei Zustände als abgeleiteter
- * State aus den Daten — kein separater Client-Zustand, der driften
- * könnte. Vollständig ohne LLM funktionsfähig (ADR-006-Fallback
- * ist hier der Normalfall; Begründungen kommen aus der Regel-Engine).
- *
- * Sprint 5.1: Live Coaching card is an additive sibling above the plan.
- * Sprint 5.2: Ascend Stories bar above coaching (additive).
+ * Daily Command Center — executive home stack (additive):
+ * Stories → Live Coaching → sync chip → Mission → CEO Briefing → Coach.
  */
 export function TodayPage() {
+  const { t } = useI18n();
   return (
     <div className="space-y-4">
       <TodayStoriesSlot />
       <TodayLiveCoachingSlot />
-      <TodayDailyPlan />
+      <div className="exec-home-sync">
+        <SyncStatusIndicator variant="home" />
+      </div>
+      <section className="exec-mission" aria-label={t('today.missionTitle')}>
+        <p className="exec-mission__label">{t('today.missionTitle')}</p>
+        <TodayDailyPlan />
+      </section>
+      <TodayCeoBriefingSlot />
+      <TodayCoachOsSlot />
     </div>
   );
 }
@@ -47,7 +54,6 @@ function TodayDailyPlan() {
   const ordered = orderMissions(data.items);
   const progress = missionProgress(data.items);
 
-  // Zustand 1: Morgen-Commit — Plan steht, noch nicht bestätigt.
   if (!data.plan.committed_at) {
     if (data.items.length === 0) {
       return (
@@ -66,12 +72,10 @@ function TodayDailyPlan() {
     );
   }
 
-  // Zustand 3: Tagesabschluss — nichts wartet mehr.
   if (ordered.dayComplete || data.items.length === 0) {
     return <DayReview items={data.items} />;
   }
 
-  // Zustand 2: Fokus-Modus — nur wenn es eine aktuelle Mission gibt.
   if (!ordered.current) {
     return <DayReview items={data.items} />;
   }

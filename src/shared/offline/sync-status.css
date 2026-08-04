@@ -48,6 +48,13 @@
   background: #9a6b3f;
 }
 
+.sync-status--home {
+  max-width: none;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 0.25rem 0.55rem;
+}
+
 @keyframes sync-pulse {
   0%,
   100% {

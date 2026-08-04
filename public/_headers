@@ -1,31 +1,12 @@
-# Netlify-Header, ergaenzend zu Netlifys eigener Edge-Invalidierung.
-#
-# BELEG (docs.netlify.com/build/caching/caching-overview, Stand Mai
-# 2026): Netlifys Edge-Cache invalidiert statische Assets automatisch
-# bei jedem neuen Deploy und ignoriert dabei ausdruecklich Versuche,
-# eine KUERZERE max-age zu setzen als Netlifys eigene Jahresfrist. Diese
-# Datei loest deshalb NICHT die Edge-Seite -- die erledigt Netlify
-# bereits selbst bei jedem Deploy -- sondern die BROWSERSEITIGE
-# Cache-Control-Kopfzeile fuer genau die drei Dateien, bei denen ein
-# veralteter lokaler Browser-Cache am meisten schadet: das PWA-Manifest,
-# den Service Worker selbst, und favicon.ico (bewusst unversioniert im
-# Namen, siehe scripts/generate-brand-assets.py).
-#
-# Alle uebrigen Assets (icon-*-v2.png, ascendos-*-v2.png, og-image-v2.png)
-# brauchen KEINE Sonderbehandlung: ihr Dateiname aendert sich bei jeder
-# inhaltlichen Aenderung (Versionssuffix), ein langes Caching ist fuer
-# sie unbedenklich und sogar gewuenscht.
+# Cloudflare Pages headers (browser cache control).
+# Edge cache invalidation is handled by Cloudflare Pages on each deploy.
+# Keep no-cache on SW + manifest so clients pick up new versions.
 
-# Der Service Worker selbst darf nie aus dem Cache kommen -- sonst
-# erfaehrt kein Client je von einer neuen Version.
 /sw.js
   Cache-Control: no-cache
 
-# Das Manifest wird vom Betriebssystem gelegentlich unabhaengig vom
-# Service Worker abgefragt (z. B. beim Pruefen auf ein neues Icon).
 /manifest.webmanifest
   Cache-Control: no-cache
 
-# Unversioniert, weil Browser ihn fest unter diesem Pfad erwarten.
 /favicon.ico
   Cache-Control: public, max-age=3600, must-revalidate

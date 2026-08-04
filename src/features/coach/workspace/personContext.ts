@@ -43,13 +43,14 @@ export function buildPersonContextBrief(input: {
   return lines.join('\n');
 }
 
-export const PENDING_SEED_KEY = 'ascendos.coach.pending-seed';
+/** Survives refresh, tab switch, lock screen, and browser close (localStorage). */
+export const PENDING_SEED_KEY = 'ascendos.coach.pending-seed.v1';
 
 export function readPendingSeed(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const v = window.sessionStorage.getItem(PENDING_SEED_KEY);
-    if (v) window.sessionStorage.removeItem(PENDING_SEED_KEY);
+    const v = window.localStorage.getItem(PENDING_SEED_KEY);
+    if (v) window.localStorage.removeItem(PENDING_SEED_KEY);
     return v;
   } catch {
     return null;
@@ -59,7 +60,7 @@ export function readPendingSeed(): string | null {
 export function writePendingSeed(text: string): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(PENDING_SEED_KEY, text);
+    window.localStorage.setItem(PENDING_SEED_KEY, text);
   } catch {
     // ignore
   }

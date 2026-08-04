@@ -7,6 +7,11 @@ import './sync-status.css';
 
 export type SyncUiState = 'offline' | 'syncing' | 'pending' | 'synced';
 
+type Props = {
+  /** Compact home labels: Synced / Syncing / Offline / Pending */
+  variant?: 'header' | 'home';
+};
+
 async function computeState(
   online: boolean,
   syncing: boolean
@@ -25,7 +30,7 @@ async function computeState(
 /**
  * Tiny non-intrusive sync chip — no popups, no layout redesign.
  */
-export function SyncStatusIndicator() {
+export function SyncStatusIndicator({ variant = 'header' }: Props) {
   const { t } = useI18n();
   const [state, setState] = useState<SyncUiState>(isOnline() ? 'synced' : 'offline');
   const [pending, setPending] = useState(0);
@@ -71,19 +76,27 @@ export function SyncStatusIndicator() {
   }, []);
 
   const label =
-    state === 'offline'
-      ? pending > 0
-        ? t('sync.offlinePending', { count: pending })
-        : t('sync.offline')
-      : state === 'syncing'
-        ? t('sync.syncing')
-        : state === 'pending'
-          ? t('sync.pendingUploads', { count: pending })
-          : t('sync.cloudSynced');
+    variant === 'home'
+      ? state === 'offline'
+        ? t('sync.homeOffline')
+        : state === 'syncing'
+          ? t('sync.homeSyncing')
+          : state === 'pending'
+            ? t('sync.homePending')
+            : t('sync.homeSynced')
+      : state === 'offline'
+        ? pending > 0
+          ? t('sync.offlinePending', { count: pending })
+          : t('sync.offline')
+        : state === 'syncing'
+          ? t('sync.syncing')
+          : state === 'pending'
+            ? t('sync.pendingUploads', { count: pending })
+            : t('sync.cloudSynced');
 
   return (
     <div
-      className={`sync-status sync-status--${state}`}
+      className={`sync-status sync-status--${state}${variant === 'home' ? ' sync-status--home' : ''}`}
       role="status"
       aria-live="polite"
       title={label}
