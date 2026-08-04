@@ -17,20 +17,31 @@ import type {
   ScoredDimension,
   TimelineEvent,
 } from './types';
+import { createCoachTranslator, type CoachTranslateFn } from '../i18n';
+
+const DEFAULT_T = createCoachTranslator('de');
+
+function translator(input?: Pick<CoachOrgInput, 't'>, t?: CoachTranslateFn): CoachTranslateFn {
+  return t ?? input?.t ?? DEFAULT_T;
+}
 
 function clamp(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function labelScore(score: number): string {
-  if (score >= 85) return 'Excellent';
-  if (score >= 70) return 'Strong';
-  if (score >= 55) return 'Building';
-  if (score >= 35) return 'Fragile';
-  return 'Critical';
+function labelScore(score: number, t: CoachTranslateFn): string {
+  if (score >= 85) return t('grade.excellent');
+  if (score >= 70) return t('grade.strong');
+  if (score >= 55) return t('grade.building');
+  if (score >= 35) return t('grade.fragile');
+  return t('grade.critical');
 }
 
-export function buildMomentumScore(input: CoachOrgInput): ScoredDimension {
+export function buildMomentumScore(
+  input: CoachOrgInput,
+  translate?: CoachTranslateFn
+): ScoredDimension {
+  const t = translator(input, translate);
   const d = input.dashboard;
   const why: string[] = [];
   const drivers: string[] = [];
@@ -39,50 +50,54 @@ export function buildMomentumScore(input: CoachOrgInput): ScoredDimension {
   if (!d) {
     return {
       score: 50,
-      label: labelScore(50),
-      why: ['Momentum braucht laufende Aktivitätsdaten — Basis wird noch aufgebaut.'],
+      label: labelScore(50, t),
+      why: [t('executive.momentum.noData')],
       drivers: [],
     };
   }
 
   if (d.activeToday >= Math.max(2, Math.floor(d.directCount * 0.25))) {
     score += 14;
-    why.push(`${d.activeToday} Partner heute aktiv — Tagesenergie ist sichtbar.`);
-    drivers.push('Daily activity');
+    why.push(t('executive.momentum.active', { count: d.activeToday }));
+    drivers.push(t('executive.momentum.driverActivity'));
   } else if (d.activeToday === 0 && d.teamSize > 2) {
     score -= 12;
-    why.push('Heute noch keine Team-Aktivität — Momentum braucht den ersten Impuls.');
+    why.push(t('executive.momentum.noActivity'));
   }
 
   if (d.tasksDoneToday > 0) {
     score += 8;
-    why.push(`${d.tasksDoneToday} Team-Tasks erledigt — Ausführung statt Absicht.`);
-    drivers.push('Task completion');
+    why.push(t('executive.momentum.tasks', { count: d.tasksDoneToday }));
+    drivers.push(t('executive.momentum.driverTasks'));
   }
 
   if (d.newRegistrationsMonth > 0) {
     score += 10;
-    why.push(`+${d.newRegistrationsMonth} Registrierungen im Monat — Wachstum trägt Momentum.`);
-    drivers.push('Registrations');
+    why.push(t('executive.momentum.registrations', { count: d.newRegistrationsMonth }));
+    drivers.push(t('executive.momentum.driverRegistrations'));
   }
 
   const streakers = input.partners.filter((p) => p.depth >= 1 && p.streakDays >= 3).length;
   if (streakers > 0) {
     score += Math.min(12, streakers * 3);
-    why.push(`${streakers} Partner mit Streak ≥3 — Konsistenz ist ein Momentum-Multiplikator.`);
-    drivers.push('Streaks');
+    why.push(t('executive.momentum.streaks', { count: streakers }));
+    drivers.push(t('executive.momentum.driverStreaks'));
   }
 
   if (d.inactive14d > 0 && d.teamSize > 0 && d.inactive14d / d.teamSize >= 0.35) {
     score -= 14;
-    why.push('Hoher Inaktivitätsanteil dämpft das Team-Momentum.');
+    why.push(t('executive.momentum.inactive'));
   }
 
   score = clamp(score);
-  return { score, label: labelScore(score), why: why.slice(0, 5), drivers };
+  return { score, label: labelScore(score, t), why: why.slice(0, 5), drivers };
 }
 
-export function buildLeadershipScore(input: CoachOrgInput): ScoredDimension {
+export function buildLeadershipScore(
+  input: CoachOrgInput,
+  translate?: CoachTranslateFn
+): ScoredDimension {
+  const t = translator(input, translate);
   const d = input.dashboard;
   const why: string[] = [];
   const drivers: string[] = [];
@@ -90,27 +105,27 @@ export function buildLeadershipScore(input: CoachOrgInput): ScoredDimension {
 
   if (input.planDoneCount > 0) {
     score += 10;
-    why.push(`${input.planDoneCount} eigene Missionen erledigt — Vorbild durch Tun.`);
-    drivers.push('Personal execution');
+    why.push(t('executive.leadership.missionsDone', { count: input.planDoneCount }));
+    drivers.push(t('executive.leadership.driverExecution'));
   }
   if (input.planPendingCount > 3) {
     score -= 8;
-    why.push(`${input.planPendingCount} offene Missionen — Fokus schärfen, dann führen.`);
+    why.push(t('executive.leadership.missionsOpen', { count: input.planPendingCount }));
   }
 
   if (d && d.openFollowups === 0) {
     score += 10;
-    why.push('Pipeline sauber — Follow-up-Disziplin ist Leadership.');
-    drivers.push('Pipeline discipline');
+    why.push(t('executive.leadership.pipelineClean'));
+    drivers.push(t('executive.leadership.driverPipeline'));
   } else if (d && d.openFollowups >= 5) {
     score -= 10;
-    why.push(`${d.openFollowups} offene Follow-ups belasten die Führungsbandbreite.`);
+    why.push(t('executive.leadership.followupsOpen', { count: d.openFollowups }));
   }
 
   if (input.teamLeader?.qualified) {
     score += 12;
-    why.push('TeamLeader-Qualifikation erreicht — Standard ist gesetzt.');
-    drivers.push('Qualification');
+    why.push(t('executive.leadership.qualified'));
+    drivers.push(t('executive.leadership.driverQualification'));
   } else if (input.teamLeader) {
     const missing = Math.max(
       0,
@@ -118,48 +133,52 @@ export function buildLeadershipScore(input: CoachOrgInput): ScoredDimension {
     );
     if (missing <= 2) {
       score += 6;
-      why.push(`Qualifikation nah — noch ${missing} aktive Firstline(s).`);
-      drivers.push('Qualification path');
+      why.push(t('executive.leadership.nearQualification', { count: missing }));
+      drivers.push(t('executive.leadership.driverQualificationPath'));
     }
   }
 
   const favorites = input.partners.filter((p) => p.isFavorite).length;
   if (favorites > 0) {
     score += 4;
-    why.push('Du markierst Fokuspartner — gezielte Führung statt Gießkanne.');
-    drivers.push('Focus partners');
+    why.push(t('executive.leadership.focusPartners'));
+    drivers.push(t('executive.leadership.driverFocus'));
   }
 
   if (input.pendingShareProofs > 0) {
     score -= 4;
-    why.push('Offene AP-Nachweise — Integrität der Zahlen schützt Vertrauen.');
+    why.push(t('executive.leadership.pendingProofs'));
   }
 
   score = clamp(score);
-  return { score, label: labelScore(score), why: why.slice(0, 5), drivers };
+  return { score, label: labelScore(score, t), why: why.slice(0, 5), drivers };
 }
 
-export function buildBottlenecks(input: CoachOrgInput): BottleneckInsight[] {
+export function buildBottlenecks(
+  input: CoachOrgInput,
+  translate?: CoachTranslateFn
+): BottleneckInsight[] {
+  const t = translator(input, translate);
   const d = input.dashboard;
   const items: BottleneckInsight[] = [];
 
   if (d && d.openFollowups >= 3) {
     items.push({
       id: 'bn-followups',
-      area: 'Pipeline',
-      title: 'Follow-up Stau',
-      why: `${d.openFollowups} offene Follow-ups blockieren neue Gespräche.`,
-      unlock: 'Heute die 3 heißesten Kontakte schließen — dann erst neue Termine.',
+      area: t('executive.bottleneck.pipelineArea'),
+      title: t('executive.bottleneck.followupsTitle'),
+      why: t('executive.bottleneck.followupsWhy', { count: d.openFollowups }),
+      unlock: t('executive.bottleneck.followupsUnlock'),
     });
   }
 
   if (d && d.inactive14d >= 3) {
     items.push({
       id: 'bn-inactive',
-      area: 'Aktivierung',
-      title: 'Inaktivitäts-Cluster',
-      why: `${d.inactive14d} Partner ohne App-Signal seit 14+ Tagen.`,
-      unlock: 'Zwei kurze Voice-Messages an Favoriten — niedrige Reibung, hohe Signalwirkung.',
+      area: t('executive.bottleneck.activationArea'),
+      title: t('executive.bottleneck.inactiveTitle'),
+      why: t('executive.bottleneck.inactiveWhy', { count: d.inactive14d }),
+      unlock: t('executive.bottleneck.inactiveUnlock'),
     });
   }
 
@@ -171,20 +190,22 @@ export function buildBottlenecks(input: CoachOrgInput): BottleneckInsight[] {
   if (stuckOnboarding.length > 0) {
     items.push({
       id: 'bn-onboarding',
-      area: 'Onboarding',
-      title: 'Onboarding-Flaschenhals',
-      why: `${stuckOnboarding.length} Firstline(s) stecken früh ohne AP-Schwung fest.`,
-      unlock: `Mit ${stuckOnboarding[0].name.split(' ')[0]} den nächsten Onboarding-Schritt klar machen.`,
+      area: t('executive.bottleneck.onboardingArea'),
+      title: t('executive.bottleneck.onboardingTitle'),
+      why: t('executive.bottleneck.onboardingWhy', { count: stuckOnboarding.length }),
+      unlock: t('executive.bottleneck.onboardingUnlock', {
+        name: stuckOnboarding[0].name.split(' ')[0] ?? stuckOnboarding[0].name,
+      }),
     });
   }
 
   if (input.planPendingCount >= 4) {
     items.push({
       id: 'bn-focus',
-      area: 'Fokus',
-      title: 'Zu viele parallele Missionen',
-      why: `${input.planPendingCount} offene Tagesmissionen verwässern Wirkung.`,
-      unlock: 'Eine Mission zu Ende bringen, bevor die nächste startet.',
+      area: t('executive.bottleneck.focusArea'),
+      title: t('executive.bottleneck.focusTitle'),
+      why: t('executive.bottleneck.focusWhy', { count: input.planPendingCount }),
+      unlock: t('executive.bottleneck.focusUnlock'),
     });
   }
 
@@ -193,8 +214,10 @@ export function buildBottlenecks(input: CoachOrgInput): BottleneckInsight[] {
 
 export function buildRoiRecommendations(
   input: CoachOrgInput,
-  priorities: CoachPriorityInsight[]
+  priorities: CoachPriorityInsight[],
+  translate?: CoachTranslateFn
 ): RoiRecommendation[] {
+  const t = translator(input, translate);
   const out: RoiRecommendation[] = [];
   for (const p of priorities.slice(0, 4)) {
     out.push({
@@ -203,64 +226,68 @@ export function buildRoiRecommendations(
       why: p.why,
       expectedLift:
         p.severity === 'critical' || p.severity === 'high'
-          ? 'Hoher Hebel auf Teamgesundheit und Pipeline'
-          : 'Solider Hebel bei geringem Zusatzaufwand',
+          ? t('executive.roi.highLift')
+          : t('executive.roi.solidLift'),
     });
   }
   if (out.length === 0 && input.dashboard) {
     out.push({
       id: 'roi-default',
-      action: 'Zwei Follow-ups vor Mittag',
-      why: 'Frühe Pipeline-Arbeit schützt den Nachmittag für Leadership.',
-      expectedLift: 'Weniger Überhänge, klareres Abendbild',
+      action: t('executive.roi.defaultAction'),
+      why: t('executive.roi.defaultWhy'),
+      expectedLift: t('executive.roi.defaultLift'),
     });
   }
   return out.slice(0, 5);
 }
 
-export function buildLeadershipDna(input: CoachOrgInput): LeadershipDnaTrait[] {
+export function buildLeadershipDna(
+  input: CoachOrgInput,
+  translate?: CoachTranslateFn
+): LeadershipDnaTrait[] {
+  const t = translator(input, translate);
   const traits: LeadershipDnaTrait[] = [];
   const d = input.dashboard;
 
   if (input.planDoneCount > 0) {
     traits.push({
       id: 'dna-exec',
-      trait: 'Execution',
-      evidence: `${input.planDoneCount} Missionen heute erledigt`,
-      why: 'Teams folgen dem, was der Leader selbst abschließt.',
+      trait: t('executive.dna.executionTrait'),
+      evidence: t('executive.dna.executionEvidence', { count: input.planDoneCount }),
+      why: t('executive.dna.executionWhy'),
     });
   }
   if (d && d.openFollowups <= 2) {
     traits.push({
       id: 'dna-care',
-      trait: 'Care & Consistency',
-      evidence: 'Follow-ups im Griff',
-      why: 'Zuverlässige Nacharbeit baut Vertrauen in der Firstline.',
+      trait: t('executive.dna.careTrait'),
+      evidence: t('executive.dna.careEvidence'),
+      why: t('executive.dna.careWhy'),
     });
   }
   if (d && d.newRegistrationsMonth > 0) {
     traits.push({
       id: 'dna-growth',
-      trait: 'Growth Orientation',
-      evidence: `+${d.newRegistrationsMonth} Registrierungen`,
-      why: 'Du erzeugst Einstiege — nicht nur Verwaltung.',
+      trait: t('executive.dna.growthTrait'),
+      evidence: t('executive.dna.growthEvidence', { count: d.newRegistrationsMonth }),
+      why: t('executive.dna.growthWhy'),
     });
   }
   const streakers = input.partners.filter((p) => p.streakDays >= 5).length;
   if (streakers > 0) {
     traits.push({
       id: 'dna-culture',
-      trait: 'Culture of Consistency',
-      evidence: `${streakers} Partner mit starken Streaks`,
-      why: 'Wiederholung ist die DNA nachhaltiger Organisationen.',
+      trait: t('executive.dna.cultureTrait'),
+      evidence: t('executive.dna.cultureEvidence', { count: streakers }),
+      why: t('executive.dna.cultureWhy'),
     });
   }
   if (traits.length === 0) {
     traits.push({
       id: 'dna-base',
-      trait: 'Builder Mindset',
-      evidence: 'Organisation wird aktiv geführt',
-      why: 'Selbst ohne Peak-Zahlen zählt die Absicht, Struktur zu formen.',
+      trait: t('executive.dna.builderTrait'),
+      evidence: t('executive.dna.builderEvidence'),
+      why: t('executive.dna.builderWhy'),
     });
   }
   return traits.slice(0, 5);
@@ -268,8 +295,10 @@ export function buildLeadershipDna(input: CoachOrgInput): LeadershipDnaTrait[] {
 
 export function buildExecutiveTimeline(
   input: CoachOrgInput,
-  priorities: CoachPriorityInsight[]
+  priorities: CoachPriorityInsight[],
+  translate?: CoachTranslateFn
 ): TimelineEvent[] {
+  const t = translator(input, translate);
   const events: TimelineEvent[] = [];
   const nowIso = input.now.toISOString();
   const d = input.dashboard;
@@ -278,8 +307,8 @@ export function buildExecutiveTimeline(
     events.push({
       id: 'tl-tasks',
       at: nowIso,
-      title: `${d.tasksDoneToday} Team-Tasks heute`,
-      why: 'Ausführung erzeugt messbare Fortschrittsmomente.',
+      title: t('executive.timeline.tasksTitle', { count: d.tasksDoneToday }),
+      why: t('executive.timeline.tasksWhy'),
       kind: 'win',
     });
   }
@@ -287,8 +316,8 @@ export function buildExecutiveTimeline(
     events.push({
       id: 'tl-reg',
       at: nowIso,
-      title: `${d.newRegistrationsMonth} Registrierungen (Monat)`,
-      why: 'Neue Einstiege erweitern die Führungsfläche.',
+      title: t('executive.timeline.registrationsTitle', { count: d.newRegistrationsMonth }),
+      why: t('executive.timeline.registrationsWhy'),
       kind: 'win',
     });
   }
@@ -296,8 +325,8 @@ export function buildExecutiveTimeline(
     events.push({
       id: 'tl-inactive',
       at: nowIso,
-      title: `${d.inactive14d} inaktive Partner`,
-      why: 'Früh erkannt — Reaktivierung bleibt günstig.',
+      title: t('executive.timeline.inactiveTitle', { count: d.inactive14d }),
+      why: t('executive.timeline.inactiveWhy'),
       kind: 'risk',
     });
   }
@@ -316,8 +345,10 @@ export function buildExecutiveTimeline(
 export function buildFutureForecast(
   input: CoachOrgInput,
   momentum: ScoredDimension,
-  leadership: ScoredDimension
+  leadership: ScoredDimension,
+  translate?: CoachTranslateFn
 ): ForecastItem[] {
+  const t = translator(input, translate);
   const d = input.dashboard;
   const items: ForecastItem[] = [];
 
@@ -326,9 +357,9 @@ export function buildFutureForecast(
     horizon: '7d',
     title:
       momentum.score >= 65
-        ? '7 Tage: Momentum kann sich verfestigen'
-        : '7 Tage: Ein Aktivierungsstoß verändert die Kurve',
-    why: momentum.why[0] ?? 'Kurzfristiges Verhalten der Firstline bestimmt die Wochenlage.',
+        ? t('executive.forecast.sevenStrong')
+        : t('executive.forecast.sevenActivation'),
+    why: momentum.why[0] ?? t('executive.forecast.sevenWhy'),
     confidence: momentum.score >= 60 ? 'medium' : 'low',
   });
 
@@ -337,12 +368,12 @@ export function buildFutureForecast(
     horizon: '30d',
     title:
       (d?.newRegistrationsMonth ?? 0) > 0
-        ? '30 Tage: Wachstumspfad bleibt offen'
-        : '30 Tage: Fokus auf Einstiege und Onboarding',
+        ? t('executive.forecast.thirtyGrowth')
+        : t('executive.forecast.thirtyFocus'),
     why:
       (d?.newRegistrationsMonth ?? 0) > 0
-        ? 'Registrierungen signalisieren, dass der Funnel trägt.'
-        : 'Ohne neue Einstiege stagniert die Führungsfläche.',
+        ? t('executive.forecast.thirtyGrowthWhy')
+        : t('executive.forecast.thirtyFocusWhy'),
     confidence: 'medium',
   });
 
@@ -351,36 +382,48 @@ export function buildFutureForecast(
     horizon: '90d',
     title:
       leadership.score >= 70
-        ? '90 Tage: Leadership-Standard kann skalieren'
-        : '90 Tage: DNA festigen, dann skalieren',
-    why: leadership.why[0] ?? 'Langfristig gewinnt wiederholbare Führungsqualität.',
+        ? t('executive.forecast.ninetyScale')
+        : t('executive.forecast.ninetyBuild'),
+    why: leadership.why[0] ?? t('executive.forecast.ninetyWhy'),
     confidence: leadership.score >= 70 ? 'high' : 'medium',
   });
 
   return items;
 }
 
-export function buildWhatHappened(input: CoachOrgInput): ExecutiveInsight[] {
+export function buildWhatHappened(
+  input: CoachOrgInput,
+  translate?: CoachTranslateFn
+): ExecutiveInsight[] {
+  const t = translator(input, translate);
   const d = input.dashboard;
   const out: ExecutiveInsight[] = [];
   if (d) {
     out.push({
       id: 'wh-activity',
-      headline: `${d.activeToday} aktiv heute · ${d.tasksDoneToday} Tasks`,
-      why: 'Tagesaktivität und Tasks sind die härtesten Ist-Signale.',
+      headline: t('executive.happened.activityHeadline', {
+        active: d.activeToday,
+        tasks: d.tasksDoneToday,
+      }),
+      why: t('executive.happened.activityWhy'),
       severity: d.activeToday > 0 ? 'low' : 'medium',
     });
     out.push({
       id: 'wh-pipeline',
-      headline: `${d.openFollowups} offene Follow-ups · ${d.inactive14d} inaktiv (14d)`,
-      why: 'Pipeline und Inaktivität erklären den aktuellen Druck.',
+      headline: t('executive.happened.pipelineHeadline', {
+        followups: d.openFollowups,
+        inactive: d.inactive14d,
+      }),
+      why: t('executive.happened.pipelineWhy'),
       severity: d.openFollowups >= 5 || d.inactive14d >= 5 ? 'high' : 'medium',
     });
     if (d.newRegistrationsMonth > 0) {
       out.push({
         id: 'wh-growth',
-        headline: `+${d.newRegistrationsMonth} Registrierungen im Monat`,
-        why: 'Neue Consultant-Einstiege sind das Wachstumssignal der Organisation.',
+        headline: t('executive.happened.growthHeadline', {
+          count: d.newRegistrationsMonth,
+        }),
+        why: t('executive.happened.growthWhy'),
         severity: 'low',
       });
     }
@@ -425,32 +468,43 @@ export function buildWhatToday(priorities: CoachPriorityInsight[]): ExecutiveIns
 export function buildExecutiveIntelligence(
   input: CoachOrgInput,
   branchHealth: BranchHealthAssessment,
-  priorities: CoachPriorityInsight[]
+  priorities: CoachPriorityInsight[],
+  translate?: CoachTranslateFn
 ): ExecutiveIntelligence {
-  const momentum = buildMomentumScore(input);
-  const leadership = buildLeadershipScore(input);
-  const forecast = buildFutureForecast(input, momentum, leadership);
-  const whatHappened = buildWhatHappened(input);
+  const t = translator(input, translate);
+  const momentum = buildMomentumScore(input, t);
+  const leadership = buildLeadershipScore(input, t);
+  const forecast = buildFutureForecast(input, momentum, leadership, t);
+  const whatHappened = buildWhatHappened(input, t);
   const whatHappensNext = buildWhatNext(priorities, forecast);
   const whatToDoToday = buildWhatToday(priorities);
 
   const whyItMatters: ExecutiveInsight[] = [
     {
       id: 'why-health',
-      headline: `Branch Health ${branchHealth.score}/100 · ${branchHealth.label}`,
-      why: branchHealth.why[0] ?? 'Gesundheit steuert, wie viel Führungskapazität frei wird.',
+      headline: t('executive.matters.healthHeadline', {
+        score: branchHealth.score,
+        label: branchHealth.label,
+      }),
+      why: branchHealth.why[0] ?? t('executive.matters.healthWhy'),
       severity: branchHealth.score < 55 ? 'high' : 'medium',
     },
     {
       id: 'why-momentum',
-      headline: `Momentum ${momentum.score}/100 · ${momentum.label}`,
-      why: momentum.why[0] ?? 'Momentum zeigt, ob Energie steigt oder abflacht.',
+      headline: t('executive.matters.momentumHeadline', {
+        score: momentum.score,
+        label: momentum.label,
+      }),
+      why: momentum.why[0] ?? t('executive.matters.momentumWhy'),
       severity: momentum.score < 55 ? 'high' : 'low',
     },
     {
       id: 'why-leadership',
-      headline: `Leadership ${leadership.score}/100 · ${leadership.label}`,
-      why: leadership.why[0] ?? 'Leadership-Qualität multipliziert jedes Team-Signal.',
+      headline: t('executive.matters.leadershipHeadline', {
+        score: leadership.score,
+        label: leadership.label,
+      }),
+      why: leadership.why[0] ?? t('executive.matters.leadershipWhy'),
       severity: leadership.score < 55 ? 'medium' : 'low',
     },
   ];
@@ -463,10 +517,10 @@ export function buildExecutiveIntelligence(
     momentum,
     leadership,
     branchHealth,
-    bottlenecks: buildBottlenecks(input),
-    roiRecommendations: buildRoiRecommendations(input, priorities),
-    leadershipDna: buildLeadershipDna(input),
-    timeline: buildExecutiveTimeline(input, priorities),
+    bottlenecks: buildBottlenecks(input, t),
+    roiRecommendations: buildRoiRecommendations(input, priorities, t),
+    leadershipDna: buildLeadershipDna(input, t),
+    timeline: buildExecutiveTimeline(input, priorities, t),
     forecast,
   };
 }

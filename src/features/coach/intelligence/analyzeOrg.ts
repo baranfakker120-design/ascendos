@@ -16,8 +16,14 @@ import type {
   PersonCoachInsight,
 } from './types';
 import { buildExecutiveIntelligence } from './executiveIntelligence';
+import { createCoachTranslator, type CoachTranslateFn } from '../i18n';
 
 const DAY_MS = 86_400_000;
+const DEFAULT_T = createCoachTranslator('de');
+
+function translator(input?: Pick<CoachOrgInput, 't'>, t?: CoachTranslateFn): CoachTranslateFn {
+  return t ?? input?.t ?? DEFAULT_T;
+}
 
 function daysSince(iso: string | null | undefined, now: Date): number | null {
   if (!iso) return null;
@@ -38,23 +44,24 @@ function gradeFromScore(score: number): BranchHealthGrade {
   return 'critical';
 }
 
-function gradeLabel(grade: BranchHealthGrade): string {
+function gradeLabel(grade: BranchHealthGrade, t: CoachTranslateFn): string {
   switch (grade) {
     case 'excellent':
-      return 'Excellent';
+      return t('grade.excellent');
     case 'healthy':
-      return 'Healthy';
+      return t('grade.healthy');
     case 'growing':
-      return 'Growing';
+      return t('grade.growing');
     case 'needs_attention':
-      return 'Needs Attention';
+      return t('grade.needsAttention');
     case 'critical':
-      return 'Critical';
+      return t('grade.critical');
   }
 }
 
 /** Org-wide branch health with explicit WHY (never color-only). */
 export function assessOrgHealth(input: CoachOrgInput): BranchHealthAssessment {
+  const t = translator(input);
   const d = input.dashboard;
   const why: string[] = [];
   let score = 70;
@@ -63,46 +70,46 @@ export function assessOrgHealth(input: CoachOrgInput): BranchHealthAssessment {
     return {
       grade: 'growing',
       score: 50,
-      why: ['Noch zu wenig Organisationsdaten für eine belastbare Bewertung.'],
+      why: [t('health.org.noData')],
       membershipId: null,
-      label: gradeLabel('growing'),
+      label: gradeLabel('growing', t),
     };
   }
 
   const inactiveRatio = d.teamSize > 0 ? d.inactive14d / d.teamSize : 0;
   if (inactiveRatio >= 0.4) {
     score -= 30;
-    why.push(`${d.inactive14d} Partner sind seit 14+ Tagen inaktiv — das schwächt die Struktur.`);
+    why.push(t('health.org.inactiveHigh', { count: d.inactive14d }));
   } else if (inactiveRatio >= 0.2) {
     score -= 15;
-    why.push(`${d.inactive14d} inaktive Partner brauchen gezielte Reaktivierung.`);
+    why.push(t('health.org.inactiveMedium', { count: d.inactive14d }));
   } else {
     score += 8;
-    why.push('Inaktivität ist im grünen Bereich — die Basis hält.');
+    why.push(t('health.org.inactiveLow'));
   }
 
   if (d.openFollowups >= 8) {
     score -= 18;
-    why.push(`${d.openFollowups} offene Follow-ups — Pipeline-Druck steigt.`);
+    why.push(t('health.org.followupsHigh', { count: d.openFollowups }));
   } else if (d.openFollowups >= 3) {
     score -= 8;
-    why.push(`${d.openFollowups} Follow-ups warten auf dich.`);
+    why.push(t('health.org.followupsMedium', { count: d.openFollowups }));
   } else if (d.openFollowups === 0) {
     score += 6;
-    why.push('Keine überfälligen Follow-ups — saubere Pipeline-Disziplin.');
+    why.push(t('health.org.followupsNone'));
   }
 
   if (d.newRegistrationsMonth >= 3) {
     score += 10;
-    why.push(`+${d.newRegistrationsMonth} Registrierungen diesen Monat — Wachstum ist da.`);
+    why.push(t('health.org.registrationsGrowth', { count: d.newRegistrationsMonth }));
   } else if (d.newRegistrationsMonth === 0 && d.teamSize > 3) {
     score -= 8;
-    why.push('Diesen Monat noch keine neuen Consultant-Registrierungen.');
+    why.push(t('health.org.registrationsNone'));
   }
 
   if (d.activeToday >= Math.max(2, Math.floor(d.directCount * 0.3))) {
     score += 8;
-    why.push(`${d.activeToday} aktive Partner heute — Momentum im Team.`);
+    why.push(t('health.org.activeToday', { count: d.activeToday }));
   }
 
   if (input.teamLeader && !input.teamLeader.qualified) {
@@ -112,34 +119,34 @@ export function assessOrgHealth(input: CoachOrgInput): BranchHealthAssessment {
     );
     if (missing > 0 && missing <= 2) {
       score += 4;
-      why.push(
-        `Nur noch ${missing} aktive Firstline(s) bis TeamLeader — Qualifikation in Reichweite.`
-      );
+      why.push(t('health.org.teamLeaderNear', { count: missing }));
     }
   }
 
   if (input.pendingShareProofs > 0) {
-    why.push(`${input.pendingShareProofs} AP-Nachweise warten — Integrität vor Punkten.`);
+    why.push(t('health.org.pendingProofs', { count: input.pendingShareProofs }));
   }
 
   score = clampScore(score);
   const grade = gradeFromScore(score);
-  if (why.length === 0) why.push('Stabile Lage — weiter priorisieren und führen.');
+  if (why.length === 0) why.push(t('health.org.stable'));
 
   return {
     grade,
     score,
     why: why.slice(0, 4),
     membershipId: null,
-    label: gradeLabel(grade),
+    label: gradeLabel(grade, t),
   };
 }
 
 /** Per-direct-line health for firstline branches. */
 export function assessBranchHealth(
   partners: CoachPartnerSnapshot[],
-  now: Date
+  now: Date,
+  translate?: CoachTranslateFn
 ): BranchHealthAssessment[] {
+  const t = translator(undefined, translate);
   const directs = partners.filter((p) => p.depth === 1);
   return directs.map((lead) => {
     const downline = partners.filter(
@@ -154,29 +161,29 @@ export function assessBranchHealth(
     }).length;
     if (inactive >= 2) {
       score -= 20;
-      why.push(`${inactive} in der Linie sind 14+ Tage still.`);
+      why.push(t('health.branch.inactive', { count: inactive }));
     }
 
     if (lead.streakDays >= 5) {
       score += 12;
-      why.push(`${lead.name} hält ${lead.streakDays} Tage Streak — Vorbildwirkung.`);
+      why.push(t('health.branch.strongStreak', { name: lead.name, days: lead.streakDays }));
     } else if (lead.streakDays === 0) {
       score -= 10;
-      why.push(`${lead.name} hat keinen aktiven Streak.`);
+      why.push(t('health.branch.noStreak', { name: lead.name }));
     }
 
     if (lead.icpMonth > 0) {
       score += 8;
-      why.push(`ICP-Monat ${lead.icpMonth} — Linie produziert.`);
+      why.push(t('health.branch.producing', { count: lead.icpMonth }));
     }
 
     const newest = daysSince(lead.joinedAt, now);
     if (newest !== null && newest <= 14 && lead.directCount === 0) {
       score -= 5;
-      why.push('Neue Firstline ohne eigenes Team — Onboarding und Begleitung priorisieren.');
+      why.push(t('health.branch.newWithoutTeam'));
     }
 
-    if (why.length === 0) why.push('Solide Firstline — weiter beobachten und stärken.');
+    if (why.length === 0) why.push(t('health.branch.stable'));
     score = clampScore(score);
     const grade = gradeFromScore(score);
     return {
@@ -184,7 +191,7 @@ export function assessBranchHealth(
       score,
       why: why.slice(0, 3),
       membershipId: lead.membershipId,
-      label: `${lead.name} · ${gradeLabel(grade)}`,
+      label: t('health.branch.label', { name: lead.name, grade: gradeLabel(grade, t) }),
     };
   });
 }
@@ -192,130 +199,158 @@ export function assessBranchHealth(
 export function buildPersonInsight(
   partner: CoachPartnerSnapshot,
   now: Date,
-  org?: { siblings?: CoachPartnerSnapshot[]; directsNeedingHelp?: number }
+  org?: { siblings?: CoachPartnerSnapshot[]; directsNeedingHelp?: number },
+  translate?: CoachTranslateFn
 ): PersonCoachInsight {
+  const t = translator(undefined, translate);
   const idle = daysSince(partner.lastAppOpenedAt, now);
   const tenure = daysSince(partner.joinedAt, now) ?? 0;
   const bullets: string[] = [];
   const strengths: string[] = [];
   const weaknesses: string[] = [];
-  let headline = 'Stabil im Blick behalten.';
+  let headline = t('person.default.headline');
   let severity: InsightSeverity = 'low';
   let recommendation: PersonCoachInsight['recommendation'] = null;
-  let currentSituation = `${partner.name} läuft stabil — weiter beobachten.`;
-  let nextBestAction = 'Kurzer Check-in und nächstes Ziel setzen.';
-  let nextBestActionWhy = 'Regelmäßige Führung hält Momentum, bevor Probleme entstehen.';
+  let currentSituation = t('person.default.situation', { name: partner.name });
+  let nextBestAction = t('person.default.action');
+  let nextBestActionWhy = t('person.default.why');
   let possibleObjection: string | null = null;
   let probabilityOfRegistration = 35;
   let probabilityOfInactivity = 25;
   let riskScore = 20;
 
   if (idle === null || idle >= 14) {
-    headline = idle === null ? 'Noch nie in der App aktiv.' : `Inaktiv seit ${idle} Tagen.`;
-    currentSituation = `${partner.name} ist ${idle === null ? 'noch nicht' : `seit ${idle} Tagen nicht`} aktiv.`;
-    bullets.push('Reaktivierung statt Druck — kurzer, ehrlicher Check-in.');
+    headline =
+      idle === null
+        ? t('person.inactive.headlineNever')
+        : t('person.inactive.headlineDays', { days: idle });
+    currentSituation =
+      idle === null
+        ? t('person.inactive.situationNever', { name: partner.name })
+        : t('person.inactive.situationDays', { name: partner.name, days: idle });
+    bullets.push(t('person.inactive.bullet'));
     recommendation = 'reactivation';
     severity = 'high';
-    nextBestAction = 'Voice Message oder kurzer Call zur Reaktivierung.';
-    nextBestActionWhy = `Ich empfehle das, weil ${partner.name} ${idle === null ? 'noch nie aktiv war' : `seit ${idle} Tagen inaktiv ist`} und ohne Touch die Wahrscheinlichkeit weiter sinkt.`;
-    possibleObjection = '„Ich hatte keine Zeit / war im Urlaub.“';
-    weaknesses.push('Lange Stille');
+    nextBestAction = t('person.inactive.action');
+    nextBestActionWhy =
+      idle === null
+        ? t('person.inactive.whyNever', { name: partner.name })
+        : t('person.inactive.whyDays', { name: partner.name, days: idle });
+    possibleObjection = t('person.inactive.objection');
+    weaknesses.push(t('person.inactive.weakness'));
     probabilityOfInactivity = idle === null ? 80 : Math.min(95, 50 + idle);
     probabilityOfRegistration = 15;
     riskScore = Math.min(95, 55 + (idle ?? 20));
   } else if (idle >= 6) {
-    headline = `Inaktiv seit ${idle} Tagen.`;
-    currentSituation = `${partner.name} verliert Momentum — ${idle} Tage ohne App-Öffnung.`;
-    bullets.push('Momentum droht zu kippen — Voice Message oder kurzer Call.');
+    headline = t('person.slowing.headline', { days: idle });
+    currentSituation = t('person.slowing.situation', { name: partner.name, days: idle });
+    bullets.push(t('person.slowing.bullet'));
     recommendation = 'voice_message';
     severity = 'medium';
-    nextBestAction = `Heute ${partner.name} anrufen oder Voice Message senden.`;
-    nextBestActionWhy = `Ich empfehle den Call, weil ${partner.name} seit ${idle} Tagen inaktiv ist${
-      org?.directsNeedingHelp
-        ? ` und aktuell ${org.directsNeedingHelp} direkte Partner auf Onboarding warten`
-        : ''
-    }.`;
-    possibleObjection = '„Mir fehlt gerade die Klarheit für den nächsten Schritt.“';
-    weaknesses.push('Streak-Risiko');
+    nextBestAction = t('person.slowing.action', { name: partner.name });
+    nextBestActionWhy = org?.directsNeedingHelp
+      ? t('person.slowing.whyWithOnboarding', {
+          name: partner.name,
+          days: idle,
+          count: org.directsNeedingHelp,
+        })
+      : t('person.slowing.why', { name: partner.name, days: idle });
+    possibleObjection = t('person.slowing.objection');
+    weaknesses.push(t('person.slowing.weakness'));
     probabilityOfInactivity = 55 + idle;
     riskScore = 40 + idle * 2;
   } else if (partner.streakDays >= 1 && partner.streakDays <= 2 && tenure > 14) {
-    headline = 'Streak wackelt — Ermutigung hilft.';
-    currentSituation = `${partner.name} hat nur noch ${partner.streakDays} Streak-Tag(e).`;
+    headline = t('person.streakRisk.headline');
+    currentSituation = t('person.streakRisk.situation', {
+      name: partner.name,
+      days: partner.streakDays,
+    });
     recommendation = 'recognition';
     severity = 'medium';
-    nextBestAction = 'Kurze Anerkennung + konkreter Mini-Schritt für heute.';
-    nextBestActionWhy = `Der Streak ist auf ${partner.streakDays} Tage gesunken — frühe Ermutigung verhindert Abbruch.`;
-    weaknesses.push('Streak-Verlust droht');
+    nextBestAction = t('person.streakRisk.action');
+    nextBestActionWhy = t('person.streakRisk.why', { days: partner.streakDays });
+    weaknesses.push(t('person.streakRisk.weakness'));
     probabilityOfInactivity = 45;
     riskScore = 35;
   } else if (partner.streakDays >= 7) {
-    headline = 'Sehr aktiv — starke Konsistenz.';
-    currentSituation = `${partner.name} hält ${partner.streakDays} Tage Streak.`;
-    bullets.push(`${partner.streakDays}-Tage-Streak verdient Anerkennung.`);
+    headline = t('person.active.headline');
+    currentSituation = t('person.active.situation', {
+      name: partner.name,
+      days: partner.streakDays,
+    });
+    bullets.push(t('person.active.bullet', { days: partner.streakDays }));
     recommendation = 'recognition';
     severity = 'low';
-    strengths.push('Hohe Konsistenz', 'Vorbildwirkung');
-    nextBestAction = 'Anerkennung aussprechen und nächstes Leadership-Ziel setzen.';
-    nextBestActionWhy = 'Starke Konsistenz verdient Sichtbarkeit — das verstärkt Kultur.';
+    strengths.push(t('person.active.strengthConsistency'), t('person.active.strengthExample'));
+    nextBestAction = t('person.active.action');
+    nextBestActionWhy = t('person.active.why');
     probabilityOfInactivity = 10;
     probabilityOfRegistration = 55;
     riskScore = 10;
   } else if (tenure <= 14) {
-    headline = 'Neuer Consultant — Onboarding im Fokus.';
-    currentSituation = `${partner.name} ist seit ${tenure} Tagen registriert — finales Onboarding absichern.`;
-    bullets.push('Prüfen: Onboarding gesendet? Austauschgruppe / Nina-Info erreicht?');
+    headline = t('person.newConsultant.headline');
+    currentSituation = t('person.newConsultant.situation', {
+      name: partner.name,
+      days: tenure,
+    });
+    bullets.push(t('person.newConsultant.bullet'));
     recommendation = 'onboarding';
     severity = 'medium';
-    nextBestAction = 'Onboarding-Link senden und Gruppenzugänge erklären.';
-    nextBestActionWhy = `Neue Berater brauchen den letzten Aktivierungsschritt nach der Registrierung — sonst entstehen Onboarding-Lücken.`;
-    possibleObjection = '„Ich schaue es später an.“';
-    weaknesses.push('Onboarding möglicherweise offen');
+    nextBestAction = t('person.newConsultant.action');
+    nextBestActionWhy = t('person.newConsultant.why');
+    possibleObjection = t('person.newConsultant.objection');
+    weaknesses.push(t('person.newConsultant.weakness'));
     probabilityOfRegistration = 70;
     probabilityOfInactivity = 40;
     riskScore = 30;
   } else if (partner.directCount >= 3 && partner.streakDays >= 3) {
-    headline = 'Potenzial als zukünftige Führung.';
-    currentSituation = `${partner.name} führt ${partner.directCount} Direkte und bleibt aktiv.`;
-    bullets.push('Firstlines wachsen — Leadership-Gespräch anbieten.');
+    headline = t('person.leadership.headline');
+    currentSituation = t('person.leadership.situation', {
+      name: partner.name,
+      count: partner.directCount,
+    });
+    bullets.push(t('person.leadership.bullet'));
     recommendation = 'promotion';
     severity = 'medium';
-    strengths.push('Teamwachstum', 'Aktive Führung');
-    nextBestAction = 'Leadership-Coaching / Zoom anbieten.';
-    nextBestActionWhy = 'Wachsende Firstline + Aktivität signalisieren Leader-Potenzial.';
+    strengths.push(t('person.leadership.strengthGrowth'), t('person.leadership.strengthActive'));
+    nextBestAction = t('person.leadership.action');
+    nextBestActionWhy = t('person.leadership.why');
     probabilityOfRegistration = 60;
     probabilityOfInactivity = 15;
     riskScore = 15;
   } else if (partner.icpMonth > 0 && partner.streakDays >= 3) {
-    headline = 'Starkes Momentum.';
-    currentSituation = `${partner.name} liefert ICP (${partner.icpMonth}) bei aktivem Streak.`;
-    bullets.push('ICP und Aktivität laufen — kurz gratulieren und nächstes Ziel setzen.');
+    headline = t('person.momentum.headline');
+    currentSituation = t('person.momentum.situation', {
+      name: partner.name,
+      count: partner.icpMonth,
+    });
+    bullets.push(t('person.momentum.bullet'));
     recommendation = 'congratulation';
     severity = 'low';
-    strengths.push('ICP-Produktion');
-    nextBestAction = 'Gratulation + nächstes Ziel vereinbaren.';
-    nextBestActionWhy = 'Sichtbare Erfolge verstärken, wenn sie zeitnah anerkannt werden.';
+    strengths.push(t('person.momentum.strength'));
+    nextBestAction = t('person.momentum.action');
+    nextBestActionWhy = t('person.momentum.why');
     probabilityOfInactivity = 18;
     riskScore = 12;
   }
 
   if (partner.apTotal > 0) {
-    bullets.push(`AP gesamt: ${partner.apTotal}.`);
-    if (partner.apTotal >= 250) strengths.push('Solide AP-Basis');
+    bullets.push(t('person.metrics.apTotal', { count: partner.apTotal }));
+    if (partner.apTotal >= 250) strengths.push(t('person.metrics.strengthAp'));
   }
-  if (partner.rankLabel) bullets.push(`Rang: ${partner.rankLabel}.`);
-  if (partner.directCount >= 5) strengths.push('Breite Firstline');
-  if (partner.teamCount === 0 && tenure > 21) weaknesses.push('Noch kein eigenes Team');
+  if (partner.rankLabel) bullets.push(t('person.metrics.rank', { rank: partner.rankLabel }));
+  if (partner.directCount >= 5) strengths.push(t('person.metrics.strengthFirstline'));
+  if (partner.teamCount === 0 && tenure > 21) weaknesses.push(t('person.metrics.weaknessNoTeam'));
 
   const first = partner.name.split(' ')[0] || partner.name;
   const suggestedWhatsApp =
     recommendation === 'onboarding'
-      ? `Hey ${first}, hier ist dein Onboarding — der letzte Schritt nach der Registrierung: http://waytomoon.netlify.app\nWenn etwas unklar ist, melde dich einfach.`
+      ? t('person.message.onboarding', { name: first })
       : recommendation === 'reactivation' || recommendation === 'voice_message'
-        ? `Hey ${first}, mir ist aufgefallen, dass es eine Weile ruhig war. Kein Druck — wie geht’s dir und kann ich dich irgendwo entlasten?`
+        ? t('person.message.reactivation', { name: first })
         : recommendation === 'recognition' || recommendation === 'congratulation'
-          ? `Hey ${first}, kurze Nachricht: Deine Aktivität fällt positiv auf. Weiter so — ich sehe das.`
-          : `Hey ${first}, kurze Nachfrage zum nächsten Schritt. Passt dir ein kurzer Call heute oder morgen?`;
+          ? t('person.message.recognition', { name: first })
+          : t('person.message.checkIn', { name: first });
 
   const sponsorRecommendation = nextBestActionWhy;
 
@@ -362,8 +397,10 @@ function contactHeat(contact: CoachContactSnapshot, now: Date): ContactHeat {
 
 export function buildFollowUpRecommendations(
   contacts: CoachContactSnapshot[],
-  now: Date
+  now: Date,
+  translate?: CoachTranslateFn
 ): FollowUpRecommendation[] {
+  const t = translator(undefined, translate);
   const out: FollowUpRecommendation[] = [];
   for (const c of contacts) {
     const heat = contactHeat(c, now);
@@ -373,7 +410,7 @@ export function buildFollowUpRecommendations(
         contactId: c.id,
         name: c.name,
         heat,
-        why: 'Heißer Prospect — zeitnah Follow-up, bevor das Fenster schließt.',
+        why: t('followUp.hot'),
         nextAction: 'call',
       });
     } else if (heat === 'forgotten') {
@@ -381,7 +418,7 @@ export function buildFollowUpRecommendations(
         contactId: c.id,
         name: c.name,
         heat,
-        why: `Seit ${idle ?? '?'} Tagen kein Event — vergessen wirkt teurer als ein kurzer Touch.`,
+        why: t('followUp.forgotten', { days: idle ?? '?' }),
         nextAction: 'follow_up',
       });
     } else if (heat === 'lost') {
@@ -389,7 +426,7 @@ export function buildFollowUpRecommendations(
         contactId: c.id,
         name: c.name,
         heat,
-        why: 'Lange Stille — Reaktivierung oder ehrliches Loslassen.',
+        why: t('followUp.lost'),
         nextAction: 'reactivation',
       });
     } else if (heat === 'interested' && idle !== null && idle >= 3) {
@@ -397,7 +434,7 @@ export function buildFollowUpRecommendations(
         contactId: c.id,
         name: c.name,
         heat,
-        why: c.nextStep || 'Interessiert, aber ohne frischen Touch — nächsten Schritt setzen.',
+        why: c.nextStep || t('followUp.interested'),
         nextAction: 'follow_up',
       });
     }
@@ -419,8 +456,10 @@ export function buildFollowUpRecommendations(
 
 export function buildOnboardingLifecycle(
   partners: CoachPartnerSnapshot[],
-  now: Date
+  now: Date,
+  translate?: CoachTranslateFn
 ): OnboardingLifecycleItem[] {
+  const t = translator(undefined, translate);
   return partners
     .filter((p) => {
       const tenure = daysSince(p.joinedAt, now);
@@ -431,27 +470,26 @@ export function buildOnboardingLifecycle(
       const idle = daysSince(p.lastAppOpenedAt, now);
       let stage: OnboardingLifecycleItem['stage'] = 'registered';
       let needsHelp = tenure >= 3;
-      let note =
-        'Registriert — Onboarding (WayToMoon → Onboarding) als letzten Aktivierungsschritt senden.';
+      let note = t('onboarding.registered');
 
       if (idle !== null && idle <= 2 && tenure >= 1) {
         stage = 'opened';
         needsHelp = false;
-        note = 'App geöffnet — prüfen, ob Onboarding abgeschlossen und Gruppenzugänge klar sind.';
+        note = t('onboarding.opened');
       }
       if (p.streakDays >= 3 && p.directCount === 0) {
         stage = 'completed';
         needsHelp = false;
-        note = 'Aktivität sichtbar — Austauschgruppe und Nina-Informationsgruppe absichern.';
+        note = t('onboarding.completed');
       }
       if (p.directCount > 0 || (p.streakDays >= 5 && tenure >= 7)) {
         stage = 'fully_onboarded';
         needsHelp = false;
-        note = 'Wirkt onboarded — in Leadership-Begleitung überführen.';
+        note = t('onboarding.fullyOnboarded');
       }
       if (idle === null || (idle !== null && idle >= 7 && tenure <= 21)) {
         needsHelp = true;
-        note = 'Steckt fest — persönlicher Check-in und Onboarding-Link erneut teilen.';
+        note = t('onboarding.stuck');
       }
 
       return {
@@ -471,6 +509,7 @@ function severityRank(s: InsightSeverity): number {
 }
 
 export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
+  const t = translator(input);
   const items: CoachPriorityInsight[] = [];
   const now = input.now;
 
@@ -487,16 +526,16 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
     });
   }
 
-  for (const fu of buildFollowUpRecommendations(input.contacts, now).slice(0, 5)) {
+  for (const fu of buildFollowUpRecommendations(input.contacts, now, t).slice(0, 5)) {
     items.push({
       id: `fu-${fu.contactId}`,
       severity: fu.heat === 'hot' ? 'critical' : fu.heat === 'forgotten' ? 'high' : 'medium',
       title:
         fu.heat === 'hot'
-          ? `Call ${fu.name}`
+          ? t('priority.call', { name: fu.name })
           : fu.heat === 'forgotten'
-            ? `Follow-up ${fu.name}`
-            : `${fu.name} braucht einen Touch`,
+            ? t('priority.followUp', { name: fu.name })
+            : t('priority.needsTouch', { name: fu.name }),
       why: fu.why,
       recommendation: fu.nextAction,
       targetName: fu.name,
@@ -505,11 +544,11 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
     });
   }
 
-  for (const ob of buildOnboardingLifecycle(input.partners, now).filter((x) => x.needsHelp)) {
+  for (const ob of buildOnboardingLifecycle(input.partners, now, t).filter((x) => x.needsHelp)) {
     items.push({
       id: `onb-${ob.membershipId}`,
       severity: 'high',
-      title: `${ob.name} braucht Onboarding-Hilfe`,
+      title: t('priority.onboardingHelp', { name: ob.name }),
       why: ob.note,
       recommendation: 'onboarding',
       targetName: ob.name,
@@ -527,8 +566,8 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
       items.push({
         id: 'tl-close',
         severity: 'medium',
-        title: `Nur noch ${missing} aktive Firstline(s) bis TeamLeader`,
-        why: 'Langfristige Leadership-Qualifikation liegt in Reichweite — Firstlines aktiv halten.',
+        title: t('priority.teamLeaderNearTitle', { count: missing }),
+        why: t('priority.teamLeaderNearWhy'),
         recommendation: 'recognition',
         targetName: null,
         targetMembershipId: null,
@@ -541,8 +580,8 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
     items.push({
       id: 'ap-pending',
       severity: 'medium',
-      title: `${input.pendingShareProofs} AP-Nachweis(e) offen`,
-      why: 'Kein AP ohne Verifikation — Pending → Verified, nie Fake-Punkte.',
+      title: t('priority.pendingProofsTitle', { count: input.pendingShareProofs }),
+      why: t('priority.pendingProofsWhy'),
       recommendation: 'follow_up',
       targetName: null,
       targetMembershipId: null,
@@ -554,8 +593,8 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
     items.push({
       id: 'plan-start',
       severity: 'medium',
-      title: 'Tagesplan noch nicht gestartet',
-      why: `${input.planPendingCount} Missionen warten — Fokus schlägt Chaos.`,
+      title: t('priority.planTitle'),
+      why: t('priority.planWhy', { count: input.planPendingCount }),
       recommendation: 'call',
       targetName: null,
       targetMembershipId: null,
@@ -570,8 +609,8 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
       items.push({
         id: `streak-${p.membershipId}`,
         severity: 'medium',
-        title: `${p.name} braucht Ermutigung`,
-        why: `Der Streak liegt nur noch bei ${p.streakDays} Tag(en) — frühe Anerkennung verhindert Abbruch.`,
+        title: t('priority.encouragementTitle', { name: p.name }),
+        why: t('priority.encouragementWhy', { days: p.streakDays }),
         recommendation: 'recognition',
         targetName: p.name,
         targetMembershipId: p.membershipId,
@@ -592,8 +631,8 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
       items.push({
         id: `leg-strong-${strong.membershipId}`,
         severity: 'low',
-        title: `${strong.name}-Linie wächst stärker`,
-        why: `Vergleich der Firstlines: ${strong.name} zeigt mehr ICP/Streak-Momentum als ${weak.name}.`,
+        title: t('priority.strongLegTitle', { name: strong.name }),
+        why: t('priority.strongLegWhy', { strong: strong.name, weak: weak.name }),
         recommendation: 'recognition',
         targetName: strong.name,
         targetMembershipId: strong.membershipId,
@@ -604,8 +643,8 @@ export function buildPriorities(input: CoachOrgInput): CoachPriorityInsight[] {
         items.push({
           id: `leg-weak-${weak.membershipId}`,
           severity: 'high',
-          title: `${weak.name}-Linie braucht Aufmerksamkeit`,
-          why: `Die Linie um ${weak.name} ist die schwächste Firstline — Coaching statt Druck.`,
+          title: t('priority.weakLegTitle', { name: weak.name }),
+          why: t('priority.weakLegWhy', { name: weak.name }),
           recommendation: 'reactivation',
           targetName: weak.name,
           targetMembershipId: weak.membershipId,
@@ -624,8 +663,9 @@ export function buildManagerMessages(
   priorities: CoachPriorityInsight[],
   teamHealth: BranchHealthAssessment
 ): ManagerMessage[] {
+  const t = translator(input);
   const msgs: ManagerMessage[] = [];
-  const forgotten = buildFollowUpRecommendations(input.contacts, input.now).filter(
+  const forgotten = buildFollowUpRecommendations(input.contacts, input.now, t).filter(
     (f) => f.heat === 'forgotten' || f.heat === 'hot'
   );
   if (forgotten.length >= 1) {
@@ -633,7 +673,7 @@ export function buildManagerMessages(
     if (hot) {
       msgs.push({
         id: `mgr-call-${hot.contactId}`,
-        text: `Du solltest ${hot.name} heute anrufen.`,
+        text: t('manager.callToday', { name: hot.name }),
         why: hot.why,
         severity: 'critical',
       });
@@ -642,21 +682,21 @@ export function buildManagerMessages(
     if (forg.length >= 3) {
       msgs.push({
         id: 'mgr-fu-many',
-        text: `Heute sind mir ${forg.length} Personen aufgefallen, die noch keinen Follow-up erhalten haben.`,
-        why: 'Vergessene Kontakte kühlen ab — drei gezielte Touches retten oft mehr als zehn neue Leads.',
+        text: t('manager.manyFollowups', { count: forg.length }),
+        why: t('manager.manyFollowupsWhy'),
         severity: 'high',
       });
     } else if (forg[0]) {
       msgs.push({
         id: `mgr-fu-${forg[0].contactId}`,
-        text: `Du hast einen Kontakt (${forg[0].name}) zu lange ignoriert.`,
+        text: t('manager.ignoredContact', { name: forg[0].name }),
         why: forg[0].why,
         severity: 'high',
       });
     }
   }
 
-  const onboardingGaps = buildOnboardingLifecycle(input.partners, input.now).filter(
+  const onboardingGaps = buildOnboardingLifecycle(input.partners, input.now, t).filter(
     (x) => x.needsHelp
   );
   if (onboardingGaps.length >= 1) {
@@ -664,9 +704,9 @@ export function buildManagerMessages(
       id: 'mgr-onb-gaps',
       text:
         onboardingGaps.length === 1
-          ? `${onboardingGaps[0]!.name} wartet noch auf Onboarding-Hilfe.`
-          : `Du hast aktuell ${onboardingGaps.length} Onboarding-Lücken.`,
-      why: 'Onboarding ist der letzte Aktivierungsschritt nach der Registrierung — Lücken kosten Leader.',
+          ? t('manager.oneOnboardingGap', { name: onboardingGaps[0]!.name })
+          : t('manager.manyOnboardingGaps', { count: onboardingGaps.length }),
+      why: t('manager.onboardingWhy'),
       severity: 'high',
     });
   }
@@ -679,8 +719,8 @@ export function buildManagerMessages(
     if (missing > 0 && missing <= 2) {
       msgs.push({
         id: 'mgr-tl',
-        text: `Du bist nur noch ${missing} aktive Firstline(s) von TeamLeader entfernt.`,
-        why: 'Qualifikation in Reichweite — Firstlines aktiv halten schlägt kurzfristige Hektik.',
+        text: t('manager.teamLeaderNear', { count: missing }),
+        why: t('manager.teamLeaderWhy'),
         severity: 'medium',
       });
     }
@@ -689,8 +729,8 @@ export function buildManagerMessages(
   if (input.pendingShareProofs > 0) {
     msgs.push({
       id: 'mgr-ap',
-      text: `${input.pendingShareProofs} AP-Nachweis(e) warten noch auf Bestätigung.`,
-      why: 'AP-Integrität: Pending → Verified. Kein Fake-AP, keine Doppelvergabe.',
+      text: t('manager.pendingProofs', { count: input.pendingShareProofs }),
+      why: t('manager.pendingProofsWhy'),
       severity: 'medium',
     });
   }
@@ -705,8 +745,8 @@ export function buildManagerMessages(
     if (strong.membershipId !== weak.membershipId) {
       msgs.push({
         id: 'mgr-legs',
-        text: `Die Linie von ${strong.name} wächst deutlich schneller als die von ${weak.name}.`,
-        why: 'Ungleiche Legs sind normal — die schwächere Linie braucht Coaching, nicht Ignorieren.',
+        text: t('manager.unevenLegs', { strong: strong.name, weak: weak.name }),
+        why: t('manager.unevenLegsWhy'),
         severity: 'medium',
       });
     }
@@ -715,8 +755,8 @@ export function buildManagerMessages(
   if (teamHealth.grade === 'excellent' || teamHealth.grade === 'healthy') {
     msgs.push({
       id: 'mgr-healthy',
-      text: 'Die Sponsor-Hierarchie wirkt gesund.',
-      why: teamHealth.why[0] ?? 'Aktivität und Follow-up-Disziplin halten die Struktur stabil.',
+      text: t('manager.healthy'),
+      why: teamHealth.why[0] ?? t('manager.healthyFallbackWhy'),
       severity: 'low',
     });
   }
@@ -724,8 +764,8 @@ export function buildManagerMessages(
   if ((input.dashboard?.activeToday ?? 0) >= 3) {
     msgs.push({
       id: 'mgr-congrats',
-      text: 'Glückwunsch — deine Organisation ist diese Woche spürbar aktiver.',
-      why: `${input.dashboard?.activeToday ?? 0} Partner heute aktiv — erkenne das Team, bevor du nur Zahlen pushst.`,
+      text: t('manager.congratulations'),
+      why: t('manager.congratulationsWhy', { count: input.dashboard?.activeToday ?? 0 }),
       severity: 'low',
     });
   }
@@ -758,38 +798,39 @@ export function buildDailyCeoBriefing(
   priorities: CoachPriorityInsight[],
   teamHealth: BranchHealthAssessment
 ): DailyCeoBriefing {
-  const name = input.sponsorFirstName || 'Leader';
+  const t = translator(input);
+  const name = input.sponsorFirstName || t('common.leader');
   const d = input.dashboard;
   const yesterdaySummary: string[] = [];
 
   if (d) {
-    yesterdaySummary.push(`Team AP gesamt im Blick: ${d.teamAp}`);
-    yesterdaySummary.push(`+${d.newRegistrationsMonth} Registrierungen (Monat)`);
+    yesterdaySummary.push(t('briefing.teamAp', { count: d.teamAp }));
+    yesterdaySummary.push(t('briefing.registrations', { count: d.newRegistrationsMonth }));
     if (d.openFollowups > 0) {
-      yesterdaySummary.push(`${d.openFollowups} Follow-ups brauchen Aufmerksamkeit`);
+      yesterdaySummary.push(t('briefing.followups', { count: d.openFollowups }));
     }
     if (d.inactive14d > 0) {
-      yesterdaySummary.push(`${d.inactive14d} Partner seit 14+ Tagen inaktiv`);
+      yesterdaySummary.push(t('briefing.inactive', { count: d.inactive14d }));
     }
-    yesterdaySummary.push(`${d.activeToday} heute aktiv · ${d.tasksDoneToday} Team-Tasks heute`);
-  } else {
     yesterdaySummary.push(
-      'Organisationslage wird aufgebaut — sobald Daten da sind, brief ich dich.'
+      t('briefing.activity', { active: d.activeToday, tasks: d.tasksDoneToday })
     );
+  } else {
+    yesterdaySummary.push(t('briefing.noData'));
   }
 
-  const onboardingHelp = buildOnboardingLifecycle(input.partners, input.now).filter(
+  const onboardingHelp = buildOnboardingLifecycle(input.partners, input.now, t).filter(
     (x) => x.needsHelp
   );
   if (onboardingHelp.length > 0) {
-    yesterdaySummary.push(`${onboardingHelp.length} brauchen noch Onboarding-Hilfe`);
+    yesterdaySummary.push(t('briefing.onboardingHelp', { count: onboardingHelp.length }));
   }
 
   const surface = priorities.filter((p) => p.severity !== 'low').slice(0, 5);
   const managerMessages = buildManagerMessages(input, priorities, teamHealth);
 
   return {
-    greeting: `Guten Morgen, ${name}.`,
+    greeting: t('briefing.greeting', { name }),
     yesterdaySummary: yesterdaySummary.slice(0, 6),
     priorities: surface,
     highestPriority: surface[0] ?? null,
@@ -803,33 +844,34 @@ export function buildEveningReport(
   priorities: CoachPriorityInsight[],
   teamHealth: BranchHealthAssessment
 ): EveningReport {
-  const name = input.sponsorFirstName || 'Leader';
+  const t = translator(input);
+  const name = input.sponsorFirstName || t('common.leader');
   const d = input.dashboard;
   const wins: string[] = [];
   const missed: string[] = [];
 
   if (d) {
-    if (d.tasksDoneToday > 0) wins.push(`${d.tasksDoneToday} Team-Tasks heute erledigt`);
-    if (d.activeToday > 0) wins.push(`${d.activeToday} Partner heute aktiv`);
+    if (d.tasksDoneToday > 0) wins.push(t('evening.tasksDone', { count: d.tasksDoneToday }));
+    if (d.activeToday > 0) wins.push(t('evening.active', { count: d.activeToday }));
     if (d.newRegistrationsMonth > 0) {
-      wins.push(`${d.newRegistrationsMonth} Registrierungen im Monat`);
+      wins.push(t('evening.registrations', { count: d.newRegistrationsMonth }));
     }
     if (d.openFollowups > 0) {
-      missed.push(`${d.openFollowups} Follow-ups bleiben offen`);
+      missed.push(t('evening.followupsOpen', { count: d.openFollowups }));
     }
     if (d.inactive14d > 0) {
-      missed.push(`${d.inactive14d} inaktive Partner ohne Reaktivierung`);
+      missed.push(t('evening.inactive', { count: d.inactive14d }));
     }
   }
 
   if (input.planDoneCount > 0) {
-    wins.push(`${input.planDoneCount} eigene Missionen heute erledigt`);
+    wins.push(t('evening.missionsDone', { count: input.planDoneCount }));
   }
   if (input.planPendingCount > 0) {
-    missed.push(`${input.planPendingCount} Missionen noch offen`);
+    missed.push(t('evening.missionsOpen', { count: input.planPendingCount }));
   }
   if (input.pendingShareProofs > 0) {
-    missed.push(`${input.pendingShareProofs} AP-Nachweise noch pending`);
+    missed.push(t('evening.proofsPending', { count: input.pendingShareProofs }));
   }
 
   const tomorrow = priorities
@@ -838,13 +880,13 @@ export function buildEveningReport(
     .map((p) => p.title);
 
   if (tomorrow.length === 0) {
-    tomorrow.push('Erste Follow-ups und Onboarding-Checks vor Mittag erledigen');
+    tomorrow.push(t('evening.tomorrowFallback'));
   }
 
   const managerMessages = buildManagerMessages(input, priorities, teamHealth);
 
   return {
-    greeting: `Guten Abend, ${name}.`,
+    greeting: t('evening.greeting', { name }),
     todaysAp: d?.myApTotal ?? 0,
     todaysContactsTouched: input.contacts.filter((c) => {
       const idle = daysSince(c.lastEventAt, input.now);
@@ -869,10 +911,11 @@ export function selectSurfaceInsights(
 }
 
 export function buildCoachOrgIntelligence(input: CoachOrgInput): CoachOrgIntelligence {
+  const t = translator(input);
   const teamHealth = assessOrgHealth(input);
-  const branchHealth = assessBranchHealth(input.partners, input.now);
+  const branchHealth = assessBranchHealth(input.partners, input.now, t);
   const priorities = buildPriorities(input);
-  const onboarding = buildOnboardingLifecycle(input.partners, input.now);
+  const onboarding = buildOnboardingLifecycle(input.partners, input.now, t);
   const personInsights = input.partners
     .filter((p) => p.depth >= 1)
     .slice(0, 40)
@@ -884,9 +927,9 @@ export function buildCoachOrgIntelligence(input: CoachOrgInput): CoachOrgIntelli
             (x) => x.membershipId === o.membershipId && x.sponsorMembershipId === p.membershipId
           )
       ).length;
-      return buildPersonInsight(p, input.now, { directsNeedingHelp });
+      return buildPersonInsight(p, input.now, { directsNeedingHelp }, t);
     });
-  const followUps = buildFollowUpRecommendations(input.contacts, input.now);
+  const followUps = buildFollowUpRecommendations(input.contacts, input.now, t);
   const managerMessages = buildManagerMessages(input, priorities, teamHealth);
   const briefing = buildDailyCeoBriefing(input, priorities, teamHealth);
   const evening = buildEveningReport(input, priorities, teamHealth);
@@ -903,7 +946,7 @@ export function buildCoachOrgIntelligence(input: CoachOrgInput): CoachOrgIntelli
     followUps,
     managerMessages,
     surfaceInsights: selectSurfaceInsights(priorities),
-    executive: buildExecutiveIntelligence(input, teamHealth, priorities),
+    executive: buildExecutiveIntelligence(input, teamHealth, priorities, t),
   };
 }
 

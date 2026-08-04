@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
-import { createTranslator } from '@shared/i18n';
 import { readStoredLocale } from '@shared/lib/locale';
+import { createCoachTranslator } from './i18n';
 
 export interface CoachMessage {
   id: string;
@@ -70,7 +70,7 @@ export function useSendToCoach() {
       });
       if (error) {
         const context = await (error as { context?: Response }).context?.json?.().catch(() => null);
-        throw new Error(context?.error ?? createTranslator(locale)('coach.unreachable'));
+        throw new Error(context?.error ?? createCoachTranslator(locale)('chat.unreachable'));
       }
       return data as SendResult;
     },

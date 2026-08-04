@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { useI18n } from '@shared/i18n';
 import { listPendingShareVerifications } from '@shared/lib/shareVerification';
 import { useContacts } from '@features/contacts/contactsApi';
 import { localDate, type DailyPlanData } from '@features/daily-plan/dailyPlanApi';
@@ -13,6 +14,7 @@ import {
   useTeamLeaderProgress,
 } from '@features/leadership/leadershipApi';
 import { buildCoachOrgIntelligence, isMorningWindow } from './analyzeOrg';
+import { createCoachTranslator } from '../i18n';
 import type {
   CoachContactSnapshot,
   CoachOrgInput,
@@ -48,6 +50,8 @@ export function useCoachOrgIntelligence(enabled = true): {
   isLoading: boolean;
 } {
   const { profile } = useAuth();
+  const { locale } = useI18n();
+  const t = useMemo(() => createCoachTranslator(locale), [locale]);
   const queryClient = useQueryClient();
   const dash = useLeaderDashboard();
   const insights = useTeamInsights();
@@ -119,6 +123,7 @@ export function useCoachOrgIntelligence(enabled = true): {
       pendingShareProofs: listPendingShareVerifications().length,
       planPendingCount: (cachedPlan?.items ?? []).filter((i) => i.status === 'pending').length,
       planDoneCount: (cachedPlan?.items ?? []).filter((i) => i.status === 'done').length,
+      t,
     };
 
     return buildCoachOrgIntelligence(input);
@@ -132,6 +137,7 @@ export function useCoachOrgIntelligence(enabled = true): {
     tree.data,
     tl.data,
     contacts.data,
+    t,
   ]);
 
   const isLoading =

@@ -4,6 +4,7 @@
  */
 
 import type { AppLocale } from '@shared/lib/locale';
+import { createCoachTranslator, type CoachTranslateFn } from './i18n';
 
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 
@@ -19,44 +20,7 @@ export type TeachingMeta = {
 };
 
 type ChromeKind = Exclude<TeachingKind, 'quote'>;
-
-const CHROME_LABELS: Record<AppLocale, Record<ChromeKind, string>> = {
-  de: {
-    mistake: 'Häufigster Fehler',
-    tip: 'Profi-Tipp',
-    action: 'Dein nächster Schritt',
-    why: 'Warum das wichtig ist',
-    important: 'Wichtig',
-  },
-  tr: {
-    mistake: 'En büyük hata',
-    tip: 'Uzman ipucu',
-    action: 'Bir sonraki adımın',
-    why: 'Neden önemli',
-    important: 'Önemli',
-  },
-  fr: {
-    mistake: 'La plus grande erreur',
-    tip: 'Conseil de pro',
-    action: 'Votre prochaine étape',
-    why: "Pourquoi c'est important",
-    important: 'Important',
-  },
-  en: {
-    mistake: 'Biggest mistake',
-    tip: 'Pro tip',
-    action: 'Your next step',
-    why: 'Why it matters',
-    important: 'Important',
-  },
-  it: {
-    mistake: 'Errore più grande',
-    tip: 'Consiglio da professionista',
-    action: 'Il tuo prossimo passo',
-    why: 'Perché è importante',
-    important: 'Importante',
-  },
-};
+type TeachingLocalization = AppLocale | CoachTranslateFn;
 
 const CHROME_MARKS: Record<ChromeKind, string> = {
   mistake: '💡',
@@ -66,8 +30,12 @@ const CHROME_MARKS: Record<ChromeKind, string> = {
   important: '✦',
 };
 
-function teachingMeta(kind: ChromeKind, locale: AppLocale): TeachingMeta {
-  return { kind, label: CHROME_LABELS[locale][kind], mark: CHROME_MARKS[kind] };
+function resolveTranslator(localization: TeachingLocalization): CoachTranslateFn {
+  return typeof localization === 'function' ? localization : createCoachTranslator(localization);
+}
+
+function teachingMeta(kind: ChromeKind, t: CoachTranslateFn): TeachingMeta {
+  return { kind, label: t(`reading.${kind}`), mark: CHROME_MARKS[kind] };
 }
 
 const TEACHING_PATTERNS: Array<{
@@ -76,7 +44,7 @@ const TEACHING_PATTERNS: Array<{
 }> = [
   {
     kind: 'mistake',
-    re: /^(?:\*\*)?(?:💡\s*)?(?:biggest mistake|h[äa]ufigster fehler|gr[öo](?:ss|ß)ter fehler|fehler(?:\s+den viele machen)?|en b[üu]y[üu]k hata|la plus grande erreur|erreur principale|(?:l['’])?errore pi[ùu] grande|errore principale)(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
+    re: /^(?:\*\*)?(?:💡\s*)?(?:biggest mistake|most common mistake|h[äa]ufigster fehler|gr[öo](?:ss|ß)ter fehler|fehler(?:\s+den viele machen)?|en b[üu]y[üu]k hata|en s[ıi]k yap[ıi]lan hata|la plus grande erreur|erreur la plus fr[ée]quente|erreur courante|erreur principale|(?:l['’])?errore pi[ùu] grande|errore pi[ùu] frequente|errore pi[ùu] comune|errore principale)(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
   },
   {
     kind: 'tip',
@@ -98,8 +66,9 @@ const TEACHING_PATTERNS: Array<{
 
 export function matchTeachingLine(
   line: string,
-  locale: AppLocale = 'de'
+  localization: TeachingLocalization = 'de'
 ): { meta: TeachingMeta; body: string } | null {
+  const t = resolveTranslator(localization);
   const trimmed = line
     .replace(/^[-*]\s+/, '')
     .replace(/^>\s?/, '')
@@ -111,7 +80,7 @@ export function matchTeachingLine(
         .replace(p.re, '')
         .replace(/^\*\*|\*\*$/g, '')
         .trim();
-      return { meta: teachingMeta(p.kind, locale), body };
+      return { meta: teachingMeta(p.kind, t), body };
     }
   }
   return null;
@@ -119,9 +88,9 @@ export function matchTeachingLine(
 
 export function detectTeachingFromText(
   text: string,
-  locale: AppLocale = 'de'
+  localization: TeachingLocalization = 'de'
 ): TeachingMeta | null {
-  return matchTeachingLine(text.trim(), locale)?.meta ?? null;
+  return matchTeachingLine(text.trim(), localization)?.meta ?? null;
 }
 
 /** Split a long prose block on sentence boundaries. */
@@ -165,11 +134,14 @@ function autolinkPlainUrls(source: string): string {
 /**
  * Promote teaching / callout lines into labeled blockquotes the UI paints as cards.
  */
-export function promoteTeachingLines(source: string, locale: AppLocale = 'de'): string {
+export function promoteTeachingLines(
+  source: string,
+  localization: TeachingLocalization = 'de'
+): string {
   return source
     .split('\n')
     .map((line) => {
-      const hit = matchTeachingLine(line, locale);
+      const hit = matchTeachingLine(line, localization);
       if (!hit) return line;
       const body = hit.body || line.replace(/^>\s?/, '').trim();
       return `> **${hit.meta.mark} ${hit.meta.label}:** ${body}`;
@@ -180,7 +152,10 @@ export function promoteTeachingLines(source: string, locale: AppLocale = 'de'): 
 /**
  * Break wall-of-text paragraphs; leave lists, headings, quotes intact.
  */
-export function breakWallsOfText(source: string, locale: AppLocale = 'de'): string {
+export function breakWallsOfText(
+  source: string,
+  localization: TeachingLocalization = 'de'
+): string {
   const blocks = source.split(/\n{2,}/);
   const out: string[] = [];
 
@@ -192,7 +167,7 @@ export function breakWallsOfText(source: string, locale: AppLocale = 'de'): stri
     const isSpecial =
       /^(#{1,6}\s|[-*]\s|\d+\.\s|>)/m.test(trimmed) ||
       trimmed.startsWith('```') ||
-      Boolean(matchTeachingLine(first, locale));
+      Boolean(matchTeachingLine(first, localization));
 
     if (isSpecial) {
       out.push(trimmed);
@@ -214,21 +189,30 @@ export function ensureSectionBreathing(source: string): string {
   return s.trim();
 }
 
-export function prepareCoachReading(content: string, locale: AppLocale = 'de'): string {
+export function prepareCoachReading(
+  content: string,
+  localization: TeachingLocalization = 'de'
+): string {
   let s = content.replace(/\r\n/g, '\n').trim();
-  s = breakWallsOfText(s, locale);
-  s = promoteTeachingLines(s, locale);
+  s = breakWallsOfText(s, localization);
+  s = promoteTeachingLines(s, localization);
   s = ensureSectionBreathing(s);
   s = autolinkPlainUrls(s);
   return s;
 }
 
 /** @deprecated */
-export function promoteCalloutLines(source: string, locale: AppLocale = 'de'): string {
-  return promoteTeachingLines(source, locale);
+export function promoteCalloutLines(
+  source: string,
+  localization: TeachingLocalization = 'de'
+): string {
+  return promoteTeachingLines(source, localization);
 }
 
 /** @deprecated */
-export function prepareCoachMarkdown(content: string, locale: AppLocale = 'de'): string {
-  return prepareCoachReading(content, locale);
+export function prepareCoachMarkdown(
+  content: string,
+  localization: TeachingLocalization = 'de'
+): string {
+  return prepareCoachReading(content, localization);
 }

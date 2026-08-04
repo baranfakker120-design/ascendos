@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useMemo, type ReactNode } from 'react';
 import { useI18n } from '@shared/i18n';
-import type { AppLocale } from '@shared/lib/locale';
+import { createCoachTranslator, type CoachTranslateFn } from './i18n';
 import { matchTeachingLine, prepareCoachReading, type TeachingMeta } from './coachReading';
 import './coach-markdown.css';
 
@@ -35,7 +35,7 @@ function TeachingCard({ meta, children }: { meta: TeachingMeta; children: ReactN
   );
 }
 
-function componentsForLocale(locale: AppLocale): Components {
+function componentsForTranslator(t: CoachTranslateFn): Components {
   return {
     p({ children }) {
       return <p className="coach-md__p">{children}</p>;
@@ -69,7 +69,7 @@ function componentsForLocale(locale: AppLocale): Components {
     },
     blockquote({ children }) {
       const text = textFromChildren(children);
-      const hit = matchTeachingLine(text, locale);
+      const hit = matchTeachingLine(text, t);
       if (hit) {
         return (
           <TeachingCard meta={hit.meta}>
@@ -112,8 +112,9 @@ export function CoachMarkdown({
   animate?: boolean;
 }) {
   const { locale } = useI18n();
-  const source = prepareCoachReading(content, locale);
-  const components = useMemo(() => componentsForLocale(locale), [locale]);
+  const t = useMemo(() => createCoachTranslator(locale), [locale]);
+  const source = prepareCoachReading(content, t);
+  const components = useMemo(() => componentsForTranslator(t), [t]);
   return (
     <div className={`coach-md${animate ? ' coach-md--reveal' : ''}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
