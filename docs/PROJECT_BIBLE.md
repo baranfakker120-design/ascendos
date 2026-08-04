@@ -179,15 +179,15 @@ Points (AP — Aktivitätspunkte) exist to reward **productive business activiti
 
 Implemented at the **database layer** (Migration 18 and tests):
 
-| Concept | Role |
-|---|---|
-| `ap_rules` | Configurable mapping from event type → AP (catalog data, not hardcoded values) |
-| `ap_ledger` | Append-only ledger; corrections are counter-entries |
-| `memberships.ap_total` | Cached sum for ranking and lists |
-| `ranks` | Progress thresholds with optional frame keys and payout metadata |
-| `cosmetic_items` / `membership_cosmetics` | Frames and other cosmetics; unlock + equip |
-| `monthly_awards` | “Berater des Monats” places 1–3 |
-| `payouts` | Real-money **claims** (e.g. Team Leader), never auto-transfer |
+| Concept                                   | Role                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------ |
+| `ap_rules`                                | Configurable mapping from event type → AP (catalog data, not hardcoded values) |
+| `ap_ledger`                               | Append-only ledger; corrections are counter-entries                            |
+| `memberships.ap_total`                    | Cached sum for ranking and lists                                               |
+| `ranks`                                   | Progress thresholds with optional frame keys and payout metadata               |
+| `cosmetic_items` / `membership_cosmetics` | Frames and other cosmetics; unlock + equip                                     |
+| `monthly_awards`                          | “Berater des Monats” places 1–3                                                |
+| `payouts`                                 | Real-money **claims** (e.g. Team Leader), never auto-transfer                  |
 
 **Currently not shipped in the frontend:** profile frames UI, AP ticker, rank-up choreography, hero screen, collection page, avatar upload UX. Assets are staged under `docs/brand/sprint4-frames/` and are not yet optimized into `public/`.
 
@@ -217,13 +217,13 @@ Gamification must never become the main purpose of the application. If a user ca
 
 ### Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, PWA |
-| Backend platform | Supabase (Auth, Postgres, RLS, Edge Functions) |
-| Database | PostgreSQL + pgvector |
-| Hosting | Netlify (frontend) + Supabase projects (Staging / Production, EU) |
-| CI | GitHub Actions: lint, format, typecheck, Vitest, build, pgTAP, Gitleaks |
+| Layer            | Technology                                                               |
+| ---------------- | ------------------------------------------------------------------------ |
+| Frontend         | React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, PWA |
+| Backend platform | Supabase (Auth, Postgres, RLS, Edge Functions)                           |
+| Database         | PostgreSQL + pgvector                                                    |
+| Hosting          | Netlify (frontend) + Supabase projects (Staging / Production, EU)        |
+| CI               | GitHub Actions: lint, format, typecheck, Vitest, build, pgTAP, Gitleaks  |
 
 Architecture decisions are recorded in `docs/adr.md` (ADR-001 through ADR-030).
 
@@ -392,16 +392,16 @@ Naming caution: the repository historically used “Sprint 4” for the AI coach
 
 ### Completed product tracks (present in app + DB)
 
-| Track | Delivered |
-|---|---|
-| MVP Sprint 1 — Fundament | Tenancy, profiles, invites, auth, AppShell, genealogy loop |
-| MVP Sprint 2 — Pipeline | Contacts, pipeline events, phases, share tools, timeline |
-| MVP Sprint 3 — Daily Command Center | Rule-engine daily plan, focus mode, mission status, day review |
-| MVP Sprint 4 (historical) — Coach | Ascent, RAG, agents, ingest, guardrails, eval set |
-| Sprint 4.5 / 4.6 — Stabilization & audit | Usage tracking, corrections, profiles_public, validate-invite rate limit, ErrorBoundary, search/pagination, ADR-023 |
-| MVP Sprint 5 — Journey & Progression | 7-day journey, Today routing, achievements, firstline progress view |
-| Identity & Membership (Migrations 15–17) | `memberships`, active org resolution, mirror sync, registration paths |
-| Sprint 4 Gamification — **data foundation** (Migration 18) | AP rules/ledger, ranks, cosmetics, payouts, monthly awards, pgTAP suite |
+| Track                                                      | Delivered                                                                                                           |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| MVP Sprint 1 — Fundament                                   | Tenancy, profiles, invites, auth, AppShell, genealogy loop                                                          |
+| MVP Sprint 2 — Pipeline                                    | Contacts, pipeline events, phases, share tools, timeline                                                            |
+| MVP Sprint 3 — Daily Command Center                        | Rule-engine daily plan, focus mode, mission status, day review                                                      |
+| MVP Sprint 4 (historical) — Coach                          | Ascent, RAG, agents, ingest, guardrails, eval set                                                                   |
+| Sprint 4.5 / 4.6 — Stabilization & audit                   | Usage tracking, corrections, profiles_public, validate-invite rate limit, ErrorBoundary, search/pagination, ADR-023 |
+| MVP Sprint 5 — Journey & Progression                       | 7-day journey, Today routing, achievements, firstline progress view                                                 |
+| Identity & Membership (Migrations 15–17)                   | `memberships`, active org resolution, mirror sync, registration paths                                               |
+| Sprint 4 Gamification — **data foundation** (Migration 18) | AP rules/ledger, ranks, cosmetics, payouts, monthly awards, pgTAP suite                                             |
 
 ### Current project state (summary)
 
@@ -416,17 +416,17 @@ Naming caution: the repository historically used “Sprint 4” for the AI coach
 
 Ordered for risk-first delivery:
 
-0. Validate Migrations 15–18 + full pgTAP; regenerate types; confirm production head  
-1. Set AP values and close open product decisions (streaks, hero minimum, titles)  
-2. Asset pipeline (optimized WebP + frame geometry)  
-3. Storage bucket for avatars + policies  
-4. Shared UI: Avatar, RankFrame, ApBadge (static first)  
-5. Profile feature (view / edit / upload)  
-6. Gamification API + rank progress / energy core without heavy effects  
-7. Wire AP/rank into existing Progress and More surfaces  
-8. Rank-up motion and AP ticker (`prefers-reduced-motion`)  
-9. Hero screen + collection (lazy-loaded)  
-10. Streaks last, with a soft-decay preference unless product decides otherwise  
+0. Validate Migrations 15–18 + full pgTAP; regenerate types; confirm production head
+1. Set AP values and close open product decisions (streaks, hero minimum, titles)
+2. Asset pipeline (optimized WebP + frame geometry)
+3. Storage bucket for avatars + policies
+4. Shared UI: Avatar, RankFrame, ApBadge (static first)
+5. Profile feature (view / edit / upload)
+6. Gamification API + rank progress / energy core without heavy effects
+7. Wire AP/rank into existing Progress and More surfaces
+8. Rank-up motion and AP ticker (`prefers-reduced-motion`)
+9. Hero screen + collection (lazy-loaded)
+10. Streaks last, with a soft-decay preference unless product decides otherwise
 
 ### Explicitly later (roadmap / Phase-0 masterplan — not current Sprint 4 UI)
 
@@ -464,12 +464,12 @@ The north star does not change: **help people do the business**, every day, with
 
 Documentation has a clear hierarchy. Do not invert it.
 
-| Layer | Role |
-|---|---|
+| Layer                   | Role                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------ |
 | `docs/PROJECT_BIBLE.md` | Highest-level product and engineering reference — vision, values, permanent rules, current state |
-| `docs/adr.md` | Why architectural decisions were made, options considered, accepted trade-offs |
-| `supabase/migrations/` | How the database evolved; append-only history of schema and server logic |
-| Application code | How behaviour is implemented today |
+| `docs/adr.md`           | Why architectural decisions were made, options considered, accepted trade-offs                   |
+| `supabase/migrations/`  | How the database evolved; append-only history of schema and server logic                         |
+| Application code        | How behaviour is implemented today                                                               |
 
 Rules:
 
