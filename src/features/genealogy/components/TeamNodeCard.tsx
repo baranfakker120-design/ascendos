@@ -75,6 +75,7 @@ export function TeamNodeCard({
         .filter(Boolean)
         .join(' ')}
       style={style}
+      data-membership-id={node.membershipId}
       onClick={() => onSelect(node)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -89,6 +90,7 @@ export function TeamNodeCard({
       <div className="team-node__glow" aria-hidden />
       <div
         className="team-node__coach"
+        data-tree-coach=""
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
@@ -96,7 +98,9 @@ export function TeamNodeCard({
           insight={coachInsight}
           onAsk={(prompt) => {
             writePendingSeed(prompt);
-            navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`);
+            navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`, {
+              state: { fromMember: true },
+            });
           }}
         />
       </div>
@@ -155,6 +159,7 @@ export function TeamNodeCard({
         <button
           type="button"
           className="team-node__collapse"
+          data-tree-collapse=""
           aria-expanded={!collapsed}
           aria-label={collapsed ? t('team.expandBranch') : t('team.collapseBranch')}
           onClick={(e) => {

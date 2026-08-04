@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Button } from '@shared/ui/Button';
@@ -21,24 +21,23 @@ interface NodeDetailSheetProps {
   node: GenealogyNode;
   directs: GenealogyNode[];
   editable: boolean;
-  /** Initial tab when opening the sheet (deep link / back from conversation). */
-  initialTab?: NodeDetailTab;
+  /** Controlled tab — kept in the Team URL so Coach Back restores it. */
+  tab?: NodeDetailTab;
+  onTabChange?: (tab: NodeDetailTab) => void;
 }
 
 export function NodeDetailContent({
   node,
   directs,
   editable,
-  initialTab = 'overview',
+  tab: tabProp = 'overview',
+  onTabChange,
 }: NodeDetailSheetProps) {
   const { t, locale } = useI18n();
-  const [tab, setTab] = useState<NodeDetailTab>(initialTab);
+  const tab = tabProp;
+  const setTab = (next: NodeDetailTab) => onTabChange?.(next);
   const { intelligence } = useCoachOrgIntelligence(true);
   const insight = findPersonInsight(intelligence, node.membershipId);
-
-  useEffect(() => {
-    setTab(initialTab);
-  }, [node.membershipId, initialTab]);
 
   const frameKey = resolveDisplayFrameKey({
     role: node.role,

@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_SCALE, MIN_SCALE, type CameraState } from '../types';
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+import { clampScale, panCamera, zoomCameraAt } from './cameraMath';
 
 /**
  * Camera driven by refs during gestures (no React re-render per frame).
- * Subscribers get rAF updates; React state syncs after gesture end / zoom settle.
+ * Subscribers get updates; React state syncs after gesture end / zoom settle.
+ * scale / x / y live in one persistent ref — never recreated on touch start.
  */
 export function useGenealogyCamera(initial?: Partial<CameraState>) {
   const cameraRef = useRef<CameraState>({
@@ -40,7 +38,7 @@ export function useGenealogyCamera(initial?: Partial<CameraState>) {
       cameraRef.current = {
         x: next.x,
         y: next.y,
-        scale: clamp(next.scale, MIN_SCALE, MAX_SCALE),
+        scale: clampScale(next.scale, MIN_SCALE, MAX_SCALE),
       };
       emit();
     },
@@ -49,8 +47,7 @@ export function useGenealogyCamera(initial?: Partial<CameraState>) {
 
   const panBy = useCallback(
     (dx: number, dy: number) => {
-      cameraRef.current.x += dx;
-      cameraRef.current.y += dy;
+      cameraRef.current = panCamera(cameraRef.current, dx, dy);
       emit();
     },
     [emit]
@@ -58,15 +55,16 @@ export function useGenealogyCamera(initial?: Partial<CameraState>) {
 
   const zoomAt = useCallback(
     (clientX: number, clientY: number, factor: number, origin: DOMRect) => {
-      const prev = cameraRef.current;
-      const nextScale = clamp(prev.scale * factor, MIN_SCALE, MAX_SCALE);
-      const wx = (clientX - origin.left - prev.x) / prev.scale;
-      const wy = (clientY - origin.top - prev.y) / prev.scale;
-      cameraRef.current = {
-        scale: nextScale,
-        x: clientX - origin.left - wx * nextScale,
-        y: clientY - origin.top - wy * nextScale,
-      };
+      const focalX = clientX - origin.left;
+      const focalY = clientY - origin.top;
+      cameraRef.current = zoomCameraAt(
+        cameraRef.current,
+        focalX,
+        focalY,
+        factor,
+        MIN_SCALE,
+        MAX_SCALE
+      );
       emit();
     },
     [emit]
@@ -74,7 +72,7 @@ export function useGenealogyCamera(initial?: Partial<CameraState>) {
 
   const focusOn = useCallback(
     (worldX: number, worldY: number, viewportW: number, viewportH: number, scale?: number) => {
-      const s = clamp(scale ?? cameraRef.current.scale, MIN_SCALE, MAX_SCALE);
+      const s = clampScale(scale ?? cameraRef.current.scale, MIN_SCALE, MAX_SCALE);
       cameraRef.current = {
         scale: s,
         x: viewportW / 2 - worldX * s,

@@ -27,6 +27,8 @@
   overflow: hidden;
   cursor: grab;
   overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .genealogy-viewport__stage:active {
