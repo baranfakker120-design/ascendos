@@ -121,7 +121,7 @@ In Phase 0.1 hatte ich eine Tabelle `admin_secrets` mit einer `is_super_admin()`
 
 Mein Vorschlag ist schwächer: Eine `is_super_admin()`-Policy bedeutet, dass jede Sitzung eines Super-Admins die Geheimnisse über die öffentliche API lesen kann. Ein gestohlenes Sitzungstoken genügt.
 
-Zweiter, wichtigerer Punkt: Braucht AscendOS diese Geheimnisse überhaupt? `teamseyda2026` ist ein Zugangswort für externe Netlify-Werkzeuge. `waytomoon` ist ein Adminpasswort einer anderen Anwendung. AscendOS benötigt beide nicht, um zu funktionieren.
+Zweiter, wichtigerer Punkt: Braucht AscendOS diese Geheimnisse überhaupt? `teamseyda2026` ist ein Zugangswort für externe Team-Werkzeuge. `waytomoon` ist ein Adminpasswort einer anderen Anwendung. AscendOS benötigt beide nicht, um zu funktionieren.
 
 **Auswirkung**
 

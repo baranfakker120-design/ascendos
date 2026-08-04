@@ -694,7 +694,7 @@ Grössenordnung: drei Wochen. Komplexität hoch. Priorität hoch, aber blockiert
 
 12_GITHUB.md und 16_AUTOMATISIERUNGEN.md sind eindeutig: Zeitgesteuerte Funktionen werden nur bei Git-Anbindung zuverlässig registriert. Bei Drag-and-Drop ist die Registrierung unzuverlässig.
 
-AscendOS ist bereits ein Git-Projekt mit Netlify-Anbindung und Supabase Edge Functions. Für AscendOS ist diese Vorbedingung damit erfüllt. Sie bleibt offen für die Generation-1-Werkzeuge, die laut 12_GITHUB.md kein Repository haben.
+AscendOS ist bereits ein Git-Projekt mit Cloudflare-Pages-Anbindung und Supabase Edge Functions. Für AscendOS ist diese Vorbedingung damit erfüllt. Sie bleibt offen für die Generation-1-Werkzeuge, die laut 12_GITHUB.md kein Repository haben.
 
 Anzumerken: Ihr Berater-Tagesrhythmus aus 01_TEAM_SEYDA.md ist zeitgebunden. Morgens Direktnachrichten, mittags Follow-ups, abends EOM-Einladungen. Benachrichtigungen ohne Zeitsteuerung würden diesen Rhythmus nicht abbilden können.
 
@@ -1074,7 +1074,7 @@ Das ist relevant, weil dort möglicherweise 158 gepflegte Notenpyramiden liegen,
 
 Ich habe die Tabellen nicht angesehen, weil Sie das untersagt hatten. Bitte klären: Fremdprojekt oder eigener Bestand?
 
-### 3. Netlify Functions oder Supabase Edge Functions?
+### 3. Hosting-Functions (historisch Netlify) oder Supabase Edge Functions?
 
 13_SUPABASE.md und 19_ZUKUNFT führen das als offene Architekturentscheidung. Für AscendOS ist sie faktisch getroffen: Edge Functions sind im Einsatz, mit Nähe zur Datenbank und RLS an einer Stelle. Offen bleibt sie für die Generation-1-Werkzeuge. Meine Empfehlung: Neues in AscendOS, Bestehendes nicht anfassen, solange es läuft.
 

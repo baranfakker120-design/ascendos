@@ -416,7 +416,7 @@ Jeder Bereich aus der Aufgabenliste, mit Sprintzuordnung. Drei Bereiche brauchen
 | **PWA**                         | `vite-plugin-pwa` eingebunden                                               | Symbole in Sprint 6, Zwischenspeicher in Sprint 11                                                                                                                      |
 | **Dateiupload**                 | Wissensupload mit Ziehen und Ablegen vorhanden, Textauslesung im Browser    | Statusmetadaten in Sprint 8. Kein Speicherdienst nötig, weil nur Text übertragen wird                                                                                   |
 | **Testing**                     | Vitest eingebunden, pgTAP mit 94 Prüfungen geschrieben                      | Ausführbarkeit in Sprint 0. Frontend-Prüfungen sind eine offene Flanke, siehe 6.3                                                                                       |
-| **CI und Deployment**           | drei CI-Aufgaben, Netlify verbunden, Generatoren mit Abgleich               | Instandsetzung in Sprint 0                                                                                                                                              |
+| **CI und Deployment**           | drei CI-Aufgaben, Cloudflare Pages verbunden, Generatoren mit Abgleich      | Instandsetzung in Sprint 0                                                                                                                                              |
 
 ## 6.2 Bereiche mit Sprintzuordnung
 

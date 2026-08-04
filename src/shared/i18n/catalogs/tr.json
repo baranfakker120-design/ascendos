@@ -47,7 +47,7 @@
   },
   "boot": {
     "configMissingTitle": "AscendOS henüz yapılandırılmadı.",
-    "configMissingBody": "VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY ortam değişkenleri eksik. Netlify’de Site settings → Environment variables altında ayarla ve yeniden deploy et."
+    "configMissingBody": "VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY ortam değişkenleri eksik. Cloudflare Pages → Settings → Environment variables (Production ve Preview) altında ayarla ve yeniden deploy et — Vite bunları yalnızca derleme sırasında okur."
   },
   "errors": {
     "boundaryTitle": "Bir şeyler ters gitti.",
