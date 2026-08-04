@@ -97,6 +97,19 @@ export function ProfilePage() {
           {t('profile.edit')}
         </Button>
       </Link>
+
+      <Card>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('firstLaunch.helpEyebrow')}
+        </p>
+        <p className="mt-1 font-semibold">{t('firstLaunch.helpTitle')}</p>
+        <p className="mt-1 text-sm text-muted">{t('firstLaunch.helpBody')}</p>
+        <Link to="/hilfe/installation" className="mt-3 block">
+          <Button type="button" variant="secondary">
+            {t('firstLaunch.openGuide')}
+          </Button>
+        </Link>
+      </Card>
     </div>
   );
 }
