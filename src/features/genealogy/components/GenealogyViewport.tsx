@@ -8,6 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { layoutGenealogyTree, intersects, nodeBounds, worldViewRect } from '../engine/layout';
+import { dist2, midpoint } from '../engine/cameraMath';
 import { useGenealogyCamera } from '../engine/useGenealogyCamera';
 import type { GenealogyNode, LayoutPoint } from '../types';
 import { GenealogyEdges } from './GenealogyEdges';
@@ -24,6 +25,15 @@ interface GenealogyViewportProps {
   onToggleCollapse: (node: GenealogyNode) => void;
 }
 
+const TAP_MOVE_PX = 10;
+
+type PointerSample = { x: number; y: number };
+
+/**
+ * Structure-tree camera viewport.
+ * Gestures are Maps/Figma-stable: capture on the stage, persist scale/x/y in a
+ * ref, and never reset transform when a new touch starts.
+ */
 export function GenealogyViewport({
   nodes,
   visibleIds,
@@ -69,7 +79,7 @@ export function GenealogyViewport({
     return subscribe(apply);
   }, [cameraRef, subscribe]);
 
-  // Center root on first layout
+  // Center root on first layout only — never again on touch / resize alone
   const didCenter = useRef(false);
   useEffect(() => {
     if (didCenter.current || layout.nodes.length === 0) return;
@@ -79,8 +89,18 @@ export function GenealogyViewport({
     didCenter.current = true;
   }, [layout.nodes, focusOn, size.w, size.h]);
 
+  const gesturingRef = useRef(false);
   const [tick, setTick] = useState(0);
-  useEffect(() => subscribe(() => setTick((t) => t + 1)), [subscribe]);
+
+  // Cull only when idle — never remount cards mid-gesture (that stole pointer capture)
+  useEffect(
+    () =>
+      subscribe(() => {
+        if (gesturingRef.current) return;
+        setTick((n) => n + 1);
+      }),
+    [subscribe]
+  );
 
   const visibleLayoutNodes: LayoutPoint[] = useMemo(() => {
     void tick;
@@ -88,20 +108,44 @@ export function GenealogyViewport({
     return layout.nodes.filter((n) => intersects(nodeBounds(n), view));
   }, [layout.nodes, size.w, size.h, tick, cameraRef]);
 
-  // Pointer / pinch
   const drag = useRef<{
-    pointers: Map<number, { x: number; y: number }>;
+    pointers: Map<number, PointerSample>;
     lastDist: number | null;
     mode: 'pan' | 'pinch' | null;
-  }>({ pointers: new Map(), lastDist: null, mode: null });
+    moved: boolean;
+    start: PointerSample | null;
+  }>({ pointers: new Map(), lastDist: null, mode: null, moved: false, start: null });
+
+  const syncPinchBaseline = () => {
+    if (drag.current.pointers.size < 2) {
+      drag.current.lastDist = null;
+      return;
+    }
+    const pts = [...drag.current.pointers.values()];
+    drag.current.lastDist = dist2(pts[0]!, pts[1]!);
+  };
 
   const onPointerDown = (e: ReactPointerEvent) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    drag.current.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    drag.current.mode = drag.current.pointers.size >= 2 ? 'pinch' : 'pan';
-    if (drag.current.pointers.size === 2) {
-      const pts = [...drag.current.pointers.values()];
-      drag.current.lastDist = Math.hypot(pts[0]!.x - pts[1]!.x, pts[0]!.y - pts[1]!.y);
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    const stage = hostRef.current;
+    if (!stage) return;
+
+    // Capture on the stable stage — never on a virtualized node card
+    stage.setPointerCapture?.(e.pointerId);
+
+    const sample = { x: e.clientX, y: e.clientY };
+    drag.current.pointers.set(e.pointerId, sample);
+    gesturingRef.current = true;
+
+    if (drag.current.pointers.size >= 2) {
+      drag.current.mode = 'pinch';
+      drag.current.moved = true; // pinch is never a tap
+      syncPinchBaseline();
+    } else {
+      drag.current.mode = 'pan';
+      drag.current.moved = false;
+      drag.current.start = sample;
+      drag.current.lastDist = null;
     }
   };
 
@@ -111,13 +155,21 @@ export function GenealogyViewport({
     const next = { x: e.clientX, y: e.clientY };
     drag.current.pointers.set(e.pointerId, next);
 
-    if (drag.current.pointers.size >= 2 && hostRef.current) {
+    if (drag.current.start && !drag.current.moved) {
+      if (dist2(drag.current.start, next) > TAP_MOVE_PX) drag.current.moved = true;
+    }
+
+    const stage = hostRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+
+    if (drag.current.pointers.size >= 2) {
+      drag.current.mode = 'pinch';
       const pts = [...drag.current.pointers.values()];
-      const dist = Math.hypot(pts[0]!.x - pts[1]!.x, pts[0]!.y - pts[1]!.y);
-      if (drag.current.lastDist && dist > 0) {
-        const midX = (pts[0]!.x + pts[1]!.x) / 2;
-        const midY = (pts[0]!.y + pts[1]!.y) / 2;
-        zoomAt(midX, midY, dist / drag.current.lastDist, hostRef.current.getBoundingClientRect());
+      const dist = dist2(pts[0]!, pts[1]!);
+      if (drag.current.lastDist && drag.current.lastDist > 0 && dist > 0) {
+        const mid = midpoint(pts[0]!, pts[1]!);
+        zoomAt(mid.x, mid.y, dist / drag.current.lastDist, rect);
       }
       drag.current.lastDist = dist;
       return;
@@ -129,12 +181,73 @@ export function GenealogyViewport({
   };
 
   const endPointer = (e: ReactPointerEvent) => {
+    if (!drag.current.pointers.has(e.pointerId)) return;
     drag.current.pointers.delete(e.pointerId);
-    if (drag.current.pointers.size < 2) drag.current.lastDist = null;
+
+    const stage = hostRef.current;
+    if (stage?.hasPointerCapture?.(e.pointerId)) {
+      stage.releasePointerCapture?.(e.pointerId);
+    }
+
+    if (drag.current.pointers.size >= 2) {
+      drag.current.mode = 'pinch';
+      syncPinchBaseline();
+      return;
+    }
+
+    if (drag.current.pointers.size === 1) {
+      // Continue panning with the remaining finger — do not reset camera
+      drag.current.mode = 'pan';
+      drag.current.lastDist = null;
+      const remaining = [...drag.current.pointers.values()][0];
+      drag.current.start = remaining ?? null;
+      return;
+    }
+
+    // Gesture fully ended — persist camera via commit; refresh culling once
+    const wasTap = !drag.current.moved && drag.current.mode === 'pan';
+    const tapAt = drag.current.start;
+    drag.current.mode = null;
+    drag.current.lastDist = null;
+    drag.current.start = null;
+    gesturingRef.current = false;
+    commit();
+    setTick((n) => n + 1);
+
+    if (wasTap && tapAt) {
+      maybeSelectAt(tapAt.x, tapAt.y);
+    }
+  };
+
+  const onLostPointerCapture = (e: ReactPointerEvent) => {
+    if (!drag.current.pointers.has(e.pointerId)) return;
+    drag.current.pointers.delete(e.pointerId);
     if (drag.current.pointers.size === 0) {
       drag.current.mode = null;
+      drag.current.lastDist = null;
+      drag.current.start = null;
+      gesturingRef.current = false;
       commit();
+      setTick((n) => n + 1);
+    } else if (drag.current.pointers.size === 1) {
+      drag.current.mode = 'pan';
+      drag.current.lastDist = null;
+    } else {
+      syncPinchBaseline();
     }
+  };
+
+  const maybeSelectAt = (clientX: number, clientY: number) => {
+    const hit = document.elementFromPoint(clientX, clientY);
+    if (!hit) return;
+    if (hit.closest('[data-tree-collapse]')) return;
+    if (hit.closest('[data-tree-coach]')) return;
+
+    const card = hit.closest('[data-membership-id]') as HTMLElement | null;
+    const id = card?.dataset.membershipId;
+    if (!id) return;
+    const node = byId.get(id);
+    if (node) onSelect(node);
   };
 
   const onWheel = useCallback(
@@ -157,6 +270,7 @@ export function GenealogyViewport({
 
   const lastTap = useRef(0);
   const onDoubleTapZoom = (e: ReactPointerEvent) => {
+    if (drag.current.pointers.size > 1) return;
     const now = Date.now();
     if (now - lastTap.current < 280 && hostRef.current) {
       const rect = hostRef.current.getBoundingClientRect();
@@ -164,11 +278,11 @@ export function GenealogyViewport({
       const factor = target / cameraRef.current.scale;
       zoomAt(e.clientX, e.clientY, factor, rect);
       commit();
+      drag.current.moved = true; // suppress tap-select
     }
     lastTap.current = now;
   };
 
-  // Mini-map click focus
   const onMiniMapClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const mx = (e.clientX - rect.left) / rect.width;
@@ -190,6 +304,7 @@ export function GenealogyViewport({
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
+        onLostPointerCapture={onLostPointerCapture}
         role="application"
         aria-label={t('team.treeHintAria')}
       >

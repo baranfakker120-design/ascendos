@@ -195,12 +195,20 @@ export function PersonCoachConversationPage() {
       })
     : 'default';
 
-  const backToCoachOverview = () => {
-    navigate(`/team?member=${encodeURIComponent(membershipId)}&tab=coach`);
+  const memberTeamUrl = (tab: 'coach' | 'overview') => {
+    const q = new URLSearchParams();
+    q.set('member', membershipId);
+    if (tab === 'coach') q.set('tab', 'coach');
+    return `/team?${q.toString()}`;
+  };
+
+  /** Close conversation only — reopen the same member sheet on the Coach tab. */
+  const backToMemberDetail = () => {
+    navigate(memberTeamUrl('coach'), { replace: true });
   };
 
   const openMemberProfile = () => {
-    navigate(`/team?member=${encodeURIComponent(membershipId)}&tab=overview`);
+    navigate(memberTeamUrl('overview'), { replace: true });
   };
 
   return (
@@ -211,7 +219,7 @@ export function PersonCoachConversationPage() {
           variant="ghost"
           size="sm"
           fullWidth={false}
-          onClick={backToCoachOverview}
+          onClick={backToMemberDetail}
         >
           ← {t('common.back')}
         </Button>

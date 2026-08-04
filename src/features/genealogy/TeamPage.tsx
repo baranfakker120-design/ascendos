@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Link, useSearchParams } from 'react-router-dom';
 import { isMissingRpcError } from '@shared/api/rpcErrors';
@@ -51,6 +51,9 @@ function TeamEmptyState() {
 /**
  * Sprint 4.2 — Leader Experience + Genealogy Engine.
  * Empty downline is a first-class state, never an error.
+ *
+ * Member selection lives in the URL (`?member=&tab=`) so Coach → Back
+ * can restore the open member sheet without losing navigation context.
  */
 export function TeamPage() {
   const { t } = useI18n();
@@ -65,29 +68,45 @@ export function TeamPage() {
   const [filter, setFilter] = useState<GenealogyFilter>('all');
   const [mode, setMode] = useState<'tree' | 'list'>('tree');
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
-  const [selected, setSelected] = useState<GenealogyNode | null>(null);
-  const [detailTab, setDetailTab] = useState<NodeDetailTab>('overview');
   const [showOps, setShowOps] = useState(true);
   const teamUiHydrated = useRef(false);
-  const memberDeepLinkHandled = useRef<string | null>(null);
 
-  // Deep link: /team?member=<mid>&tab=coach|overview — restore member sheet after Coach conversation.
-  useEffect(() => {
-    const mid = searchParams.get('member');
-    if (!mid || isPending || !nodes.length) return;
-    const key = `${mid}|${searchParams.get('tab') ?? 'overview'}`;
-    if (memberDeepLinkHandled.current === key) return;
-    const node = nodes.find((n) => n.membershipId === mid);
-    if (!node) return;
-    memberDeepLinkHandled.current = key;
-    setSelected(node);
-    const tab = searchParams.get('tab');
-    setDetailTab(tab === 'coach' ? 'coach' : 'overview');
+  const memberParam = searchParams.get('member');
+  const detailTab: NodeDetailTab = searchParams.get('tab') === 'coach' ? 'coach' : 'overview';
+
+  const selected = useMemo(() => {
+    if (!memberParam) return null;
+    return nodes.find((n) => n.membershipId === memberParam) ?? null;
+  }, [nodes, memberParam]);
+
+  const openMember = useCallback(
+    (node: GenealogyNode, tab: NodeDetailTab = 'overview') => {
+      const next = new URLSearchParams(searchParams);
+      next.set('member', node.membershipId);
+      if (tab === 'coach') next.set('tab', 'coach');
+      else next.delete('tab');
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const closeMember = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete('member');
     next.delete('tab');
     setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, nodes, isPending]);
+  }, [searchParams, setSearchParams]);
+
+  const setDetailTab = useCallback(
+    (tab: NodeDetailTab) => {
+      if (!memberParam) return;
+      const next = new URLSearchParams(searchParams);
+      if (tab === 'coach') next.set('tab', 'coach');
+      else next.delete('tab');
+      setSearchParams(next, { replace: true });
+    },
+    [memberParam, searchParams, setSearchParams]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -140,7 +159,7 @@ export function TeamPage() {
 
   const selectById = (membershipId: string) => {
     const node = nodes.find((n) => n.membershipId === membershipId);
-    if (node) setSelected(node);
+    if (node) openMember(node, 'overview');
   };
 
   if (isPending) {
@@ -233,7 +252,7 @@ export function TeamPage() {
               collapsed={collapsed}
               selectedId={selected?.membershipId ?? null}
               editableIds={editableIds}
-              onSelect={setSelected}
+              onSelect={(node) => openMember(node, 'overview')}
               onToggleCollapse={onToggleCollapse}
             />
           ) : (
@@ -242,7 +261,7 @@ export function TeamPage() {
                 nodes={nodes}
                 visibleIds={visibleIds}
                 selectedId={selected?.membershipId ?? null}
-                onSelect={setSelected}
+                onSelect={(node) => openMember(node, 'overview')}
               />
             </div>
           )
@@ -264,17 +283,15 @@ export function TeamPage() {
         title={
           selected ? `${selected.firstName} ${selected.lastName}`.trim() || t('team.partner') : ''
         }
-        onClose={() => {
-          setSelected(null);
-          setDetailTab('overview');
-        }}
+        onClose={closeMember}
       >
         {selected ? (
           <NodeDetailContent
             node={selected}
             directs={directsOfSelected}
             editable={editableIds.has(selected.membershipId)}
-            initialTab={detailTab}
+            tab={detailTab}
+            onTabChange={setDetailTab}
           />
         ) : null}
       </BottomSheet>

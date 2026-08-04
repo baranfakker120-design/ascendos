@@ -51,7 +51,9 @@ export function NodeCoachTab({ node, insight, editable = true }: Props) {
 
   const openConversation = (seed?: string) => {
     if (seed?.trim()) writePendingSeed(seed.trim());
-    void navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`);
+    void navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`, {
+      state: { fromMember: true },
+    });
   };
 
   return (
@@ -95,7 +97,9 @@ export function NodeCoachTab({ node, insight, editable = true }: Props) {
           text={localInsight.suggestedWhatsApp}
           onEdit={(text) => {
             writePendingSeed(t('coach.improveDraft', { name: first, draft: text }));
-            void navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`);
+            void navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`, {
+              state: { fromMember: true },
+            });
           }}
         />
       ) : null}
