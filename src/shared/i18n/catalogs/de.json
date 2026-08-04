@@ -9,7 +9,11 @@
     "syncing": "Wird synchronisiert …",
     "offline": "Offline",
     "offlinePending": "Offline · {count} ausstehend",
-    "pendingUploads": "{count} ausstehend"
+    "pendingUploads": "{count} ausstehend",
+    "homeSynced": "Synced",
+    "homeSyncing": "Syncing",
+    "homeOffline": "Offline",
+    "homePending": "Pending"
   },
   "common": {
     "loading": "AscendOS wird geladen …",
@@ -382,7 +386,8 @@
     "emptyHint": "Deine Pipeline ist ruhig — schau bei Kontakten vorbei oder komm morgen wieder.",
     "saving": "Wird gespeichert …",
     "energyBodyBefore": "Ein Blick in deine",
-    "energyBodyAfter": "lohnt immer — oder genieß den Feierabend. Morgen früh steht dein neuer Plan bereit."
+    "energyBodyAfter": "lohnt immer — oder genieß den Feierabend. Morgen früh steht dein neuer Plan bereit.",
+    "missionTitle": "Heutige Mission"
   },
   "journey": {
     "title": "Deine Reise",
@@ -528,6 +533,35 @@
         "leadership": "Leadership",
         "general": "Freier Chat"
       }
+    },
+    "exec": {
+      "homeTitle": "Dein virtueller Geschäftsführer",
+      "homeBody": "Ascent kennt Team, Ziel, Qualifikation und Momentum — und schlägt heute, diese Woche und diesen Monat vor.",
+      "openWorkspace": "Coach öffnen",
+      "horizonLabel": "Zeithorizont",
+      "horizon": {
+        "today": "Heute",
+        "week": "Diese Woche",
+        "month": "Diesen Monat"
+      },
+      "suggestActivateLabel": "Ich möchte {name} aktivieren.",
+      "suggestActivatePrompt": "Als Geschäftsführer: Ich möchte {name} aktivieren. Nächster Schritt: {action}. Warum: {why}",
+      "suggestWhoNeedsLabel": "Wer braucht heute Coaching?",
+      "suggestWhoNeedsPrompt": "Als Geschäftsführer: Wer braucht heute Coaching — starte mit {name} und gib mir den klaren nächsten Schritt.",
+      "suggestWeakLineLabel": "Welche Linie ist gefährdet?",
+      "suggestWeakLinePrompt": "Als Geschäftsführer: Welche Linie ist gefährdet und was tue ich diese Woche? Kontext: {detail}",
+      "suggestNextLeaderLabel": "Wer ist mein nächster Leader?",
+      "suggestNextLeaderPrompt": "Als Geschäftsführer: Wer ist mein nächster Leader und wie entwickle ich {name} diesen Monat?",
+      "suggestFollowUpLabel": "Follow-up mit {name}",
+      "suggestFollowUpPrompt": "Als Geschäftsführer: Follow-up mit {name}. Warum: {why}. Aktion: {action}",
+      "suggestTeamLeaderLabel": "Wie werde ich TeamLeader?",
+      "suggestTeamLeaderPrompt": "Als Geschäftsführer: Wie werde ich TeamLeader — Qualifikation, Lücken und der nächste konkrete Schritt.",
+      "suggestTodayFocusLabel": "Was ist heute die höchste Priorität?",
+      "suggestTodayFocusPrompt": "Als Geschäftsführer: Was ist heute die höchste Priorität — und warum genau diese?",
+      "suggestWeekPlanLabel": "Plane meine Woche.",
+      "suggestWeekPlanPrompt": "Als Geschäftsführer: Plane meine Woche mit Fokus auf schwache Linien, Follow-ups und Qualifikation.",
+      "suggestMomentumLabel": "Wo steht unser Momentum?",
+      "suggestMomentumPrompt": "Als Geschäftsführer: Wo steht unser Momentum — starke vs. schwache Beine, Onboarding und Leadership."
     }
   },
   "profile": {

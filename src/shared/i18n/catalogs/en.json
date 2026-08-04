@@ -9,7 +9,11 @@
     "syncing": "Syncing …",
     "offline": "Offline",
     "offlinePending": "Offline · {count} pending",
-    "pendingUploads": "{count} pending"
+    "pendingUploads": "{count} pending",
+    "homeSynced": "Synced",
+    "homeSyncing": "Syncing",
+    "homeOffline": "Offline",
+    "homePending": "Pending"
   },
   "common": {
     "loading": "AscendOS is loading …",
@@ -382,7 +386,8 @@
     "emptyHint": "Your pipeline is quiet — check contacts or come back tomorrow.",
     "saving": "Saving …",
     "energyBodyBefore": "A look at your",
-    "energyBodyAfter": "always pays off — or enjoy the evening. Tomorrow morning your new plan will be ready."
+    "energyBodyAfter": "always pays off — or enjoy the evening. Tomorrow morning your new plan will be ready.",
+    "missionTitle": "Today's Mission"
   },
   "journey": {
     "title": "Your journey",
@@ -528,6 +533,35 @@
         "leadership": "Leadership",
         "general": "Open chat"
       }
+    },
+    "exec": {
+      "homeTitle": "Your virtual managing director",
+      "homeBody": "Ascent already knows your team, goal, qualification and momentum — and suggests Today, This Week and This Month.",
+      "openWorkspace": "Open Coach",
+      "horizonLabel": "Time horizon",
+      "horizon": {
+        "today": "Today",
+        "week": "This Week",
+        "month": "This Month"
+      },
+      "suggestActivateLabel": "I want to activate {name}.",
+      "suggestActivatePrompt": "As managing director: I want to activate {name}. Next step: {action}. Why: {why}",
+      "suggestWhoNeedsLabel": "Who needs coaching today?",
+      "suggestWhoNeedsPrompt": "As managing director: Who needs coaching today — start with {name} and give me the clear next step.",
+      "suggestWeakLineLabel": "Which line is at risk?",
+      "suggestWeakLinePrompt": "As managing director: Which line is at risk and what do I do this week? Context: {detail}",
+      "suggestNextLeaderLabel": "Who is my next leader?",
+      "suggestNextLeaderPrompt": "As managing director: Who is my next leader and how do I develop {name} this month?",
+      "suggestFollowUpLabel": "Follow up with {name}",
+      "suggestFollowUpPrompt": "As managing director: Follow up with {name}. Why: {why}. Action: {action}",
+      "suggestTeamLeaderLabel": "How do I become Team Leader?",
+      "suggestTeamLeaderPrompt": "As managing director: How do I become Team Leader — qualification, gaps, and the next concrete step.",
+      "suggestTodayFocusLabel": "What is today’s highest priority?",
+      "suggestTodayFocusPrompt": "As managing director: What is today’s highest priority — and why exactly that one?",
+      "suggestWeekPlanLabel": "Plan my week.",
+      "suggestWeekPlanPrompt": "As managing director: Plan my week focusing on weak lines, follow-ups, and qualification.",
+      "suggestMomentumLabel": "Where is our momentum?",
+      "suggestMomentumPrompt": "As managing director: Where is our momentum — strong vs weak legs, onboarding, and leadership."
     }
   },
   "profile": {

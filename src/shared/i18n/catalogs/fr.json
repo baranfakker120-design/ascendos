@@ -9,7 +9,11 @@
     "syncing": "Synchronisation …",
     "offline": "Hors ligne",
     "offlinePending": "Hors ligne · {count} en attente",
-    "pendingUploads": "{count} en attente"
+    "pendingUploads": "{count} en attente",
+    "homeSynced": "Synced",
+    "homeSyncing": "Syncing",
+    "homeOffline": "Offline",
+    "homePending": "Pending"
   },
   "common": {
     "loading": "AscendOS charge …",
@@ -382,7 +386,8 @@
     "emptyHint": "Votre pipeline est calme — jetez un œil aux contacts ou revenez demain.",
     "saving": "Enregistrement …",
     "energyBodyBefore": "Un regard sur votre",
-    "energyBodyAfter": "vaut toujours le coup — ou profitez de la soirée. Demain matin, votre nouveau plan sera prêt."
+    "energyBodyAfter": "vaut toujours le coup — ou profitez de la soirée. Demain matin, votre nouveau plan sera prêt.",
+    "missionTitle": "Mission du jour"
   },
   "journey": {
     "title": "Ton parcours",
@@ -528,6 +533,35 @@
         "leadership": "Leadership",
         "general": "Chat libre"
       }
+    },
+    "exec": {
+      "homeTitle": "Votre directeur virtuel",
+      "homeBody": "Ascent connaît déjà ton équipe, ton objectif, ta qualification et ton élan — et propose Aujourd’hui, Cette semaine et Ce mois.",
+      "openWorkspace": "Ouvrir Coach",
+      "horizonLabel": "Horizon",
+      "horizon": {
+        "today": "Aujourd’hui",
+        "week": "Cette semaine",
+        "month": "Ce mois"
+      },
+      "suggestActivateLabel": "Je veux activer {name}.",
+      "suggestActivatePrompt": "En tant que directeur: je veux activer {name}. Prochaine étape: {action}. Pourquoi: {why}",
+      "suggestWhoNeedsLabel": "Qui a besoin de coaching aujourd’hui ?",
+      "suggestWhoNeedsPrompt": "En tant que directeur: qui a besoin de coaching aujourd’hui — commence avec {name} et donne la prochaine étape claire.",
+      "suggestWeakLineLabel": "Quelle ligne est en danger ?",
+      "suggestWeakLinePrompt": "En tant que directeur: quelle ligne est en danger et que faire cette semaine ? Contexte: {detail}",
+      "suggestNextLeaderLabel": "Qui est mon prochain leader ?",
+      "suggestNextLeaderPrompt": "En tant que directeur: qui est mon prochain leader et comment développer {name} ce mois-ci ?",
+      "suggestFollowUpLabel": "Relancer {name}",
+      "suggestFollowUpPrompt": "En tant que directeur: relancer {name}. Pourquoi: {why}. Action: {action}",
+      "suggestTeamLeaderLabel": "Comment devenir Team Leader ?",
+      "suggestTeamLeaderPrompt": "En tant que directeur: comment devenir Team Leader — qualification, écarts et prochaine étape concrète.",
+      "suggestTodayFocusLabel": "Quelle est la priorité n°1 aujourd’hui ?",
+      "suggestTodayFocusPrompt": "En tant que directeur: quelle est la priorité n°1 aujourd’hui — et pourquoi précisément celle-là ?",
+      "suggestWeekPlanLabel": "Planifie ma semaine.",
+      "suggestWeekPlanPrompt": "En tant que directeur: planifie ma semaine en priorisant lignes faibles, relances et qualification.",
+      "suggestMomentumLabel": "Où en est notre élan ?",
+      "suggestMomentumPrompt": "En tant que directeur: où en est notre élan — jambes fortes/faibles, onboarding et leadership."
     }
   },
   "profile": {

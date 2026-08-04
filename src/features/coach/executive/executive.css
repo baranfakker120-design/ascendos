@@ -1,0 +1,121 @@
+.exec-coach {
+  border: 1px solid rgb(var(--color-line));
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(250 248 244 / 0.75));
+  padding: 0.85rem 0.95rem 1rem;
+}
+
+.exec-coach__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.exec-coach__eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+}
+
+.exec-coach__title {
+  margin-top: 0.15rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.exec-coach__body {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgb(var(--color-muted));
+}
+
+.exec-coach__horizons {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.exec-coach__horizon {
+  flex: 1;
+  min-height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(255 255 255 / 0.55);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: rgb(var(--color-muted));
+  cursor: pointer;
+}
+
+.exec-coach__horizon.is-on {
+  border-color: rgb(196 165 116 / 0.55);
+  background: rgb(196 165 116 / 0.14);
+  color: rgb(var(--color-ink));
+}
+
+.exec-coach__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.exec-coach__chip {
+  max-width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(255 255 255 / 0.8);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.exec-coach__chip:active {
+  transform: scale(0.98);
+}
+
+.exec-coach__chip:hover {
+  border-color: rgb(196 165 116 / 0.5);
+  background: rgb(255 255 255 / 0.95);
+}
+
+.exec-coach__loading {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: rgb(var(--color-muted));
+}
+
+.exec-home-sync {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.exec-mission {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.exec-mission__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+  padding-inline: 0.15rem;
+}

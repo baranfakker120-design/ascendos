@@ -18,6 +18,7 @@ import { JourneyToday } from '@features/onboarding/JourneyToday';
 import { useJourneyState } from '@features/onboarding/journeyApi';
 import { ProgressPage } from '@features/progress/ProgressPage';
 import { InstallGuidePage } from '@features/first-launch';
+import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executive';
 import { ProfileEditPage } from '@features/profile/ProfileEditPage';
 import { ProfilePage } from '@features/profile/ProfilePage';
 import { SettingsPage } from '@features/settings/SettingsPage';
@@ -28,8 +29,10 @@ import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
+import { SyncStatusIndicator } from '@shared/offline';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import '@features/coach/executive/executive.css';
 
 function FullScreenSpinner() {
   const { t } = useI18n();
@@ -79,7 +82,15 @@ function TodayRoute() {
       <div className="space-y-4">
         <TodayStoriesSlot />
         <TodayLiveCoachingSlot />
-        <JourneyToday />
+        <div className="exec-home-sync">
+          <SyncStatusIndicator variant="home" />
+        </div>
+        <section className="exec-mission" aria-label={t('today.missionTitle')}>
+          <p className="exec-mission__label">{t('today.missionTitle')}</p>
+          <JourneyToday />
+        </section>
+        <TodayCeoBriefingSlot />
+        <TodayCoachOsSlot />
       </div>
     );
   }

@@ -9,7 +9,11 @@
     "syncing": "Eşitleniyor …",
     "offline": "Çevrimdışı",
     "offlinePending": "Çevrimdışı · {count} bekliyor",
-    "pendingUploads": "{count} bekliyor"
+    "pendingUploads": "{count} bekliyor",
+    "homeSynced": "Synced",
+    "homeSyncing": "Syncing",
+    "homeOffline": "Offline",
+    "homePending": "Pending"
   },
   "common": {
     "loading": "AscendOS yükleniyor …",
@@ -382,7 +386,8 @@
     "emptyHint": "Pipeline’ın sakin — kişilere bak veya yarın tekrar gel.",
     "saving": "Kaydediliyor …",
     "energyBodyBefore": "",
-    "energyBodyAfter": " her zaman değer — ya da akşamın tadını çıkar. Yarın sabah yeni planın hazır."
+    "energyBodyAfter": " her zaman değer — ya da akşamın tadını çıkar. Yarın sabah yeni planın hazır.",
+    "missionTitle": "Bugünkü Görev"
   },
   "journey": {
     "title": "Yolculuğun",
@@ -528,6 +533,35 @@
         "leadership": "Liderlik",
         "general": "Serbest sohbet"
       }
+    },
+    "exec": {
+      "homeTitle": "Sanal genel müdürün",
+      "homeBody": "Ascent ekibini, hedefini, kalifikasyonu ve momentumu bilir — Bugün, Bu Hafta ve Bu Ay önerir.",
+      "openWorkspace": "Koçu aç",
+      "horizonLabel": "Zaman ufku",
+      "horizon": {
+        "today": "Bugün",
+        "week": "Bu Hafta",
+        "month": "Bu Ay"
+      },
+      "suggestActivateLabel": "{name}’yi aktive etmek istiyorum.",
+      "suggestActivatePrompt": "Genel müdür olarak: {name}’yi aktive etmek istiyorum. Sonraki adım: {action}. Neden: {why}",
+      "suggestWhoNeedsLabel": "Bugün kimin koçluğa ihtiyacı var?",
+      "suggestWhoNeedsPrompt": "Genel müdür olarak: Bugün kimin koçluğa ihtiyacı var — {name} ile başla ve net sonraki adımı ver.",
+      "suggestWeakLineLabel": "Hangi hat risk altında?",
+      "suggestWeakLinePrompt": "Genel müdür olarak: Hangi hat risk altında ve bu hafta ne yapmalıyım? Bağlam: {detail}",
+      "suggestNextLeaderLabel": "Bir sonraki liderim kim?",
+      "suggestNextLeaderPrompt": "Genel müdür olarak: Bir sonraki liderim kim ve {name}’yi bu ay nasıl geliştiririm?",
+      "suggestFollowUpLabel": "{name} ile takip",
+      "suggestFollowUpPrompt": "Genel müdür olarak: {name} ile takip. Neden: {why}. Aksiyon: {action}",
+      "suggestTeamLeaderLabel": "TeamLeader nasıl olurum?",
+      "suggestTeamLeaderPrompt": "Genel müdür olarak: TeamLeader nasıl olurum — kalifikasyon, boşluklar ve sonraki somut adım.",
+      "suggestTodayFocusLabel": "Bugünün en yüksek önceliği nedir?",
+      "suggestTodayFocusPrompt": "Genel müdür olarak: Bugünün en yüksek önceliği nedir — ve neden tam olarak o?",
+      "suggestWeekPlanLabel": "Haftamı planla.",
+      "suggestWeekPlanPrompt": "Genel müdür olarak: Zayıf hatlar, takipler ve kalifikasyona odaklanarak haftamı planla.",
+      "suggestMomentumLabel": "Momentumumuz nerede?",
+      "suggestMomentumPrompt": "Genel müdür olarak: Momentumumuz nerede — güçlü/zayıf hatlar, onboarding ve liderlik."
     }
   },
   "profile": {
