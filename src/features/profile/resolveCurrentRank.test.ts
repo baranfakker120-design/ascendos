@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveCurrentRank } from './profileApi';
+import { resolveCurrentRank } from './resolveCurrentRank';
 
 const sampleRank = {
   key: 'starter',

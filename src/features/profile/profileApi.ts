@@ -1,13 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  isMissingRelationError,
-  isMissingRpcError,
-  isOrgMismatchRpcError,
-} from '@shared/api/rpcErrors';
+import { isMissingRelationError, isMissingRpcError } from '@shared/api/rpcErrors';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { runOrEnqueue } from '@shared/offline';
 import type { Membership, NextRankForAp, Profile, RankForAp } from '@shared/types/domain';
+import { resolveCurrentRank } from './resolveCurrentRank';
+
+export { resolveCurrentRank } from './resolveCurrentRank';
 
 export const AVATAR_BUCKET = 'avatare';
 export const AVATAR_OBJECT_NAME = 'avatar.webp';
@@ -49,34 +48,6 @@ export type ProfileUpdateInput = {
   country: string | null;
   language: string;
 };
-
-type RpcResult<T> = { data: T | null; error: unknown };
-
-/** Soft-fail Sprint 6 display rank; fall back to classic rank_for_ap. */
-export async function resolveCurrentRank(args: {
-  orgId: string;
-  apTotal: number;
-  teamLeaderQualified: boolean;
-  displayRank: () => Promise<RpcResult<RankForAp[]>>;
-  classicRank: () => Promise<RpcResult<RankForAp[]>>;
-}): Promise<{ current: RankForAp | null; warning: string | null }> {
-  const display = await args.displayRank();
-  if (!display.error) {
-    return { current: display.data?.[0] ?? null, warning: null };
-  }
-
-  const soft = isMissingRpcError(display.error) || isOrgMismatchRpcError(display.error);
-  if (!soft) {
-    throw display.error;
-  }
-
-  const classic = await args.classicRank();
-  if (classic.error) throw classic.error;
-  return {
-    current: classic.data?.[0] ?? null,
-    warning: 'display_rank_unavailable',
-  };
-}
 
 function emptyRank(apTotal = 0): ProfileRankState {
   return {
