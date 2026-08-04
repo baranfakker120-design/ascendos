@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { runOrEnqueue } from '@shared/offline';
 import type {
   Contact,
   ContactPhaseRow,
@@ -125,22 +126,60 @@ export function useContactMutations() {
   };
 
   const createContact = useMutation({
-    mutationFn: async (input: ContactInput) => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .insert({ ...input, owner_id: profile!.id, org_id: profile!.org_id })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+    mutationFn: async (input: ContactInput): Promise<Contact> => {
+      const clientMutationId = crypto.randomUUID();
+      const payload = {
+        ...input,
+        owner_id: profile!.id,
+        org_id: profile!.org_id,
+        clientMutationId,
+      };
+      const result = await runOrEnqueue({
+        type: 'contact_create',
+        dedupeKey: `contact:create:${clientMutationId}`,
+        payload,
+        execute: async () => {
+          const { data, error } = await supabase
+            .from('contacts')
+            .insert({ ...input, owner_id: profile!.id, org_id: profile!.org_id })
+            .select()
+            .single();
+          if (error) throw error;
+          return data;
+        },
+      });
+      if (result.status === 'synced') return result.data;
+
+      const now = new Date().toISOString();
+      return {
+        id: `local-${clientMutationId}`,
+        name: input.name,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        notes: input.notes ?? null,
+        next_step: input.next_step ?? null,
+        next_step_due: input.next_step_due ?? null,
+        owner_id: profile!.id,
+        org_id: profile!.org_id,
+        created_at: now,
+        updated_at: now,
+      };
     },
     onSuccess: invalidate,
   });
 
   const updateContact = useMutation({
     mutationFn: async ({ id, ...input }: ContactInput & { id: string }) => {
-      const { error } = await supabase.from('contacts').update(input).eq('id', id);
-      if (error) throw error;
+      const result = await runOrEnqueue({
+        type: 'contact_update',
+        dedupeKey: `contact:update:${id}`,
+        payload: { id, ...input },
+        execute: async () => {
+          const { error } = await supabase.from('contacts').update(input).eq('id', id);
+          if (error) throw error;
+        },
+      });
+      return result.status;
     },
     onSuccess: invalidate,
   });
@@ -159,14 +198,31 @@ export function useContactMutations() {
       eventType: PipelineEventType;
       source?: string;
     }) => {
-      const { error } = await supabase.from('pipeline_events').insert({
+      const clientMutationId = crypto.randomUUID();
+      const payload = {
         contact_id: input.contactId,
         org_id: profile!.org_id,
         event_type: input.eventType,
         source: input.source ?? 'manual',
         created_by: profile!.id,
+        clientMutationId,
+      };
+      const result = await runOrEnqueue({
+        type: 'pipeline_event',
+        dedupeKey: `event:${input.contactId}:${input.eventType}:${clientMutationId}`,
+        payload,
+        execute: async () => {
+          const { error } = await supabase.from('pipeline_events').insert({
+            contact_id: input.contactId,
+            org_id: profile!.org_id,
+            event_type: input.eventType,
+            source: input.source ?? 'manual',
+            created_by: profile!.id,
+          });
+          if (error) throw error;
+        },
       });
-      if (error) throw error;
+      return result.status;
     },
     onSuccess: invalidate,
   });

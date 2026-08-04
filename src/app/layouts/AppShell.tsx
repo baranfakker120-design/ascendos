@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { OrgSwitcher } from '@shared/auth/OrgSwitcher';
+import { SyncStatusIndicator } from '@shared/offline';
 import { BottomNav } from './BottomNav';
 import { LanguageMenu } from './nav/LanguageMenu';
 import './nav/bottom-nav.css';
@@ -23,7 +24,8 @@ export function AppShell() {
         <div className="pointer-events-auto">
           <OrgSwitcher />
         </div>
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto flex items-center gap-2">
+          <SyncStatusIndicator />
           <LanguageMenu />
         </div>
       </header>

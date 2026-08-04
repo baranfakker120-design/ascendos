@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -15,12 +16,19 @@ export function StoriesAdminPage() {
   const { profile } = useAuth();
   const { data: stories = [], isPending } = useAllAscendStories();
   const { publish, deactivate } = useStoryMutations();
-  const [storyType, setStoryType] = useState<StoryType>('admin');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [authorLabel, setAuthorLabel] = useState('Ascend');
-  const [subjectName, setSubjectName] = useState('');
-  const [tone, setTone] = useState<StoryTone>('celebrate');
+  const {
+    value: { storyType, title, body, authorLabel, subjectName, tone },
+    setValue: setCompose,
+    patch,
+    clear: clearComposeDraft,
+  } = usePersistedDraft(DRAFT_SCOPES.storiesAdmin, {
+    storyType: 'admin' as StoryType,
+    title: '',
+    body: '',
+    authorLabel: 'Ascend',
+    subjectName: '',
+    tone: 'celebrate' as StoryTone,
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +45,8 @@ export function StoriesAdminPage() {
         tone,
         actorId: profile?.id ?? null,
       });
-      setTitle('');
-      setBody('');
-      setSubjectName('');
+      setCompose((prev) => ({ ...prev, title: '', body: '', subjectName: '' }));
+      await clearComposeDraft();
       setMessage(t('stories.publishedHint'));
     } catch (e) {
       setError(e instanceof Error ? e.message : t('stories.publishFailed'));
@@ -63,7 +70,7 @@ export function StoriesAdminPage() {
         <Select
           label={t('stories.typeLabel')}
           value={storyType}
-          onChange={(e) => setStoryType(e.target.value as StoryType)}
+          onChange={(e) => patch({ storyType: e.target.value as StoryType })}
         >
           {STORY_TYPES.map((type) => (
             <option key={type} value={type}>
@@ -74,7 +81,7 @@ export function StoriesAdminPage() {
         <Select
           label={t('stories.toneLabel')}
           value={tone}
-          onChange={(e) => setTone(e.target.value as StoryTone)}
+          onChange={(e) => patch({ tone: e.target.value as StoryTone })}
         >
           <option value="motivate">{t('stories.toneMotivate')}</option>
           <option value="celebrate">{t('stories.toneCelebrate')}</option>
@@ -83,23 +90,23 @@ export function StoriesAdminPage() {
         <Input
           label={t('stories.titleLabel')}
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => patch({ title: e.target.value })}
         />
         <TextArea
           label={t('stories.bodyLabel')}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => patch({ body: e.target.value })}
           rows={4}
         />
         <Input
           label={t('stories.author')}
           value={authorLabel}
-          onChange={(e) => setAuthorLabel(e.target.value)}
+          onChange={(e) => patch({ authorLabel: e.target.value })}
         />
         <Input
           label={t('stories.subjectOptional')}
           value={subjectName}
-          onChange={(e) => setSubjectName(e.target.value)}
+          onChange={(e) => patch({ subjectName: e.target.value })}
         />
         <p className="text-xs text-muted">
           Future-ready: Image · Video · Voice media kinds are reserved in the schema.
