@@ -43,7 +43,8 @@
     "done": "Fertig",
     "errorGeneric": "Etwas ist schiefgelaufen.",
     "connectionHint": "Prüfe deine Verbindung und versuche es erneut.",
-    "copyLink": "Link kopieren"
+    "copyLink": "Link kopieren",
+    "continue": "Weiter"
   },
   "boot": {
     "configMissingTitle": "AscendOS ist noch nicht konfiguriert.",
@@ -684,7 +685,31 @@
     "cropHint": "Kreisförmiger Zuschnitt mit Zoom — Speichern erst nach Bestätigung.",
     "photo": "Profilbild",
     "cropGesture": "Zum Zoomen kneifen oder scrollen · Zum Verschieben ziehen",
-    "previewFrame": "Vorschau mit Rahmen"
+    "previewFrame": "Vorschau mit Rahmen",
+    "framesTitle": "Meine Rahmen",
+    "framesHint": "Wähle einen freigeschalteten Rahmen. Super Admin, Developer und Berater des Monats haben Vorrang.",
+    "framesEmpty": "Noch keine Rahmen freigeschaltet — sammle AP, um zu starten.",
+    "framesLoading": "Rahmen werden geladen …",
+    "framesLoadError": "Rahmen konnten nicht geladen werden.",
+    "frameEquip": "Anlegen",
+    "frameEquipped": "Aktiv",
+    "rankUpEyebrow": "Neuer Rang",
+    "rankUpTitle": "Rahmen freigeschaltet",
+    "beraterDesMonats": "Berater des Monats",
+    "advisorTitle": "Berater des Monats",
+    "advisorHint": "Platz 1–3 nach AP im Vormonat (UTC). Der Titel gilt im laufenden Monat.",
+    "advisorEmpty": "Für diesen Monat noch keine Auszeichnung — sobald AP im Vormonat gebucht wurden, erscheint das Podium.",
+    "advisorLoading": "Auszeichnungen werden geladen …",
+    "advisorLoadError": "Auszeichnungen konnten nicht geladen werden.",
+    "advisorHistory": "Vergangene Monate",
+    "advisorPlace1": "1. Platz",
+    "advisorPlace2": "2. Platz",
+    "advisorPlace3": "3. Platz",
+    "advisorYou": "du",
+    "heroEyebrow": "Anerkennung",
+    "heroTitle": "Berater des Monats",
+    "heroSubtitle": "Die stärksten AP-Leistungen aus dem Vormonat — euer Podium für diesen Monat.",
+    "heroYouWon": "Du stehst auf Platz 1. Trage den Rahmen mit Stolz."
   },
   "team": {
     "title": "Dein Team",
