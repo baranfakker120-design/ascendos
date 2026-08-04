@@ -19,13 +19,13 @@ describe('coachReading', () => {
 
   it('promotes mentor teaching lines into card blockquotes', () => {
     expect(promoteTeachingLines('Pro Tip: Kurz und persönlich bleiben.')).toContain(
-      '> **🔥 Pro Tip:**'
+      '> **🔥 Profi-Tipp:**'
     );
     expect(promoteTeachingLines('Häufigster Fehler: Zu lange schreiben.')).toContain(
       '> **💡 Häufigster Fehler:**'
     );
     expect(promoteTeachingLines('Warum das zählt: Vertrauen wächst durch Tempo.')).toContain(
-      '> **📈 Warum das zählt:**'
+      '> **📈 Warum das wichtig ist:**'
     );
     expect(promoteTeachingLines('Nächster Schritt: Ruf Mehmet heute an.')).toContain(
       '> **🎯 Dein nächster Schritt:**'
@@ -36,6 +36,43 @@ describe('coachReading', () => {
     const hit = matchTeachingLine('🔥 Pro Tip: Bleib menschlich.');
     expect(hit?.meta.kind).toBe('tip');
     expect(hit?.body).toContain('Bleib menschlich');
+  });
+
+  it.each([
+    ['Häufigster Fehler: Zu lange warten.', 'mistake'],
+    ['Profi-Tipp: Kurz bleiben.', 'tip'],
+    ['Warum das wichtig ist: Tempo schafft Vertrauen.', 'why'],
+    ['Dein nächster Schritt: Heute anrufen.', 'action'],
+    ['Biggest mistake: Waiting too long.', 'mistake'],
+    ['Pro tip: Keep it short.', 'tip'],
+    ['Why it matters: Speed builds trust.', 'why'],
+    ['Your next step: Call today.', 'action'],
+    ['En büyük hata: Çok uzun beklemek.', 'mistake'],
+    ['Uzman ipucu: Kısa tut.', 'tip'],
+    ['Neden önemli: Hız güven oluşturur.', 'why'],
+    ['Bir sonraki adımın: Bugün ara.', 'action'],
+    ['La plus grande erreur : Attendre trop longtemps.', 'mistake'],
+    ['Conseil de pro : Reste bref.', 'tip'],
+    ["Pourquoi c'est important : La rapidité inspire confiance.", 'why'],
+    ['Votre prochaine étape : Appelle aujourd’hui.', 'action'],
+    ['Errore più grande: Aspettare troppo.', 'mistake'],
+    ['Consiglio da professionista: Sii breve.', 'tip'],
+    ['Perché è importante: La rapidità crea fiducia.', 'why'],
+    ['Il tuo prossimo passo: Chiama oggi.', 'action'],
+  ] as const)('recognizes multilingual mentor label "%s"', (line, kind) => {
+    expect(matchTeachingLine(line, 'en')?.meta.kind).toBe(kind);
+  });
+
+  it('recognizes historical labels but renders chrome in the active locale', () => {
+    expect(promoteTeachingLines('Häufigster Fehler: Zu lange warten.', 'fr')).toContain(
+      '> **💡 La plus grande erreur:**'
+    );
+    expect(promoteTeachingLines('Il tuo prossimo passo: Chiama oggi.', 'tr')).toContain(
+      '> **🎯 Bir sonraki adımın:**'
+    );
+    expect(prepareCoachReading('Why it matters: Speed builds trust.', 'it')).toContain(
+      '> **📈 Perché è importante:**'
+    );
   });
 
   it('breaks prose blocks but keeps lists intact', () => {

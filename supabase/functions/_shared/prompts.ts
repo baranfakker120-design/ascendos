@@ -4,6 +4,91 @@
  *
  * Ascent ist kein Chatbot. Ascent ist der persönliche Business-Mentor.
  */
+export type CoachLocale = 'de' | 'tr' | 'fr' | 'en' | 'it';
+
+const COACH_LOCALES: readonly CoachLocale[] = ['de', 'tr', 'fr', 'en', 'it'];
+
+export function normalizeCoachLocale(value: unknown): CoachLocale {
+  return typeof value === 'string' && COACH_LOCALES.includes(value as CoachLocale)
+    ? (value as CoachLocale)
+    : 'de';
+}
+
+export type MentorCardLabels = {
+  mistake: string;
+  tip: string;
+  why: string;
+  action: string;
+};
+
+const MENTOR_CARD_LABELS: Record<CoachLocale, MentorCardLabels> = {
+  de: {
+    mistake: 'Häufigster Fehler',
+    tip: 'Profi-Tipp',
+    why: 'Warum das wichtig ist',
+    action: 'Dein nächster Schritt',
+  },
+  tr: {
+    mistake: 'En büyük hata',
+    tip: 'Uzman ipucu',
+    why: 'Neden önemli',
+    action: 'Bir sonraki adımın',
+  },
+  fr: {
+    mistake: 'La plus grande erreur',
+    tip: 'Conseil de pro',
+    why: "Pourquoi c'est important",
+    action: 'Votre prochaine étape',
+  },
+  en: {
+    mistake: 'Biggest mistake',
+    tip: 'Pro tip',
+    why: 'Why it matters',
+    action: 'Your next step',
+  },
+  it: {
+    mistake: 'Errore più grande',
+    tip: 'Consiglio da professionista',
+    why: 'Perché è importante',
+    action: 'Il tuo prossimo passo',
+  },
+};
+
+export function mentorCardLabels(locale: CoachLocale): MentorCardLabels {
+  return MENTOR_CARD_LABELS[locale];
+}
+
+const LANGUAGE_NAMES: Record<CoachLocale, string> = {
+  de: 'GERMAN (Deutsch)',
+  tr: 'TURKISH (Türkçe)',
+  fr: 'FRENCH (français)',
+  en: 'ENGLISH',
+  it: 'ITALIAN (italiano)',
+};
+
+/**
+ * Kept separate and appended after every other system-prompt block. This is
+ * the final authority even when an agent prompt, conversation, or knowledge
+ * document uses a different language.
+ */
+export function languageDirective(locale: CoachLocale): string {
+  const labels = mentorCardLabels(locale);
+  return `
+LANGUAGE — ABSOLUTE, HIGHEST-PRIORITY OUTPUT RULE:
+- The user's selected language is ${LANGUAGE_NAMES[locale]}.
+- Answer ONLY in ${LANGUAGE_NAMES[locale]}. Never mix in words, labels, headings, closings, or sentences from another language.
+- The conversation history and knowledge documents may be written in ANY language. Understand and use them, but ALWAYS write the answer in ${LANGUAGE_NAMES[locale]}.
+- A language used in a quoted source, prior message, contact note, or knowledge article NEVER changes the answer language.
+- Keep names, product names, and URLs unchanged. Translate all surrounding explanation.
+- Mentor-card labels MUST be written exactly as follows:
+  - "${labels.mistake}: ..."
+  - "${labels.tip}: ..."
+  - "${labels.why}: ..."
+  - "${labels.action}: ..."
+- These exact labels override every card-label example elsewhere in the prompt.
+`.trim();
+}
+
 export const CORE_RULES = `
 Du bist Ascent — der persönliche Business-Mentor in AscendOS.
 Du bist kein Chatbot, kein Assistent und kein ChatGPT-Ersatz.
@@ -66,11 +151,9 @@ LESEFLUSS (Premium Reading):
 - Lieber eine knappe, starke Antwort als eine lange, weiche.
 
 MENTOR-KARTEN (bei offenen / komplexen Fragen, 1–3 Stück):
-Eigene Zeile, Label exakt so — die App rendert Premium-Karten:
-- "Häufigster Fehler: ..."
-- "Pro Tip: ..."
-- "Warum das zählt: ..."
-- "Nächster Schritt: ..."   ← Pflicht am Ende voller Antworten
+Eigene Zeile — die App rendert Premium-Karten.
+Verwende dafür ausschließlich die exakten Labels aus dem LANGUAGE-Block unten.
+Das dort angegebene Action-Label ist Pflicht am Ende voller Antworten.
 
 Karten-Regeln:
 - Lieber 1–2 starke Karten als vier schwache.

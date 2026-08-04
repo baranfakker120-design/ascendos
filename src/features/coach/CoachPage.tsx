@@ -9,6 +9,7 @@ import { Input } from '@shared/ui/Input';
 import { CoachBubble, UserBubble } from './CoachBubbles';
 import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useLatestConvo, useSendToCoach } from './coachApi';
+import { createCoachTranslator } from './i18n';
 import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from './intelligence';
 import './coach-chat.css';
 
@@ -39,7 +40,8 @@ function linkifyText(text: string): Array<string | JSX.Element> {
  * Auto-stick only when the user is already near the bottom.
  */
 export function CoachPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const coachT = useMemo(() => createCoachTranslator(locale), [locale]);
   const chips = useMemo(
     () => [
       { label: t('coach.chipObjection'), text: t('coach.chipObjectionPrompt') },
@@ -138,7 +140,7 @@ export function CoachPage() {
       const result = await send.mutateAsync({ message, conversationId, contactId });
       setConversationId(result.conversationId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('coach.unreachable'));
+      setError(e instanceof Error ? e.message : coachT('chat.unreachable'));
       setInput(message);
     }
   };

@@ -3,6 +3,9 @@
  * Pure string transforms — no React. Easy to unit-test.
  */
 
+import type { AppLocale } from '@shared/lib/locale';
+import { createCoachTranslator, type CoachTranslateFn } from './i18n';
+
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 
 /** ~3–5 lines on mobile at coach font size. */
@@ -16,58 +19,60 @@ export type TeachingMeta = {
   mark: string;
 };
 
-const CHROME: TeachingMeta[] = [
-  { kind: 'mistake', label: 'Häufigster Fehler', mark: '💡' },
-  { kind: 'tip', label: 'Pro Tip', mark: '🔥' },
-  { kind: 'action', label: 'Dein nächster Schritt', mark: '🎯' },
-  { kind: 'why', label: 'Warum das zählt', mark: '📈' },
-  { kind: 'important', label: 'Wichtig', mark: '✦' },
-];
+type ChromeKind = Exclude<TeachingKind, 'quote'>;
+type TeachingLocalization = AppLocale | CoachTranslateFn;
+
+const CHROME_MARKS: Record<ChromeKind, string> = {
+  mistake: '💡',
+  tip: '🔥',
+  action: '🎯',
+  why: '📈',
+  important: '✦',
+};
+
+function resolveTranslator(localization: TeachingLocalization): CoachTranslateFn {
+  return typeof localization === 'function' ? localization : createCoachTranslator(localization);
+}
+
+function teachingMeta(kind: ChromeKind, t: CoachTranslateFn): TeachingMeta {
+  return { kind, label: t(`reading.${kind}`), mark: CHROME_MARKS[kind] };
+}
 
 const TEACHING_PATTERNS: Array<{
-  meta: TeachingMeta;
+  kind: ChromeKind;
   re: RegExp;
 }> = [
   {
-    meta: CHROME[0],
-    re: /^(?:💡\s*)?(?:\*\*)?(?:biggest mistake|h[äa]ufigster fehler|gr[öo](?:ss|ß)ter fehler|fehler(?:\s+den viele machen)?)(?:\*\*)?\s*[:—–-]\s*/i,
+    kind: 'mistake',
+    re: /^(?:\*\*)?(?:💡\s*)?(?:biggest mistake|most common mistake|h[äa]ufigster fehler|gr[öo](?:ss|ß)ter fehler|fehler(?:\s+den viele machen)?|en b[üu]y[üu]k hata|en s[ıi]k yap[ıi]lan hata|la plus grande erreur|erreur la plus fr[ée]quente|erreur courante|erreur principale|(?:l['’])?errore pi[ùu] grande|errore pi[ùu] frequente|errore pi[ùu] comune|errore principale)(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
   },
   {
-    meta: CHROME[1],
-    re: /^(?:🔥\s*)?(?:\*\*)?(?:pro[\s-]?tipp?|tipp|hinweis)(?:\*\*)?\s*[:—–-]\s*/i,
+    kind: 'tip',
+    re: /^(?:\*\*)?(?:🔥\s*)?(?:pro[\s-]?tipp?|profi[\s-]?tipp?|tipp|hinweis|uzman ipucu|profesyonel ipucu|(?:conseil|astuce) de pro|consiglio da professionista|consiglio pro)(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
   },
   {
-    meta: CHROME[2],
-    re: /^(?:🎯\s*)?(?:\*\*)?(?:your next action|dein(?:e)?\s+n[äa]chster?\s+schritt|n[äa]chster schritt|deine n[äa]chste aktion|n[äa]chste aktion)(?:\*\*)?\s*[:—–-]\s*/i,
+    kind: 'action',
+    re: /^(?:\*\*)?(?:🎯\s*)?(?:your next (?:step|action)|next step|dein(?:e)?\s+n[äa]chster?\s+schritt|n[äa]chster schritt|deine n[äa]chste aktion|n[äa]chste aktion|bir sonraki ad[ıi]m[ıi]n|s[ıi]radaki ad[ıi]m[ıi]n?|sonraki ad[ıi]m[ıi]n?|votre prochaine [ée]tape|ta prochaine [ée]tape|prochaine [ée]tape|il tuo prossimo passo|il prossimo passo|prossimo passo)(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
   },
   {
-    meta: CHROME[3],
-    re: /^(?:📈\s*)?(?:\*\*)?(?:why this matters|warum das (?:z[äa]hlt|wichtig ist)|warum das hier z[äa]hlt)(?:\*\*)?\s*[:—–-]\s*/i,
+    kind: 'why',
+    re: /^(?:\*\*)?(?:📈\s*)?(?:why (?:it|this) matters|warum das (?:z[äa]hlt|wichtig ist)|warum das hier z[äa]hlt|(?:bu )?neden [öo]nemli|pourquoi (?:c['’]est|cela est) important|pourquoi (?:cela|[çc]a) compte|perch[ée] (?:[èe] importante|conta))(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
   },
   {
-    meta: CHROME[4],
-    re: /^(?:✦\s*)?(?:\*\*)?(?:wichtig|achtung|merke)(?:\*\*)?\s*[:—–-]\s*/i,
+    kind: 'important',
+    re: /^(?:\*\*)?(?:✦\s*)?(?:wichtig|achtung|merke|important|[öo]nemli|importante)(?:\*\*)?\s*[:：—–-]\s*(?:\*\*)?\s*/iu,
   },
 ];
 
-const CHROME_LINE_RE =
-  /^(?:\*\*)?[💡🔥🎯📈✦]\s+(Häufigster Fehler|Pro Tip|Dein nächster Schritt|Warum das zählt|Wichtig)(?:\*\*)?\s*[:—–-]\s*(?:\*\*)?(.*?)(?:\*\*)?\s*$/iu;
-
-function metaFromChromeLabel(label: string): TeachingMeta | null {
-  return CHROME.find((c) => c.label.toLowerCase() === label.toLowerCase()) ?? null;
-}
-
-export function matchTeachingLine(line: string): { meta: TeachingMeta; body: string } | null {
+export function matchTeachingLine(
+  line: string,
+  localization: TeachingLocalization = 'de'
+): { meta: TeachingMeta; body: string } | null {
+  const t = resolveTranslator(localization);
   const trimmed = line
     .replace(/^[-*]\s+/, '')
     .replace(/^>\s?/, '')
     .trim();
-
-  const chrome = trimmed.match(CHROME_LINE_RE);
-  if (chrome) {
-    const meta = metaFromChromeLabel(chrome[1]);
-    if (meta) return { meta, body: (chrome[2] ?? '').trim() };
-  }
 
   for (const p of TEACHING_PATTERNS) {
     if (p.re.test(trimmed)) {
@@ -75,14 +80,17 @@ export function matchTeachingLine(line: string): { meta: TeachingMeta; body: str
         .replace(p.re, '')
         .replace(/^\*\*|\*\*$/g, '')
         .trim();
-      return { meta: p.meta, body };
+      return { meta: teachingMeta(p.kind, t), body };
     }
   }
   return null;
 }
 
-export function detectTeachingFromText(text: string): TeachingMeta | null {
-  return matchTeachingLine(text.trim())?.meta ?? null;
+export function detectTeachingFromText(
+  text: string,
+  localization: TeachingLocalization = 'de'
+): TeachingMeta | null {
+  return matchTeachingLine(text.trim(), localization)?.meta ?? null;
 }
 
 /** Split a long prose block on sentence boundaries. */
@@ -126,11 +134,14 @@ function autolinkPlainUrls(source: string): string {
 /**
  * Promote teaching / callout lines into labeled blockquotes the UI paints as cards.
  */
-export function promoteTeachingLines(source: string): string {
+export function promoteTeachingLines(
+  source: string,
+  localization: TeachingLocalization = 'de'
+): string {
   return source
     .split('\n')
     .map((line) => {
-      const hit = matchTeachingLine(line);
+      const hit = matchTeachingLine(line, localization);
       if (!hit) return line;
       const body = hit.body || line.replace(/^>\s?/, '').trim();
       return `> **${hit.meta.mark} ${hit.meta.label}:** ${body}`;
@@ -141,7 +152,10 @@ export function promoteTeachingLines(source: string): string {
 /**
  * Break wall-of-text paragraphs; leave lists, headings, quotes intact.
  */
-export function breakWallsOfText(source: string): string {
+export function breakWallsOfText(
+  source: string,
+  localization: TeachingLocalization = 'de'
+): string {
   const blocks = source.split(/\n{2,}/);
   const out: string[] = [];
 
@@ -153,7 +167,7 @@ export function breakWallsOfText(source: string): string {
     const isSpecial =
       /^(#{1,6}\s|[-*]\s|\d+\.\s|>)/m.test(trimmed) ||
       trimmed.startsWith('```') ||
-      Boolean(matchTeachingLine(first));
+      Boolean(matchTeachingLine(first, localization));
 
     if (isSpecial) {
       out.push(trimmed);
@@ -175,21 +189,30 @@ export function ensureSectionBreathing(source: string): string {
   return s.trim();
 }
 
-export function prepareCoachReading(content: string): string {
+export function prepareCoachReading(
+  content: string,
+  localization: TeachingLocalization = 'de'
+): string {
   let s = content.replace(/\r\n/g, '\n').trim();
-  s = breakWallsOfText(s);
-  s = promoteTeachingLines(s);
+  s = breakWallsOfText(s, localization);
+  s = promoteTeachingLines(s, localization);
   s = ensureSectionBreathing(s);
   s = autolinkPlainUrls(s);
   return s;
 }
 
 /** @deprecated */
-export function promoteCalloutLines(source: string): string {
-  return promoteTeachingLines(source);
+export function promoteCalloutLines(
+  source: string,
+  localization: TeachingLocalization = 'de'
+): string {
+  return promoteTeachingLines(source, localization);
 }
 
 /** @deprecated */
-export function prepareCoachMarkdown(content: string): string {
-  return prepareCoachReading(content);
+export function prepareCoachMarkdown(
+  content: string,
+  localization: TeachingLocalization = 'de'
+): string {
+  return prepareCoachReading(content, localization);
 }

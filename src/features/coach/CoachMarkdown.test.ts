@@ -9,9 +9,18 @@ describe('CoachMarkdown preparation exports', () => {
 
   it('promotes tip and important lines', () => {
     expect(promoteCalloutLines('Tipp: Kurz und persönlich bleiben.')).toContain(
-      '> **🔥 Pro Tip:**'
+      '> **🔥 Profi-Tipp:**'
     );
     expect(promoteCalloutLines('Wichtig: Keine Heilversprechen.')).toContain('> **✦ Wichtig:**');
+  });
+
+  it('uses active-locale chrome for historical mentor labels', () => {
+    expect(promoteCalloutLines('Pro Tip: Keep it concise.', 'fr')).toContain(
+      '> **🔥 Conseil de pro:**'
+    );
+    expect(promoteCalloutLines('Neden önemli: Güven oluşturur.', 'en')).toContain(
+      '> **📈 Why it matters:**'
+    );
   });
 
   it('autolinks bare urls', () => {

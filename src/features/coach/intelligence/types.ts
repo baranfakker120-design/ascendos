@@ -3,6 +3,8 @@
  * Pure contracts only. No RPCs, schema, or genealogy engine coupling.
  */
 
+import type { CoachTranslateFn } from '../i18n';
+
 export type BranchHealthGrade =
   'excellent' | 'healthy' | 'growing' | 'needs_attention' | 'critical';
 
@@ -126,6 +128,8 @@ export interface CoachOrgInput {
   pendingShareProofs: number;
   planPendingCount: number;
   planDoneCount: number;
+  /** Translator for coach-authored content; German is used when omitted. */
+  t?: CoachTranslateFn;
 }
 
 export interface BranchHealthAssessment {

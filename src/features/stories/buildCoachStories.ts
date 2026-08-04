@@ -1,11 +1,20 @@
 import type { CoachOrgIntelligence, PersonCoachInsight } from '@features/coach/intelligence/types';
+import { createCoachTranslator, type CoachTranslateFn } from '@features/coach/i18n';
 import type { StoryCard, StoryType } from './types';
 import { STORY_TTL_MS } from './types';
 
-function firstName(full: string): string {
-  const t = full.trim();
-  if (!t) return 'Partner';
-  return t.split(/\s+/)[0] ?? t;
+const DEFAULT_T = createCoachTranslator('de');
+const REGISTRATION_RE = /registrierung|registration|inscription|kayıt|registrazion[ei]/i;
+const ACTIVE_TODAY_RE =
+  /heute aktiv|active today|acti(?:f|fs|ve|ves) aujourd|bugün.*aktif|attiv[ioe]* oggi/i;
+const QUALIFICATION_RE = /team\s*leader|qualifikation|qualification|yeterlilik|qualifica/i;
+const CONSISTENCY_RE =
+  /streak|konsistenz|consistency|régularité|série|istikrar|seri|costanza|serie|disziplin|discipline|disiplin|disciplina/i;
+
+function firstName(full: string, t: CoachTranslateFn): string {
+  const trimmed = full.trim();
+  if (!trimmed) return t('common.partner');
+  return trimmed.split(/\s+/)[0] ?? trimmed;
 }
 
 function expiresFrom(publishedIso: string): string {
@@ -20,7 +29,13 @@ function card(partial: Omit<StoryCard, 'accent'> & { accent?: StoryCard['accent'
  * Coach Stories — optimistic insights from verified org intelligence only.
  * Never shame. Never fake. Never negative comparison.
  */
-export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): StoryCard[] {
+export function buildCoachStories(
+  intelligence: CoachOrgIntelligence,
+  maxOrTranslator: number | CoachTranslateFn = 8,
+  translate?: CoachTranslateFn
+): StoryCard[] {
+  const max = typeof maxOrTranslator === 'number' ? maxOrTranslator : 8;
+  const t = typeof maxOrTranslator === 'function' ? maxOrTranslator : (translate ?? DEFAULT_T);
   const publishedAt = intelligence.generatedAt;
   const expiresAt = expiresFrom(publishedAt);
   const stories: StoryCard[] = [];
@@ -36,9 +51,9 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
         id: `coach-momentum-${p.membershipId}`,
         type: 'coach_highlights',
         mediaKind: 'text',
-        title: firstName(p.name),
-        body: optimisticMomentumLine(p),
-        authorLabel: 'Ascent Coach',
+        title: firstName(p.name, t),
+        body: optimisticMomentumLine(p, t),
+        authorLabel: t('story.author'),
         subjectName: p.name,
         mediaUrl: null,
         tone: 'inspire',
@@ -50,16 +65,16 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
     );
   }
 
-  const growthLine = d.yesterdaySummary.find((l) => /Registrierung/i.test(l));
+  const growthLine = d.yesterdaySummary.find((line) => REGISTRATION_RE.test(line));
   if (growthLine) {
     stories.push(
       card({
         id: 'coach-onboarding-growth',
         type: 'onboarding',
         mediaKind: 'text',
-        title: 'Onboarding Momentum',
-        body: `My analysis suggests your organization is welcoming growth — ${growthLine}.`,
-        authorLabel: 'Ascent Coach',
+        title: t('story.titleOnboarding'),
+        body: t('story.growth', { line: growthLine }),
+        authorLabel: t('story.author'),
         subjectName: null,
         mediaUrl: null,
         tone: 'celebrate',
@@ -70,16 +85,16 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
     );
   }
 
-  const activeLine = d.yesterdaySummary.find((l) => /heute aktiv/i.test(l));
+  const activeLine = d.yesterdaySummary.find((line) => ACTIVE_TODAY_RE.test(line));
   if (activeLine) {
     stories.push(
       card({
         id: 'coach-active-energy',
         type: 'partners',
         mediaKind: 'text',
-        title: 'Team Energy',
-        body: `${activeLine} — consistency is compounding.`,
-        authorLabel: 'Ascent Coach',
+        title: t('story.titleTeamEnergy'),
+        body: t('story.teamEnergy', { line: activeLine }),
+        authorLabel: t('story.author'),
         subjectName: null,
         mediaUrl: null,
         tone: 'motivate',
@@ -96,9 +111,13 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
         id: 'coach-momentum-org',
         type: 'achievements',
         mediaKind: 'text',
-        title: 'Momentum',
-        body: `Organization momentum is ${exec.momentum.label} (${exec.momentum.score}/100). ${exec.momentum.why[0] ?? ''}`.trim(),
-        authorLabel: 'Ascent Coach',
+        title: t('story.titleMomentum'),
+        body: t('story.orgMomentum', {
+          label: exec.momentum.label,
+          score: exec.momentum.score,
+          why: exec.momentum.why[0] ?? '',
+        }).trim(),
+        authorLabel: t('story.author'),
         subjectName: null,
         mediaUrl: null,
         tone: 'inspire',
@@ -110,18 +129,16 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
     );
   }
 
-  const qualPriority = intelligence.priorities.find((p) =>
-    /TeamLeader|Qualifikation/i.test(p.title)
-  );
+  const qualPriority = intelligence.priorities.find((p) => QUALIFICATION_RE.test(p.title));
   if (qualPriority) {
     stories.push(
       card({
         id: `coach-qual-${qualPriority.id}`,
         type: 'qualifications',
         mediaKind: 'text',
-        title: 'Qualification',
+        title: t('story.titleQualification'),
         body: `${qualPriority.title} — ${qualPriority.why}`,
-        authorLabel: 'Ascent Coach',
+        authorLabel: t('story.author'),
         subjectName: null,
         mediaUrl: null,
         tone: 'motivate',
@@ -142,9 +159,12 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
         id: `coach-advisor-${advisorCandidate.membershipId}`,
         type: 'coach_highlights',
         mediaKind: 'text',
-        title: firstName(advisorCandidate.name),
-        body: `My analysis suggests ${firstName(advisorCandidate.name)} could become Advisor of the Month — ${advisorCandidate.strengths[0]}.`,
-        authorLabel: 'Ascent Coach',
+        title: firstName(advisorCandidate.name, t),
+        body: t('story.advisorCandidate', {
+          name: firstName(advisorCandidate.name, t),
+          strength: advisorCandidate.strengths[0],
+        }),
+        authorLabel: t('story.author'),
         subjectName: advisorCandidate.name,
         mediaUrl: null,
         tone: 'inspire',
@@ -157,7 +177,7 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
   }
 
   const consistencyStar = intelligence.personInsights.find((p) =>
-    p.strengths.some((s) => /streak|konsistenz|consistency|disziplin/i.test(s))
+    p.strengths.some((strength) => CONSISTENCY_RE.test(strength))
   );
   if (consistencyStar) {
     stories.push(
@@ -165,9 +185,12 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
         id: `coach-streak-${consistencyStar.membershipId}`,
         type: 'achievements',
         mediaKind: 'text',
-        title: firstName(consistencyStar.name),
-        body: `${firstName(consistencyStar.name)} has excellent consistency — ${consistencyStar.strengths[0]}.`,
-        authorLabel: 'Ascent Coach',
+        title: firstName(consistencyStar.name, t),
+        body: t('story.consistency', {
+          name: firstName(consistencyStar.name, t),
+          strength: consistencyStar.strengths[0],
+        }),
+        authorLabel: t('story.author'),
         subjectName: consistencyStar.name,
         mediaUrl: null,
         tone: 'celebrate',
@@ -186,9 +209,9 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
           id: `coach-build-${lowRisk.membershipId}`,
           type: 'partners',
           mediaKind: 'text',
-          title: firstName(lowRisk.name),
-          body: `${firstName(lowRisk.name)} is building strong momentum — verified activity stays healthy.`,
-          authorLabel: 'Ascent Coach',
+          title: firstName(lowRisk.name, t),
+          body: t('story.building', { name: firstName(lowRisk.name, t) }),
+          authorLabel: t('story.author'),
           subjectName: lowRisk.name,
           mediaUrl: null,
           tone: 'inspire',
@@ -206,9 +229,9 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
         id: 'coach-win-today',
         type: 'achievements',
         mediaKind: 'text',
-        title: 'Today',
+        title: t('story.titleToday'),
         body: evening.todaysWins[0],
-        authorLabel: 'Ascent Coach',
+        authorLabel: t('story.author'),
         subjectName: null,
         mediaUrl: null,
         tone: 'celebrate',
@@ -225,9 +248,9 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
         id: 'coach-health',
         type: 'coach_highlights',
         mediaKind: 'text',
-        title: 'Branch Health',
+        title: t('story.titleBranchHealth'),
         body: `${health.label} (${health.score}/100). ${health.why[0]}`,
-        authorLabel: 'Ascent Coach',
+        authorLabel: t('story.author'),
         subjectName: null,
         mediaUrl: null,
         tone: 'motivate',
@@ -241,11 +264,14 @@ export function buildCoachStories(intelligence: CoachOrgIntelligence, max = 8): 
   return dedupeStories(stories).slice(0, max);
 }
 
-function optimisticMomentumLine(p: PersonCoachInsight): string {
+function optimisticMomentumLine(p: PersonCoachInsight, t: CoachTranslateFn): string {
   if (p.strengths[0]) {
-    return `${firstName(p.name)} stands out: ${p.strengths[0]}.`;
+    return t('story.personStrength', {
+      name: firstName(p.name, t),
+      strength: p.strengths[0],
+    });
   }
-  return `${firstName(p.name)} shows healthy forward motion — keep recognizing the effort.`;
+  return t('story.personMomentum', { name: firstName(p.name, t) });
 }
 
 function pickMomentumStars(people: PersonCoachInsight[], n: number): PersonCoachInsight[] {
