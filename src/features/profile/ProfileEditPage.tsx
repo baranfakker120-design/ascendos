@@ -32,8 +32,7 @@ export function ProfileEditPage() {
     return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
 
-  const detail =
-    data ?? (authProfile ? profileDetailFromAuth(authProfile, membership) : null);
+  const detail = data ?? (authProfile ? profileDetailFromAuth(authProfile, membership) : null);
 
   if (!detail) {
     return <p className="text-sm text-muted">{t('profile.loadError')}</p>;

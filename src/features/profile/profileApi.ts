@@ -65,8 +65,7 @@ export async function resolveCurrentRank(args: {
     return { current: display.data?.[0] ?? null, warning: null };
   }
 
-  const soft =
-    isMissingRpcError(display.error) || isOrgMismatchRpcError(display.error);
+  const soft = isMissingRpcError(display.error) || isOrgMismatchRpcError(display.error);
   if (!soft) {
     throw display.error;
   }
@@ -140,8 +139,7 @@ export function useProfileDetail() {
       const orgId = membership.data?.org_id ?? preferredOrgId;
       const membershipId = membership.data?.id ?? activeMembership?.id ?? null;
       const teamLeaderQualified =
-        !!membership.data?.team_leader_qualified_at ||
-        !!activeMembership?.team_leader_qualified_at;
+        !!membership.data?.team_leader_qualified_at || !!activeMembership?.team_leader_qualified_at;
 
       // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
       const now = new Date();
@@ -161,8 +159,7 @@ export function useProfileDetail() {
             p_ap: apTotal,
             p_team_leader_qualified: teamLeaderQualified,
           }),
-        classicRank: async () =>
-          supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
+        classicRank: async () => supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
       });
       if (rankWarning) loadWarning = rankWarning;
 
@@ -193,10 +190,7 @@ export function useProfileDetail() {
 
       let isBeraterDesMonats = false;
       if (monthlyAward.error) {
-        if (
-          isMissingRelationError(monthlyAward.error) ||
-          isMissingRpcError(monthlyAward.error)
-        ) {
+        if (isMissingRelationError(monthlyAward.error) || isMissingRpcError(monthlyAward.error)) {
           loadWarning = loadWarning ?? 'monthly_awards_unavailable';
         } else {
           // RLS / unexpected: still do not wipe the profile shell.
@@ -208,10 +202,7 @@ export function useProfileDetail() {
 
       let equippedFrameKey: string | null = null;
       if (cosmetics.error) {
-        if (
-          isMissingRpcError(cosmetics.error) ||
-          isMissingRelationError(cosmetics.error)
-        ) {
+        if (isMissingRpcError(cosmetics.error) || isMissingRelationError(cosmetics.error)) {
           loadWarning = loadWarning ?? 'cosmetics_unavailable';
         } else {
           loadWarning = loadWarning ?? 'cosmetics_unavailable';
