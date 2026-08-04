@@ -89,7 +89,13 @@ export function registerOfflineHandlers(): void {
   registerSyncHandler('profile_update', async (job) => {
     const p = job.payload as {
       id: string;
-      patch: Record<string, unknown>;
+      patch: {
+        first_name?: string;
+        last_name?: string;
+        phone?: string | null;
+        country?: string | null;
+        language?: string;
+      };
     };
     const { error } = await supabase.from('profiles').update(p.patch).eq('id', p.id);
     if (error) throw error;
