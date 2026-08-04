@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
 import { phaseLabel } from '@shared/lib/pipeline';
 import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
@@ -19,6 +19,7 @@ import {
   composeOutboundMessage,
   defaultTitleForKind,
   readPendingSeed,
+  writePendingSeed,
   useCoachWorkspace,
   type ConversationKind,
 } from './workspace';
@@ -63,6 +64,7 @@ function linkifyText(text: string): Array<string | JSX.Element> {
 export function CoachPage() {
   const { locale, t } = useI18n();
   const coachT = useMemo(() => createCoachTranslator(locale), [locale]);
+  const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const workspace = useCoachWorkspace();
@@ -78,6 +80,17 @@ export function CoachPage() {
   const partnerMidParam = searchParams.get('mid');
   const urlConvo = searchParams.get('c');
   const kindParam = searchParams.get('kind');
+
+  // Person deep links → dedicated full-screen conversation (no overlay on workspace).
+  useEffect(() => {
+    if (!partnerMidParam) return;
+    const seed = pendingSeedRef.current;
+    if (seed) {
+      writePendingSeed(seed);
+      pendingSeedRef.current = null;
+    }
+    void navigate(`/coach/person/${encodeURIComponent(partnerMidParam)}`, { replace: true });
+  }, [partnerMidParam, navigate]);
 
   const active = workspace.active;
   const contactId = active?.contactId ?? contactIdParam;
@@ -132,13 +145,14 @@ export function CoachPage() {
 
   // Sync URL ← active conversation (replace, no history spam / no flicker).
   // Skip while active is null so inbound deep-link params are not wiped.
+  // Do not put membershipId in the URL — that deep-links to /coach/person/:mid.
   useEffect(() => {
     if (!workspace.hydrated || !active) return;
+    if (active.kind === 'person' && active.membershipId) return;
     const next = new URLSearchParams();
     if (active.serverConversationId) next.set('c', active.serverConversationId);
     if (active.contactId) next.set('kontakt', active.contactId);
     if (active.partnerName) next.set('partner', active.partnerName);
-    if (active.membershipId) next.set('mid', active.membershipId);
     next.set('ws', active.id);
 
     const cur = typeof window !== 'undefined' ? window.location.search.replace(/^\?/, '') : '';
@@ -146,53 +160,38 @@ export function CoachPage() {
     if (cur !== nxt) setSearchParams(next, { replace: true });
   }, [active, workspace.hydrated, setSearchParams]);
 
-  // Deep links: contact / genealogy person / kind+seed → find-or-create conversation.
+  // Deep links: contact / kind+seed → find-or-create conversation.
+  // Person mid deep links redirect to /coach/person/:mid (see effect above).
   useEffect(() => {
     if (!workspace.hydrated) return;
+    if (partnerMidParam) return;
     const seed = pendingSeedRef.current;
     const deepKey = [
       contactIdParam ?? '',
-      partnerMidParam ?? '',
       partnerNameParam ?? '',
       kindParam ?? '',
       urlConvo ?? '',
       seed ? 'seed' : '',
     ].join('|');
-    if (
-      !contactIdParam &&
-      !partnerMidParam &&
-      !partnerNameParam &&
-      !urlConvo &&
-      !kindParam &&
-      !seed
-    ) {
+    if (!contactIdParam && !partnerNameParam && !urlConvo && !kindParam && !seed) {
       deepLinkHandled.current = null;
       return;
     }
     if (deepLinkHandled.current === deepKey) return;
     deepLinkHandled.current = deepKey;
 
-    if (partnerMidParam || partnerNameParam) {
-      const name = partnerNameParam || t('coach.ws.kind.person');
+    if (partnerNameParam) {
+      const name = partnerNameParam;
       const brief = buildPersonContextBrief({
         name,
-        membershipId: partnerMidParam,
-        insight: findPersonInsight(intelligence, partnerMidParam),
+        membershipId: null,
+        insight: null,
       });
-      const ask =
-        seed ||
-        (partnerInsight
-          ? t('coach.personAsk', {
-              name: partnerInsight.name,
-              why: partnerInsight.nextBestActionWhy,
-              action: partnerInsight.nextBestAction,
-            })
-          : null);
       workspace.ensureKind('person', {
         title: name,
         partnerName: name,
-        membershipId: partnerMidParam,
-        seedPrompt: ask,
+        membershipId: null,
+        seedPrompt: seed,
         contextBrief: brief,
       });
       return;
@@ -237,8 +236,8 @@ export function CoachPage() {
     partnerNameParam,
     kindParam,
     urlConvo,
-    intelligence,
     contact?.name,
+    t,
   ]);
 
   // Apply seed prompt into composer once when opening an empty thread.
@@ -342,6 +341,14 @@ export function CoachPage() {
   const wsClass =
     mobilePane === 'list' ? 'coach-ws coach-ws--mobile-list' : 'coach-ws coach-ws--mobile-chat';
 
+  if (partnerMidParam) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-sm text-muted">{t('common.loading')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className={wsClass}>
       <ConversationList
@@ -350,7 +357,14 @@ export function CoachPage() {
         archivedList={workspace.archivedList}
         search={workspace.search}
         onSearch={workspace.setSearch}
-        onOpen={(id) => workspace.open(id)}
+        onOpen={(id) => {
+          const convo = workspace.snap.conversations.find((c) => c.id === id);
+          if (convo?.kind === 'person' && convo.membershipId) {
+            void navigate(`/coach/person/${encodeURIComponent(convo.membershipId)}`);
+            return;
+          }
+          workspace.open(id);
+        }}
         onNew={() => setNewOpen(true)}
       />
 

@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@shared/i18n';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { isMissingRpcError } from '@shared/api/rpcErrors';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { loadTeamUiState, saveTeamUiState } from '@shared/offline';
 import { Button, buttonClassName } from '@shared/ui/Button';
 import { BottomSheet } from '@shared/ui/BottomSheet';
 import { Card } from '@shared/ui/Card';
-import { writePendingSeed } from '@features/coach/workspace';
 import { ApTasksPanel } from '@features/leadership/components/ApTasksPanel';
 import { LeaderboardPanel } from '@features/leadership/components/LeaderboardPanel';
 import { LeaderDashboardStrip } from '@features/leadership/components/LeaderDashboardStrip';
@@ -27,7 +26,7 @@ import { GenealogyList } from './components/GenealogyList';
 import { GenealogyToolbar } from './components/GenealogyToolbar';
 import { GenealogyViewport } from './components/GenealogyViewport';
 import { GenealogyViewerShell } from './components/GenealogyViewerShell';
-import { NodeDetailContent } from './components/NodeDetailContent';
+import { NodeDetailContent, type NodeDetailTab } from './components/NodeDetailContent';
 import type { GenealogyFilter, GenealogyNode } from './types';
 import './team-page.css';
 
@@ -55,7 +54,7 @@ function TeamEmptyState() {
  */
 export function TeamPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { membership } = useAuth();
   const { data: nodes = [], isPending, isError, error, refetch, isFetching } = useGenealogyTree();
   const dash = useLeaderDashboard();
@@ -67,8 +66,28 @@ export function TeamPage() {
   const [mode, setMode] = useState<'tree' | 'list'>('tree');
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<GenealogyNode | null>(null);
+  const [detailTab, setDetailTab] = useState<NodeDetailTab>('overview');
   const [showOps, setShowOps] = useState(true);
   const teamUiHydrated = useRef(false);
+  const memberDeepLinkHandled = useRef<string | null>(null);
+
+  // Deep link: /team?member=<mid>&tab=coach|overview — restore member sheet after Coach conversation.
+  useEffect(() => {
+    const mid = searchParams.get('member');
+    if (!mid || isPending || !nodes.length) return;
+    const key = `${mid}|${searchParams.get('tab') ?? 'overview'}`;
+    if (memberDeepLinkHandled.current === key) return;
+    const node = nodes.find((n) => n.membershipId === mid);
+    if (!node) return;
+    memberDeepLinkHandled.current = key;
+    setSelected(node);
+    const tab = searchParams.get('tab');
+    setDetailTab(tab === 'coach' ? 'coach' : 'overview');
+    const next = new URLSearchParams(searchParams);
+    next.delete('member');
+    next.delete('tab');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, nodes, isPending]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,21 +264,17 @@ export function TeamPage() {
         title={
           selected ? `${selected.firstName} ${selected.lastName}`.trim() || t('team.partner') : ''
         }
-        onClose={() => setSelected(null)}
+        onClose={() => {
+          setSelected(null);
+          setDetailTab('overview');
+        }}
       >
         {selected ? (
           <NodeDetailContent
             node={selected}
             directs={directsOfSelected}
             editable={editableIds.has(selected.membershipId)}
-            onCoach={(node) => {
-              setSelected(null);
-              const name = `${node.firstName} ${node.lastName}`.trim() || node.username;
-              writePendingSeed(t('coach.askAboutPerson', { name: node.firstName || name }));
-              void navigate(
-                `/coach?partner=${encodeURIComponent(name)}&mid=${encodeURIComponent(node.membershipId)}`
-              );
-            }}
+            initialTab={detailTab}
           />
         ) : null}
       </BottomSheet>

@@ -625,6 +625,27 @@
       "homeBodyClosed": "Day closed. Ascent helps you prepare tomorrow — not chat for its own sake.",
       "homeBodyFocus": "Focus today: {focus}. Ascent shows up at the decision — not as a chatbot.",
       "suggestFocusPrompt": "As managing director: My focus today is “{focus}”. Give me the clear next step and why."
+    },
+    "personScreenTitle": "Ascend Coach",
+    "personWelcome": "I'm Ascend Coach — we're talking about {name}.\n\nActivity, risks, and next steps are already in context. Just ask naturally — e.g. “How do I help {name} today?”",
+    "personOpenWorkspace": "All Coach conversations",
+    "personChipOpenProfile": "Open {name}'s profile",
+    "waCardTitle": "WhatsApp",
+    "waSendToEditor": "Send to Editor",
+    "personChip": {
+      "aria": "Quick actions",
+      "message": "Write message",
+      "messagePrompt": "Write a friendly WhatsApp message to {name}. Reply with a ```whatsapp block and a short rationale.",
+      "onboarding": "Onboarding",
+      "onboardingPrompt": "Plan onboarding for {name}: next clear step and a short message.",
+      "followup": "Follow-up",
+      "followupPrompt": "Prepare a follow-up with {name} — timing, tone, and draft.",
+      "motivation": "Motivation",
+      "motivationPrompt": "Write a motivating message to {name} that nudges the next step.",
+      "analyse": "Analysis",
+      "analysePrompt": "Analyze {name}'s situation briefly: risk, opportunity, next move.",
+      "next": "Next step",
+      "nextPrompt": "What is the single best next step for {name} today — and why?"
     }
   },
   "profile": {
@@ -735,7 +756,12 @@
     "directShort": "Direct",
     "neverOpened": "Never opened",
     "notesFollowUp": "Notes / Follow-up",
-    "inactiveDays": "Inactive · {days}d"
+    "inactiveDays": "Inactive · {days}d",
+    "tabOverview": "Overview",
+    "tabCoach": "Coach",
+    "memberTabsAria": "Member sections",
+    "coachAskPlaceholder": "Ask about {name}…",
+    "openCoachConversation": "Open conversation"
   },
   "leadership": {
     "activeToday": "Active today",

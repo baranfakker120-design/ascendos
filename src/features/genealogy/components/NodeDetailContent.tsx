@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
 import { Button } from '@shared/ui/Button';
@@ -8,19 +8,38 @@ import {
   useToggleFavorite,
   useUpsertLeadershipNote,
 } from '@features/leadership/leadershipApi';
+import { findPersonInsight, useCoachOrgIntelligence } from '@features/coach/intelligence';
+import { NodeCoachTab } from '@features/coach/person';
 import { displayName, presenceLabel } from '../genealogyUtils';
 import type { GenealogyNode } from '../types';
 import './node-detail.css';
+import '@features/coach/person/person-coach-conversation.css';
+
+export type NodeDetailTab = 'overview' | 'coach';
 
 interface NodeDetailSheetProps {
   node: GenealogyNode;
   directs: GenealogyNode[];
   editable: boolean;
-  onCoach: (node: GenealogyNode) => void;
+  /** Initial tab when opening the sheet (deep link / back from conversation). */
+  initialTab?: NodeDetailTab;
 }
 
-export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDetailSheetProps) {
+export function NodeDetailContent({
+  node,
+  directs,
+  editable,
+  initialTab = 'overview',
+}: NodeDetailSheetProps) {
   const { t, locale } = useI18n();
+  const [tab, setTab] = useState<NodeDetailTab>(initialTab);
+  const { intelligence } = useCoachOrgIntelligence(true);
+  const insight = findPersonInsight(intelligence, node.membershipId);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [node.membershipId, initialTab]);
+
   const frameKey = resolveDisplayFrameKey({
     role: node.role,
     rankFrameKey: node.frameAsset,
@@ -70,116 +89,144 @@ export function NodeDetailContent({ node, directs, editable, onCoach }: NodeDeta
         ) : null}
       </div>
 
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">AP</dt>
-          <dd className="font-bold">{node.apTotal.toLocaleString(locale)}</dd>
-        </div>
-        <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">ICP</dt>
-          <dd className="font-bold">{node.icpMonth.toLocaleString(locale)}</dd>
-        </div>
-        <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-            {t('team.directs')}
-          </dt>
-          <dd className="font-bold">{node.directCount}</dd>
-        </div>
-        <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-            {t('team.streak')}
-          </dt>
-          <dd className="font-bold">{node.streakDays}d</dd>
-        </div>
-      </dl>
-
-      {/* Coach + contact sit high so they are visible without scrolling */}
-      <div className="node-detail__coach-block grid gap-2">
-        {wa ? (
-          <a
-            href={wa}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
-          >
-            {t('team.whatsapp')}
-          </a>
-        ) : null}
-        {tel ? (
-          <a
-            href={tel}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
-          >
-            {t('team.call')}
-          </a>
-        ) : null}
-        <Button
+      <div className="node-detail__tabs" role="tablist" aria-label={t('team.memberTabsAria')}>
+        <button
           type="button"
-          disabled={!editable}
-          onClick={() => {
-            if (!editable) return;
-            onCoach(node);
-          }}
+          role="tab"
+          aria-selected={tab === 'overview'}
+          className={['node-detail__tab', tab === 'overview' ? 'node-detail__tab--on' : ''].join(
+            ' '
+          )}
+          onClick={() => setTab('overview')}
         >
-          {t('team.askCoach')}
-        </Button>
+          {t('team.tabOverview')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'coach'}
+          className={['node-detail__tab', tab === 'coach' ? 'node-detail__tab--on' : ''].join(' ')}
+          onClick={() => setTab('coach')}
+        >
+          {t('team.tabCoach')}
+        </button>
       </div>
 
-      {node.sponsorName ? (
-        <p className="text-sm text-muted">
-          {t('team.personalSponsor')}{' '}
-          <span className="font-semibold text-ink">{node.sponsorName}</span>
-        </p>
-      ) : null}
+      {tab === 'coach' ? (
+        <NodeCoachTab node={node} insight={insight} editable={editable} />
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
+              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">AP</dt>
+              <dd className="font-bold">{node.apTotal.toLocaleString(locale)}</dd>
+            </div>
+            <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
+              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">ICP</dt>
+              <dd className="font-bold">{node.icpMonth.toLocaleString(locale)}</dd>
+            </div>
+            <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
+              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                {t('team.directs')}
+              </dt>
+              <dd className="font-bold">{node.directCount}</dd>
+            </div>
+            <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
+              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                {t('team.streak')}
+              </dt>
+              <dd className="font-bold">{node.streakDays}d</dd>
+            </div>
+          </dl>
 
-      <label className="block space-y-1.5">
-        <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-          {t('team.notesFollowUp')}
-        </span>
-        <textarea
-          className="min-h-[88px] w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          value={noteValue}
-          onChange={(e) => {
-            if (!editable) return;
-            setNote(e.target.value);
-          }}
-          placeholder={editable ? t('team.nextTalk') : t('team.structureEditOnly')}
-          readOnly={!editable}
-          disabled={!editable}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!editable || upsertNote.isPending || !noteValue.trim()}
-          onClick={() => {
-            if (!editable) return;
-            void upsertNote.mutateAsync({
-              targetMembershipId: node.membershipId,
-              body: noteValue.trim(),
-            });
-          }}
-        >
-          {t('team.saveNote')}
-        </Button>
-      </label>
+          <div className="node-detail__coach-block grid gap-2">
+            {wa ? (
+              <a
+                href={wa}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
+              >
+                {t('team.whatsapp')}
+              </a>
+            ) : null}
+            {tel ? (
+              <a
+                href={tel}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white/80 px-4 text-sm font-semibold"
+              >
+                {t('team.call')}
+              </a>
+            ) : null}
+            <Button
+              type="button"
+              disabled={!editable}
+              onClick={() => {
+                if (!editable) return;
+                setTab('coach');
+              }}
+            >
+              {t('team.askCoach')}
+            </Button>
+          </div>
 
-      {directs.length > 0 ? (
-        <div>
-          <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
-            {t('team.directPartners')}
-          </p>
-          <ul className="space-y-1.5 text-sm">
-            {directs.slice(0, 8).map((d) => (
-              <li key={d.membershipId} className="flex justify-between gap-2">
-                <span className="font-medium">{displayName(d)}</span>
-                <span className="text-muted">
-                  {d.apTotal.toLocaleString(locale)} {t('common.ap')}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+          {node.sponsorName ? (
+            <p className="text-sm text-muted">
+              {t('team.personalSponsor')}{' '}
+              <span className="font-semibold text-ink">{node.sponsorName}</span>
+            </p>
+          ) : null}
+
+          <label className="block space-y-1.5">
+            <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+              {t('team.notesFollowUp')}
+            </span>
+            <textarea
+              className="min-h-[88px] w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              value={noteValue}
+              onChange={(e) => {
+                if (!editable) return;
+                setNote(e.target.value);
+              }}
+              placeholder={editable ? t('team.nextTalk') : t('team.structureEditOnly')}
+              readOnly={!editable}
+              disabled={!editable}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!editable || upsertNote.isPending || !noteValue.trim()}
+              onClick={() => {
+                if (!editable) return;
+                void upsertNote.mutateAsync({
+                  targetMembershipId: node.membershipId,
+                  body: noteValue.trim(),
+                });
+              }}
+            >
+              {t('team.saveNote')}
+            </Button>
+          </label>
+
+          {directs.length > 0 ? (
+            <div>
+              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                {t('team.directPartners')}
+              </p>
+              <ul className="space-y-1.5 text-sm">
+                {directs.slice(0, 8).map((d) => (
+                  <li key={d.membershipId} className="flex justify-between gap-2">
+                    <span className="font-medium">{displayName(d)}</span>
+                    <span className="text-muted">
+                      {d.apTotal.toLocaleString(locale)} {t('common.ap')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

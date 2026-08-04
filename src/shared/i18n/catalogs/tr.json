@@ -625,6 +625,27 @@
       "homeBodyClosed": "Gün kapandı. Ascent yarını hazırlaman için var — sohbet için değil.",
       "homeBodyFocus": "Bugünkü odak: {focus}. Ascent kararda görünür — chatbot olarak değil.",
       "suggestFocusPrompt": "İşletme müdürü olarak: Bugünkü odağım “{focus}”. Net sonraki adımı ve nedenini ver."
+    },
+    "personScreenTitle": "Ascend Coach",
+    "personWelcome": "Ben Ascend Coach — {name} hakkında konuşuyoruz.\n\nAktivite, riskler ve sonraki adımlar zaten bağlamda. Doğal sor — örn. “Bugün {name}’ye nasıl yardımcı olurum?”",
+    "personOpenWorkspace": "Tüm Coach sohbetleri",
+    "personChipOpenProfile": "{name} profilini aç",
+    "waCardTitle": "WhatsApp",
+    "waSendToEditor": "Editöre gönder",
+    "personChip": {
+      "aria": "Hızlı eylemler",
+      "message": "Mesaj yaz",
+      "messagePrompt": "{name} için samimi bir WhatsApp mesajı yaz. ```whatsapp bloğu ve kısa gerekçe ile yanıtla.",
+      "onboarding": "Onboarding",
+      "onboardingPrompt": "{name} için onboarding planla: net sonraki adım ve kısa mesaj.",
+      "followup": "Takip",
+      "followupPrompt": "{name} ile follow-up hazırla — zamanlama, ton ve taslak.",
+      "motivation": "Motivasyon",
+      "motivationPrompt": "{name} için sonraki adıma teşvik eden motive edici bir mesaj yaz.",
+      "analyse": "Analiz",
+      "analysePrompt": "{name}’nin durumunu kısa analiz et: risk, fırsat, sonraki hamle.",
+      "next": "Sonraki adım",
+      "nextPrompt": "Bugün {name} için tek en iyi sonraki adım nedir — ve neden?"
     }
   },
   "profile": {
@@ -735,7 +756,12 @@
     "directShort": "Direkt",
     "neverOpened": "Hiç açılmadı",
     "notesFollowUp": "Notlar / Takip",
-    "inactiveDays": "Pasif · {days}g"
+    "inactiveDays": "Pasif · {days}g",
+    "tabOverview": "Özet",
+    "tabCoach": "Coach",
+    "memberTabsAria": "Üye bölümleri",
+    "coachAskPlaceholder": "{name} hakkında sor…",
+    "openCoachConversation": "Sohbeti aç"
   },
   "leadership": {
     "activeToday": "Bugün aktif",

@@ -625,6 +625,27 @@
       "homeBodyClosed": "Giorno chiuso. Ascent ti aiuta a preparare domani — non a chattare fine a sé stesso.",
       "homeBodyFocus": "Focus oggi: {focus}. Ascent compare nella decisione — non come chatbot.",
       "suggestFocusPrompt": "Come amministratore: Il mio focus oggi è “{focus}”. Dammi il prossimo passo chiaro e perché."
+    },
+    "personScreenTitle": "Ascend Coach",
+    "personWelcome": "Sono Ascend Coach — stiamo parlando di {name}.\n\nAttività, rischi e prossimi passi sono già nel contesto. Chiedi in modo naturale — es. “Come aiuto {name} oggi?”",
+    "personOpenWorkspace": "Tutte le conversazioni Coach",
+    "personChipOpenProfile": "Apri il profilo di {name}",
+    "waCardTitle": "WhatsApp",
+    "waSendToEditor": "All’editor",
+    "personChip": {
+      "aria": "Azioni rapide",
+      "message": "Scrivi messaggio",
+      "messagePrompt": "Scrivi un messaggio WhatsApp amichevole a {name}. Rispondi con un blocco ```whatsapp e una breve motivazione.",
+      "onboarding": "Onboarding",
+      "onboardingPrompt": "Pianifica l’onboarding di {name}: prossimo passo chiaro e messaggio breve.",
+      "followup": "Follow-up",
+      "followupPrompt": "Prepara un follow-up con {name} — timing, tono e bozza.",
+      "motivation": "Motivazione",
+      "motivationPrompt": "Scrivi un messaggio motivante a {name} che spinga al prossimo passo.",
+      "analyse": "Analisi",
+      "analysePrompt": "Analizza brevemente la situazione di {name}: rischio, opportunità, prossima mossa.",
+      "next": "Prossimo passo",
+      "nextPrompt": "Qual è il miglior prossimo passo per {name} oggi — e perché?"
     }
   },
   "profile": {
@@ -735,7 +756,12 @@
     "directShort": "Diretto",
     "neverOpened": "Mai aperto",
     "notesFollowUp": "Note / Follow-up",
-    "inactiveDays": "Inattivo · {days}g"
+    "inactiveDays": "Inattivo · {days}g",
+    "tabOverview": "Panoramica",
+    "tabCoach": "Coach",
+    "memberTabsAria": "Sezioni membro",
+    "coachAskPlaceholder": "Domanda su {name}…",
+    "openCoachConversation": "Apri conversazione"
   },
   "leadership": {
     "activeToday": "Attivi oggi",

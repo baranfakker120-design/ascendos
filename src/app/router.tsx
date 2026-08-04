@@ -3,6 +3,7 @@ import { AppShell } from '@app/layouts/AppShell';
 import { AuthLayout } from '@app/layouts/AuthLayout';
 import { RouteErrorBoundary } from '@app/RouteErrorBoundary';
 import { CoachPage } from '@features/coach/CoachPage';
+import { PersonCoachConversationPage } from '@features/coach/person';
 import { ContactDetailPage } from '@features/contacts/ContactDetailPage';
 import { ContactFormPage } from '@features/contacts/ContactFormPage';
 import { ContactsPage } from '@features/contacts/ContactsPage';
@@ -166,6 +167,7 @@ export const router = createBrowserRouter([
               { path: '/kontakte/:contactId', element: <ContactDetailPage /> },
               { path: '/kontakte/:contactId/bearbeiten', element: <ContactFormPage /> },
               { path: '/coach', element: <CoachPage /> },
+              { path: '/coach/person/:membershipId', element: <PersonCoachConversationPage /> },
               { path: '/team', element: <TeamPage /> },
               { path: '/qualifikationen', element: <QualificationsPage /> },
               { path: '/team-seyda', element: <TeamSeydaPage /> },
