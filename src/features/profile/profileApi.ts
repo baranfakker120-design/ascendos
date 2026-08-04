@@ -1,4 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  isMissingRelationError,
+  isMissingRpcError,
+  isOrgMismatchRpcError,
+} from '@shared/api/rpcErrors';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { runOrEnqueue } from '@shared/offline';
@@ -30,6 +35,11 @@ export interface ProfileDetail {
   profile: Profile;
   context: ProfileContext;
   rank: ProfileRankState;
+  /**
+   * Non-fatal enrichment failure (rank display / cosmetics / awards).
+   * UI keeps the full profile layout and shows an inline banner.
+   */
+  loadWarning: string | null;
 }
 
 export type ProfileUpdateInput = {
@@ -40,14 +50,58 @@ export type ProfileUpdateInput = {
   language: string;
 };
 
+type RpcResult<T> = { data: T | null; error: unknown };
+
+/** Soft-fail Sprint 6 display rank; fall back to classic rank_for_ap. */
+export async function resolveCurrentRank(args: {
+  orgId: string;
+  apTotal: number;
+  teamLeaderQualified: boolean;
+  displayRank: () => Promise<RpcResult<RankForAp[]>>;
+  classicRank: () => Promise<RpcResult<RankForAp[]>>;
+}): Promise<{ current: RankForAp | null; warning: string | null }> {
+  const display = await args.displayRank();
+  if (!display.error) {
+    return { current: display.data?.[0] ?? null, warning: null };
+  }
+
+  const soft =
+    isMissingRpcError(display.error) || isOrgMismatchRpcError(display.error);
+  if (!soft) {
+    throw display.error;
+  }
+
+  const classic = await args.classicRank();
+  if (classic.error) throw classic.error;
+  return {
+    current: classic.data?.[0] ?? null,
+    warning: 'display_rank_unavailable',
+  };
+}
+
+function emptyRank(apTotal = 0): ProfileRankState {
+  return {
+    apTotal,
+    membershipId: null,
+    current: null,
+    next: null,
+    isBeraterDesMonats: false,
+    equippedFrameKey: null,
+    teamLeaderQualified: false,
+  };
+}
+
 /** Aktives Profil inkl. Kontext und Rang — Rank über DB-RPCs, AP über memberships. */
 export function useProfileDetail() {
-  const { profile: authProfile } = useAuth();
+  const { profile: authProfile, membership: activeMembership } = useAuth();
   return useQuery({
-    queryKey: ['profile-detail', authProfile?.id],
+    queryKey: ['profile-detail', authProfile?.id, activeMembership?.org_id ?? null],
     enabled: !!authProfile,
     queryFn: async (): Promise<ProfileDetail> => {
       const userId = authProfile!.id;
+      // Bind to active membership org (x-ascendos-org / current_org_id), not the
+      // profiles.org_id mirror — mismatch breaks display_rank_for_ap for Developers.
+      const preferredOrgId = activeMembership?.org_id ?? authProfile!.org_id;
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -56,9 +110,11 @@ export function useProfileDetail() {
         .single();
       if (profileError) throw profileError;
 
+      const teamId = activeMembership?.team_id ?? profile.team_id;
+
       const [team, org, sponsor, membership] = await Promise.all([
-        supabase.from('teams').select('name').eq('id', profile.team_id).single(),
-        supabase.from('organizations').select('name').eq('id', profile.org_id).single(),
+        supabase.from('teams').select('name').eq('id', teamId).single(),
+        supabase.from('organizations').select('name').eq('id', preferredOrgId).single(),
         profile.sponsor_id
           ? supabase
               .from('profiles_public')
@@ -70,7 +126,7 @@ export function useProfileDetail() {
           .from('memberships')
           .select('id, ap_total, org_id, status, team_leader_qualified_at')
           .eq('identity_id', userId)
-          .eq('org_id', profile.org_id)
+          .eq('org_id', preferredOrgId)
           .eq('status', 'active')
           .maybeSingle(),
       ]);
@@ -80,10 +136,12 @@ export function useProfileDetail() {
       if (sponsor.error) throw sponsor.error;
       if (membership.error) throw membership.error;
 
-      const apTotal = membership.data?.ap_total ?? 0;
-      const orgId = membership.data?.org_id ?? profile.org_id;
-      const membershipId = membership.data?.id ?? null;
-      const teamLeaderQualified = !!membership.data?.team_leader_qualified_at;
+      const apTotal = membership.data?.ap_total ?? activeMembership?.ap_total ?? 0;
+      const orgId = membership.data?.org_id ?? preferredOrgId;
+      const membershipId = membership.data?.id ?? activeMembership?.id ?? null;
+      const teamLeaderQualified =
+        !!membership.data?.team_leader_qualified_at ||
+        !!activeMembership?.team_leader_qualified_at;
 
       // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
       const now = new Date();
@@ -91,13 +149,24 @@ export function useProfileDetail() {
         .toISOString()
         .slice(0, 10);
 
-      // Display rank is qualification-aware (Team Leader frame only when qualified).
-      const [currentRank, nextRank, monthlyAward, cosmetics] = await Promise.all([
-        supabase.rpc('display_rank_for_ap', {
-          p_org: orgId,
-          p_ap: apTotal,
-          p_team_leader_qualified: teamLeaderQualified,
-        }),
+      let loadWarning: string | null = null;
+
+      const { current, warning: rankWarning } = await resolveCurrentRank({
+        orgId,
+        apTotal,
+        teamLeaderQualified,
+        displayRank: async () =>
+          supabase.rpc('display_rank_for_ap', {
+            p_org: orgId,
+            p_ap: apTotal,
+            p_team_leader_qualified: teamLeaderQualified,
+          }),
+        classicRank: async () =>
+          supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
+      });
+      if (rankWarning) loadWarning = rankWarning;
+
+      const [nextRank, monthlyAward, cosmetics] = await Promise.all([
         supabase.rpc('next_rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
         membershipId
           ? supabase
@@ -113,15 +182,46 @@ export function useProfileDetail() {
           ? supabase.rpc('list_my_frame_cosmetics')
           : Promise.resolve({ data: null, error: null }),
       ]);
-      if (currentRank.error) throw currentRank.error;
-      if (nextRank.error) throw nextRank.error;
-      if (monthlyAward.error) throw monthlyAward.error;
-      if (cosmetics.error) throw cosmetics.error;
 
-      const equippedPath =
-        ((cosmetics.data ?? []) as Array<{ asset_path: string; is_equipped: boolean }>).find(
-          (row) => row.is_equipped
-        )?.asset_path ?? null;
+      let next: NextRankForAp | null = null;
+      if (nextRank.error) {
+        // Classic RPC — keep profile alive if enrichment fails.
+        loadWarning = loadWarning ?? 'next_rank_unavailable';
+      } else {
+        next = nextRank.data?.[0] ?? null;
+      }
+
+      let isBeraterDesMonats = false;
+      if (monthlyAward.error) {
+        if (
+          isMissingRelationError(monthlyAward.error) ||
+          isMissingRpcError(monthlyAward.error)
+        ) {
+          loadWarning = loadWarning ?? 'monthly_awards_unavailable';
+        } else {
+          // RLS / unexpected: still do not wipe the profile shell.
+          loadWarning = loadWarning ?? 'monthly_awards_unavailable';
+        }
+      } else {
+        isBeraterDesMonats = !!monthlyAward.data;
+      }
+
+      let equippedFrameKey: string | null = null;
+      if (cosmetics.error) {
+        if (
+          isMissingRpcError(cosmetics.error) ||
+          isMissingRelationError(cosmetics.error)
+        ) {
+          loadWarning = loadWarning ?? 'cosmetics_unavailable';
+        } else {
+          loadWarning = loadWarning ?? 'cosmetics_unavailable';
+        }
+      } else {
+        equippedFrameKey =
+          ((cosmetics.data ?? []) as Array<{ asset_path: string; is_equipped: boolean }>).find(
+            (row) => row.is_equipped
+          )?.asset_path ?? null;
+      }
 
       return {
         profile,
@@ -135,15 +235,33 @@ export function useProfileDetail() {
         rank: {
           apTotal,
           membershipId,
-          current: currentRank.data?.[0] ?? null,
-          next: nextRank.data?.[0] ?? null,
-          isBeraterDesMonats: !!monthlyAward.data,
-          equippedFrameKey: equippedPath,
+          current,
+          next,
+          isBeraterDesMonats,
+          equippedFrameKey,
           teamLeaderQualified,
         },
+        loadWarning,
       };
     },
   });
+}
+
+/** Shell detail from auth when the profile-detail query fails entirely. */
+export function profileDetailFromAuth(
+  profile: Profile,
+  membership: Membership | null
+): ProfileDetail {
+  return {
+    profile,
+    context: {
+      teamName: '—',
+      orgName: '—',
+      sponsorName: null,
+    },
+    rank: emptyRank(membership?.ap_total ?? 0),
+    loadWarning: 'profile_partial',
+  };
 }
 
 /** Erlaubte Identitätsfelder speichern (username/role/org/team/sponsor bleiben unberührt). */

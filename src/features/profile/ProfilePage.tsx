@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
+import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { EnergyCore } from '@shared/ui/EnergyCore';
@@ -11,24 +12,32 @@ import { RoleBadge } from '@shared/ui/RoleBadge';
 import { StatCard, formatStatNumber } from '@shared/ui/StatCard';
 import { FrameCollection } from './FrameCollection';
 import { RankUpOverlay } from './RankUpOverlay';
-import { useProfileDetail } from './profileApi';
+import { profileDetailFromAuth, useProfileDetail } from './profileApi';
 
 /**
  * Eigenes Profil: Identität, Rang/AP, Rahmen-Sammlung, geschäftlicher Kontext.
+ * Bei Ladefehlern bleibt das Layout sichtbar — nur ein Inline-Banner zeigt den Fehler.
  */
 export function ProfilePage() {
   const { t } = useI18n();
-  const { role: membershipRole } = useAuth();
+  const { profile: authProfile, membership, role: membershipRole } = useAuth();
   const { data, isPending, isError } = useProfileDetail();
 
-  if (isPending) {
+  if (isPending && !data && !authProfile) {
     return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
-  if (isError || !data) {
+
+  const detail =
+    data ?? (authProfile ? profileDetailFromAuth(authProfile, membership) : null);
+
+  if (!detail) {
     return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
   }
 
-  const { profile, context, rank } = data;
+  // Banner only when the detail query failed entirely (auth shell fallback).
+  // Soft enrichment (rank fallback / cosmetics) must not wipe or alarm the layout.
+  const showLoadBanner = !isPending && (isError || !data);
+  const { profile, context, rank } = detail;
   const displayName = `${profile.first_name} ${profile.last_name}`.trim();
   const currentLabel = rank.current?.label ?? null;
   const rankKey = rank.current?.key ?? null;
@@ -41,6 +50,8 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-4">
+      {showLoadBanner ? <Alert tone="error">{t('profile.loadError')}</Alert> : null}
+
       <RankUpOverlay
         membershipId={rank.membershipId}
         rankKey={rankKey}
