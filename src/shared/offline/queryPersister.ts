@@ -46,6 +46,7 @@ export function shouldPersistQuery(queryKey: readonly unknown[]): boolean {
     'coach-messages',
     'coach-latest-convo',
     'coach-contact',
+    'coach-convos-index',
     'journey',
     'journey-today',
     'qualifications',

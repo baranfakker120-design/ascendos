@@ -486,7 +486,49 @@
     "weaknessesPrefix": "Zayıf yanlar: {list}",
     "askAboutPriorityFull": "Genel müdürüm olarak: “{title}” için önceliklendir ve sonraki adımı ver. Neden: {why}",
     "you": "Sen",
-    "gradeNeedsAttention": "Dikkat gerekli"
+    "gradeNeedsAttention": "Dikkat gerekli",
+    "ws": {
+      "title": "Konuşmalar",
+      "listAria": "Konuşma listesi",
+      "search": "Konuşmaları ara",
+      "searchPlaceholder": "İsim, konu veya tarih…",
+      "empty": "Henüz konuşma yok. + ile başla.",
+      "archived": "Arşiv",
+      "new": "Yeni konuşma",
+      "newEyebrow": "Koç",
+      "newTitle": "Yeni konuşma",
+      "newBody": "Bir bağlam seç. Her konuşma kendi belleğini tutar.",
+      "back": "Konuşmalar",
+      "openChat": "Konuşmayı aç",
+      "pickHint": "Soldan bir konuşma seç veya yeni başlat.",
+      "kind": {
+        "ceo": "CEO",
+        "person": "Kişi",
+        "marketing": "Pazarlama",
+        "recruiting": "İşe alım",
+        "story": "Hikaye",
+        "leadership": "Liderlik",
+        "general": "Genel"
+      },
+      "kindHint": {
+        "ceo": "Organizasyon için genel müdür alanı",
+        "person": "Ekip veya kişilerden biri hakkında",
+        "marketing": "Kampanyalar, içerik, Euro Event",
+        "recruiting": "Davetler, görüşmeler, pipeline",
+        "story": "Hikaye fikirleri ve anlatılar",
+        "leadership": "Takım analizi, aylık plan, liderlik",
+        "general": "Sabit bağlam olmadan serbest sohbet"
+      },
+      "defaultTitle": {
+        "ceo": "CEO",
+        "person": "Kişi",
+        "marketing": "Pazarlama",
+        "recruiting": "İşe alım",
+        "story": "Hikaye fikirleri",
+        "leadership": "Liderlik",
+        "general": "Serbest sohbet"
+      }
+    }
   },
   "profile": {
     "title": "Profil",

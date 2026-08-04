@@ -486,7 +486,49 @@
     "weaknessesPrefix": "Faiblesses : {list}",
     "askAboutPriorityFull": "En tant que mon directeur : priorise et donne-moi la prochaine étape pour « {title} ». Pourquoi : {why}",
     "you": "Vous",
-    "gradeNeedsAttention": "Nécessite attention"
+    "gradeNeedsAttention": "Nécessite attention",
+    "ws": {
+      "title": "Conversations",
+      "listAria": "Liste des conversations",
+      "search": "Rechercher des conversations",
+      "searchPlaceholder": "Nom, sujet ou date…",
+      "empty": "Aucune conversation. Commencez avec +.",
+      "archived": "Archive",
+      "new": "Nouvelle conversation",
+      "newEyebrow": "Coach",
+      "newTitle": "Nouvelle conversation",
+      "newBody": "Choisissez un contexte. Chaque conversation garde sa mémoire.",
+      "back": "Conversations",
+      "openChat": "Ouvrir la conversation",
+      "pickHint": "Choisissez une conversation à gauche ou créez-en une.",
+      "kind": {
+        "ceo": "CEO",
+        "person": "Personne",
+        "marketing": "Marketing",
+        "recruiting": "Recrutement",
+        "story": "Story",
+        "leadership": "Leadership",
+        "general": "Général"
+      },
+      "kindHint": {
+        "ceo": "Espace directeur pour l’organisation",
+        "person": "Au sujet d’une personne de l’équipe ou des contacts",
+        "marketing": "Campagnes, contenu, Euro Event",
+        "recruiting": "Invitations, échanges, pipeline",
+        "story": "Idées de stories et récits",
+        "leadership": "Analyse d’équipe, planning mensuel, leadership",
+        "general": "Chat libre sans contexte fixe"
+      },
+      "defaultTitle": {
+        "ceo": "CEO",
+        "person": "Personne",
+        "marketing": "Marketing",
+        "recruiting": "Recrutement",
+        "story": "Idées Story",
+        "leadership": "Leadership",
+        "general": "Chat libre"
+      }
+    }
   },
   "profile": {
     "title": "Profil",

@@ -486,7 +486,49 @@
     "weaknessesPrefix": "Schwächen: {list}",
     "askAboutPriorityFull": "Als mein Geschäftsführer: Priorisiere und gib mir den nächsten Schritt zu „{title}\". Warum: {why}",
     "you": "Du",
-    "gradeNeedsAttention": "Braucht Aufmerksamkeit"
+    "gradeNeedsAttention": "Braucht Aufmerksamkeit",
+    "ws": {
+      "title": "Gespräche",
+      "listAria": "Gesprächsliste",
+      "search": "Gespräche suchen",
+      "searchPlaceholder": "Name, Thema oder Datum…",
+      "empty": "Noch keine Gespräche. Starte mit +.",
+      "archived": "Archiv",
+      "new": "Neues Gespräch",
+      "newEyebrow": "Coach",
+      "newTitle": "Neues Gespräch",
+      "newBody": "Wähle den Kontext. Jedes Gespräch behält sein eigenes Gedächtnis.",
+      "back": "Gespräche",
+      "openChat": "Gespräch öffnen",
+      "pickHint": "Wähle links ein Gespräch oder starte ein neues.",
+      "kind": {
+        "ceo": "CEO",
+        "person": "Person",
+        "marketing": "Marketing",
+        "recruiting": "Recruiting",
+        "story": "Story",
+        "leadership": "Leadership",
+        "general": "General"
+      },
+      "kindHint": {
+        "ceo": "Geschäftsführer-Workspace für die Organisation",
+        "person": "Über eine Person aus Team oder Kontakten",
+        "marketing": "Kampagnen, Content, Euro Event",
+        "recruiting": "Einladungen, Gespräche, Pipeline",
+        "story": "Story-Ideen und Narrative",
+        "leadership": "Team-Analyse, Monatsplanung, Führung",
+        "general": "Freier Chat ohne festen Kontext"
+      },
+      "defaultTitle": {
+        "ceo": "CEO",
+        "person": "Person",
+        "marketing": "Marketing",
+        "recruiting": "Recruiting",
+        "story": "Story Ideen",
+        "leadership": "Leadership",
+        "general": "Freier Chat"
+      }
+    }
   },
   "profile": {
     "title": "Profil",

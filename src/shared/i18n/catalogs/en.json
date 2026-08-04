@@ -486,7 +486,49 @@
     "weaknessesPrefix": "Weaknesses: {list}",
     "askAboutPriorityFull": "As my managing director: Prioritize and give me the next step on “{title}”. Why: {why}",
     "you": "You",
-    "gradeNeedsAttention": "Needs Attention"
+    "gradeNeedsAttention": "Needs Attention",
+    "ws": {
+      "title": "Conversations",
+      "listAria": "Conversation list",
+      "search": "Search conversations",
+      "searchPlaceholder": "Name, topic, or date…",
+      "empty": "No conversations yet. Start with +.",
+      "archived": "Archive",
+      "new": "New conversation",
+      "newEyebrow": "Coach",
+      "newTitle": "New conversation",
+      "newBody": "Choose a context. Each conversation keeps its own memory.",
+      "back": "Conversations",
+      "openChat": "Open conversation",
+      "pickHint": "Pick a conversation on the left or start a new one.",
+      "kind": {
+        "ceo": "CEO",
+        "person": "Person",
+        "marketing": "Marketing",
+        "recruiting": "Recruiting",
+        "story": "Story",
+        "leadership": "Leadership",
+        "general": "General"
+      },
+      "kindHint": {
+        "ceo": "Managing-director workspace for the organization",
+        "person": "About someone from team or contacts",
+        "marketing": "Campaigns, content, Euro Event",
+        "recruiting": "Invites, conversations, pipeline",
+        "story": "Story ideas and narratives",
+        "leadership": "Team analysis, monthly planning, leadership",
+        "general": "Open chat without a fixed context"
+      },
+      "defaultTitle": {
+        "ceo": "CEO",
+        "person": "Person",
+        "marketing": "Marketing",
+        "recruiting": "Recruiting",
+        "story": "Story ideas",
+        "leadership": "Leadership",
+        "general": "Open chat"
+      }
+    }
   },
   "profile": {
     "title": "Profile",
