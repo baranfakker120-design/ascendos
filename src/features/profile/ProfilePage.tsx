@@ -16,26 +16,47 @@ import { profileDetailFromAuth, useProfileDetail } from './profileApi';
 
 /**
  * Eigenes Profil: Identität, Rang/AP, Rahmen-Sammlung, geschäftlicher Kontext.
- * Bei Ladefehlern bleibt das Layout sichtbar — nur ein Inline-Banner zeigt den Fehler.
+ * Bei Ladefehlern bleibt das Layout immer sichtbar — Fehler nur als Inline-Banner.
  */
 export function ProfilePage() {
   const { t } = useI18n();
   const { profile: authProfile, membership, role: membershipRole } = useAuth();
-  const { data, isPending, isError } = useProfileDetail();
+  const { data, isPending, isError, refetch, isFetching } = useProfileDetail();
 
   if (isPending && !data && !authProfile) {
     return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
 
-  const detail = data ?? (authProfile ? profileDetailFromAuth(authProfile, membership) : null);
+  // Never replace the page with a lone error string — always keep the shell.
+  const detail =
+    data ??
+    profileDetailFromAuth(
+      authProfile ?? {
+        id: '',
+        first_name: '',
+        last_name: '',
+        username: '—',
+        phone: null,
+        country: null,
+        language: 'de',
+        avatar_url: null,
+        org_id: '',
+        team_id: '',
+        sponsor_id: null,
+        role: 'berater',
+        goals: {},
+        created_at: '',
+        updated_at: '',
+      },
+      membership
+    );
 
-  if (!detail) {
-    return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
-  }
+  // Banner for hard failure / empty shell — not for silent rank soft-fallback.
+  const showLoadBanner =
+    (!isPending && (isError || !data)) ||
+    data?.loadWarning === 'profile_partial' ||
+    data?.loadWarning === 'rank_unavailable';
 
-  // Banner only when the detail query failed entirely (auth shell fallback).
-  // Soft enrichment (rank fallback / cosmetics) must not wipe or alarm the layout.
-  const showLoadBanner = !isPending && (isError || !data);
   const { profile, context, rank } = detail;
   const displayName = `${profile.first_name} ${profile.last_name}`.trim();
   const currentLabel = rank.current?.label ?? null;
@@ -50,6 +71,16 @@ export function ProfilePage() {
   return (
     <div className="space-y-4">
       {showLoadBanner ? <Alert tone="error">{t('profile.loadError')}</Alert> : null}
+      {showLoadBanner ? (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isFetching}
+          onClick={() => void refetch()}
+        >
+          {isFetching ? t('profile.loading') : t('common.retry')}
+        </Button>
+      ) : null}
 
       <RankUpOverlay
         membershipId={rank.membershipId}
@@ -70,7 +101,7 @@ export function ProfilePage() {
           size="lg"
         />
         <div>
-          <p className="text-xl font-semibold">{displayName}</p>
+          <p className="text-xl font-semibold">{displayName || profile.username}</p>
           <p className="text-sm text-muted">@{profile.username}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">

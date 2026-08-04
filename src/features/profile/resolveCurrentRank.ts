@@ -3,6 +3,10 @@ import type { RankForAp } from '@shared/types/domain';
 
 type RpcResult<T> = { data: T | null; error: unknown };
 
+function isSoftDisplayError(error: unknown): boolean {
+  return isMissingRpcError(error) || isOrgMismatchRpcError(error);
+}
+
 /** Soft-fail Sprint 6 display rank; fall back to classic rank_for_ap. */
 export async function resolveCurrentRank(args: {
   orgId: string;
@@ -16,15 +20,20 @@ export async function resolveCurrentRank(args: {
     return { current: display.data?.[0] ?? null, warning: null };
   }
 
-  const soft = isMissingRpcError(display.error) || isOrgMismatchRpcError(display.error);
-  if (!soft) {
-    throw display.error;
+  if (!isSoftDisplayError(display.error)) {
+    // Unexpected display_rank failure — still try classic before giving up.
   }
 
   const classic = await args.classicRank();
-  if (classic.error) throw classic.error;
-  return {
-    current: classic.data?.[0] ?? null,
-    warning: 'display_rank_unavailable',
-  };
+  if (!classic.error) {
+    return {
+      current: classic.data?.[0] ?? null,
+      warning: isSoftDisplayError(display.error)
+        ? 'display_rank_unavailable'
+        : 'display_rank_error',
+    };
+  }
+
+  // Neither RPC usable — keep Profile alive with empty rank.
+  return { current: null, warning: 'rank_unavailable' };
 }

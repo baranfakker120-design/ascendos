@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { isMissingRelationError, isMissingRpcError } from '@shared/api/rpcErrors';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { runOrEnqueue } from '@shared/offline';
@@ -68,145 +67,149 @@ export function useProfileDetail() {
     queryKey: ['profile-detail', authProfile?.id, activeMembership?.org_id ?? null],
     enabled: !!authProfile,
     queryFn: async (): Promise<ProfileDetail> => {
-      const userId = authProfile!.id;
-      // Bind to active membership org (x-ascendos-org / current_org_id), not the
-      // profiles.org_id mirror — mismatch breaks display_rank_for_ap for Developers.
-      const preferredOrgId = activeMembership?.org_id ?? authProfile!.org_id;
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      if (profileError) throw profileError;
-
-      const teamId = activeMembership?.team_id ?? profile.team_id;
-
-      const [team, org, sponsor, membership] = await Promise.all([
-        supabase.from('teams').select('name').eq('id', teamId).single(),
-        supabase.from('organizations').select('name').eq('id', preferredOrgId).single(),
-        profile.sponsor_id
-          ? supabase
-              .from('profiles_public')
-              .select('first_name, last_name')
-              .eq('id', profile.sponsor_id)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-        supabase
-          .from('memberships')
-          .select('id, ap_total, org_id, status, team_leader_qualified_at')
-          .eq('identity_id', userId)
-          .eq('org_id', preferredOrgId)
-          .eq('status', 'active')
-          .maybeSingle(),
-      ]);
-
-      if (team.error) throw team.error;
-      if (org.error) throw org.error;
-      if (sponsor.error) throw sponsor.error;
-      if (membership.error) throw membership.error;
-
-      const apTotal = membership.data?.ap_total ?? activeMembership?.ap_total ?? 0;
-      const orgId = membership.data?.org_id ?? preferredOrgId;
-      const membershipId = membership.data?.id ?? activeMembership?.id ?? null;
-      const teamLeaderQualified =
-        !!membership.data?.team_leader_qualified_at || !!activeMembership?.team_leader_qualified_at;
-
-      // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
-      const now = new Date();
-      const period = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-        .toISOString()
-        .slice(0, 10);
-
-      let loadWarning: string | null = null;
-
-      const { current, warning: rankWarning } = await resolveCurrentRank({
-        orgId,
-        apTotal,
-        teamLeaderQualified,
-        displayRank: async () =>
-          supabase.rpc('display_rank_for_ap', {
-            p_org: orgId,
-            p_ap: apTotal,
-            p_team_leader_qualified: teamLeaderQualified,
-          }),
-        classicRank: async () => supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
-      });
-      if (rankWarning) loadWarning = rankWarning;
-
-      const [nextRank, monthlyAward, cosmetics] = await Promise.all([
-        supabase.rpc('next_rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
-        membershipId
-          ? supabase
-              .from('monthly_awards')
-              .select('id')
-              .eq('org_id', orgId)
-              .eq('membership_id', membershipId)
-              .eq('period', period)
-              .eq('place', 1)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-        membershipId
-          ? supabase.rpc('list_my_frame_cosmetics')
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      let next: NextRankForAp | null = null;
-      if (nextRank.error) {
-        // Classic RPC — keep profile alive if enrichment fails.
-        loadWarning = loadWarning ?? 'next_rank_unavailable';
-      } else {
-        next = nextRank.data?.[0] ?? null;
+      try {
+        return await loadProfileDetail(authProfile!, activeMembership);
+      } catch {
+        // Absolute last resort: never fail the Profile route when auth profile exists.
+        return profileDetailFromAuth(authProfile!, activeMembership);
       }
-
-      let isBeraterDesMonats = false;
-      if (monthlyAward.error) {
-        if (isMissingRelationError(monthlyAward.error) || isMissingRpcError(monthlyAward.error)) {
-          loadWarning = loadWarning ?? 'monthly_awards_unavailable';
-        } else {
-          // RLS / unexpected: still do not wipe the profile shell.
-          loadWarning = loadWarning ?? 'monthly_awards_unavailable';
-        }
-      } else {
-        isBeraterDesMonats = !!monthlyAward.data;
-      }
-
-      let equippedFrameKey: string | null = null;
-      if (cosmetics.error) {
-        if (isMissingRpcError(cosmetics.error) || isMissingRelationError(cosmetics.error)) {
-          loadWarning = loadWarning ?? 'cosmetics_unavailable';
-        } else {
-          loadWarning = loadWarning ?? 'cosmetics_unavailable';
-        }
-      } else {
-        equippedFrameKey =
-          ((cosmetics.data ?? []) as Array<{ asset_path: string; is_equipped: boolean }>).find(
-            (row) => row.is_equipped
-          )?.asset_path ?? null;
-      }
-
-      return {
-        profile,
-        context: {
-          teamName: team.data?.name ?? '—',
-          orgName: org.data?.name ?? '—',
-          sponsorName: sponsor.data
-            ? `${sponsor.data.first_name} ${sponsor.data.last_name}`.trim()
-            : null,
-        },
-        rank: {
-          apTotal,
-          membershipId,
-          current,
-          next,
-          isBeraterDesMonats,
-          equippedFrameKey,
-          teamLeaderQualified,
-        },
-        loadWarning,
-      };
     },
   });
+}
+
+async function loadProfileDetail(
+  authProfile: Profile,
+  activeMembership: Membership | null
+): Promise<ProfileDetail> {
+  const userId = authProfile.id;
+  // Bind to active membership org (x-ascendos-org / current_org_id), not the
+  // profiles.org_id mirror — mismatch breaks display_rank_for_ap for Developers.
+  const preferredOrgId = activeMembership?.org_id ?? authProfile.org_id;
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  if (profileError) throw profileError;
+
+  const teamId = activeMembership?.team_id ?? profile.team_id;
+
+  const [team, org, sponsor, membership] = await Promise.all([
+    supabase.from('teams').select('name').eq('id', teamId).maybeSingle(),
+    supabase.from('organizations').select('name').eq('id', preferredOrgId).maybeSingle(),
+    profile.sponsor_id
+      ? supabase
+          .from('profiles_public')
+          .select('first_name, last_name')
+          .eq('id', profile.sponsor_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('memberships')
+      .select('id, ap_total, org_id, status, team_leader_qualified_at')
+      .eq('identity_id', userId)
+      .eq('org_id', preferredOrgId)
+      .eq('status', 'active')
+      .maybeSingle(),
+  ]);
+
+  // Context lookups must not wipe the Profile shell.
+  let loadWarning: string | null = null;
+  if (team.error || org.error || sponsor.error) {
+    loadWarning = 'context_unavailable';
+  }
+  if (membership.error) {
+    loadWarning = loadWarning ?? 'membership_unavailable';
+  }
+
+  const apTotal = membership.data?.ap_total ?? activeMembership?.ap_total ?? 0;
+  const orgId = membership.data?.org_id ?? preferredOrgId;
+  const membershipId = membership.data?.id ?? activeMembership?.id ?? null;
+  const teamLeaderQualified =
+    !!membership.data?.team_leader_qualified_at || !!activeMembership?.team_leader_qualified_at;
+
+  // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
+  const now = new Date();
+  const period = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    .toISOString()
+    .slice(0, 10);
+
+  const { current, warning: rankWarning } = await resolveCurrentRank({
+    orgId,
+    apTotal,
+    teamLeaderQualified,
+    displayRank: async () =>
+      supabase.rpc('display_rank_for_ap', {
+        p_org: orgId,
+        p_ap: apTotal,
+        p_team_leader_qualified: teamLeaderQualified,
+      }),
+    classicRank: async () => supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
+  });
+  if (rankWarning) loadWarning = rankWarning;
+
+  const [nextRank, monthlyAward, cosmetics] = await Promise.all([
+    supabase.rpc('next_rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
+    membershipId
+      ? supabase
+          .from('monthly_awards')
+          .select('id')
+          .eq('org_id', orgId)
+          .eq('membership_id', membershipId)
+          .eq('period', period)
+          .eq('place', 1)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    membershipId
+      ? supabase.rpc('list_my_frame_cosmetics')
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  let next: NextRankForAp | null = null;
+  if (nextRank.error) {
+    loadWarning = loadWarning ?? 'next_rank_unavailable';
+  } else {
+    next = nextRank.data?.[0] ?? null;
+  }
+
+  let isBeraterDesMonats = false;
+  if (monthlyAward.error) {
+    loadWarning = loadWarning ?? 'monthly_awards_unavailable';
+  } else {
+    isBeraterDesMonats = !!monthlyAward.data;
+  }
+
+  let equippedFrameKey: string | null = null;
+  if (cosmetics.error) {
+    loadWarning = loadWarning ?? 'cosmetics_unavailable';
+  } else {
+    equippedFrameKey =
+      ((cosmetics.data ?? []) as Array<{ asset_path: string; is_equipped: boolean }>).find(
+        (row) => row.is_equipped
+      )?.asset_path ?? null;
+  }
+
+  return {
+    profile,
+    context: {
+      teamName: team.data?.name ?? '—',
+      orgName: org.data?.name ?? '—',
+      sponsorName: sponsor.data
+        ? `${sponsor.data.first_name} ${sponsor.data.last_name}`.trim()
+        : null,
+    },
+    rank: {
+      apTotal,
+      membershipId,
+      current,
+      next,
+      isBeraterDesMonats,
+      equippedFrameKey,
+      teamLeaderQualified,
+    },
+    loadWarning,
+  };
 }
 
 /** Shell detail from auth when the profile-detail query fails entirely. */
