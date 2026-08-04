@@ -4,6 +4,7 @@ import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executive';
 import { useCoachOrgIntelligence } from '@features/coach/intelligence';
+import { useContacts } from '@features/contacts/contactsApi';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
 import { ClosedDay, ClosingLoop } from './components/ClosingLoop';
@@ -44,8 +45,17 @@ function TodayDailyPlan() {
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
   const memory = useDayMemory();
   const { intelligence } = useCoachOrgIntelligence(true);
+  const contacts = useContacts({ limit: 100 });
   const [manualClose, setManualClose] = useState(false);
   const [closingBusy, setClosingBusy] = useState(false);
+
+  const lastEventByContactId = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const c of contacts.data?.items ?? []) {
+      map.set(c.id, c.last_event_at);
+    }
+    return map;
+  }, [contacts.data?.items]);
 
   const diffLines = useMemo(() => {
     if (!data || data.plan.committed_at) return [];
@@ -111,6 +121,7 @@ function TodayDailyPlan() {
         <MorningCommit
           items={data.items}
           busy={commitPlan.isPending}
+          lastEventByContactId={lastEventByContactId}
           onCommit={(priority) => {
             void (async () => {
               await memory.markDayOpened(data.items, priority);
@@ -154,6 +165,7 @@ function TodayDailyPlan() {
       ordered={ordered}
       progress={progress}
       busy={setMissionStatus.isPending}
+      lastEventByContactId={lastEventByContactId}
       onStatus={(itemId, status, reason) =>
         void setMissionStatus.mutateAsync({ itemId, status, reason })
       }

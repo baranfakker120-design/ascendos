@@ -429,7 +429,11 @@
     "oneTapQueue": "Dopo ({count})",
     "oneTapQueueAria": "Altre missioni oggi",
     "oneTapMakePrimary": "Rendi focus",
-    "oneTapConsequence": "Rimandare o saltare rende il contatto più pesante domani — non te."
+    "oneTapConsequence": "Rimandare o saltare rende il contatto più pesante domani — non te.",
+    "gravityPulling": "Gravità in tiro",
+    "gravityHeavy": "Gravità pesante",
+    "gravityCritical": "Gravità critica",
+    "gravityIdle": "{days} giorni senza movimento"
   },
   "journey": {
     "title": "Il tuo percorso",

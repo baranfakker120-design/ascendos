@@ -429,7 +429,11 @@
     "oneTapQueue": "Sonra ({count})",
     "oneTapQueueAria": "Bugünün diğer görevleri",
     "oneTapMakePrimary": "Odak yap",
-    "oneTapConsequence": "Ertelemek veya atlamak yarın teması ağırlaştırır — seni değil."
+    "oneTapConsequence": "Ertelemek veya atlamak yarın teması ağırlaştırır — seni değil.",
+    "gravityPulling": "Yerçekimi çekiyor",
+    "gravityHeavy": "Ağır yerçekimi",
+    "gravityCritical": "Kritik yerçekimi",
+    "gravityIdle": "{days} gündür hareketsiz"
   },
   "journey": {
     "title": "Yolculuğun",

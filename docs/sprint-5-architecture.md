@@ -142,6 +142,8 @@ Neglect has weight. Follow-ups pull into the one action with WHY proof.
 `scoreFollowUpGravity(contact, events, now) → number`  
 Feeds ordering hints / reason copy; does **not** fork `generate_daily_plan`.
 
+**Status:** Implemented — `gravity.ts`, MorningCommit default via `pickGravityPriority`, FocusMode band + idle days.
+
 ### L5 — Conversation Prep
 
 **UX**  

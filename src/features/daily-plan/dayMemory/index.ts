@@ -15,6 +15,13 @@ export {
   type DecisionDiffWarning,
 } from './buildDecisionDiff';
 export {
+  daysIdle,
+  pickGravityPriority,
+  scoreFollowUpGravity,
+  type GravityBand,
+  type GravityReading,
+} from './gravity';
+export {
   readDayClose,
   readDayOpen,
   readYesterdayClose,

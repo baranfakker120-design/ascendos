@@ -7,6 +7,7 @@ import { contactHasPendingShareProof } from '@shared/lib/shareVerification';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import { scoreFollowUpGravity, type GravityReading } from '../dayMemory';
 import type { OrderedMissions } from '../missionOrder';
 import { MISSION_ICONS } from './missionMeta';
 
@@ -17,12 +18,20 @@ interface Props {
   onStatus: (itemId: string, status: 'done' | 'deferred' | 'skipped', reason?: string) => void;
   /** Sprint 5 · L1 — intentional close while work remains. */
   onEndDay?: () => void;
+  lastEventByContactId?: Map<string, string | null>;
 }
 
 /**
  * Fokus-Modus: eine Mission dominant, Reward-Sticker zeigen den Wert.
  */
-export function FocusMode({ ordered, progress, busy = false, onStatus, onEndDay }: Props) {
+export function FocusMode({
+  ordered,
+  progress,
+  busy = false,
+  onStatus,
+  onEndDay,
+  lastEventByContactId,
+}: Props) {
   const { t } = useI18n();
   const { current, queue, resolved } = ordered;
   const [skipPickerFor, setSkipPickerFor] = useState<string | null>(null);
@@ -36,6 +45,21 @@ export function FocusMode({ ordered, progress, busy = false, onStatus, onEndDay 
   const combo = comboBonusAp(progress.done);
   const awaitingProof =
     Boolean(current.contact_id) && contactHasPendingShareProof(current.contact_id!);
+  const gravity: GravityReading = scoreFollowUpGravity({
+    missionType: current.mission_type,
+    engineScore: current.score,
+    lastEventAt: current.contact_id
+      ? (lastEventByContactId?.get(current.contact_id) ?? null)
+      : null,
+  });
+  const gravityLabel =
+    gravity.band === 'pulling'
+      ? t('today.gravityPulling')
+      : gravity.band === 'heavy'
+        ? t('today.gravityHeavy')
+        : gravity.band === 'critical'
+          ? t('today.gravityCritical')
+          : null;
 
   const skipReasons = [
     { key: 'notReached' as const, label: t('today.skipNotReached') },
@@ -69,6 +93,14 @@ export function FocusMode({ ordered, progress, busy = false, onStatus, onEndDay 
               <ApRewardSticker ap={missionAp} size="sm" />
             </div>
             <p className="mt-1 text-sm text-muted">{current.reason}</p>
+            {gravityLabel ? (
+              <p className="mt-2 text-xs font-semibold text-accent-deep">
+                {gravityLabel}
+                {gravity.idleDays !== null
+                  ? ` · ${t('today.gravityIdle', { days: gravity.idleDays })}`
+                  : ''}
+              </p>
+            ) : null}
             {awaitingProof ? (
               <p className="mt-2 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent-deep">
                 {t('today.waitingProof')}

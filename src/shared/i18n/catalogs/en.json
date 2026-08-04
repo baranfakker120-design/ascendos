@@ -429,7 +429,11 @@
     "oneTapQueue": "Afterwards ({count})",
     "oneTapQueueAria": "Other missions today",
     "oneTapMakePrimary": "Make focus",
-    "oneTapConsequence": "Deferring or skipping makes the contact heavier tomorrow — not you."
+    "oneTapConsequence": "Deferring or skipping makes the contact heavier tomorrow — not you.",
+    "gravityPulling": "Gravity pulling",
+    "gravityHeavy": "Heavy gravity",
+    "gravityCritical": "Critical gravity",
+    "gravityIdle": "{days} days without movement"
   },
   "journey": {
     "title": "Your journey",

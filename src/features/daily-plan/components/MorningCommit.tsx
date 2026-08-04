@@ -6,25 +6,33 @@ import type { DailyPlanItem } from '@shared/types/domain';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
-import { pickPriorityMission } from '../dayMemory';
+import { pickGravityPriority, pickPriorityMission, scoreFollowUpGravity } from '../dayMemory';
 import { MISSION_ICONS } from './missionMeta';
 import './oneTapDay.css';
 
 /**
  * Sprint 5 · L3 One-Tap Day — commit to ONE action, not a menu of missions.
+ * L4 Gravity chooses the default focus when contact idle data is present.
  */
 export function MorningCommit({
   items,
   onCommit,
   busy,
+  lastEventByContactId,
 }: {
   items: DailyPlanItem[];
   onCommit: (priority: DailyPlanItem) => void;
   busy: boolean;
+  lastEventByContactId?: Map<string, string | null>;
 }) {
   const { profile } = useAuth();
   const { t } = useI18n();
-  const suggested = useMemo(() => pickPriorityMission(items), [items]);
+  const suggested = useMemo(() => {
+    if (lastEventByContactId && lastEventByContactId.size > 0) {
+      return pickGravityPriority(items, lastEventByContactId);
+    }
+    return pickPriorityMission(items);
+  }, [items, lastEventByContactId]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     items.find((i) => i.id === (selectedId ?? suggested?.id)) ?? suggested ?? items[0]!;
@@ -39,6 +47,22 @@ export function MorningCommit({
         : t('today.greetingEvening');
 
   const ap = scoreDailyMission(selected.mission_type, { engineScore: selected.score });
+  const gravity = scoreFollowUpGravity({
+    missionType: selected.mission_type,
+    engineScore: selected.score,
+    lastEventAt: selected.contact_id
+      ? (lastEventByContactId?.get(selected.contact_id) ?? null)
+      : null,
+  });
+
+  const gravityLabel =
+    gravity.band === 'pulling'
+      ? t('today.gravityPulling')
+      : gravity.band === 'heavy'
+        ? t('today.gravityHeavy')
+        : gravity.band === 'critical'
+          ? t('today.gravityCritical')
+          : null;
 
   return (
     <div className="one-tap space-y-5">
@@ -62,6 +86,14 @@ export function MorningCommit({
               <ApRewardSticker ap={ap} size="sm" animate={false} />
             </div>
             <p className="mt-1 text-sm text-muted">{selected.reason}</p>
+            {gravityLabel ? (
+              <p className="mt-2 text-xs font-semibold text-accent-deep">
+                {gravityLabel}
+                {gravity.idleDays !== null
+                  ? ` · ${t('today.gravityIdle', { days: gravity.idleDays })}`
+                  : ''}
+              </p>
+            ) : null}
           </div>
         </div>
         <Button onClick={() => onCommit(selected)} disabled={busy} aria-busy={busy}>

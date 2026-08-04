@@ -429,7 +429,11 @@
     "oneTapQueue": "Ensuite ({count})",
     "oneTapQueueAria": "Autres missions aujourd’hui",
     "oneTapMakePrimary": "En focus",
-    "oneTapConsequence": "Reporter ou ignorer rend le contact plus lourd demain — pas toi."
+    "oneTapConsequence": "Reporter ou ignorer rend le contact plus lourd demain — pas toi.",
+    "gravityPulling": "Gravité en jeu",
+    "gravityHeavy": "Gravité forte",
+    "gravityCritical": "Gravité critique",
+    "gravityIdle": "{days} jours sans mouvement"
   },
   "journey": {
     "title": "Ton parcours",

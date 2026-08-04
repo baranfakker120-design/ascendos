@@ -429,7 +429,11 @@
     "oneTapQueue": "Danach ({count})",
     "oneTapQueueAria": "Weitere Missionen heute",
     "oneTapMakePrimary": "Als Fokus",
-    "oneTapConsequence": "Verschieben oder überspringen macht den Kontakt morgen schwerer — nicht dich."
+    "oneTapConsequence": "Verschieben oder überspringen macht den Kontakt morgen schwerer — nicht dich.",
+    "gravityPulling": "Gravity zieht",
+    "gravityHeavy": "Schwere Gravity",
+    "gravityCritical": "Kritische Gravity",
+    "gravityIdle": "{days} Tage ohne Bewegung"
   },
   "journey": {
     "title": "Deine Reise",
