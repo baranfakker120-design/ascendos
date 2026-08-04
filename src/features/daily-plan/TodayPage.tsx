@@ -18,10 +18,22 @@ import '@features/coach/executive/executive.css';
 
 /**
  * Daily Command Center — Sprint 5 home stack:
- * Stories → Live Coaching → sync → Day Memory / Mission → CEO Briefing → Coach.
+ * Stories → Live Coaching → sync → Day Memory / Mission → CEO Briefing → Coach surface.
  */
 export function TodayPage() {
   const { t } = useI18n();
+  const memory = useDayMemory();
+
+  const dayContext = useMemo(
+    () => ({
+      priorityTitle: memory.open?.priorityTitle ?? memory.close?.priorityTitle ?? null,
+      isClosed: Boolean(memory.close),
+      tomorrowSeed: memory.close?.tomorrowSeed ?? [],
+      diffTitles: memory.yesterdayClose?.tomorrowSeed ?? [],
+    }),
+    [memory.open, memory.close, memory.yesterdayClose]
+  );
+
   return (
     <div className="space-y-4">
       <TodayStoriesSlot />
@@ -31,19 +43,18 @@ export function TodayPage() {
       </div>
       <section className="exec-mission" aria-label={t('today.missionTitle')}>
         <p className="exec-mission__label">{t('today.missionTitle')}</p>
-        <TodayDailyPlan />
+        <TodayDailyPlan memory={memory} />
       </section>
       <TodayCeoBriefingSlot />
-      <TodayCoachOsSlot />
+      <TodayCoachOsSlot dayContext={dayContext} />
     </div>
   );
 }
 
-function TodayDailyPlan() {
+function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> }) {
   const { t } = useI18n();
   const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
-  const memory = useDayMemory();
   const { intelligence } = useCoachOrgIntelligence(true);
   const contacts = useContacts({ limit: 100 });
   const [manualClose, setManualClose] = useState(false);

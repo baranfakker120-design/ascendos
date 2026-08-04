@@ -621,7 +621,10 @@
       "suggestWeekPlanLabel": "Planifie ma semaine.",
       "suggestWeekPlanPrompt": "En tant que directeur: planifie ma semaine en priorisant lignes faibles, relances et qualification.",
       "suggestMomentumLabel": "Où en est notre élan ?",
-      "suggestMomentumPrompt": "En tant que directeur: où en est notre élan — jambes fortes/faibles, onboarding et leadership."
+      "suggestMomentumPrompt": "En tant que directeur: où en est notre élan — jambes fortes/faibles, onboarding et leadership.",
+      "homeBodyClosed": "Journée clôturée. Ascent t’aide à préparer demain — pas à discuter pour discuter.",
+      "homeBodyFocus": "Focus aujourd’hui : {focus}. Ascent apparaît à la décision — pas comme chatbot.",
+      "suggestFocusPrompt": "En tant que directeur : Mon focus aujourd’hui est « {focus} ». Donne-moi la prochaine étape claire et pourquoi."
     }
   },
   "profile": {

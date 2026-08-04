@@ -621,7 +621,10 @@
       "suggestWeekPlanLabel": "Plan my week.",
       "suggestWeekPlanPrompt": "As managing director: Plan my week focusing on weak lines, follow-ups, and qualification.",
       "suggestMomentumLabel": "Where is our momentum?",
-      "suggestMomentumPrompt": "As managing director: Where is our momentum — strong vs weak legs, onboarding, and leadership."
+      "suggestMomentumPrompt": "As managing director: Where is our momentum — strong vs weak legs, onboarding, and leadership.",
+      "homeBodyClosed": "Day closed. Ascent helps you prepare tomorrow — not chat for its own sake.",
+      "homeBodyFocus": "Focus today: {focus}. Ascent shows up at the decision — not as a chatbot.",
+      "suggestFocusPrompt": "As managing director: My focus today is “{focus}”. Give me the clear next step and why."
     }
   },
   "profile": {

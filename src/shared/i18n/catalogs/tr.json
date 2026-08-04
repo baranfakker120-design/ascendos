@@ -621,7 +621,10 @@
       "suggestWeekPlanLabel": "Haftamı planla.",
       "suggestWeekPlanPrompt": "Genel müdür olarak: Zayıf hatlar, takipler ve kalifikasyona odaklanarak haftamı planla.",
       "suggestMomentumLabel": "Momentumumuz nerede?",
-      "suggestMomentumPrompt": "Genel müdür olarak: Momentumumuz nerede — güçlü/zayıf hatlar, onboarding ve liderlik."
+      "suggestMomentumPrompt": "Genel müdür olarak: Momentumumuz nerede — güçlü/zayıf hatlar, onboarding ve liderlik.",
+      "homeBodyClosed": "Gün kapandı. Ascent yarını hazırlaman için var — sohbet için değil.",
+      "homeBodyFocus": "Bugünkü odak: {focus}. Ascent kararda görünür — chatbot olarak değil.",
+      "suggestFocusPrompt": "İşletme müdürü olarak: Bugünkü odağım “{focus}”. Net sonraki adımı ve nedenini ver."
     }
   },
   "profile": {

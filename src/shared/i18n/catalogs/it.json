@@ -621,7 +621,10 @@
       "suggestWeekPlanLabel": "Pianifica la mia settimana.",
       "suggestWeekPlanPrompt": "Come direttore: pianifica la mia settimana con focus su linee deboli, follow-up e qualifica.",
       "suggestMomentumLabel": "Dov’è il nostro momentum?",
-      "suggestMomentumPrompt": "Come direttore: dov’è il nostro momentum — linee forti/deboli, onboarding e leadership."
+      "suggestMomentumPrompt": "Come direttore: dov’è il nostro momentum — linee forti/deboli, onboarding e leadership.",
+      "homeBodyClosed": "Giorno chiuso. Ascent ti aiuta a preparare domani — non a chattare fine a sé stesso.",
+      "homeBodyFocus": "Focus oggi: {focus}. Ascent compare nella decisione — non come chatbot.",
+      "suggestFocusPrompt": "Come amministratore: Il mio focus oggi è “{focus}”. Dammi il prossimo passo chiaro e perché."
     }
   },
   "profile": {

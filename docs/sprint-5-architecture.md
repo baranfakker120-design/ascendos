@@ -149,10 +149,14 @@ Feeds ordering hints / reason copy; does **not** fork `generate_daily_plan`.
 **UX**  
 ≤8s pack on contact / One-Tap “Now”: phase, last events, risk, next question, draft, compliance soft-guard. Compose existing timeline + person insight + drafts.
 
+**Status:** Implemented — `ConversationPrepSheet` from FocusMode; `buildConversationPrep`; copy draft / Ask Ascent / open contact; never auto-send.
+
 ### L6 — Coach as Surface
 
 **UX**  
 Wire Ascent into Diff, Closing, One-Tap, Prep, Gravity WHY — chat remains escape hatch. Proactive suggestions subordinate to the day’s one action.
+
+**Status:** Implemented — `prioritizeSuggestionsForDay`; `TodayCoachOsSlot` receives day context (priority / closed / seed); Prep + Focus already surface Ascent.
 
 ---
 
