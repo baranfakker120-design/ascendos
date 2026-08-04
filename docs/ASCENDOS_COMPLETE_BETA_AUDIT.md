@@ -19,7 +19,7 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 | Daily Plan / Closing Loop / Journey week-1      | 🟢 Real product                                        |
 | Rank frames 01–10 display + collection/equip    | 🟢 Complete (Sprint 6 System 1)                        |
 | Team tree pan/zoom                              | 🟡 Works; scale claims oversold                        |
-| Live Coaching Today card                        | 🟡 Works as “one Zoom event”; not a platform           |
+| Live Coaching Today card                        | 🟢 Org-scoped Zoom card + in-app reminders             |
 | Advisor of the Month                            | 🟢 Calculator + cron + catch-up + history UI           |
 | AAA Cinema / Hero cinema                        | 🟢 RankUp + Advisor HeroScreen (Sprint 6)              |
 | Push / scheduled notifications                  | 🔴 Tables + Settings theater; **no delivery**          |
@@ -168,33 +168,36 @@ Do not confuse with: cinematic BottomNav CSS, `EnergyCore` canvas, `ApRewardStic
 
 # 4. Zoom Coaching (Live Coaching)
 
-## Status: 🟡 Partially Implemented · Priority: P0 (honesty) / P1 (product)
+## Status: 🟢 Complete (shipped product surface) · Priority: P0 · Remediated Sprint 6 System 4 (2026-08-04)
 
-| Capability                     | Status | Notes                                                                 |
-| ------------------------------ | ------ | --------------------------------------------------------------------- |
-| Event CRUD in Supabase         | 🟢     | `live_coaching_events`, admin page `/live-coaching`                   |
-| Media upload                   | 🟢     | Storage bucket `coaching-media`                                       |
-| Today card countdown           | 🟢     | Client `setInterval` 1s                                               |
-| Join Zoom                      | 🟢     | `zoomus://` + HTTPS fallback                                          |
-| Calendar links                 | 🟢     | Apple / Google / Outlook                                              |
-| Pick “today’s” event           | 🟡     | Heuristic soonest non-finished                                        |
-| Cloud sync to members          | 🟡     | RLS read of `active` events; **no Realtime**, no poll on member query |
-| Reminders (30m / 5m)           | 🔴     | Scheduled in **publisher localStorage** only; flush on Today          |
-| `coaching_notification_outbox` | 🔴     | Written on publish; **zero readers / workers**                        |
-| Web Push                       | 🔴     | `push_subscriptions` table; **no app usage**                          |
-| Recurrence (`repeat_rule`)     | 🔴     | Column + admin select; **no expansion logic**                         |
-| Library / replay / multi-event | 🔴     | `LIVE_COACHING_FUTURE` all `false`                                    |
-| Expired meetings               | 🟡     | “Finished” UI; no archive job                                         |
-| Tenancy                        | 🔴     | **No `org_id`** — any authenticated user can see active events        |
+| Capability                     | Status | Notes                                                                                             |
+| ------------------------------ | ------ | ------------------------------------------------------------------------------------------------- |
+| Event CRUD in Supabase         | 🟢     | `live_coaching_events` + admin `/live-coaching`                                                   |
+| Media upload                   | 🟢     | Storage bucket `coaching-media`                                                                   |
+| Today card countdown           | 🟢     | Client `setInterval` 1s                                                                           |
+| Join Zoom                      | 🟢     | `zoomus://` + HTTPS fallback                                                                      |
+| Calendar links                 | 🟢     | Apple / Google / Outlook                                                                          |
+| Pick “today’s” event           | 🟢     | Soonest **non-finished** active; `null` if only finished remain                                   |
+| Cloud sync to members          | 🟢     | Org RLS + `refetchInterval: 60_000` (Stories pattern); Realtime optional not required             |
+| Reminders (30m / 5m)           | 🟢     | Outbox plan + **per-user receipts**; flush when app open (Notification API). Not lock-screen push |
+| `coaching_notification_outbox` | 🟢     | Written on publish; claimed via `claim_due_coaching_notifications`                                |
+| Web Push                       | ⚪     | **Deferred to System 5** — `push_subscriptions` still unused (honest)                             |
+| Recurrence (`repeat_rule`)     | 🟢     | `maintain_live_coaching_events` rolls `starts_at` + rebuilds outbox                               |
+| Library / replay / multi-event | ⚪     | **Explicitly out of catalog** — `LIVE_COACHING_FUTURE` remains false (no fake UI)                 |
+| Expired meetings               | 🟢     | One-shots archived (`active=false`); recurring rolled; hourly GH job + client catch-up            |
+| Tenancy                        | 🟢     | `org_id` NOT NULL + org-scoped RLS on events/outbox                                               |
 
-### Brutal summary
+### Product boundary
 
-Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable as a coaching notification platform.
+Shippable as **org-scoped Live Coaching: publish → Today card → Join/calendar → in-app reminders when open → archive/roll**.  
+**Not** claimed: closed-app Web Push, multi-event library, replay gallery.
 
 ### Evidence
 
-- `src/features/live-coaching/*`
-- `supabase/migrations/20260815000028_sprint_5_1_knowledge_live_coaching.sql`
+- `supabase/migrations/20260820000033_sprint6_live_coaching_contract.sql`
+- `supabase/functions/run-live-coaching-maintenance/`
+- `.github/workflows/live-coaching-maintenance.yml`
+- `src/features/live-coaching/{liveCoachingApi,notifications,pickTodayEvent,repeatRule,TodayLiveCoachingSlot}.*`
 
 ---
 
@@ -209,7 +212,7 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 | Follow-up due                 | Roadmap only                 | —                                           | Never                                | 🔴 Missing            |
 | Inactive member               | Coach insight heuristic      | Client `analyzeOrg`                         | Advisory UI only                     | 🟡 Not a notification |
 | Birthday                      | Draft kind / automation kind | **Never** (no `birth_date` usage in `src/`) | Never fires                          | 🔴 Stub               |
-| Zoom reminder                 | Local Notification API       | Publisher device schedule                   | Audience never gets it               | 🔴 Theater            |
+| Zoom reminder                 | Outbox + receipts            | Due claim when app open                     | Audience when open                   | 🟢 In-app             |
 | Coach reminder                | Automation prefs             | Default OFF; no runner                      | Never                                | 🔴 Stub               |
 | Advisor of the Month          | Frame-10 + Profile history   | Job + catch-up + display                    | Title month works                    | 🟢 Award path         |
 | AAA Cinema                    | Advisor HeroScreen           | Title-month awards + not seen               | Once per period                      | 🟢                    |
@@ -240,7 +243,7 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 | Cloudflare Cron / Workers schedules             | **No** (`wrangler.toml` has no triggers)                                                    |
 | `pg_cron` / `pg_net`                            | **Not installed** (documented Sprint 0)                                                     |
 | Edge Function schedules                         | **Partial** — `run-monthly-awards` via GitHub Actions cron (System 2); no general scheduler |
-| Coaching outbox processor                       | **No**                                                                                      |
+| Coaching outbox processor                       | 🟢 System 4 — per-user claim when app open (+ hourly maintain job)                          |
 | Monthly awards job                              | 🟢 System 2 (`run_monthly_awards_job` + GH Actions + catch-up)                              |
 | Coach birthday / inactivity / follow-up senders | **Stub prefs only**                                                                         |
 | Client `setInterval`                            | UI only (countdown, notify flush, offline flush)                                            |
@@ -368,15 +371,15 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 
 Routing: incomplete Journey → Stories + Live + Sync + **JourneyToday** + CEO + Coach OS; else → `TodayPage` (Daily Plan stack).
 
-| Widget               | Data source                                | Logic                      | Refresh                  | Actions                        | Empty/Loading               | Status |
-| -------------------- | ------------------------------------------ | -------------------------- | ------------------------ | ------------------------------ | --------------------------- | ------ |
-| Stories              | Admin `ascend_stories` + coach-built cards | Merge feeds                | Admin 60s poll           | Open story                     | **Returns `null` if empty** | 🟡     |
-| Live Coaching        | `live_coaching_events`                     | Pick today                 | Query + 30s notify flush | Join, calendar                 | **`null` if none**          | 🟡     |
-| Sync chip            | Offline queues                             | Status                     | Interval                 | —                              | Shows state                 | 🟢     |
-| Daily Plan / Mission | `generate_daily_plan` + IDB day memory     | Commit → Focus → Closing   | Query invalidation       | Done/defer/skip, prep, end day | Loading/error/empty cards   | 🟢     |
-| Journey Today        | Journey RPCs                               | Week-1 steps               | Query                    | Complete steps                 | Loading/error               | 🟢     |
-| CEO Briefing         | Client `useCoachOrgIntelligence`           | Morning/evening heuristics | On inputs                | Ask → Coach                    | Loading; `null` if no intel | 🟡     |
-| Coach OS strip       | Same intel + suggestions                   | Horizon chips              | On inputs                | Open coach                     | Weak empty copy             | 🟡     |
+| Widget               | Data source                                | Logic                      | Refresh                 | Actions                        | Empty/Loading               | Status |
+| -------------------- | ------------------------------------------ | -------------------------- | ----------------------- | ------------------------------ | --------------------------- | ------ |
+| Stories              | Admin `ascend_stories` + coach-built cards | Merge feeds                | Admin 60s poll          | Open story                     | **Returns `null` if empty** | 🟡     |
+| Live Coaching        | `live_coaching_events`                     | Pick today                 | Poll 60s + maintain RPC | Join, calendar, reminders      | **`null` if none**          | 🟢     |
+| Sync chip            | Offline queues                             | Status                     | Interval                | —                              | Shows state                 | 🟢     |
+| Daily Plan / Mission | `generate_daily_plan` + IDB day memory     | Commit → Focus → Closing   | Query invalidation      | Done/defer/skip, prep, end day | Loading/error/empty cards   | 🟢     |
+| Journey Today        | Journey RPCs                               | Week-1 steps               | Query                   | Complete steps                 | Loading/error               | 🟢     |
+| CEO Briefing         | Client `useCoachOrgIntelligence`           | Morning/evening heuristics | On inputs               | Ask → Coach                    | Loading; `null` if no intel | 🟡     |
+| Coach OS strip       | Same intel + suggestions                   | Horizon chips              | On inputs               | Open coach                     | Weak empty copy             | 🟡     |
 
 **UX issue:** First viewport is a **stacked dashboard**, not one composition (Stories + Live + Sync + Missions + CEO + Coach).
 
@@ -411,16 +414,16 @@ Routing: incomplete Journey → Stories + Live + Sync + **JourneyToday** + CEO +
 
 ### Schema-only / dead / write-sink
 
-| Table                                     | Verdict                                              |
-| ----------------------------------------- | ---------------------------------------------------- |
-| `push_subscriptions`                      | 🔴 Dead — no client/Edge writers                     |
-| `coaching_notification_outbox`            | 🔴 Write-only; no processor; **SELECT using (true)** |
-| `monthly_awards`                          | 🟢 Writers: job + `ensure_monthly_awards`            |
-| `seasons`                                 | 🟡 Schema placeholder; no season product             |
-| `cosmetic_items` / `membership_cosmetics` | 🟢 Collection/equip UI (System 1)                    |
-| `payouts`                                 | 🟡 Entitlements; no client queries                   |
-| `knowledge_gaps`                          | 🟡 Edge inserts; no admin UI                         |
-| `agents`                                  | 🟡 Edge-only                                         |
+| Table                                     | Verdict                                        |
+| ----------------------------------------- | ---------------------------------------------- |
+| `push_subscriptions`                      | 🔴 Dead — no client/Edge writers               |
+| `coaching_notification_outbox`            | 🟢 Org-scoped; claimed via receipts (System 4) |
+| `monthly_awards`                          | 🟢 Writers: job + `ensure_monthly_awards`      |
+| `seasons`                                 | 🟡 Schema placeholder; no season product       |
+| `cosmetic_items` / `membership_cosmetics` | 🟢 Collection/equip UI (System 1)              |
+| `payouts`                                 | 🟡 Entitlements; no client queries             |
+| `knowledge_gaps`                          | 🟡 Edge inserts; no admin UI                   |
+| `agents`                                  | 🟡 Edge-only                                   |
 
 ### Critical issues
 
@@ -495,36 +498,36 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 # Final Scorecard (all systems)
 
-| #   | System                              | Status | Priority   |
-| --- | ----------------------------------- | ------ | ---------- |
-| 1   | Avatar & Frame display              | 🟢     | —          |
-| 2   | Advisor of the Month                | 🟢     | —          |
-| 3   | AAA Cinema / Recognition cinema     | 🟢     | —          |
-| 4   | Zoom / Live Coaching                | 🟡     | P0 honesty |
-| 5   | Notifications                       | 🔴     | P0         |
-| 6   | Automations / Cron                  | 🔴     | P0         |
-| 7   | Gamification (AP)                   | 🟡     | P1         |
-| 7b  | XP / Levels                         | 🔴     | P2         |
-| 8   | Ascend Coach chat                   | 🟢     | —          |
-| 8b  | Coach intelligence / dual knowledge | 🟡/🔴  | P0         |
-| 9   | Team Tree                           | 🟡     | P1         |
-| 10  | Contacts core                       | 🟢     | —          |
-| 10b | Contacts import/export              | 🔴     | P2         |
-| 11  | Today Daily Plan                    | 🟢     | —          |
-| 11b | Today peripheral slots              | 🟡     | P1         |
-| 12  | Settings                            | 🔴     | P1         |
-| 13  | Database core                       | 🟢     | —          |
-| 13b | Sprint 5 tenancy                    | 🔴     | P0         |
-| 14  | Auth                                | 🟢     | —          |
-| 14b | Offline logout hygiene              | 🔴     | P0         |
-| 15  | UX consistency                      | 🟡     | P1         |
+| #   | System                              | Status | Priority |
+| --- | ----------------------------------- | ------ | -------- |
+| 1   | Avatar & Frame display              | 🟢     | —        |
+| 2   | Advisor of the Month                | 🟢     | —        |
+| 3   | AAA Cinema / Recognition cinema     | 🟢     | —        |
+| 4   | Zoom / Live Coaching                | 🟢     | —        |
+| 5   | Notifications                       | 🔴     | P0       |
+| 6   | Automations / Cron                  | 🔴     | P0       |
+| 7   | Gamification (AP)                   | 🟡     | P1       |
+| 7b  | XP / Levels                         | 🔴     | P2       |
+| 8   | Ascend Coach chat                   | 🟢     | —        |
+| 8b  | Coach intelligence / dual knowledge | 🟡/🔴  | P0       |
+| 9   | Team Tree                           | 🟡     | P1       |
+| 10  | Contacts core                       | 🟢     | —        |
+| 10b | Contacts import/export              | 🔴     | P2       |
+| 11  | Today Daily Plan                    | 🟢     | —        |
+| 11b | Today peripheral slots              | 🟡     | P1       |
+| 12  | Settings                            | 🔴     | P1       |
+| 13  | Database core                       | 🟢     | —        |
+| 13b | Sprint 5 tenancy                    | 🔴     | P0       |
+| 14  | Auth                                | 🟢     | —        |
+| 14b | Offline logout hygiene              | 🔴     | P0       |
+| 15  | UX consistency                      | 🟡     | P1       |
 
 ---
 
 # P0 Punch List (must decide before Sprint 6)
 
 1. **Do not market push / Zoom reminders** — they do not work.
-2. **Fix or quarantine Sprint 5 content tenancy** (Stories, Live Coaching, Knowledge Center, outbox) — add `org_id` or freeze to single-org only.
+2. **Fix or quarantine remaining Sprint 5 content tenancy** (Stories, Knowledge Center) — Live Coaching `org_id` done (System 4).
 3. **Connect or rename Knowledge systems** — operators editing Knowledge Center does not feed Coach.
 4. **Clear offline stores on sign-out** — shared devices retain CRM + coach history.
 5. ~~**Advisor of the Month**~~ — **done (Sprint 6 System 2).** Deploy migration + Edge Function + GH secrets; catch-up covers misses.
@@ -541,7 +544,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 - Genealogy edge virtualization / layout cost vs 10k claim
 - Double-select on tree cards
 - Today / Team density (one job per section)
-- Live Coaching recurrence / Realtime / member poll
+- ~~Live Coaching recurrence / Realtime / member poll~~ — done (System 4; poll not Realtime)
 - Account delete API or remove control
 
 ---
@@ -563,7 +566,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 | Item                                     | Why                                     |
 | ---------------------------------------- | --------------------------------------- |
 | `push_subscriptions`                     | No writers                              |
-| `coaching_notification_outbox` processor | No reader/worker                        |
+| `coaching_notification_outbox` processor | **Done** — claim + receipts (System 4)  |
 | `monthly_awards` auto-fill               | **Done** — job + catch-up               |
 | `HeroScreen` / AAA Cinema                | **Done** as Advisor HeroScreen + RankUp |
 | `RankUpOverlay` / Collection UI          | **Done** (System 1)                     |
@@ -587,7 +590,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 4. Daily Plan state machine + Closing Loop + Journey week-1
 5. AP economy triggers + ranks display + EnergyCore + frame collection/equip
 6. Team genealogy view (for realistic team sizes) + member sheet + Coach deep link
-7. Live Coaching **admin publish + Today join card** (without relying on reminders)
+7. Live Coaching org-scoped publish + Today join + in-app reminders + archive/roll (Sprint 6 System 4)
 8. Ascend Stories bar when content exists
 9. i18n catalogs (de/en/fr/it/tr) for shipped surfaces
 10. **Advisor of the Month** calculator + schedule + Profile history (Sprint 6 System 2)

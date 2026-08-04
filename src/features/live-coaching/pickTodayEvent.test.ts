@@ -29,6 +29,7 @@ function event(
     updated_by: null,
     created_at: '2026-08-01T00:00:00.000Z',
     updated_at: '2026-08-01T00:00:00.000Z',
+    org_id: 'org-1',
     ...partial,
   };
 }
@@ -44,5 +45,12 @@ describe('pickTodayCoachingEvent', () => {
       now
     );
     expect(picked?.id).toBe('next');
+  });
+
+  it('returns null when only finished events remain', () => {
+    const now = new Date('2026-08-03T12:00:00.000Z');
+    expect(
+      pickTodayCoachingEvent([event({ id: 'old', starts_at: '2026-08-02T10:00:00.000Z' })], now)
+    ).toBeNull();
   });
 });

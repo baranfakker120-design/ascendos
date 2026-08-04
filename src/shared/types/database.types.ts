@@ -835,6 +835,7 @@ export type Database = {
           event_id: string;
           id: string;
           kind: string;
+          org_id: string;
           scheduled_for: string;
           sent_at: string | null;
           title: string;
@@ -845,6 +846,7 @@ export type Database = {
           event_id: string;
           id?: string;
           kind: string;
+          org_id: string;
           scheduled_for: string;
           sent_at?: string | null;
           title: string;
@@ -855,6 +857,7 @@ export type Database = {
           event_id?: string;
           id?: string;
           kind?: string;
+          org_id?: string;
           scheduled_for?: string;
           sent_at?: string | null;
           title?: string;
@@ -865,6 +868,42 @@ export type Database = {
             columns: ['event_id'];
             isOneToOne: false;
             referencedRelation: 'live_coaching_events';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coaching_notification_outbox_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coaching_notification_receipts: {
+        Row: {
+          delivered_at: string;
+          id: string;
+          outbox_id: string;
+          user_id: string;
+        };
+        Insert: {
+          delivered_at?: string;
+          id?: string;
+          outbox_id: string;
+          user_id: string;
+        };
+        Update: {
+          delivered_at?: string;
+          id?: string;
+          outbox_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coaching_notification_receipts_outbox_id_fkey';
+            columns: ['outbox_id'];
+            isOneToOne: false;
+            referencedRelation: 'coaching_notification_outbox';
             referencedColumns: ['id'];
           },
         ];
@@ -1690,6 +1729,7 @@ export type Database = {
           media_path: string | null;
           media_type: string;
           media_url: string | null;
+          org_id: string;
           published_at: string | null;
           published_by: string | null;
           recording_url: string | null;
@@ -1717,6 +1757,7 @@ export type Database = {
           media_path?: string | null;
           media_type: string;
           media_url?: string | null;
+          org_id: string;
           published_at?: string | null;
           published_by?: string | null;
           recording_url?: string | null;
@@ -1744,6 +1785,7 @@ export type Database = {
           media_path?: string | null;
           media_type?: string;
           media_url?: string | null;
+          org_id?: string;
           published_at?: string | null;
           published_by?: string | null;
           recording_url?: string | null;
@@ -3113,6 +3155,29 @@ export type Database = {
       mark_advisor_hero_seen: {
         Args: { p_period?: string };
         Returns: undefined;
+      };
+      maintain_live_coaching_events: {
+        Args: { p_org?: string };
+        Returns: Json;
+      };
+      run_live_coaching_maintenance_job: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      claim_due_coaching_notifications: {
+        Args: { p_limit?: number };
+        Returns: {
+          body: string;
+          event_id: string;
+          kind: string;
+          outbox_id: string;
+          scheduled_for: string;
+          title: string;
+        }[];
+      };
+      live_coaching_next_starts_at: {
+        Args: { p_starts: string; p_rule: string };
+        Returns: string;
       };
       redeem_invite: {
         Args: { invite_code: string };

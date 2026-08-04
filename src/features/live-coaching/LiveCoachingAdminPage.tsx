@@ -142,6 +142,7 @@ export function LiveCoachingAdminPage() {
           recording_url: null,
           guest_speakers: [],
           library_visible: LIVE_COACHING_FUTURE.library,
+          org_id: 'preview',
           created_by: null,
           updated_by: null,
           created_at: new Date().toISOString(),
