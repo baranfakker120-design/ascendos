@@ -261,7 +261,7 @@ Format je ADR: Kontext → Betrachtete Optionen → Entscheidung → Akzeptierte
 
 **Kontext:** Zuverlässigkeit und Wartbarkeit ab Tag 1; keine manuellen Production-Änderungen.
 
-**Entscheidung:** Development = lokale Supabase-Instanz (CLI/Docker) je Entwickler; Staging und Production = zwei getrennte Supabase-Projekte (EU-Region). Netlify Branch-Previews gegen Staging. CI-Gate (Lint, Typecheck, Vitest, pgTAP, Playwright, Gitleaks-Secret-Scan) vor jedem Merge. Migrationen ausschließlich als versionierte SQL-Dateien im Repo via Supabase CLI; automatisch gegen Staging, manuell ausgelöst gegen Production. Dashboard-Schemaänderungen auf Production sind untersagt.
+**Entscheidung:** Development = lokale Supabase-Instanz (CLI/Docker) je Entwickler; Staging und Production = zwei getrennte Supabase-Projekte (EU-Region). Frontend-Hosting ausschließlich über Cloudflare Pages; Preview-Deployments gegen Staging. CI-Gate (Lint, Typecheck, Vitest, pgTAP, Playwright, Gitleaks-Secret-Scan) vor jedem Merge. Migrationen ausschließlich als versionierte SQL-Dateien im Repo via Supabase CLI; automatisch gegen Staging, manuell ausgelöst gegen Production. Dashboard-Schemaänderungen auf Production sind untersagt.
 
 **Akzeptierte Nachteile:** Lokales Docker-Setup als Einstiegshürde für neue Entwickler (durch Setup-Doku kompensiert).
 
@@ -285,7 +285,7 @@ Format je ADR: Kontext → Betrachtete Optionen → Entscheidung → Akzeptierte
 
 **Kontext:** Berater speichern personenbezogene Daten Dritter (Kontakte), die nie selbst eingewilligt haben. Zusätzlich: Nutzerkonten, Coach-Verläufe, Genealogie.
 
-**Entscheidung:** EU-Region für alle Datenhaltung. AV-Verträge mit Supabase, Netlify, Sentry und LLM-Anbieter (inkl. Ausschluss der Trainingsnutzung). Datenminimierung im UI (keine Felder, die zu sensiblen Angaben über Kontakte einladen). Löschkonzept: Kontakte und Coach-Verläufe werden hart gelöscht; Profile werden bei Account-Löschung anonymisiert statt entfernt, damit die Genealogie der Downline intakt bleibt (Knoten „Ehemaliges Mitglied" ohne Personenbezug). Aufbewahrungsfristen je Datenart dokumentiert; Coach-Verläufe optional mit Auto-Ablauf. Rollenklärung: Der Berater ist für seine Kontaktdaten datenschutzrechtlich Verantwortlicher; AscendOS ist Auftragsverarbeiter. Datenschutzerklärung und finale rechtliche Bewertung vor Launch durch einen Anwalt — keine Engineering-Entscheidung.
+**Entscheidung:** EU-Region für alle Datenhaltung. AV-Verträge mit Supabase, Cloudflare (Pages), Sentry und LLM-Anbieter (inkl. Ausschluss der Trainingsnutzung). Datenminimierung im UI (keine Felder, die zu sensiblen Angaben über Kontakte einladen). Löschkonzept: Kontakte und Coach-Verläufe werden hart gelöscht; Profile werden bei Account-Löschung anonymisiert statt entfernt, damit die Genealogie der Downline intakt bleibt (Knoten „Ehemaliges Mitglied" ohne Personenbezug). Aufbewahrungsfristen je Datenart dokumentiert; Coach-Verläufe optional mit Auto-Ablauf. Rollenklärung: Der Berater ist für seine Kontaktdaten datenschutzrechtlich Verantwortlicher; AscendOS ist Auftragsverarbeiter. Datenschutzerklärung und finale rechtliche Bewertung vor Launch durch einen Anwalt — keine Engineering-Entscheidung.
 
 **Akzeptierte Nachteile:** Anonymisierte Genealogie-Knoten statt vollständiger Löschung (rechtlich vertretbar, dokumentationspflichtig); externe Rechtskosten.
 
@@ -397,7 +397,7 @@ Jede neue wesentliche Entscheidung erhält einen neuen ADR (fortlaufende Nummer)
 6. **`GeminiError` mit derselben `code`-Union wie `LlmError`.** Eigener Klassenname, weil im Dashboard-Bundle beide Module in einer Datei liegen. Das bestehende Error-Handling und alle HTTP-Statuscodes bleiben unverändert.
 7. **Kollisionsprüfung im Bundler.** Zwei Provider-Module in einem Bundle-Scope haben beim ersten Versuch sieben doppelte Top-Level-Deklarationen erzeugt (`resolveModel`, `sleep`, `extractText`, …). Der Bundler bricht jetzt mit Namensliste ab, statt ein syntaktisch defektes Bundle zu schreiben.
 
-**Nicht geändert:** Prompts (`CORE_RULES`, `ROUTER_PROMPT`, `agents.system_prompt`), JSON-Vertrag (`{ conversationId, agentKey, reply, timings }`), Fehler-Payloads, Statuscodes, Auth, RLS, Tabellen, UI, Routing, Netlify. Streaming war nicht implementiert und wurde nicht eingeführt.
+**Nicht geändert:** Prompts (`CORE_RULES`, `ROUTER_PROMPT`, `agents.system_prompt`), JSON-Vertrag (`{ conversationId, agentKey, reply, timings }`), Fehler-Payloads, Statuscodes, Auth, RLS, Tabellen, UI, Routing, Frontend-Hosting. Streaming war nicht implementiert und wurde nicht eingeführt.
 
 **Offener Punkt:** `coach-chat` braucht weiterhin `OPENAI_API_KEY` — ausschließlich für das Query-Embedding. Ohne diesen Schlüssel läuft der Coach trotzdem, aber ohne Teamdokumente: `embed()` ist bereits in try/catch gekapselt, das Retrieval fällt aus und die Frage wird als Wissenslücke erfasst. Für einen vollständig OpenAI-freien Betrieb MIT Retrieval sind eine Migration der Vektordimension und eine komplette Neu-Ingestion aller `knowledge_docs` nötig — eine Datenbankänderung, die hier ausdrücklich ausgeschlossen war.
 
@@ -423,7 +423,7 @@ Jede neue wesentliche Entscheidung erhält einen neuen ADR (fortlaufende Nummer)
 - Der Import-Matcher war zeilenweise und erkannte **mehrzeilige** Imports nicht. Der neue `import { … }`-Block in `coach-chat` rutschte durch: `gemini.ts` wurde nicht eingebettet, die `import`-Zeile landete im Body. Das Bundle wäre im Dashboard sofort gescheitert, während der modulare Code fehlerfrei blieb. `splitImports()` arbeitet jetzt über die ganze Datei, plus Sicherheitsnetz gegen jeden überlebenden `_shared/`-Verweis.
 - Remote-Imports der Shared-Module blieben mitten im Bundle stehen (Zeile 43). Als Top-Level-Deklaration gültig, aber es liest sich wie ein Fehler und provoziert die verbotene Handbearbeitung. Sie werden jetzt gehoben und dedupliziert.
 
-**Nicht geändert:** Migrationen (weiterhin 11), Tabellen, RLS, `vector(1536)`, Prompts, JSON-Vertrag `{ conversationId, agentKey, reply, timings }`, Fehler-Payloads, Statuscodes, Frontend, Routing, Netlify. Streaming war nicht implementiert und wurde nicht eingeführt.
+**Nicht geändert:** Migrationen (weiterhin 11), Tabellen, RLS, `vector(1536)`, Prompts, JSON-Vertrag `{ conversationId, agentKey, reply, timings }`, Fehler-Payloads, Statuscodes, Frontend, Routing, Frontend-Hosting. Streaming war nicht implementiert und wurde nicht eingeführt.
 
 **Rückweg:** `llm.ts` liegt in der Git-Historie. Ein Rollback ist eine Codeänderung plus Neu-Ingestion — kein DDL.
 

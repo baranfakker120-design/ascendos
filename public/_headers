@@ -1,8 +1,18 @@
-# Cloudflare Pages headers (browser cache control).
-# Edge cache invalidation is handled by Cloudflare Pages on each deploy.
-# Keep no-cache on SW + manifest so clients pick up new versions.
+# Cloudflare Pages — browser cache control.
+# Edge cache is invalidated by Cloudflare Pages on each deploy.
+# Keep HTML + SW + Workbox + manifest no-cache so PWAs pick up new builds
+# (including builds that fix missing VITE_* env inlining).
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
 
 /sw.js
+  Cache-Control: no-cache
+
+/workbox-*.js
   Cache-Control: no-cache
 
 /manifest.webmanifest

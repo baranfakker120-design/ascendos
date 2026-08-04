@@ -3,7 +3,7 @@
 Dieses Setup machst DU genau EINMAL. Danach braucht nie wieder jemand
 ein Setup: Seyda und jeder Berater öffnen nur den App-Link und geben
 ihren Einladungscode ein. Alles hier läuft im Safari/Chrome-Browser
-deines iPhones im Supabase- bzw. Netlify-Dashboard.
+deines iPhones im Supabase- bzw. Cloudflare-Dashboard.
 
 Dauer: ca. 20–30 Minuten. Halte bereit: dein Supabase-Projekt
 „AscendOS" und einen Gemini-API-Key (aistudio.google.com).
@@ -86,15 +86,15 @@ Supabase → **Authentication**:
 - Settings → **Minimum password length: 8**
 - Für den allerersten Test: „Confirm email" AUS — **vor der
   Team-Beta wieder EIN**
-- URL Configuration → Site URL + Redirect URL = deine Netlify-Adresse
-  (kommt aus Schritt 6; danach hier eintragen)
+- URL Configuration → Site URL + Redirect URL = deine
+  Cloudflare-Pages-Adresse (kommt aus Schritt 6; danach hier eintragen)
 
-## Schritt 6 — App online bringen (der EINE ehrliche Sonderfall)
+## Schritt 6 — App online bringen (Cloudflare Pages)
 
 Klartext, warum hier nicht alles per Copy-Paste geht: Der App-Code
 muss einmal von Quellcode zu einer Website GEBAUT werden. Das kann
-kein Dashboard-Formular — aber es gibt einen Weg, bei dem NETLIFY das
-Bauen für immer übernimmt und du nie ein Terminal brauchst:
+kein Dashboard-Formular — aber Cloudflare Pages übernimmt das Bauen
+dauerhaft, sobald das Repo verbunden ist (kein Terminal nötig):
 
 1. Der Code muss einmalig in ein **GitHub-Repository**. Vom iPhone aus
    geht das über **GitHub Codespaces** (läuft komplett im Browser):
@@ -108,23 +108,28 @@ Bauen für immer übernimmt und du nie ein Terminal brauchst:
    Alternative ohne jede Eingabe: 10 Minuten an irgendeinem PC
    (Freund/Familie) — Zip entpacken, auf github.com per
    „Upload files" hochladen.
-2. **netlify.com** (iPhone-Browser) → „Add new site" → „Import an
-   existing project" → GitHub → Repo „ascendos" wählen. Build-Befehl
-   und Ordner erkennt Netlify automatisch aus dem Projekt.
-3. Vor dem ersten Deploy: **Site settings → Environment variables** →
-   die zwei Werte aus Schritt 1 eintragen:
+2. **dash.cloudflare.com** (iPhone-Browser) → Workers & Pages →
+   Create → Connect to Git → GitHub → Repo „ascendos".
+   Build command: `npm run build` · Output directory: `dist` ·
+   Node: 20+.
+3. Vor dem ersten Deploy: **Settings → Environment variables** →
+   für Production (und Preview, falls genutzt) die zwei Werte aus
+   Schritt 1 eintragen:
    `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` → Deploy.
-4. Die fertige Netlify-URL zurück in Schritt 5 (URL Configuration)
-   eintragen.
+   Vite liest sie **nur zur Build-Zeit** — nach Änderungen neu deployen.
+4. Die fertige Cloudflare-URL (`*.pages.dev` oder Custom Domain)
+   zurück in Schritt 5 (URL Configuration) eintragen.
+5. Falls noch eine alte Netlify-Site für AscendOS existiert: Site
+   löschen / Git-Verbindung trennen. AscendOS hat nur Cloudflare Pages.
 
 Ab jetzt gilt für immer: Code-Updates erscheinen automatisch —
 nie wieder bauen, nie wieder hochladen.
 
 ## Schritt 7 — Gründer registrieren & Setup-Check
 
-1. `deine-app.netlify.app/registrieren` öffnen → einen GRUENDER_CODE
-   eingeben → es muss erscheinen: „Du wurdest eingeladen zu
-   Team Seyda · Chogan" → Konto erstellen.
+1. `deine-app.pages.dev/registrieren` (oder Custom Domain) öffnen →
+   einen GRUENDER_CODE eingeben → es muss erscheinen: „Du wurdest
+   eingeladen zu Team Seyda · Chogan" → Konto erstellen.
 2. Du landest auf **Tag 1 von 7 deiner Journey**. ✅
 3. Unter **Mehr** → Einladungslink erstellen → an Seyda schicken
    (oder ihr den zweiten Gründer-Code geben).
@@ -138,9 +143,6 @@ nie wieder bauen, nie wieder hochladen.
 ## Warum kein „Anon-Key-eingeben-und-fertig"-Wizard existiert
 
 Der anon key kann absichtlich KEINE Tabellen anlegen — sonst könnte
-jeder Besucher eurer Website eure Datenbank verändern. Vollautomatik
-bräuchte einen Supabase-Management-Token (Generalschlüssel über alle
-eure Projekte) in einer Webseite — ein Sicherheitsrisiko, das wir
-nicht eingehen. Deshalb: Ein einmaliges, geführtes Dashboard-Setup
-für den Gründer — und für alle anderen Menschen im Team exakt das,
-was du wolltest: Link öffnen, Code eingeben, fertig.
+jeder mit dem öffentlichen Key deine Datenbank umbauen. Setup gehört
+in Dashboards mit Owner-Rechten, nicht in die App. Genau deshalb
+gibt es dieses Kit.

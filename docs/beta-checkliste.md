@@ -9,7 +9,7 @@
 (echte Org, Team, 2 Gründer-Invites, external_tools, agents)
 ☐ Supabase Pro auf Production aktiv; Backups täglich; Restore-Übung
 durchgeführt und im Runbook dokumentiert (ADR-019)
-☐ Netlify: main→Production, PR-Previews→Staging; Env-Vars pro Kontext
+☐ Cloudflare Pages: sole host; main→Production, Preview→Staging; VITE_* Env-Vars pro Kontext (Build-Zeit)
 ☐ Function-Secrets auf Staging+Production gesetzt (nie im Repo)
 ☐ E-Mail-Bestätigung auf Staging/Production AKTIV (lokal aus)
 ☐ Sentry (EU) eingebunden, PII-Scrubbing geprüft
@@ -19,12 +19,12 @@ durchgeführt und im Runbook dokumentiert (ADR-019)
 
 ☐ Mindestens Priorität-1-Dokumente (6) approved in Production
 ☐ Eval-Set komplett durchgespielt GEGEN die echte Wissensbasis
-☐ external_tools-Links auf Production geprüft (die drei Netlify-Apps)
+☐ external_tools-Links auf Production geprüft (WayToMoon / Präsentation / Fit-Check)
 
 ## Recht (vor echten Nutzern, ADR-020)
 
 ☐ Datenschutzerklärung + Impressum verlinkt (anwaltlich geprüft)
-☐ AV-Verträge: Supabase, Netlify, Sentry, Google (Gemini API)
+☐ AV-Verträge: Supabase, Cloudflare Pages, Sentry, Google (Gemini API)
 ☐ Registrierung: Einwilligungs-Checkbox mit Link auf die Erklärung
 ☐ Hinweis für Berater zur Verantwortung für ihre Kontaktdaten
 

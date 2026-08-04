@@ -58,7 +58,7 @@ Beides ist klein und beides erzeugt später schwer zuzuordnende Abweichungen. Be
 
 Alle 14 erwarteten Dateien vorhanden, alle JSON-Dateien gültig geparst.
 
-`package.json`, `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.js`, `eslint.config.js`, `.prettierrc`, `.prettierignore`, `.gitignore`, `netlify.toml`, `supabase/config.toml`, `.env.example`
+`package.json`, `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.js`, `eslint.config.js`, `.prettierrc`, `.prettierignore`, `.gitignore`, `wrangler.toml` (Cloudflare Pages; sole host), `supabase/config.toml`, `.env.example`
 
 Bewertung: ✅
 

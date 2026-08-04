@@ -88,7 +88,7 @@ Eine gezielte Suche über `src/` nach `openai`, `gemini`, `embedding`, `model` e
 | 7   | `README.md`, `.env.example`, `setup/SETUP-ANLEITUNG.md` | Secrets-Doku                                                                                                                   | keins   |
 | 8   | `docs/adr.md`                                           | ADR-027                                                                                                                        | keins   |
 
-**Nicht zu ändern:** keine Migration, keine Tabelle, kein RLS-Policy, keine Frontend-Datei, kein `netlify.toml`, kein Routing, kein API-Endpunkt.
+**Nicht zu ändern:** keine Migration, keine Tabelle, kein RLS-Policy, keine Frontend-Datei, kein Hosting-Config (`wrangler.toml`), kein Routing, kein API-Endpunkt.
 
 `ChatMessage` wird derzeit aus `llm.ts` für die Typisierung der Chat-History importiert. `gemini.ts` exportiert bereits ein strukturgleiches `GeminiChatMessage` — der Typ wandert also mit, statt neu entstehen zu müssen.
 
