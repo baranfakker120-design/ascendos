@@ -1,19 +1,21 @@
+import { useState } from 'react';
 import { SyncStatusIndicator } from '@shared/offline';
 import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executive';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
-import { DayReview } from './components/DayReview';
+import { ClosedDay, ClosingLoop } from './components/ClosingLoop';
 import { FocusMode } from './components/FocusMode';
 import { MorningCommit } from './components/MorningCommit';
+import { useDayMemory } from './dayMemory';
 import { useDailyPlan, useDailyPlanMutations } from './dailyPlanApi';
 import { missionProgress, orderMissions } from './missionOrder';
 import '@features/coach/executive/executive.css';
 
 /**
- * Daily Command Center — executive home stack (additive):
- * Stories → Live Coaching → sync chip → Mission → CEO Briefing → Coach.
+ * Daily Command Center — Sprint 5 home stack:
+ * Stories → Live Coaching → sync → Day Memory / Mission → CEO Briefing → Coach.
  */
 export function TodayPage() {
   const { t } = useI18n();
@@ -38,8 +40,11 @@ function TodayDailyPlan() {
   const { t } = useI18n();
   const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
+  const memory = useDayMemory();
+  const [manualClose, setManualClose] = useState(false);
+  const [closingBusy, setClosingBusy] = useState(false);
 
-  if (isPending) {
+  if (isPending || !memory.ready) {
     return <p className="text-sm text-muted">{t('today.loading')}</p>;
   }
   if (isError || !data) {
@@ -54,6 +59,17 @@ function TodayDailyPlan() {
   const ordered = orderMissions(data.items);
   const progress = missionProgress(data.items);
 
+  if (memory.close) {
+    return (
+      <ClosedDay
+        outcome={memory.close.outcome}
+        missionsDone={memory.close.missionsDone}
+        missionsTotal={memory.close.missionsTotal}
+        tomorrowSeed={memory.close.tomorrowSeed}
+      />
+    );
+  }
+
   if (!data.plan.committed_at) {
     if (data.items.length === 0) {
       return (
@@ -67,17 +83,41 @@ function TodayDailyPlan() {
       <MorningCommit
         items={data.items}
         busy={commitPlan.isPending}
-        onCommit={() => void commitPlan.mutateAsync(data.plan.id)}
+        onCommit={() => {
+          void (async () => {
+            await memory.markDayOpened(data.items);
+            await commitPlan.mutateAsync(data.plan.id);
+          })();
+        }}
       />
     );
   }
 
-  if (ordered.dayComplete || data.items.length === 0) {
-    return <DayReview items={data.items} />;
-  }
+  const dayComplete = ordered.dayComplete || data.items.length === 0 || !ordered.current;
+  const showClosing = dayComplete || manualClose;
 
-  if (!ordered.current) {
-    return <DayReview items={data.items} />;
+  if (showClosing) {
+    return (
+      <ClosingLoop
+        items={data.items}
+        busy={closingBusy}
+        sourceHint={manualClose && !dayComplete ? 'manual_close' : 'missions_complete'}
+        onKeepWorking={manualClose && !dayComplete ? () => setManualClose(false) : undefined}
+        onClose={() => {
+          void (async () => {
+            setClosingBusy(true);
+            try {
+              await memory.closeDay(
+                data.items,
+                manualClose && !dayComplete ? 'manual_close' : 'missions_complete'
+              );
+            } finally {
+              setClosingBusy(false);
+            }
+          })();
+        }}
+      />
+    );
   }
 
   return (
@@ -88,6 +128,7 @@ function TodayDailyPlan() {
       onStatus={(itemId, status, reason) =>
         void setMissionStatus.mutateAsync({ itemId, status, reason })
       }
+      onEndDay={() => setManualClose(true)}
     />
   );
 }

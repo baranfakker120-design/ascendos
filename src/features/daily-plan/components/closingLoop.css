@@ -1,0 +1,42 @@
+.closing-loop__eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+}
+
+.closing-loop__hero {
+  animation: closing-loop-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.closing-loop__truth {
+  animation: closing-loop-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+.closing-loop__actions {
+  animation: closing-loop-in 520ms cubic-bezier(0.22, 1, 0.36, 1) 110ms both;
+}
+
+.closing-loop--closed .closing-loop__hero {
+  animation-duration: 360ms;
+}
+
+@keyframes closing-loop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .closing-loop__hero,
+  .closing-loop__truth,
+  .closing-loop__actions {
+    animation: none;
+  }
+}

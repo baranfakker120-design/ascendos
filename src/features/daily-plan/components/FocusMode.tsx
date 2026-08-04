@@ -15,12 +15,14 @@ interface Props {
   progress: { done: number; total: number };
   busy?: boolean;
   onStatus: (itemId: string, status: 'done' | 'deferred' | 'skipped', reason?: string) => void;
+  /** Sprint 5 · L1 — intentional close while work remains. */
+  onEndDay?: () => void;
 }
 
 /**
  * Fokus-Modus: eine Mission dominant, Reward-Sticker zeigen den Wert.
  */
-export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) {
+export function FocusMode({ ordered, progress, busy = false, onStatus, onEndDay }: Props) {
   const { t } = useI18n();
   const { current, queue, resolved } = ordered;
   const [skipPickerFor, setSkipPickerFor] = useState<string | null>(null);
@@ -173,6 +175,14 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {onEndDay ? (
+        <div className="pt-1">
+          <Button variant="ghost" disabled={busy} onClick={onEndDay}>
+            {t('today.endWorkday')}
+          </Button>
+        </div>
       ) : null}
     </div>
   );
