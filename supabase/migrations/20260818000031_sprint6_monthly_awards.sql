@@ -53,6 +53,15 @@ begin
     raise exception 'compute_monthly_awards: org required';
   end if;
 
+  -- Caller binding (F1 / function_security J1): service_role may pass any org;
+  -- authenticated callers are limited to their active org (or super_admin).
+  if auth.uid() is not null then
+    if p_org is distinct from public.current_org_id()
+       and not public.is_super_admin() then
+      raise exception 'AscendOS: compute_monthly_awards org mismatch';
+    end if;
+  end if;
+
   -- Normalize to month start (date arithmetic, no session TZ).
   v_title := (date_trunc('month', v_title::timestamp))::date;
 

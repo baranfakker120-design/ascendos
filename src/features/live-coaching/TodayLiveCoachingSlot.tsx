@@ -2,7 +2,8 @@ import { useI18n } from '@shared/i18n';
 import { useEffect } from 'react';
 import { LiveCoachingCard } from './LiveCoachingCard';
 import { useLiveCoachingEvents } from './liveCoachingApi';
-import { flushDueLocalNotifications, flushDueOutboxNotifications } from './notifications';
+import { flushDueLocalNotifications } from './notifications';
+import { flushDueOutboxNotifications } from './outboxFlush';
 import { pickTodayCoachingEvent } from './pickTodayEvent';
 import { LIVE_COACHING_FUTURE } from './types';
 

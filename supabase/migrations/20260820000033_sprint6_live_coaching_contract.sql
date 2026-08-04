@@ -119,6 +119,7 @@ create or replace function public.live_coaching_next_starts_at(
 returns timestamptz
 language sql
 immutable
+set search_path = public
 as $$
   select case p_rule
     when 'daily' then p_starts + interval '1 day'
