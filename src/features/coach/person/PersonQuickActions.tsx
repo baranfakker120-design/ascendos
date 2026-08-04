@@ -2,12 +2,7 @@ import { useI18n, type MessageKey } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 
 export type PersonQuickActionId =
-  | 'message'
-  | 'onboarding'
-  | 'followup'
-  | 'motivation'
-  | 'analyse'
-  | 'next';
+  'message' | 'onboarding' | 'followup' | 'motivation' | 'analyse' | 'next';
 
 const ACTIONS: Array<{
   id: PersonQuickActionId;

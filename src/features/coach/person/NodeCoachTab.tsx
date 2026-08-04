@@ -56,7 +56,10 @@ export function NodeCoachTab({ node, insight, editable = true }: Props) {
 
   return (
     <div className="node-coach-tab">
-      <section className="node-coach-tab__analysis" aria-label={t('coach.personAnalysis', { name })}>
+      <section
+        className="node-coach-tab__analysis"
+        aria-label={t('coach.personAnalysis', { name })}
+      >
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">
           {t('coach.analysis', { name })}
         </p>
@@ -91,9 +94,7 @@ export function NodeCoachTab({ node, insight, editable = true }: Props) {
         <WhatsAppMessageCard
           text={localInsight.suggestedWhatsApp}
           onEdit={(text) => {
-            writePendingSeed(
-              t('coach.improveDraft', { name: first, draft: text })
-            );
+            writePendingSeed(t('coach.improveDraft', { name: first, draft: text }));
             void navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`);
           }}
         />

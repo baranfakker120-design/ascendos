@@ -118,11 +118,15 @@ export function NodeDetailContent({
         <>
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
-              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">AP</dt>
+              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                AP
+              </dt>
               <dd className="font-bold">{node.apTotal.toLocaleString(locale)}</dd>
             </div>
             <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">
-              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">ICP</dt>
+              <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                ICP
+              </dt>
               <dd className="font-bold">{node.icpMonth.toLocaleString(locale)}</dd>
             </div>
             <div className="rounded-xl border border-line/80 bg-white/50 px-3 py-2">

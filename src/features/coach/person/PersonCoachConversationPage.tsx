@@ -135,7 +135,8 @@ export function PersonCoachConversationPage() {
   const updateStick = useCallback(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_THRESHOLD_PX;
+    stickToBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_THRESHOLD_PX;
   }, []);
 
   useLayoutEffect(() => {
@@ -230,7 +231,10 @@ export function PersonCoachConversationPage() {
               className="person-coach__chip-avatar"
             />
           ) : (
-            <span className="person-coach__chip-avatar person-coach__chip-avatar--fallback" aria-hidden>
+            <span
+              className="person-coach__chip-avatar person-coach__chip-avatar--fallback"
+              aria-hidden
+            >
               👤
             </span>
           )}
