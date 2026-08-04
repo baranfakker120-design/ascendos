@@ -476,7 +476,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 | #   | System                              | Status | Priority   |
 | --- | ----------------------------------- | ------ | ---------- |
-| 1   | Avatar & Frame display              | 🟡     | P1         |
+| 1   | Avatar & Frame display              | 🟢     | —          |
 | 2   | Advisor of the Month                | 🔴     | P0         |
 | 3   | AAA Cinema                          | 🔴     | P0         |
 | 4   | Zoom / Live Coaching                | 🟡     | P0 honesty |
