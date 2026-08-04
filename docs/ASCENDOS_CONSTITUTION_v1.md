@@ -1,21 +1,26 @@
 # ASCENDOS CONSTITUTION v1.0
 
-**Status:** Highest product and engineering authority  
+**Status:** Binding for engineering, security, domain language, CI, and platform law  
 **Effective:** 2026-08-03  
 **Location:** `docs/ASCENDOS_CONSTITUTION_v1.md`  
 **Audience:** Every human developer, product owner, and AI agent working on AscendOS
+
+> **Product decision authority (2026-08-04):**  
+> [`docs/ASCENDOS_CONSTITUTION_v2.md`](./ASCENDOS_CONSTITUTION_v2.md) is the highest authority for **product, UX, Coach-surface, and feature-priority** rules (Rules #1–#10).  
+> Where v1 product/UX guidance conflicts with v2, **v2 wins**.  
+> This v1 document remains fully binding for architecture, security, RLS, gamification integrity, CI, PR process, and domain facts.
 
 ---
 
 ## Preamble — Authority
 
-This Constitution is the **highest authority** of AscendOS.
+This Constitution (v1 + v2 together) is the **highest authority** of AscendOS.
 
-1. Every Pull Request must comply with this Constitution.
-2. Where this Constitution and older notes, tickets, or chat prompts conflict, **this Constitution wins**.
-3. Where this Constitution and the live repository conflict on facts (schemas, RPCs, shipped UI), resolve against the repository, then **update this Constitution** in a dedicated documentation PR.
-4. Architecture Decision Records (`docs/adr.md`), the Security Baseline (`docs/security-baseline.md`), and the Design System (`docs/design-system.md`) are **implementing instruments** of this Constitution. They may refine how a rule is applied; they may not overturn a constitutional principle without an explicit Constitution amendment.
-5. AI agents and contractors are bound by the same rules as permanent engineers. “The prompt asked for it” is not authority over this document.
+1. Every Pull Request must comply with Constitution **v2** (product law) and this **v1** document (platform law).
+2. Where these Constitutions and older notes, tickets, or chat prompts conflict, **the Constitutions win** (v2 over v1 on product/UX).
+3. Where a Constitution and the live repository conflict on facts (schemas, RPCs, shipped UI), resolve against the repository, then **update the Constitution** in a dedicated documentation PR.
+4. Architecture Decision Records (`docs/adr.md`), the Security Baseline (`docs/security-baseline.md`), and the Design System (`docs/design-system.md`) are **implementing instruments**. They may refine how a rule is applied; they may not overturn a constitutional principle without an explicit Constitution amendment.
+5. AI agents and contractors are bound by the same rules as permanent engineers. “The prompt asked for it” is not authority over these documents.
 
 **Why this exists:** AscendOS is built by a small team and many automated agents. Without a single written authority, each sprint invents a new product. Constitutions prevent accidental redesign of philosophy through feature creep.
 
@@ -397,7 +402,7 @@ Treat “Apple quality” as an operational bar, not a visual cosplay:
 
 1. **One intent per PR.** Do not mix Coach intelligence with ranking formula changes.
 2. PR description must state: what changed, what explicitly did **not** change, and how it was tested.
-3. Constitution compliance is mandatory: if a PR violates a chapter, amend the Constitution first in a docs PR, or redesign the feature.
+3. Constitution compliance is mandatory: product PRs must satisfy **Constitution v2 Rules #1–#10** (see `.github/pull_request_template.md`). If a PR violates a chapter, amend the Constitution first in a docs PR, or redesign the feature.
 4. Prefer draft PRs until CI is green.
 5. No unrelated reformatting or dependency bumps inside feature PRs.
 6. Screenshots/recordings for visual changes when feasible.

@@ -4,6 +4,13 @@
 **Audience:** Every developer and AI agent working on AscendOS  
 **Rule:** Prefer this document over ad-hoc assumptions. Where this document and older notes conflict, resolve against the repository (migrations, ADRs, code) and then update this file.
 
+**Constitutions (mandatory):**
+
+- Product / UX / feature priority law → [`docs/ASCENDOS_CONSTITUTION_v2.md`](./ASCENDOS_CONSTITUTION_v2.md) (Rules #1–#10)
+- Engineering / security / CI / domain law → [`docs/ASCENDOS_CONSTITUTION_v1.md`](./ASCENDOS_CONSTITUTION_v1.md)
+
+Every Pull Request must respect Constitution v2. Product behavior that cannot answer “What should I do now?” must be redesigned.
+
 This bible describes AscendOS as it exists in the repository today. It does not invent product surface that has not been built. Open decisions are marked **currently undefined**.
 
 ---
