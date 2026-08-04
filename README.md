@@ -5,7 +5,7 @@ Sprint 1: Fundament — Mandanten-Datenmodell, Genealogie, Invite-Registrierung,
 
 ## Stack
 
-React · TypeScript · Vite · Tailwind CSS · Supabase (Postgres, RLS, Auth) · PWA · Netlify
+React · TypeScript · Vite · Tailwind CSS · Supabase (Postgres, RLS, Auth) · PWA · Cloudflare Pages
 
 Architektur-Entscheidungen: siehe `docs/adr.md` (ADR-001 bis ADR-021).
 
@@ -212,8 +212,9 @@ supabase/
 
 ## Deployment
 
-- **Netlify:** `main` → Production, jeder PR → Branch-Preview (gegen Staging-Supabase).
-  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` pro Deploy-Kontext im Netlify-UI setzen.
+- **Cloudflare Pages (sole host):** `main` → Production; Preview optional.
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` via `.env.production` (build-time)
+  and/or Cloudflare Pages Environment variables. See `docs/deployment.md`.
 - **Supabase:** zwei Projekte (Staging, Production, EU-Region). Migrationen laufen
   ausschließlich über `supabase db push` aus der CI/CLI — niemals Schema-Änderungen
   im Dashboard (ADR-018). Auf Staging/Production: E-Mail-Bestätigung aktivieren.

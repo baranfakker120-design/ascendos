@@ -217,13 +217,13 @@ Gamification must never become the main purpose of the application. If a user ca
 
 ### Stack
 
-| Layer            | Technology                                                               |
-| ---------------- | ------------------------------------------------------------------------ |
-| Frontend         | React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, PWA |
-| Backend platform | Supabase (Auth, Postgres, RLS, Edge Functions)                           |
-| Database         | PostgreSQL + pgvector                                                    |
-| Hosting          | Netlify (frontend) + Supabase projects (Staging / Production, EU)        |
-| CI               | GitHub Actions: lint, format, typecheck, Vitest, build, pgTAP, Gitleaks  |
+| Layer            | Technology                                                                   |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Frontend         | React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, PWA     |
+| Backend platform | Supabase (Auth, Postgres, RLS, Edge Functions)                               |
+| Database         | PostgreSQL + pgvector                                                        |
+| Hosting          | Cloudflare Pages (frontend, sole host) + Supabase (Staging / Production, EU) |
+| CI               | GitHub Actions: lint, format, typecheck, Vitest, build, pgTAP, Gitleaks      |
 
 Architecture decisions are recorded in `docs/adr.md` (ADR-001 through ADR-030).
 

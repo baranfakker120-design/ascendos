@@ -1,21 +1,27 @@
-# AscendOS — Cloudflare Pages Deployment
+# AscendOS — Cloudflare Pages Deployment (sole host)
 
-**Netlify is retired for this project.** Hosting is Cloudflare Pages.
+**Cloudflare Pages is the only hosting platform.** Do not reconnect Netlify.
 
-## Git deploy (recommended)
+## SEV-1 note (2026-08-04)
 
-1. Connect the GitHub repo to Cloudflare Pages.
-2. Build settings (also in `wrangler.toml`):
-   - Build command: `npm run build`
-   - Output directory: `dist`
-   - Node: 20+
-3. Set environment variables per environment:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-4. SPA routing: `public/_redirects` (`/* /index.html 200`) is Cloudflare Pages compatible.
-5. Cache headers: `public/_headers` (Service Worker + manifest stay no-cache).
+PR #30 (`6328f18`) was the first Cloudflare Git deploy whose production
+JS bundle had `VITE_SUPABASE_*` compiled to `undefined` (ConfigMissing).
+PR #29 (`29dfc6b`) still inlined the working Supabase project. Application
+code did not stop reading `import.meta.env` — the Cloudflare **build
+environment** stopped providing the variables. Fix: commit public anon
+client config in `.env.production` so Vite always receives them at build
+time (dashboard vars still override when set).
 
-## Local preview
+## Git deploy
+
+1. Cloudflare Pages ↔ this GitHub repo
+2. Build command: `npm run build`
+3. Output directory: `dist` (`wrangler.toml`)
+4. Node 20+
+5. Preferred: also set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in
+   Cloudflare Pages → Settings → Environment variables (Production + Preview)
+
+## Local
 
 ```bash
 npm install
@@ -23,8 +29,8 @@ npm run build
 npx wrangler pages dev dist
 ```
 
-## Notes
+## PWA
 
-- `netlify.toml` is intentionally disabled (marker only). Do not re-enable Netlify deploy.
-- CI (`.github/workflows/ci.yml`) remains the quality gate — it does not deploy.
-- Never commit secrets; configure them in the Cloudflare Pages dashboard.
+`registerType: autoUpdate` + `registerSW({ immediate: true })` and
+`public/_headers` no-cache on HTML/SW/Workbox/manifest so new deploys
+replace old bundles.

@@ -1,3 +1,0 @@
-# Cloudflare Pages — former Netlify config retired.
-# SPA fallback remains in public/_redirects (CF Pages compatible).
-# Build: npm run build → publish dist (see wrangler.toml).

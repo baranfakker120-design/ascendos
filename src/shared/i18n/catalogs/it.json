@@ -47,7 +47,7 @@
   },
   "boot": {
     "configMissingTitle": "AscendOS non è ancora configurato.",
-    "configMissingBody": "Mancano VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY. Impostale in Netlify sotto Site settings → Environment variables e ridistribuisci."
+    "configMissingBody": "Mancano VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY in fase di build. Impostale in Cloudflare Pages sotto Settings → Environment variables (o .env.production) e ridistribuisci."
   },
   "errors": {
     "boundaryTitle": "Qualcosa è andato storto.",
