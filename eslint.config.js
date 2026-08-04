@@ -53,6 +53,11 @@ export default tseslint.config(
             { target: './src/features/progress', from: './src/features', except: ['./progress'] },
             { target: './src/features/knowledge', from: './src/features', except: ['./knowledge'] },
             { target: './src/features/profile', from: './src/features', except: ['./profile'] },
+            {
+              target: './src/features/first-launch',
+              from: './src/features',
+              except: ['./first-launch'],
+            },
             { target: './src/shared', from: './src/features' },
             { target: './src/shared', from: './src/app' },
           ],

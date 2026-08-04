@@ -1,0 +1,254 @@
+.fl-root {
+  --fl-phone-body: #1c1e22;
+  --fl-phone-edge: #2e3238;
+  --fl-phone-screen: #f7f5f1;
+  --fl-phone-notch: #101114;
+  --fl-surface: #ffffff;
+  --fl-line: rgb(17 18 20 / 0.12);
+  --fl-ink: #111214;
+  --fl-muted: #6b7078;
+  --fl-accent: #c4a574;
+  --fl-home: #e8e4dc;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgb(196 165 116 / 0.22), transparent 55%),
+    linear-gradient(180deg, #faf8f4 0%, #f0ece4 100%);
+  color: var(--fl-ink);
+  animation: fl-fade-in 280ms ease-out;
+}
+
+.fl-root--page {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  min-height: 100%;
+  border-radius: 0;
+  animation: none;
+}
+
+.fl-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: max(1rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom));
+  min-height: 0;
+}
+
+.fl-progress {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.fl-progress__dot {
+  height: 0.28rem;
+  flex: 1;
+  border-radius: 999px;
+  background: rgb(17 18 20 / 0.1);
+  transition: background-color 200ms ease;
+}
+
+.fl-progress__dot--on {
+  background: var(--fl-accent);
+}
+
+.fl-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: fl-slide-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fl-illust {
+  width: min(100%, 17rem);
+  margin: 0.25rem auto 0.75rem;
+  display: block;
+}
+
+.fl-illust--lg {
+  width: min(100%, 19rem);
+}
+
+.fl-brand {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.fl-subtitle {
+  margin-top: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.fl-copy {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--fl-muted);
+  text-align: center;
+}
+
+.fl-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.fl-step-label {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fl-muted);
+  text-align: center;
+}
+
+.fl-bullets {
+  margin: 1rem auto 0;
+  width: 100%;
+  max-width: 18rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.fl-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.fl-bullet__mark {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.4rem;
+  border-radius: 999px;
+  background: var(--fl-accent);
+}
+
+.fl-langs {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fl-lang {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--fl-line);
+  background: rgb(255 255 255 / 0.72);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 120ms ease;
+}
+
+.fl-lang:active {
+  transform: scale(0.98);
+}
+
+.fl-lang--on {
+  border-color: var(--fl-accent);
+  background: rgb(196 165 116 / 0.16);
+}
+
+.fl-lang img {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+}
+
+.fl-platforms {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.fl-adv {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.fl-adv__item {
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.85rem;
+  background: rgb(255 255 255 / 0.7);
+  border: 1px solid var(--fl-line);
+}
+
+.fl-adv__item strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.fl-adv__item p {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--fl-muted);
+}
+
+.fl-actions {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.fl-actions--row {
+  grid-template-columns: 1fr 1.4fr;
+}
+
+@keyframes fl-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fl-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-root,
+  .fl-body {
+    animation: none;
+  }
+}

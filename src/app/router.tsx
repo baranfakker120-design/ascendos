@@ -17,6 +17,7 @@ import { MorePage } from '@features/more/MorePage';
 import { JourneyToday } from '@features/onboarding/JourneyToday';
 import { useJourneyState } from '@features/onboarding/journeyApi';
 import { ProgressPage } from '@features/progress/ProgressPage';
+import { InstallGuidePage } from '@features/first-launch';
 import { ProfileEditPage } from '@features/profile/ProfileEditPage';
 import { ProfilePage } from '@features/profile/ProfilePage';
 import { SettingsPage } from '@features/settings/SettingsPage';
@@ -162,6 +163,7 @@ export const router = createBrowserRouter([
               { path: '/settings', element: <SettingsPage /> },
               { path: '/profil', element: <ProfilePage /> },
               { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
+              { path: '/hilfe/installation', element: <InstallGuidePage /> },
               {
                 element: <RequireSuperAdmin />,
                 children: [{ path: '/wissen', element: <KnowledgePage /> }],

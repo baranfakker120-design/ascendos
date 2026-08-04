@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { FirstLaunchGate } from '@features/first-launch';
 import { OrgSwitcher } from '@shared/auth/OrgSwitcher';
 import { SyncStatusIndicator } from '@shared/offline';
 import { BottomNav } from './BottomNav';
@@ -39,6 +40,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <BottomNav />
+      <FirstLaunchGate />
     </div>
   );
 }
