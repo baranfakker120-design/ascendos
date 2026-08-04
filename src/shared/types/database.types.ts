@@ -2830,6 +2830,10 @@ export type Database = {
         }[];
       };
       complete_journey_step: { Args: { p_step_id: string }; Returns: undefined };
+      compute_monthly_awards: {
+        Args: { p_org: string; p_title_period?: string };
+        Returns: Json;
+      };
       correct_pipeline_event: {
         Args: { p_event_id: string };
         Returns: undefined;
@@ -2848,6 +2852,19 @@ export type Database = {
       current_org_id: { Args: never; Returns: string };
       current_team_id: { Args: never; Returns: string };
       current_user_role: { Args: never; Returns: string };
+      display_rank_for_ap: {
+        Args: { p_ap: number; p_org: string; p_team_leader_qualified?: boolean };
+        Returns: {
+          frame_asset: string;
+          key: string;
+          label: string;
+          sort_order: number;
+          threshold_ap: number;
+        }[];
+      };
+      ensure_monthly_awards: { Args: never; Returns: Json };
+      ensure_role_frame_cosmetics: { Args: never; Returns: undefined };
+      equip_frame_cosmetic: { Args: { p_item_id: string }; Returns: undefined };
       evaluate_team_leader_qualification: {
         Args: { p_membership: string };
         Returns: boolean;
@@ -2925,6 +2942,7 @@ export type Database = {
           rank_label: string;
         }[];
       };
+      has_seen_advisor_hero: { Args: { p_period: string }; Returns: boolean };
       is_ancestor_of: { Args: { p_target: string }; Returns: boolean };
       is_coach_content_manager: { Args: never; Returns: boolean };
       is_super_admin: { Args: never; Returns: boolean };
@@ -2951,6 +2969,35 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      list_monthly_awards: {
+        Args: { p_limit?: number };
+        Returns: {
+          ap_in_period: number;
+          avatar_url: string;
+          created_at: string;
+          display_name: string;
+          is_me: boolean;
+          membership_id: string;
+          period: string;
+          place: number;
+          username: string;
+        }[];
+      };
+      list_my_frame_cosmetics: {
+        Args: never;
+        Returns: {
+          asset_path: string;
+          is_equipped: boolean;
+          item_id: string;
+          label: string;
+          rank_key: string;
+          unlocked_at: string;
+        }[];
+      };
+      mark_advisor_hero_seen: {
+        Args: { p_period?: string };
+        Returns: undefined;
       };
       match_knowledge: {
         Args: {
@@ -3051,69 +3098,6 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
-      display_rank_for_ap: {
-        Args: { p_org: string; p_ap: number; p_team_leader_qualified?: boolean };
-        Returns: {
-          frame_asset: string;
-          key: string;
-          label: string;
-          sort_order: number;
-          threshold_ap: number;
-        }[];
-      };
-      list_my_frame_cosmetics: {
-        Args: Record<string, never>;
-        Returns: {
-          asset_path: string;
-          is_equipped: boolean;
-          item_id: string;
-          label: string;
-          rank_key: string;
-          unlocked_at: string;
-        }[];
-      };
-      equip_frame_cosmetic: {
-        Args: { p_item_id: string };
-        Returns: undefined;
-      };
-      ensure_role_frame_cosmetics: {
-        Args: Record<string, never>;
-        Returns: undefined;
-      };
-      ensure_monthly_awards: {
-        Args: Record<string, never>;
-        Returns: Json;
-      };
-      compute_monthly_awards: {
-        Args: { p_org: string; p_title_period?: string };
-        Returns: Json;
-      };
-      run_monthly_awards_job: {
-        Args: { p_title_period?: string };
-        Returns: Json;
-      };
-      list_monthly_awards: {
-        Args: { p_limit?: number };
-        Returns: {
-          ap_in_period: number;
-          avatar_url: string;
-          created_at: string;
-          display_name: string;
-          is_me: boolean;
-          membership_id: string;
-          period: string;
-          place: number;
-          username: string;
-        }[];
-      };
-      has_seen_advisor_hero: {
-        Args: { p_period?: string };
-        Returns: boolean;
-      };
-      mark_advisor_hero_seen: {
-        Args: { p_period?: string };
-        Returns: undefined;
-      };
       redeem_invite: {
         Args: { invite_code: string };
         Returns: {
@@ -3121,6 +3105,10 @@ export type Database = {
           org_id: string;
           org_name: string;
         }[];
+      };
+      run_monthly_awards_job: {
+        Args: { p_title_period?: string };
+        Returns: Json;
       };
       toggle_leadership_favorite: {
         Args: { p_target_membership: string };

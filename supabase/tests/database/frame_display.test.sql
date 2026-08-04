@@ -16,10 +16,16 @@ select has_function(
   'equip_frame_cosmetic(item_id) exists'
 );
 
-select has_function_privilege(
-  'authenticated',
-  'public.list_my_frame_cosmetics()',
-  'EXECUTE'
+select ok(
+  exists (
+    select 1
+    from information_schema.routine_privileges
+    where routine_schema = 'public'
+      and routine_name = 'list_my_frame_cosmetics'
+      and grantee = 'authenticated'
+      and privilege_type = 'EXECUTE'
+  ),
+  'authenticated can execute list_my_frame_cosmetics'
 );
 
 select * from finish();
