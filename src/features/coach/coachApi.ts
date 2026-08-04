@@ -37,6 +37,8 @@ export function useCoachMessages(conversationId: string | null) {
 
 interface SendInput {
   message: string;
+  /** Optional bubble text when `message` includes a hidden context brief. */
+  displayContent?: string;
   conversationId: string | null;
   contactId: string | null;
 }
@@ -82,7 +84,7 @@ export function useSendToCoach() {
       const optimisticUser: CoachMessage = {
         id: tempUserId,
         role: 'user',
-        content: input.message,
+        content: input.displayContent ?? input.message,
         created_at: new Date().toISOString(),
       };
       qc.setQueryData<CoachMessage[]>(optimisticKey, [...(previous ?? []), optimisticUser]);
@@ -102,7 +104,8 @@ export function useSendToCoach() {
 
       const fromSource = qc.getQueryData<CoachMessage[]>(sourceKey) ?? [];
       const withoutTemp = fromSource.filter((m) => !m.id.startsWith('temp-'));
-      const hasUser = withoutTemp.some((m) => m.role === 'user' && m.content === input.message);
+      const visibleUser = input.displayContent ?? input.message;
+      const hasUser = withoutTemp.some((m) => m.role === 'user' && m.content === visibleUser);
       const next: CoachMessage[] = [
         ...withoutTemp,
         ...(hasUser
@@ -111,7 +114,7 @@ export function useSendToCoach() {
               {
                 id: `local-user-${Date.now()}`,
                 role: 'user' as const,
-                content: input.message,
+                content: visibleUser,
                 created_at: new Date().toISOString(),
               },
             ]),

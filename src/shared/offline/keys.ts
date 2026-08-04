@@ -11,6 +11,7 @@ export const DRAFT_SCOPES = {
   contactNew: 'contact:new',
   contactEdit: (id: string) => `contact:edit:${id}`,
   coachInput: 'coach:input',
+  coachThread: (id: string) => `coach:input:${id}`,
   knowledgeCenter: 'knowledge-center:editor',
   storiesAdmin: 'stories:admin',
   profileEdit: 'profile:edit',

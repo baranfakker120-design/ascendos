@@ -20,7 +20,9 @@ export function AppShell() {
   const fill = usesFillLayout(pathname);
 
   return (
-    <div className="mx-auto flex h-full max-w-lg flex-col overflow-x-clip">
+    <div
+      className={`mx-auto flex h-full flex-col overflow-x-clip ${pathname === '/coach' ? 'max-w-5xl' : 'max-w-lg'}`}
+    >
       <header className="pointer-events-none z-30 flex shrink-0 items-center justify-between gap-2 px-4 pb-1 pt-[var(--app-header-pad)]">
         <div className="pointer-events-auto">
           <OrgSwitcher />

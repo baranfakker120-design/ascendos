@@ -8,6 +8,7 @@ import {
   buildPersonInsight,
   mapGenealogyNodeToPartner,
 } from '@features/coach/intelligence';
+import { writePendingSeed } from '@features/coach/workspace';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { displayName, isNewPartner, isOnline, presenceLabel } from '../genealogyUtils';
 import type { GenealogyNode } from '../types';
@@ -93,8 +94,9 @@ export function TeamNodeCard({
       >
         <CoachPersonInsightBubble
           insight={coachInsight}
-          onAsk={() => {
+          onAsk={(prompt) => {
             const name = displayName(node);
+            writePendingSeed(prompt);
             navigate(
               `/coach?partner=${encodeURIComponent(name)}&mid=${encodeURIComponent(node.membershipId)}`
             );

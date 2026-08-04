@@ -7,6 +7,7 @@ import { loadTeamUiState, saveTeamUiState } from '@shared/offline';
 import { Button, buttonClassName } from '@shared/ui/Button';
 import { BottomSheet } from '@shared/ui/BottomSheet';
 import { Card } from '@shared/ui/Card';
+import { writePendingSeed } from '@features/coach/workspace';
 import { ApTasksPanel } from '@features/leadership/components/ApTasksPanel';
 import { LeaderboardPanel } from '@features/leadership/components/LeaderboardPanel';
 import { LeaderDashboardStrip } from '@features/leadership/components/LeaderDashboardStrip';
@@ -253,8 +254,10 @@ export function TeamPage() {
             editable={editableIds.has(selected.membershipId)}
             onCoach={(node) => {
               setSelected(null);
+              const name = `${node.firstName} ${node.lastName}`.trim() || node.username;
+              writePendingSeed(t('coach.askAboutPerson', { name: node.firstName || name }));
               void navigate(
-                `/coach?partner=${encodeURIComponent(node.firstName || node.username)}&mid=${encodeURIComponent(node.membershipId)}`
+                `/coach?partner=${encodeURIComponent(name)}&mid=${encodeURIComponent(node.membershipId)}`
               );
             }}
           />
