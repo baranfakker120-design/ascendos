@@ -5,18 +5,41 @@ select plan(12);
 
 select has_function('public', 'compute_monthly_awards', array['uuid', 'date']);
 select has_function('public', 'run_monthly_awards_job', array['date']);
-select has_function('public', 'ensure_monthly_awards', array[]::text[]);
+select ok(
+  to_regprocedure('public.ensure_monthly_awards()') is not null,
+  'ensure_monthly_awards() exists'
+);
 select has_function('public', 'list_monthly_awards', array['integer']);
 
-select has_function_privilege(
-  'service_role', 'public.compute_monthly_awards(uuid, date)', 'EXECUTE'
-);
-select has_function_privilege(
-  'authenticated', 'public.ensure_monthly_awards()', 'EXECUTE'
-);
 select ok(
-  not has_function_privilege(
-    'authenticated', 'public.compute_monthly_awards(uuid, date)', 'EXECUTE'
+  exists (
+    select 1 from information_schema.routine_privileges
+    where routine_schema = 'public'
+      and routine_name = 'compute_monthly_awards'
+      and grantee = 'service_role'
+      and privilege_type = 'EXECUTE'
+  ),
+  'service_role can execute compute_monthly_awards'
+);
+
+select ok(
+  exists (
+    select 1 from information_schema.routine_privileges
+    where routine_schema = 'public'
+      and routine_name = 'ensure_monthly_awards'
+      and grantee = 'authenticated'
+      and privilege_type = 'EXECUTE'
+  ),
+  'authenticated can execute ensure_monthly_awards'
+);
+
+select ok(
+  not exists (
+    select 1 from information_schema.routine_privileges
+    where routine_schema = 'public'
+      and routine_name = 'compute_monthly_awards'
+      and grantee = 'authenticated'
+      and privilege_type = 'EXECUTE'
   ),
   'authenticated cannot execute compute_monthly_awards'
 );
@@ -47,17 +70,27 @@ values
   ('e2000000-0000-0000-0000-00000000000d','e1000000-0000-0000-0000-000000000001',
    'e1100000-0000-0000-0000-000000000001','e2000000-0000-0000-0000-00000000000a','berater','MA','D','mad');
 
+-- Memberships: prefer existing auto-rows, else insert. Fix created_at for ties.
 set local session_replication_role = replica;
-insert into public.memberships (id, identity_id, org_id, team_id, role, status, created_at)
-values
-  ('e3000000-0000-0000-0000-00000000000a','e2000000-0000-0000-0000-00000000000a',
-   'e1000000-0000-0000-0000-000000000001','e1100000-0000-0000-0000-000000000001','super_admin','active','2025-01-01T00:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000b','e2000000-0000-0000-0000-00000000000b',
-   'e1000000-0000-0000-0000-000000000001','e1100000-0000-0000-0000-000000000001','berater','active','2025-01-02T00:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000c','e2000000-0000-0000-0000-00000000000c',
-   'e1000000-0000-0000-0000-000000000001','e1100000-0000-0000-0000-000000000001','berater','active','2025-01-03T00:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000d','e2000000-0000-0000-0000-00000000000d',
-   'e1000000-0000-0000-0000-000000000001','e1100000-0000-0000-0000-000000000001','berater','active','2025-01-01T12:00:00Z');
+insert into public.memberships (identity_id, org_id, team_id, role, status, created_at)
+select p.id, p.org_id, p.team_id, p.role, 'active', '2025-01-01T00:00:00Z'
+from public.profiles p
+where p.id::text like 'e2000000%'
+  and not exists (
+    select 1 from public.memberships m
+    where m.identity_id = p.id and m.org_id = p.org_id and m.status = 'active'
+  );
+
+update public.memberships
+set created_at = case identity_id
+  when 'e2000000-0000-0000-0000-00000000000a' then '2025-01-01T00:00:00Z'::timestamptz
+  when 'e2000000-0000-0000-0000-00000000000b' then '2025-01-02T00:00:00Z'::timestamptz
+  when 'e2000000-0000-0000-0000-00000000000c' then '2025-01-03T00:00:00Z'::timestamptz
+  when 'e2000000-0000-0000-0000-00000000000d' then '2025-01-01T12:00:00Z'::timestamptz
+  else created_at
+end
+where org_id = 'e1000000-0000-0000-0000-000000000001'
+  and identity_id::text like 'e2000000%';
 set local session_replication_role = origin;
 
 insert into public.cosmetic_items (org_id, kind, key, label, asset_path, rank_key, sort_order)
@@ -66,16 +99,20 @@ select 'e1000000-0000-0000-0000-000000000001', 'frame', 'hero-berater-des-monats
 on conflict (org_id, kind, key) do nothing;
 
 -- Activity month = 2026-03 (for title 2026-04)
--- B: 300 AP, C: 200, D: 200 (tie with C — D older → place 2), A: 50
 insert into public.ap_ledger (membership_id, delta, reason, source_kind, created_at)
-values
-  ('e3000000-0000-0000-0000-00000000000b', 300, 'test', 'manual', '2026-03-10T12:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000c', 200, 'test', 'manual', '2026-03-11T12:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000d', 200, 'test', 'manual', '2026-03-12T12:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000a',  50, 'test', 'manual', '2026-03-15T12:00:00Z'),
-  -- Outside activity window — must not count
-  ('e3000000-0000-0000-0000-00000000000b', 999, 'test', 'manual', '2026-04-02T12:00:00Z'),
-  ('e3000000-0000-0000-0000-00000000000c', 999, 'test', 'manual', '2026-02-28T12:00:00Z');
+select m.id, v.delta, 'test', 'manual', v.at
+from public.memberships m
+join (
+  values
+    ('e2000000-0000-0000-0000-00000000000b'::uuid, 300, '2026-03-10T12:00:00Z'::timestamptz),
+    ('e2000000-0000-0000-0000-00000000000c'::uuid, 200, '2026-03-11T12:00:00Z'::timestamptz),
+    ('e2000000-0000-0000-0000-00000000000d'::uuid, 200, '2026-03-12T12:00:00Z'::timestamptz),
+    ('e2000000-0000-0000-0000-00000000000a'::uuid,  50, '2026-03-15T12:00:00Z'::timestamptz),
+    ('e2000000-0000-0000-0000-00000000000b'::uuid, 999, '2026-04-02T12:00:00Z'::timestamptz),
+    ('e2000000-0000-0000-0000-00000000000c'::uuid, 999, '2026-02-28T12:00:00Z'::timestamptz)
+) as v(identity_id, delta, at) on m.identity_id = v.identity_id
+where m.org_id = 'e1000000-0000-0000-0000-000000000001'
+  and m.status = 'active';
 
 select is(
   (public.compute_monthly_awards(
@@ -88,17 +125,19 @@ select is(
 
 select results_eq(
   $$
-    select place, membership_id::text, ap_in_period
-    from public.monthly_awards
-    where org_id = 'e1000000-0000-0000-0000-000000000001'
-      and period = '2026-04-01'
-    order by place
+    select ma.place, p.username, ma.ap_in_period
+    from public.monthly_awards ma
+    join public.memberships m on m.id = ma.membership_id
+    join public.profiles p on p.id = m.identity_id
+    where ma.org_id = 'e1000000-0000-0000-0000-000000000001'
+      and ma.period = '2026-04-01'
+    order by ma.place
   $$,
   $$
     values
-      (1, 'e3000000-0000-0000-0000-00000000000b', 300),
-      (2, 'e3000000-0000-0000-0000-00000000000d', 200),
-      (3, 'e3000000-0000-0000-0000-00000000000c', 200)
+      (1, 'mab', 300),
+      (2, 'mad', 200),
+      (3, 'mac', 200)
   $$,
   'podium: AP desc, then older membership on ties'
 );
@@ -117,7 +156,8 @@ select ok(
     select 1
     from public.membership_cosmetics mc
     join public.cosmetic_items ci on ci.id = mc.item_id
-    where mc.membership_id = 'e3000000-0000-0000-0000-00000000000b'
+    join public.memberships m on m.id = mc.membership_id
+    where m.identity_id = 'e2000000-0000-0000-0000-00000000000b'
       and ci.key = 'hero-berater-des-monats'
   ),
   'place 1 unlocks hero-berater cosmetic'

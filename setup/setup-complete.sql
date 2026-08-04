@@ -7449,6 +7449,15 @@ declare
   v_current record;
   v_tl_threshold int;
 begin
+  -- Caller binding (F1 / function_security J1): authenticated sessions
+  -- may only resolve ranks for their active org (or super_admin).
+  if auth.uid() is not null then
+    if p_org is distinct from public.current_org_id()
+       and not public.is_super_admin() then
+      raise exception 'AscendOS: display_rank_for_ap org mismatch';
+    end if;
+  end if;
+
   select rk.key, rk.label, rk.threshold_ap, rk.frame_asset, rk.sort_order
     into v_current
   from public.rank_for_ap(p_org, coalesce(p_ap, 0)) rk;
@@ -7992,6 +8001,15 @@ declare
 begin
   if p_org is null then
     raise exception 'compute_monthly_awards: org required';
+  end if;
+
+  -- Caller binding (F1 / function_security J1): service_role may pass any org;
+  -- authenticated callers are limited to their active org (or super_admin).
+  if auth.uid() is not null then
+    if p_org is distinct from public.current_org_id()
+       and not public.is_super_admin() then
+      raise exception 'AscendOS: compute_monthly_awards org mismatch';
+    end if;
   end if;
 
   -- Normalize to month start (date arithmetic, no session TZ).
