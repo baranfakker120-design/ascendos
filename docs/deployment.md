@@ -1,30 +1,44 @@
-# AscendOS — Cloudflare Pages Deployment
+# AscendOS — Cloudflare Pages Deployment (sole host)
 
-**Netlify is retired for this project.** Hosting is Cloudflare Pages.
+**Cloudflare Pages is the only hosting platform.** Do not reconnect Netlify.
 
-## Git deploy (recommended)
+## SEV-1 root cause (proven)
 
-1. Connect the GitHub repo to Cloudflare Pages.
-2. Build settings (also in `wrangler.toml`):
-   - Build command: `npm run build`
-   - Output directory: `dist`
-   - Node: 20+
-3. Set environment variables per environment:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-4. SPA routing: `public/_redirects` (`/* /index.html 200`) is Cloudflare Pages compatible.
-5. Cache headers: `public/_headers` (Service Worker + manifest stay no-cache).
+| Deploy       | Commit             | `wrangler.toml`                         | Bundle                 |
+| ------------ | ------------------ | --------------------------------------- | ---------------------- |
+| Last good    | PR #29 / `29dfc6b` | **absent**                              | `VITE_*` inlined       |
+| First broken | PR #30 / `6328f18` | added `pages_build_output_dir = "dist"` | `VITE_*` → `undefined` |
 
-## Local preview
+Adding `pages_build_output_dir` makes Wrangler the Pages **source of truth**.
+Dashboard plain environment variables are then no longer injected into the
+Git **build** environment. Vite needs those vars at `npm run build` time.
+`[vars]` in wrangler.toml are **runtime** Function bindings — they do **not**
+feed `import.meta.env` for a static Vite SPA.
+
+Official note: keep wrangler.toml for local use **without**
+`pages_build_output_dir` so the dashboard remains source of truth for Git builds.
+
+## Required dashboard configuration (permanent)
+
+On **each** Git Pages project (`ascendseyda` and `ascendos`):
+
+1. Settings → Environment variables (Production **and** Preview)
+2. `VITE_SUPABASE_URL`
+3. `VITE_SUPABASE_ANON_KEY`
+4. Retry deployment after changing vars
+
+Build settings: `npm run build` → output `dist` → Node 20+
+
+## Local
 
 ```bash
 npm install
+cp .env.example .env   # fill VITE_*
 npm run build
 npx wrangler pages dev dist
 ```
 
-## Notes
+## PWA
 
-- `netlify.toml` is intentionally disabled (marker only). Do not re-enable Netlify deploy.
-- CI (`.github/workflows/ci.yml`) remains the quality gate — it does not deploy.
-- Never commit secrets; configure them in the Cloudflare Pages dashboard.
+`registerType: autoUpdate` + `registerSW({ immediate: true })`.
+`public/_headers` keeps SW/manifest no-cache.

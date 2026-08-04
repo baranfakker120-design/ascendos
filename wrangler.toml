@@ -1,6 +1,17 @@
-# AscendOS — Cloudflare Pages
-# Netlify is retired for this project. Do not re-enable netlify.toml.
+# AscendOS — local Cloudflare Pages tooling ONLY.
+#
+# CRITICAL: Do NOT set `pages_build_output_dir` here.
+# Adding that key migrates the Git-connected Pages project to treat this
+# file as the production source of truth. Dashboard plain environment
+# variables then stop being injected into `npm run build`, so Vite never
+# sees VITE_SUPABASE_* (SEV-1 / PR #30 regression).
+#
+# Cloudflare docs:
+# https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+# "You can continue to use your Wrangler file for local development without
+# migrating it for production use by not adding a pages_build_output_dir key."
+#
+# Production/Preview build settings + VITE_* live in the Cloudflare Pages
+# dashboard (both projects: ascendseyda and ascendos).
 
-name = "ascendos"
 compatibility_date = "2024-11-01"
-pages_build_output_dir = "dist"
