@@ -25,9 +25,7 @@
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/shared/types/database.types.ts && prettier --write src/shared/types/database.types.ts",
     "knowledge:ingest": "node scripts/ingest-knowledge.mjs",
-    "presentation:capture": "node scripts/capture-presentation.mjs",
-    "presentation:compose": "python3 scripts/compose-presentation.py",
-    "presentation:render": "npm run presentation:capture && npm run presentation:compose"
+    "presentation:deck": "python3 scripts/build-presentation-deck.py"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

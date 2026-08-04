@@ -46,7 +46,7 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthState | null>(null);
+const AuthContext = createContext<AuthState | null>(null);
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
