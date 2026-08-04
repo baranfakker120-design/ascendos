@@ -7,6 +7,14 @@ export {
   pickPriorityMission,
 } from './buildCloseSnapshot';
 export {
+  buildDecisionDiff,
+  type DecisionDiffFollowUp,
+  type DecisionDiffInput,
+  type DecisionDiffKind,
+  type DecisionDiffLine,
+  type DecisionDiffWarning,
+} from './buildDecisionDiff';
+export {
   readDayClose,
   readDayOpen,
   readYesterdayClose,

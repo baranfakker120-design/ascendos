@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SyncStatusIndicator } from '@shared/offline';
 import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executive';
+import { useCoachOrgIntelligence } from '@features/coach/intelligence';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
 import { ClosedDay, ClosingLoop } from './components/ClosingLoop';
+import { DecisionDiff } from './components/DecisionDiff';
 import { FocusMode } from './components/FocusMode';
 import { MorningCommit } from './components/MorningCommit';
-import { useDayMemory } from './dayMemory';
+import { buildDecisionDiff, useDayMemory } from './dayMemory';
 import { useDailyPlan, useDailyPlanMutations } from './dailyPlanApi';
 import { missionProgress, orderMissions } from './missionOrder';
 import '@features/coach/executive/executive.css';
@@ -41,8 +43,29 @@ function TodayDailyPlan() {
   const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
   const memory = useDayMemory();
+  const { intelligence } = useCoachOrgIntelligence(true);
   const [manualClose, setManualClose] = useState(false);
   const [closingBusy, setClosingBusy] = useState(false);
+
+  const diffLines = useMemo(() => {
+    if (!data || data.plan.committed_at) return [];
+    return buildDecisionDiff({
+      yesterdayClose: memory.yesterdayClose,
+      todayItems: data.items,
+      warnings: (intelligence?.managerMessages ?? []).slice(0, 3).map((m) => ({
+        kind: m.id,
+        title: m.text,
+        name: m.text,
+        action: m.why,
+      })),
+      followUps: (intelligence?.followUps ?? []).map((f) => ({
+        contactId: f.contactId,
+        name: f.name,
+        heat: f.heat,
+        why: f.why,
+      })),
+    });
+  }, [data, memory.yesterdayClose, intelligence]);
 
   if (isPending || !memory.ready) {
     return <p className="text-sm text-muted">{t('today.loading')}</p>;
@@ -73,23 +96,29 @@ function TodayDailyPlan() {
   if (!data.plan.committed_at) {
     if (data.items.length === 0) {
       return (
-        <Card>
-          <p className="font-medium">{t('today.empty')}</p>
-          <p className="mt-1 text-sm text-muted">{t('today.emptyHint')}</p>
-        </Card>
+        <div className="space-y-4">
+          {diffLines.length > 0 ? <DecisionDiff lines={diffLines} /> : null}
+          <Card>
+            <p className="font-medium">{t('today.empty')}</p>
+            <p className="mt-1 text-sm text-muted">{t('today.emptyHint')}</p>
+          </Card>
+        </div>
       );
     }
     return (
-      <MorningCommit
-        items={data.items}
-        busy={commitPlan.isPending}
-        onCommit={() => {
-          void (async () => {
-            await memory.markDayOpened(data.items);
-            await commitPlan.mutateAsync(data.plan.id);
-          })();
-        }}
-      />
+      <div className="space-y-4">
+        {diffLines.length > 0 ? <DecisionDiff lines={diffLines} /> : null}
+        <MorningCommit
+          items={data.items}
+          busy={commitPlan.isPending}
+          onCommit={() => {
+            void (async () => {
+              await memory.markDayOpened(data.items);
+              await commitPlan.mutateAsync(data.plan.id);
+            })();
+          }}
+        />
+      </div>
     );
   }
 

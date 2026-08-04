@@ -7,13 +7,14 @@ import { buildCloseSnapshot, buildOpenSnapshot } from './buildCloseSnapshot';
 import {
   readDayClose,
   readDayOpen,
+  readYesterdayClose,
   writeDayClose,
   writeDayOpen,
 } from './dayMemoryStore';
 import type { DayCloseRecord, DayCloseSource, DayOpenRecord } from './types';
 
 /**
- * Day Memory hook — Closing Loop persistence for Today.
+ * Day Memory hook — Closing Loop + Decision Diff persistence for Today.
  * IDB is source of truth for close state; usage_events insert is best-effort.
  */
 export function useDayMemory() {
@@ -22,25 +23,30 @@ export function useDayMemory() {
   const planDate = localDate();
   const [close, setClose] = useState<DayCloseRecord | null>(null);
   const [open, setOpen] = useState<DayOpenRecord | null>(null);
+  const [yesterdayClose, setYesterdayClose] = useState<DayCloseRecord | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!userId) {
       setClose(null);
       setOpen(null);
+      setYesterdayClose(null);
       setReady(true);
       return;
     }
     let cancelled = false;
     setReady(false);
-    void Promise.all([readDayClose(userId, planDate), readDayOpen(userId, planDate)]).then(
-      ([c, o]) => {
-        if (cancelled) return;
-        setClose(c);
-        setOpen(o);
-        setReady(true);
-      }
-    );
+    void Promise.all([
+      readDayClose(userId, planDate),
+      readDayOpen(userId, planDate),
+      readYesterdayClose(userId, planDate),
+    ]).then(([c, o, y]) => {
+      if (cancelled) return;
+      setClose(c);
+      setOpen(o);
+      setYesterdayClose(y);
+      setReady(true);
+    });
     return () => {
       cancelled = true;
     };
@@ -112,6 +118,7 @@ export function useDayMemory() {
     planDate,
     close,
     open,
+    yesterdayClose,
     isClosed: Boolean(close),
     markDayOpened,
     closeDay,

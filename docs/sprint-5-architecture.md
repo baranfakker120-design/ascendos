@@ -110,8 +110,7 @@ DayCloseRecord {
 - From Focus Mode → “End workday” (honest partial/missed)  
 - After close → calm Closed Day state (no re-nag)
 
-**Hooks**  
-`DayReview` → `ClosingLoop`; `TodayDailyPlan` state machine; IDB via `@shared/offline/idb`.
+**Status:** Implemented — ClosingLoop / ClosedDay / FocusMode end-workday; IDB day memory + `day_closed` usage event.
 
 ### L2 — Decision Diff
 
@@ -121,6 +120,8 @@ Morning: *What changed since yesterday that matters?* Reads yesterday’s `DayCl
 **Pure function**  
 `buildDecisionDiff({ yesterdayClose, todayPlan, warnings, contactsHeat }) → DiffCard[]`  
 Max 3–5 lines. No dashboard.
+
+**Status:** Implemented — `DecisionDiff` above `MorningCommit` / empty state; `useDayMemory.yesterdayClose`.
 
 ### L3 — One-Tap Day
 
