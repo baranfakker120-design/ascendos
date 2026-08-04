@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { runOrEnqueue } from '@shared/offline';
 import type { DailyPlan, DailyPlanItem, MissionStatus } from '@shared/types/domain';
 
 /** Lokales Datum des Nutzers (nicht UTC) — "heute" gilt in seiner Zeitzone. */
@@ -57,12 +58,20 @@ export function useDailyPlanMutations() {
 
   const setMissionStatus = useMutation({
     mutationFn: async (input: { itemId: string; status: MissionStatus; reason?: string }) => {
-      const { error } = await supabase.rpc('update_mission_status', {
-        p_item_id: input.itemId,
-        p_status: input.status,
-        p_reason: input.reason,
+      const result = await runOrEnqueue({
+        type: 'mission_status',
+        dedupeKey: `mission:${input.itemId}`,
+        payload: input,
+        execute: async () => {
+          const { error } = await supabase.rpc('update_mission_status', {
+            p_item_id: input.itemId,
+            p_status: input.status,
+            p_reason: input.reason,
+          });
+          if (error) throw error;
+        },
       });
-      if (error) throw error;
+      if (result.status === 'queued') return;
     },
     // Optimistic Update: der Tap fühlt sich sofort an (Phase 6),
     // die lokale Sortierlogik ordnet ohne Server-Roundtrip neu.

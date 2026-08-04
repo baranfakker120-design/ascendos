@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isMissingRpcError } from '@shared/api/rpcErrors';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { runOrEnqueue } from '@shared/offline';
 import type {
   ApTaskDef,
   LeaderboardEntry,
@@ -437,12 +438,20 @@ export function useUpsertLeadershipNote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { targetMembershipId: string; body: string }) => {
-      const { data, error } = await supabase.rpc('upsert_leadership_note', {
-        p_target_membership: input.targetMembershipId,
-        p_body: input.body,
+      const result = await runOrEnqueue({
+        type: 'leadership_note',
+        dedupeKey: `note:${input.targetMembershipId}`,
+        payload: input,
+        execute: async () => {
+          const { data, error } = await supabase.rpc('upsert_leadership_note', {
+            p_target_membership: input.targetMembershipId,
+            p_body: input.body,
+          });
+          if (error) throw error;
+          return String(data);
+        },
       });
-      if (error) throw error;
-      return String(data);
+      return result.status === 'synced' ? result.data : undefined;
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['leadership-note'] });

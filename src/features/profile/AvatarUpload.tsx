@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '@shared/i18n';
+import { runUploadOrEnqueue } from '@shared/offline';
 import { Button } from '@shared/ui/Button';
 import { AvatarCropModal } from './AvatarCropModal';
 import { uploadAvatarImage } from './profileApi';
@@ -46,9 +47,19 @@ export function AvatarUpload({ userId, frameKey = null, name, onUploaded }: Avat
     setBusy(true);
     setError(null);
     try {
-      const url = await uploadAvatarImage(userId, blob);
+      const file = new File([blob], 'avatar.webp', { type: 'image/webp' });
+      let uploadedUrl = '';
+      const result = await runUploadOrEnqueue({
+        kind: 'avatar',
+        dedupeKey: `avatar:${userId}`,
+        file,
+        meta: { userId },
+        execute: async (nextFile) => {
+          uploadedUrl = await uploadAvatarImage(userId, nextFile);
+        },
+      });
       setPicked(null);
-      onUploaded(url);
+      if (result.status === 'synced') onUploaded(uploadedUrl);
     } catch {
       setError(t('profile.uploadFailed'));
     } finally {

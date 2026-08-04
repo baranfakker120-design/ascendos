@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Input } from '@shared/ui/Input';
@@ -57,12 +58,18 @@ function ContactForm({
   const navigate = useNavigate();
   const { createContact, updateContact } = useContactMutations();
 
-  const [name, setName] = useState(existing?.name ?? '');
-  const [phone, setPhone] = useState(existing?.phone ?? '');
-  const [email, setEmail] = useState(existing?.email ?? '');
-  const [nextStep, setNextStep] = useState(existing?.next_step ?? '');
-  const [nextStepDue, setNextStepDue] = useState(existing?.next_step_due ?? '');
-  const [notes, setNotes] = useState(existing?.notes ?? '');
+  const {
+    value: { name, phone, email, nextStep, nextStepDue, notes },
+    patch,
+    clear: clearContactDraft,
+  } = usePersistedDraft(isEdit ? DRAFT_SCOPES.contactEdit(contactId!) : DRAFT_SCOPES.contactNew, {
+    name: existing?.name ?? '',
+    phone: existing?.phone ?? '',
+    email: existing?.email ?? '',
+    nextStep: existing?.next_step ?? '',
+    nextStepDue: existing?.next_step_due ?? '',
+    notes: existing?.notes ?? '',
+  });
   const [error, setError] = useState<string | null>(null);
 
   const busy = createContact.isPending || updateContact.isPending;
@@ -80,11 +87,17 @@ function ContactForm({
     };
     try {
       if (isEdit) {
-        await updateContact.mutateAsync({ id: contactId!, ...input });
+        const status = await updateContact.mutateAsync({ id: contactId!, ...input });
+        if (status === 'synced') await clearContactDraft();
         navigate(`/kontakte/${contactId}`);
       } else {
         const created = await createContact.mutateAsync(input);
-        navigate(`/kontakte/${created.id}`, { replace: true });
+        if (created.id.startsWith('local-')) {
+          navigate('/kontakte', { replace: true });
+        } else {
+          await clearContactDraft();
+          navigate(`/kontakte/${created.id}`, { replace: true });
+        }
       }
     } catch {
       setError(t('contacts.saveFailed'));
@@ -100,41 +113,41 @@ function ContactForm({
         <Input
           label={t('contacts.name')}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => patch({ name: e.target.value })}
           required
         />
         <Input
           label={t('contacts.phoneOptional')}
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => patch({ phone: e.target.value })}
           autoComplete="off"
         />
         <Input
           label={t('contacts.emailOptional')}
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => patch({ email: e.target.value })}
           autoComplete="off"
         />
         <Input
           label={t('contacts.nextStepOptional')}
           value={nextStep}
-          onChange={(e) => setNextStep(e.target.value)}
+          onChange={(e) => patch({ nextStep: e.target.value })}
           placeholder={t('contacts.nextStepPlaceholder')}
         />
         <Input
           label={t('contacts.dueOptional')}
           type="date"
           value={nextStepDue}
-          onChange={(e) => setNextStepDue(e.target.value)}
+          onChange={(e) => patch({ nextStepDue: e.target.value })}
           hint={t('contacts.dueHint')}
         />
         <TextArea
           label={t('contacts.notesOptional')}
           id="notes"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => patch({ notes: e.target.value })}
           rows={3}
           placeholder={t('contacts.notesPlaceholder')}
           hint={t('contacts.notesHint')}

@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { isMissingRpcError } from '@shared/api/rpcErrors';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { loadTeamUiState, saveTeamUiState } from '@shared/offline';
 import { Button, buttonClassName } from '@shared/ui/Button';
 import { BottomSheet } from '@shared/ui/BottomSheet';
 import { Card } from '@shared/ui/Card';
@@ -66,6 +67,30 @@ export function TeamPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<GenealogyNode | null>(null);
   const [showOps, setShowOps] = useState(true);
+  const teamUiHydrated = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadTeamUiState().then((saved) => {
+      if (cancelled) return;
+      if (saved) {
+        setCollapsed(new Set(saved.collapsedIds));
+        if (saved.mode) setMode(saved.mode);
+      }
+      teamUiHydrated.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!teamUiHydrated.current) return;
+    const timer = window.setTimeout(() => {
+      void saveTeamUiState({ collapsedIds: [...collapsed], mode });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [collapsed, mode]);
 
   const emptyTeam = !isPending && !isError && hasNoTeamPartners(nodes);
 

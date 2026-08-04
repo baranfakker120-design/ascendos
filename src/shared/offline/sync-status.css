@@ -1,0 +1,59 @@
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 9.5rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgb(17 18 20 / 0.08);
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(8px);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #6e7075;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sync-status__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: #6e7075;
+}
+
+.sync-status__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sync-status--synced .sync-status__dot {
+  background: #2f9e6b;
+}
+
+.sync-status--syncing .sync-status__dot {
+  background: #b8935a;
+  animation: sync-pulse 1.1s ease-in-out infinite;
+}
+
+.sync-status--pending .sync-status__dot {
+  background: #b8935a;
+}
+
+.sync-status--offline .sync-status__dot {
+  background: #9a6b3f;
+}
+
+@keyframes sync-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}

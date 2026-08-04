@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
 import { phaseLabel } from '@shared/lib/pipeline';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -87,7 +88,12 @@ export function CoachPage() {
     if (!conversationId && latestConvoId) setConversationId(latestConvoId);
   }, [latestConvoId, conversationId, setConversationId]);
 
-  const [input, setInput] = useState('');
+  const {
+    value: { text: input },
+    patch: patchInputDraft,
+    clear: clearInputDraft,
+  } = usePersistedDraft(DRAFT_SCOPES.coachInput, { text: '' });
+  const setInput = (text: string) => patchInputDraft({ text });
   const [error, setError] = useState<string | null>(null);
   const { data: messages, isPending: messagesPending } = useCoachMessages(conversationId);
   const send = useSendToCoach();
@@ -138,6 +144,7 @@ export function CoachPage() {
     stickToBottomRef.current = true;
     try {
       const result = await send.mutateAsync({ message, conversationId, contactId });
+      await clearInputDraft();
       setConversationId(result.conversationId);
     } catch (e) {
       setError(e instanceof Error ? e.message : coachT('chat.unreachable'));

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { runOrEnqueue } from '@shared/offline';
 import type { Journey, JourneyStep, UserProgress } from '@shared/types/domain';
 
 export interface JourneyState {
@@ -69,8 +70,16 @@ export function useCompleteStep() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (stepId: string) => {
-      const { error } = await supabase.rpc('complete_journey_step', { p_step_id: stepId });
-      if (error) throw error;
+      const result = await runOrEnqueue({
+        type: 'journey_complete_step',
+        dedupeKey: `journey-step:${stepId}`,
+        payload: { stepId },
+        execute: async () => {
+          const { error } = await supabase.rpc('complete_journey_step', { p_step_id: stepId });
+          if (error) throw error;
+        },
+      });
+      if (result.status === 'queued') return;
       // Meilensteine direkt prüfen (idempotent) — z. B. „Startklar".
       await supabase.rpc('check_achievements').then(
         () => undefined,

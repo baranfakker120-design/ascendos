@@ -4,6 +4,13 @@
     "tagline": "Build a better tomorrow.",
     "lockupAlt": "AscendOS — Build a better tomorrow"
   },
+  "sync": {
+    "cloudSynced": "Synced to cloud",
+    "syncing": "Syncing …",
+    "offline": "Offline",
+    "offlinePending": "Offline · {count} pending",
+    "pendingUploads": "{count} pending"
+  },
   "common": {
     "loading": "AscendOS is loading …",
     "retry": "Try again",

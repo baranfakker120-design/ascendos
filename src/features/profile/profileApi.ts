@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { runOrEnqueue } from '@shared/offline';
 import type { Membership, NextRankForAp, Profile, RankForAp } from '@shared/types/domain';
 
 export const AVATAR_BUCKET = 'avatare';
@@ -132,20 +133,33 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: async (input: ProfileUpdateInput): Promise<Profile> => {
       if (!profile) throw new Error('Nicht angemeldet.');
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: input.first_name,
-          last_name: input.last_name,
-          phone: input.phone,
-          country: input.country,
-          language: input.language,
-        })
-        .eq('id', profile.id)
-        .select('*')
-        .single();
-      if (error) throw error;
-      return data;
+      const patch = {
+        first_name: input.first_name,
+        last_name: input.last_name,
+        phone: input.phone,
+        country: input.country,
+        language: input.language,
+      };
+      const result = await runOrEnqueue({
+        type: 'profile_update',
+        dedupeKey: `profile:${profile.id}`,
+        payload: { id: profile.id, patch },
+        execute: async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .update(patch)
+            .eq('id', profile.id)
+            .select('*')
+            .single();
+          if (error) throw error;
+          return data;
+        },
+      });
+      if (result.status === 'synced') return result.data;
+      return {
+        ...profile,
+        ...patch,
+      };
     },
     onSuccess: async () => {
       await Promise.all([

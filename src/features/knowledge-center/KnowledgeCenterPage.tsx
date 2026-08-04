@@ -3,6 +3,7 @@ import { useMemo, useState, type ClipboardEvent, type ChangeEvent } from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '@shared/auth/AuthProvider';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -34,21 +35,30 @@ export function KnowledgeCenterPage() {
     [articles, selectedId]
   );
 
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [category, setCategory] = useState<string>(KNOWLEDGE_CATEGORIES[0]);
-  const [tags, setTags] = useState('');
-  const [changeSummary, setChangeSummary] = useState('');
+  const {
+    value: { title, body, category, tags, changeSummary },
+    setValue: setEditor,
+    patch,
+    clear: clearEditorDraft,
+  } = usePersistedDraft(DRAFT_SCOPES.knowledgeCenter, {
+    title: '',
+    body: '',
+    category: KNOWLEDGE_CATEGORIES[0] as string,
+    tags: '',
+    changeSummary: '',
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadArticle = (article: CoachKnowledgeArticle | null) => {
     setSelectedId(article?.id ?? null);
-    setTitle(article?.title ?? '');
-    setBody(article?.body_markdown ?? '');
-    setCategory(article?.category ?? KNOWLEDGE_CATEGORIES[0]);
-    setTags((article?.tags ?? []).join(', '));
-    setChangeSummary('');
+    setEditor({
+      title: article?.title ?? '',
+      body: article?.body_markdown ?? '',
+      category: article?.category ?? KNOWLEDGE_CATEGORIES[0],
+      tags: (article?.tags ?? []).join(', '),
+      changeSummary: '',
+    });
     setMessage(null);
     setError(null);
   };
@@ -66,7 +76,7 @@ export function KnowledgeCenterPage() {
       const el = e.currentTarget;
       const start = el.selectionStart;
       const end = el.selectionEnd;
-      setBody(body.slice(0, start) + next + body.slice(end));
+      patch({ body: body.slice(0, start) + next + body.slice(end) });
     }
   };
 
@@ -76,8 +86,11 @@ export function KnowledgeCenterPage() {
     if (!file) return;
     try {
       const { text } = await extractText(file);
-      setBody((prev) => (prev ? `${prev.trim()}\n\n${text}` : text));
-      if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''));
+      setEditor((prev) => ({
+        ...prev,
+        body: prev.body ? `${prev.body.trim()}\n\n${text}` : text,
+        title: prev.title || file.name.replace(/\.[^.]+$/, ''),
+      }));
       setMessage(t('knowledge.importOk'));
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.importFailed'));
@@ -102,6 +115,7 @@ export function KnowledgeCenterPage() {
         actorId: profile?.id ?? null,
       });
       setSelectedId(result.article.id);
+      await clearEditorDraft();
       if (result.article.status === 'needs_review') {
         setMessage(t('knowledge.needsReviewConflict'));
       } else if (result.article.active) {
@@ -179,12 +193,12 @@ export function KnowledgeCenterPage() {
           <Input
             label={t('knowledge.titleLabel')}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => patch({ title: e.target.value })}
           />
           <Select
             label={t('knowledge.category')}
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => patch({ category: e.target.value })}
           >
             {KNOWLEDGE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -196,7 +210,7 @@ export function KnowledgeCenterPage() {
             label={t('knowledge.tags')}
             hint={t('knowledge.tagsHint')}
             value={tags}
-            onChange={(e) => setTags(e.target.value)}
+            onChange={(e) => patch({ tags: e.target.value })}
           />
           <div className="flex flex-wrap gap-2">
             <label className="ui-btn ui-btn--secondary ui-btn--sm ui-btn--inline cursor-pointer">
@@ -212,14 +226,14 @@ export function KnowledgeCenterPage() {
           <TextArea
             label={t('knowledge.contentLabel')}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => patch({ body: e.target.value })}
             onPaste={onPaste}
             rows={12}
           />
           <Input
             label={t('knowledge.changeNote')}
             value={changeSummary}
-            onChange={(e) => setChangeSummary(e.target.value)}
+            onChange={(e) => patch({ changeSummary: e.target.value })}
           />
 
           {selected ? (

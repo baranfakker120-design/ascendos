@@ -1,16 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
 import { resolveDisplayFrameKey } from '@shared/lib/frameAssets';
+import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { Input } from '@shared/ui/Input';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { AvatarUpload } from './AvatarUpload';
-import { useProfileDetail, useUpdateProfile } from './profileApi';
+import { useProfileDetail, useUpdateProfile, type ProfileDetail } from './profileApi';
 
 /**
  * Identitätsfelder und Avatar bearbeiten.
@@ -19,38 +20,37 @@ import { useProfileDetail, useUpdateProfile } from './profileApi';
  */
 export function ProfileEditPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { refreshProfile, role: membershipRole } = useAuth();
   const { data, isPending, isError } = useProfileDetail();
-  const updateProfile = useUpdateProfile();
-
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState('');
-  const [language, setLanguage] = useState('de');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (!data || hydrated) return;
-    setFirstName(data.profile.first_name);
-    setLastName(data.profile.last_name);
-    setPhone(data.profile.phone ?? '');
-    setCountry(data.profile.country ?? '');
-    setLanguage(data.profile.language || 'de');
-    setAvatarUrl(data.profile.avatar_url);
-    setHydrated(true);
-  }, [data, hydrated]);
 
   if (isError) {
     return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
   }
-  if (isPending || !data || !hydrated) {
+  if (isPending || !data) {
     return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
+
+  return <ProfileEditForm key={data.profile.id} data={data} />;
+}
+
+function ProfileEditForm({ data }: { data: ProfileDetail }) {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { refreshProfile, role: membershipRole } = useAuth();
+  const updateProfile = useUpdateProfile();
+  const {
+    value: { firstName, lastName, phone, country, language },
+    patch,
+    clear: clearProfileDraft,
+  } = usePersistedDraft(DRAFT_SCOPES.profileEdit, {
+    firstName: data.profile.first_name,
+    lastName: data.profile.last_name,
+    phone: data.profile.phone ?? '',
+    country: data.profile.country ?? '',
+    language: data.profile.language || 'de',
+  });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(data.profile.avatar_url);
+  const [error, setError] = useState<string | null>(null);
 
   const displayName = `${firstName} ${lastName}`.trim() || data.profile.username;
 
@@ -71,6 +71,7 @@ export function ProfileEditPage() {
         country: country.trim() || null,
         language: language.trim() || 'de',
       });
+      await clearProfileDraft();
       navigate('/profil');
     } catch {
       setError(t('profile.saveFailed'));
@@ -126,14 +127,14 @@ export function ProfileEditPage() {
         <Input
           label={t('profile.firstName')}
           value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
+          onChange={(e) => patch({ firstName: e.target.value })}
           required
           autoComplete="given-name"
         />
         <Input
           label={t('profile.lastName')}
           value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
+          onChange={(e) => patch({ lastName: e.target.value })}
           required
           autoComplete="family-name"
         />
@@ -141,19 +142,19 @@ export function ProfileEditPage() {
           label={t('profile.phoneOptional')}
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => patch({ phone: e.target.value })}
           autoComplete="tel"
         />
         <Input
           label={t('profile.countryOptional')}
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={(e) => patch({ country: e.target.value })}
           autoComplete="country-name"
         />
         <Input
           label={t('profile.language')}
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          onChange={(e) => patch({ language: e.target.value })}
           hint={t('profile.languageHint')}
           autoComplete="language"
         />
