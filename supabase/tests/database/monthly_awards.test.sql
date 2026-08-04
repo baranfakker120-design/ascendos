@@ -5,7 +5,10 @@ select plan(12);
 
 select has_function('public', 'compute_monthly_awards', array['uuid', 'date']);
 select has_function('public', 'run_monthly_awards_job', array['date']);
-select has_function('public', 'ensure_monthly_awards');
+select ok(
+  to_regprocedure('public.ensure_monthly_awards()') is not null,
+  'ensure_monthly_awards() exists'
+);
 select has_function('public', 'list_monthly_awards', array['integer']);
 
 select ok(
