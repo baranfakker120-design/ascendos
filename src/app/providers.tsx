@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { AuthProvider } from '@shared/auth/AuthProvider';
 import { LocaleProvider } from '@shared/i18n';
 import { OfflineBootstrap, createIdbQueryPersister, shouldPersistQuery } from '@shared/offline';
+import { isPresentationCapture } from '../presentation/isPresentationCapture';
+import { PresentationProviders } from '../presentation/PresentationProviders';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +25,7 @@ const queryClient = new QueryClient({
 
 const persister = createIdbQueryPersister();
 
-export function Providers({ children }: { children: ReactNode }) {
+function AppProviders({ children }: { children: ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
@@ -45,4 +47,11 @@ export function Providers({ children }: { children: ReactNode }) {
       </LocaleProvider>
     </PersistQueryClientProvider>
   );
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  if (isPresentationCapture()) {
+    return <PresentationProviders>{children}</PresentationProviders>;
+  }
+  return <AppProviders>{children}</AppProviders>;
 }

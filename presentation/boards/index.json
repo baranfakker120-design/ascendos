@@ -1,0 +1,35 @@
+{
+  "styles": {
+    "hero": ["01-hero-iphone-today.png", "01b-hero-login-real.png"],
+    "dual": ["02-dual-today-coach.png", "02b-dual-team-contacts.png"],
+    "triple": ["03-triple-workflow.png"],
+    "feature": [
+      "04-feature-structure-tree.png",
+      "04b-feature-coach.png",
+      "04c-feature-qualifications.png"
+    ],
+    "app_store": [
+      "05-appstore-today.png",
+      "05b-appstore-profile.png",
+      "05c-appstore-login-real.png"
+    ],
+    "dark_premium": ["06-dark-premium-coach.png", "06b-dark-premium-team.png"],
+    "investor": ["07-investor-grid.png"]
+  },
+  "dpi": 300,
+  "device": "iPhone 16 Pro (402×874 @3x, Dynamic Island)",
+  "source": "Real AscendOS React application via VITE_PRESENTATION_CAPTURE (+ production login capture)",
+  "screens": [
+    "today",
+    "coach",
+    "team",
+    "contacts",
+    "stories",
+    "dashboard",
+    "analytics",
+    "notifications",
+    "settings",
+    "profile",
+    "login-real"
+  ]
+}

@@ -24,7 +24,10 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/shared/types/database.types.ts && prettier --write src/shared/types/database.types.ts",
-    "knowledge:ingest": "node scripts/ingest-knowledge.mjs"
+    "knowledge:ingest": "node scripts/ingest-knowledge.mjs",
+    "presentation:capture": "node scripts/capture-presentation.mjs",
+    "presentation:compose": "python3 scripts/compose-presentation.py",
+    "presentation:render": "npm run presentation:capture && npm run presentation:compose"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -52,6 +55,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "playwright": "^1.62.1",
     "postcss": "^8.4.41",
     "prettier": "^3.3.3",
     "tailwindcss": "^3.4.10",

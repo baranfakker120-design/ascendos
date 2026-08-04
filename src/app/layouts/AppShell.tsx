@@ -3,6 +3,7 @@ import { FirstLaunchGate } from '@features/first-launch';
 import { AdvisorHeroScreen } from '@features/profile/AdvisorHeroScreen';
 import { OrgSwitcher } from '@shared/auth/OrgSwitcher';
 import { SyncStatusIndicator } from '@shared/offline';
+import { isPresentationCapture } from '../../presentation/isPresentationCapture';
 import { BottomNav } from './BottomNav';
 import { LanguageMenu } from './nav/LanguageMenu';
 import './nav/bottom-nav.css';
@@ -59,8 +60,12 @@ export function AppShell() {
         <Outlet />
       </main>
       {personCoach ? null : <BottomNav />}
-      <FirstLaunchGate />
-      <AdvisorHeroScreen />
+      {isPresentationCapture() ? null : (
+        <>
+          <FirstLaunchGate />
+          <AdvisorHeroScreen />
+        </>
+      )}
     </div>
   );
 }

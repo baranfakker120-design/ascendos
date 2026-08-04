@@ -7,3 +7,6 @@ dev-dist
 supabase/.temp
 supabase/.branches
 supabase/functions/.env
+presentation/raw/
+.env.presentation
+scripts/__pycache__/
