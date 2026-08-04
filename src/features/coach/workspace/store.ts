@@ -1,4 +1,6 @@
-import { idbGet, idbSet } from '@shared/offline';
+// Import idb helpers directly — the @shared/offline barrel eagerly loads
+// React/Supabase modules and breaks Node 20 Vitest (no native WebSocket).
+import { idbGet, idbSet } from '@shared/offline/idb';
 import {
   ARCHIVE_AFTER_MS,
   EMPTY_WORKSPACE,
