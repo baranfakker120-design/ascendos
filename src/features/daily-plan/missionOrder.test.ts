@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DailyPlanItem, MissionStatus } from '@shared/types/domain';
-import { missionProgress, orderMissions } from './missionOrder';
+import { missionProgress, orderMissions, pinPriority } from './missionOrder';
 
 function item(id: string, position: number, status: MissionStatus, resolved_at?: string) {
   return {
@@ -63,5 +63,14 @@ describe('orderMissions', () => {
       item('c', 3, 'pending'),
     ]);
     expect(p).toEqual({ done: 1, total: 2 });
+  });
+});
+
+describe('pinPriority', () => {
+  it('moves the One-Tap priority to current without dropping others', () => {
+    const ordered = orderMissions([item('a', 1, 'pending'), item('b', 2, 'pending')]);
+    const pinned = pinPriority(ordered, 'b');
+    expect(pinned.current?.id).toBe('b');
+    expect(pinned.queue.map((i) => i.id)).toEqual(['a']);
   });
 });

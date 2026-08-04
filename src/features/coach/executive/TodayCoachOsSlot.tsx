@@ -4,6 +4,7 @@ import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { useCoachOrgIntelligence } from '../intelligence';
 import { writePendingSeed } from '../workspace';
+import { prioritizeSuggestionsForDay, type DayCoachContext } from './alignSuggestionsToDay';
 import {
   buildProactiveSuggestions,
   filterByHorizon,
@@ -14,16 +15,19 @@ import './executive.css';
 const HORIZONS: SuggestionHorizon[] = ['today', 'week', 'month'];
 
 /**
- * Home Coach OS strip — proactive suggestions for Today / Week / Month.
- * Opens Coach with a durable seed (localStorage), no engine changes.
+ * Home Coach OS strip — Sprint 5 · L6 surface aligned to day priority.
+ * Chat remains escape hatch via workspace button.
  */
-export function TodayCoachOsSlot() {
+export function TodayCoachOsSlot({ dayContext }: { dayContext?: DayCoachContext }) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { intelligence, isLoading } = useCoachOrgIntelligence(true);
   const [horizon, setHorizon] = useState<SuggestionHorizon>('today');
 
-  const all = useMemo(() => buildProactiveSuggestions(intelligence, t), [intelligence, t]);
+  const all = useMemo(() => {
+    const built = buildProactiveSuggestions(intelligence, t);
+    return prioritizeSuggestionsForDay(built, dayContext ?? {});
+  }, [intelligence, t, dayContext]);
   const visible = useMemo(() => filterByHorizon(all, horizon), [all, horizon]);
 
   const openCoach = (prompt: string, kind: 'ceo' | 'leadership' | 'general' = 'ceo') => {
@@ -37,14 +41,27 @@ export function TodayCoachOsSlot() {
         <div>
           <p className="exec-coach__eyebrow">{t('coach.name')}</p>
           <h2 className="exec-coach__title">{t('coach.exec.homeTitle')}</h2>
-          <p className="exec-coach__body">{t('coach.exec.homeBody')}</p>
+          <p className="exec-coach__body">
+            {dayContext?.isClosed
+              ? t('coach.exec.homeBodyClosed')
+              : dayContext?.priorityTitle
+                ? t('coach.exec.homeBodyFocus', { focus: dayContext.priorityTitle })
+                : t('coach.exec.homeBody')}
+          </p>
         </div>
         <Button
           type="button"
           variant="secondary"
           size="sm"
           fullWidth={false}
-          onClick={() => openCoach(t('coach.exec.suggestTodayFocusPrompt'), 'ceo')}
+          onClick={() =>
+            openCoach(
+              dayContext?.priorityTitle
+                ? t('coach.exec.suggestFocusPrompt', { focus: dayContext.priorityTitle })
+                : t('coach.exec.suggestTodayFocusPrompt'),
+              'ceo'
+            )
+          }
         >
           {t('coach.exec.openWorkspace')}
         </Button>

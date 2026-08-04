@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
 import type { DailyPlanItem } from '@shared/types/domain';
 import { comboBonusAp, scoreDailyMission } from '@shared/lib/apScoring';
@@ -7,7 +6,9 @@ import { contactHasPendingShareProof } from '@shared/lib/shareVerification';
 import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import { scoreFollowUpGravity, type GravityReading } from '../dayMemory';
 import type { OrderedMissions } from '../missionOrder';
+import { ConversationPrepSheet } from './ConversationPrepSheet';
 import { MISSION_ICONS } from './missionMeta';
 
 interface Props {
@@ -15,15 +16,26 @@ interface Props {
   progress: { done: number; total: number };
   busy?: boolean;
   onStatus: (itemId: string, status: 'done' | 'deferred' | 'skipped', reason?: string) => void;
+  /** Sprint 5 · L1 — intentional close while work remains. */
+  onEndDay?: () => void;
+  lastEventByContactId?: Map<string, string | null>;
 }
 
 /**
  * Fokus-Modus: eine Mission dominant, Reward-Sticker zeigen den Wert.
  */
-export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) {
+export function FocusMode({
+  ordered,
+  progress,
+  busy = false,
+  onStatus,
+  onEndDay,
+  lastEventByContactId,
+}: Props) {
   const { t } = useI18n();
   const { current, queue, resolved } = ordered;
   const [skipPickerFor, setSkipPickerFor] = useState<string | null>(null);
+  const [prepOpen, setPrepOpen] = useState(false);
 
   if (!current) return null;
 
@@ -34,6 +46,21 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
   const combo = comboBonusAp(progress.done);
   const awaitingProof =
     Boolean(current.contact_id) && contactHasPendingShareProof(current.contact_id!);
+  const gravity: GravityReading = scoreFollowUpGravity({
+    missionType: current.mission_type,
+    engineScore: current.score,
+    lastEventAt: current.contact_id
+      ? (lastEventByContactId?.get(current.contact_id) ?? null)
+      : null,
+  });
+  const gravityLabel =
+    gravity.band === 'pulling'
+      ? t('today.gravityPulling')
+      : gravity.band === 'heavy'
+        ? t('today.gravityHeavy')
+        : gravity.band === 'critical'
+          ? t('today.gravityCritical')
+          : null;
 
   const skipReasons = [
     { key: 'notReached' as const, label: t('today.skipNotReached') },
@@ -67,18 +94,27 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
               <ApRewardSticker ap={missionAp} size="sm" />
             </div>
             <p className="mt-1 text-sm text-muted">{current.reason}</p>
+            {gravityLabel ? (
+              <p className="mt-2 text-xs font-semibold text-accent-deep">
+                {gravityLabel}
+                {gravity.idleDays !== null
+                  ? ` · ${t('today.gravityIdle', { days: gravity.idleDays })}`
+                  : ''}
+              </p>
+            ) : null}
             {awaitingProof ? (
               <p className="mt-2 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent-deep">
                 {t('today.waitingProof')}
               </p>
             ) : null}
             {current.contact_id ? (
-              <Link
-                to={`/kontakte/${current.contact_id}`}
+              <button
+                type="button"
                 className="mt-2 inline-block text-sm font-medium text-primary"
+                onClick={() => setPrepOpen(true)}
               >
-                {t('today.openContact')}
-              </Link>
+                {t('today.prepOpenCta')}
+              </button>
             ) : null}
           </div>
         </div>
@@ -126,6 +162,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
                 {t('today.notPossible')}
               </Button>
             </div>
+            <p className="text-xs leading-relaxed text-muted">{t('today.oneTapConsequence')}</p>
           </div>
         )}
       </Card>
@@ -173,6 +210,24 @@ export function FocusMode({ ordered, progress, busy = false, onStatus }: Props) 
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {onEndDay ? (
+        <div className="pt-1">
+          <Button variant="ghost" disabled={busy} onClick={onEndDay}>
+            {t('today.endWorkday')}
+          </Button>
+        </div>
+      ) : null}
+
+      {current.contact_id ? (
+        <ConversationPrepSheet
+          open={prepOpen}
+          contactId={current.contact_id}
+          missionTitle={current.title}
+          missionReason={current.reason}
+          onClose={() => setPrepOpen(false)}
+        />
       ) : null}
     </div>
   );
