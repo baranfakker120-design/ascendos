@@ -1,0 +1,11 @@
+# AscendOS — Gitleaks allowlist
+# VITE_SUPABASE_ANON_KEY is the public Supabase anon JWT (role=anon).
+# It is designed to ship in browser bundles; RLS protects data.
+# Keeping it in .env.production restores Cloudflare Pages Git builds
+# when dashboard env vars are missing (SEV-1 / PR #30 regression).
+
+[allowlist]
+description = "Public Vite client anon config for Cloudflare Pages builds"
+paths = [
+  '''^\.env\.production$''',
+]
