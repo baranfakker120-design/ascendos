@@ -39,6 +39,52 @@ Gamification exists only to increase **motivation**, **consistency**, and **enga
 
 Never sacrifice usability for visual effects. If a motion, frame, particle effect, or celebration makes the next business action harder, slower, or less trustworthy, it does not ship.
 
+### Business before Beauty
+
+If there is ever a conflict between beauty and productivity, **productivity always wins**.
+
+AscendOS is a business operating system. Not an entertainment product.
+
+Visual excellence is welcome when it supports clarity, trust, and speed. It is never a reason to slow the workday, obscure the next action, or weaken a business rule.
+
+---
+
+# Core Values
+
+These values are permanent. Features, design, and process decisions must be compatible with them.
+
+### Integrity
+
+Do not mislead users, inflate progress, or hide how points, ranks, and payouts work. Compliance rules (no income promises, no pressure, no health claims) are non-negotiable.
+
+### Professionalism
+
+AscendOS serves adults running a business. Tone, visuals, and coaching stay credible in a commercial and legal context.
+
+### Simplicity
+
+Prefer the smallest design that solves the business problem. One purpose per screen. Avoid clever paths that only the author understands.
+
+### Consistency
+
+Same words, same components, same rules across the product. Catalogs and shared primitives beat one-off exceptions.
+
+### Trust
+
+Security, privacy, and correct genealogy/pipeline behaviour earn the right to hold contact data and real incentives. Trust is lost faster than it is gained.
+
+### Transparency
+
+Prefer explicit states over magic. Empty states, limits, corrections, and payout claims should be understandable. When something is **currently undefined**, say so.
+
+### Long-term thinking
+
+Choose models that still work with more organizations, more members, and more clients. Do not optimize for a demo at the cost of the next year.
+
+### Scalability
+
+Multi-tenancy, membership-based authorization, and server-side rules exist so growth does not require a rewrite. New work must preserve that path.
+
 ---
 
 # 3. Product Principles
@@ -211,6 +257,24 @@ Therefore:
 
 ---
 
+# Golden Rule
+
+**Business logic is sacred.**
+
+No UI improvement, animation, refactoring, or optimization may ever change existing business rules.
+
+- Visual improvements are allowed.
+- Architectural improvements are allowed.
+- Performance improvements are allowed.
+
+Business behaviour must remain identical unless an explicit product decision changes it.
+
+Examples of sacred behaviour include (non-exhaustive): invite redemption and genealogy creation, pipeline phase derivation and corrections, daily-plan ranking signals, RLS and membership resolution, achievement evaluation, AP awarding and payout entitlements, and coach compliance guardrails.
+
+If a change would alter any of these, stop. Obtain an explicit product decision, document it (ADR and this bible as needed), then implement.
+
+---
+
 # 7. Database Principles
 
 ### Identity vs Membership
@@ -282,6 +346,28 @@ Honor `prefers-reduced-motion`. Animations must be disableable, not merely quiet
 ### Business-first UX
 
 The first question of every screen: **What is the next productive action?** Empty states should be honest. Coach answers should end in a next step. Daily plan missions should explain why they matter. Gamification chrome must not bury that answer.
+
+---
+
+# AI Collaboration Rules
+
+Permanent rules for every AI agent working on AscendOS.
+
+Every AI must:
+
+1. **Read `docs/PROJECT_BIBLE.md` before doing anything.**
+2. **Read the relevant ADRs** in `docs/adr.md` before changing architecture.
+3. **Read the related feature** (and its API/tests) before modifying it.
+4. **Never invent business rules.**
+5. **Never invent database structure.** Schema changes happen only through versioned migrations grounded in an explicit decision.
+6. **Never bypass migrations.** No dashboard schema edits as a substitute; no rewriting applied migration history.
+7. **Never duplicate business logic.**
+8. **Never replace backend logic with frontend logic.**
+9. **Explain architectural changes before implementing them.**
+10. **Prefer consistency over cleverness.**
+11. **Update `PROJECT_BIBLE.md` whenever a permanent project rule changes.**
+
+If repository evidence is missing, mark the point **currently undefined**. Do not guess.
 
 ---
 
@@ -374,8 +460,40 @@ The north star does not change: **help people do the business**, every day, with
 
 ---
 
-## Document maintenance
+# Documentation Rules
 
-- Update this bible when a sprint changes the product surface or an ADR changes a permanent rule.
-- Do not silently diverge: if code and bible disagree, fix the false one in the same change set.
-- For AI agents: read this file first, then `docs/adr.md`, then the relevant feature folder and migrations. Do not invent features marked here as unfinished or undefined.
+Documentation has a clear hierarchy. Do not invert it.
+
+| Layer                   | Role                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `docs/PROJECT_BIBLE.md` | Highest-level product and engineering reference — vision, values, permanent rules, current state |
+| `docs/adr.md`           | Why architectural decisions were made, options considered, accepted trade-offs                   |
+| `supabase/migrations/`  | How the database evolved; append-only history of schema and server logic                         |
+| Application code        | How behaviour is implemented today                                                               |
+
+Rules:
+
+- Never let documentation become outdated relative to permanent rules or shipped product surface.
+- Every completed sprint should update `PROJECT_BIBLE.md` (at least Sprint Overview and any new permanent principles).
+- When code and documentation disagree, fix the false one in the same change set.
+- Sprint plans, audits, and roadmaps remain useful history; they do not override this bible when they are stale.
+- Do not invent features in documentation that do not exist in the repository. Mark unknowns as **currently undefined**.
+
+---
+
+# Development Philosophy
+
+How new features should be built. Always in this order:
+
+1. **Understand the business problem.** What productive behaviour improves? For whom?
+2. **Design the architecture.** Where does the rule live? Which feature slice? Which ADR applies?
+3. **Validate database impact.** Tenancy, membership, RLS, migrations, indexes, retention.
+4. **Build backend logic.** Postgres functions, policies, triggers, Edge Functions — the truth layer.
+5. **Build frontend.** Consume the backend; do not re-implement the rules.
+6. **Test.** Prefer pgTAP for security and business rules; add unit coverage for pure logic; smoke the user path.
+7. **Optimize.** Performance and polish after correctness.
+8. **Update documentation.** Bible, ADR if needed, and any sprint notes that future agents will trust.
+
+Always solve the business problem first.
+
+Never build features because they look impressive.
