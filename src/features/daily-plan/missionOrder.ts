@@ -42,3 +42,22 @@ export function missionProgress(items: DailyPlanItem[]): { done: number; total: 
   const done = items.filter((i) => i.status === 'done').length;
   return { done, total };
 }
+
+/**
+ * Sprint 5 · L3 — pin One-Tap priority to the front of the work queue
+ * without mutating DB positions.
+ */
+export function pinPriority(
+  ordered: OrderedMissions,
+  priorityItemId: string | null | undefined
+): OrderedMissions {
+  if (!priorityItemId || !ordered.current) return ordered;
+  if (ordered.current.id === priorityItemId) return ordered;
+  const inQueue = ordered.queue.find((i) => i.id === priorityItemId);
+  if (!inQueue) return ordered;
+  return {
+    ...ordered,
+    current: inQueue,
+    queue: [ordered.current, ...ordered.queue.filter((i) => i.id !== priorityItemId)],
+  };
+}

@@ -12,7 +12,7 @@ import { FocusMode } from './components/FocusMode';
 import { MorningCommit } from './components/MorningCommit';
 import { buildDecisionDiff, useDayMemory } from './dayMemory';
 import { useDailyPlan, useDailyPlanMutations } from './dailyPlanApi';
-import { missionProgress, orderMissions } from './missionOrder';
+import { missionProgress, orderMissions, pinPriority } from './missionOrder';
 import '@features/coach/executive/executive.css';
 
 /**
@@ -79,7 +79,7 @@ function TodayDailyPlan() {
     );
   }
 
-  const ordered = orderMissions(data.items);
+  const ordered = pinPriority(orderMissions(data.items), memory.open?.priorityItemId);
   const progress = missionProgress(data.items);
 
   if (memory.close) {
@@ -111,9 +111,9 @@ function TodayDailyPlan() {
         <MorningCommit
           items={data.items}
           busy={commitPlan.isPending}
-          onCommit={() => {
+          onCommit={(priority) => {
             void (async () => {
-              await memory.markDayOpened(data.items);
+              await memory.markDayOpened(data.items, priority);
               await commitPlan.mutateAsync(data.plan.id);
             })();
           }}

@@ -422,7 +422,14 @@
     "diffWhyStillOnPlan": "Back on today’s plan.",
     "diffWhySeeded": "Seeded from yesterday’s close.",
     "diffWhyTeam": "Team signal that needs attention today.",
-    "diffWhyDelta": "Pipeline heat has shifted."
+    "diffWhyDelta": "Pipeline heat has shifted.",
+    "oneTapEyebrow": "One-Tap Day",
+    "oneTapIntro": "One action. Everything else waits — on purpose.",
+    "oneTapCta": "This is my focus",
+    "oneTapQueue": "Afterwards ({count})",
+    "oneTapQueueAria": "Other missions today",
+    "oneTapMakePrimary": "Make focus",
+    "oneTapConsequence": "Deferring or skipping makes the contact heavier tomorrow — not you."
   },
   "journey": {
     "title": "Your journey",

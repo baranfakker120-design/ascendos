@@ -422,7 +422,14 @@
     "diffWhyStillOnPlan": "Bugünün planında yine var.",
     "diffWhySeeded": "Dünkü kapanıştan aktarıldı.",
     "diffWhyTeam": "Bugün dikkat isteyen takım sinyali.",
-    "diffWhyDelta": "Pipeline sıcaklığı değişti."
+    "diffWhyDelta": "Pipeline sıcaklığı değişti.",
+    "oneTapEyebrow": "One-Tap Day",
+    "oneTapIntro": "Tek eylem. Gerisi bilerek bekler.",
+    "oneTapCta": "Bugünkü odağım bu",
+    "oneTapQueue": "Sonra ({count})",
+    "oneTapQueueAria": "Bugünün diğer görevleri",
+    "oneTapMakePrimary": "Odak yap",
+    "oneTapConsequence": "Ertelemek veya atlamak yarın teması ağırlaştırır — seni değil."
   },
   "journey": {
     "title": "Yolculuğun",

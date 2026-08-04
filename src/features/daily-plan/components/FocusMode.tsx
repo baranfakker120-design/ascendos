@@ -128,6 +128,7 @@ export function FocusMode({ ordered, progress, busy = false, onStatus, onEndDay 
                 {t('today.notPossible')}
               </Button>
             </div>
+            <p className="text-xs leading-relaxed text-muted">{t('today.oneTapConsequence')}</p>
           </div>
         )}
       </Card>

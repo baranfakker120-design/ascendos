@@ -75,9 +75,10 @@ export function buildOpenSnapshot(input: {
   userId: string;
   planDate: string;
   items: DailyPlanItem[];
+  priority?: DailyPlanItem | null;
   now?: Date;
 }): DayOpenRecord {
-  const priority = pickPriorityMission(input.items);
+  const priority = input.priority ?? pickPriorityMission(input.items);
   return {
     version: 1,
     userId: input.userId,

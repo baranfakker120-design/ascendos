@@ -131,6 +131,8 @@ After commit (or instead of multi-mission menu): **one** action. Done / later-wi
 **Constraint**  
 `FocusMode` becomes the only work mode; MorningCommit collapses toward single priority selection (still backed by full plan items in DB).
 
+**Status:** Implemented — One-Tap MorningCommit, `pinPriority`, consequence copy in FocusMode.
+
 ### L4 — Gravity Engine
 
 **UX**  

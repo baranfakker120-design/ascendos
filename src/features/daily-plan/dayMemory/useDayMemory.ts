@@ -53,14 +53,14 @@ export function useDayMemory() {
   }, [userId, planDate]);
 
   const markDayOpened = useCallback(
-    async (items: DailyPlanItem[]) => {
+    async (items: DailyPlanItem[], priority?: DailyPlanItem | null) => {
       if (!userId) return;
       const existing = await readDayOpen(userId, planDate);
-      if (existing) {
+      if (existing && !priority) {
         setOpen(existing);
         return existing;
       }
-      const record = buildOpenSnapshot({ userId, planDate, items });
+      const record = buildOpenSnapshot({ userId, planDate, items, priority });
       await writeDayOpen(record);
       setOpen(record);
       return record;

@@ -422,7 +422,14 @@
     "diffWhyStillOnPlan": "De nouveau sur le plan du jour.",
     "diffWhySeeded": "Issu de la clôture d’hier.",
     "diffWhyTeam": "Signal d’équipe qui demande attention aujourd’hui.",
-    "diffWhyDelta": "La chaleur pipeline a changé."
+    "diffWhyDelta": "La chaleur pipeline a changé.",
+    "oneTapEyebrow": "One-Tap Day",
+    "oneTapIntro": "Une action. Le reste attend — volontairement.",
+    "oneTapCta": "C’est mon focus",
+    "oneTapQueue": "Ensuite ({count})",
+    "oneTapQueueAria": "Autres missions aujourd’hui",
+    "oneTapMakePrimary": "En focus",
+    "oneTapConsequence": "Reporter ou ignorer rend le contact plus lourd demain — pas toi."
   },
   "journey": {
     "title": "Ton parcours",
