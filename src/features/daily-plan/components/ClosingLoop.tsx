@@ -1,143 +1,279 @@
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useI18n } from '@shared/i18n';
-import { comboBonusAp, scoreDailyMission } from '@shared/lib/apScoring';
 import type { DailyPlanItem } from '@shared/types/domain';
-import { ApRewardSticker } from '@shared/ui/ApRewardSticker';
 import { Button } from '@shared/ui/Button';
-import { Card } from '@shared/ui/Card';
-import type { DayCloseOutcome, DayCloseSource } from '../dayMemory';
-import { deriveCloseOutcome } from '../dayMemory';
+import {
+  canClaimDone,
+  deriveCloseOutcome,
+  pickPriorityMission,
+  type DayCloseJournal,
+  type DayCloseOutcome,
+  type DayCloseRecord,
+  type DayCloseSource,
+  type DayOpenRecord,
+} from '../dayMemory';
 import './closingLoop.css';
+
+type Step = 1 | 2 | 3 | 4;
 
 interface Props {
   items: DailyPlanItem[];
+  openRecord: DayOpenRecord | null;
   busy?: boolean;
   sourceHint: DayCloseSource;
-  onClose: () => void;
+  onSave: (journal: DayCloseJournal) => void;
   onKeepWorking?: () => void;
 }
 
 /**
- * Sprint 5 · L1 Closing Loop — intentional end of day.
- * Answers: Did today’s most important work land? Then close and seed tomorrow.
+ * Sprint 5 · Closing Loop — executive day journal.
+ * Constitution v2: one question per step, evidence before “done”, no gamification.
  */
-export function ClosingLoop({ items, busy = false, sourceHint, onClose, onKeepWorking }: Props) {
+export function ClosingLoop({
+  items,
+  openRecord,
+  busy = false,
+  sourceHint,
+  onSave,
+  onKeepWorking,
+}: Props) {
   const { t } = useI18n();
-  const done = items.filter((i) => i.status === 'done');
-  const skipped = items.filter((i) => i.status === 'skipped');
-  const open = items.filter((i) => i.status === 'pending' || i.status === 'deferred');
-  const outcome = deriveCloseOutcome(items);
-  const combo = comboBonusAp(done.length);
+  const priority =
+    (openRecord?.priorityItemId ? items.find((i) => i.id === openRecord.priorityItemId) : null) ??
+    pickPriorityMission(items);
+
+  const evidenceOk = canClaimDone(items, priority?.id ?? openRecord?.priorityItemId);
+  const suggested = deriveCloseOutcome(items);
+
+  const [step, setStep] = useState<Step>(1);
+  const [priorityWasMain, setPriorityWasMain] = useState(true);
+  const [outcome, setOutcome] = useState<DayCloseOutcome>(
+    suggested === 'done' && evidenceOk ? 'done' : suggested === 'missed' ? 'missed' : 'partial'
+  );
+  const [reason, setReason] = useState('');
+  const [tomorrowNote, setTomorrowNote] = useState('');
+  const [doneBlocked, setDoneBlocked] = useState(false);
+
+  const priorityTitle =
+    openRecord?.priorityTitle ?? priority?.title ?? t('today.closingNoPriority');
+
+  const reasonChips = useMemo(
+    () => [
+      t('today.closingReasonMoved'),
+      t('today.closingReasonNoReply'),
+      t('today.closingReasonSuccess'),
+      t('today.closingReasonMissed'),
+    ],
+    [t]
+  );
+
+  const selectOutcome = (next: DayCloseOutcome) => {
+    if (next === 'done' && !evidenceOk) {
+      setDoneBlocked(true);
+      setOutcome(items.some((i) => i.status === 'done') ? 'partial' : 'missed');
+      return;
+    }
+    setDoneBlocked(false);
+    setOutcome(next);
+  };
+
+  const save = () => {
+    if (outcome === 'done' && !evidenceOk) {
+      setDoneBlocked(true);
+      return;
+    }
+    onSave({
+      priorityWasMain,
+      outcome,
+      reason: reason.trim() || null,
+      tomorrowNote: tomorrowNote.trim() || null,
+    });
+  };
 
   return (
-    <div className="closing-loop space-y-5" data-outcome={outcome}>
+    <div className="closing-loop space-y-5" data-step={step}>
       <header className="closing-loop__hero">
         <p className="closing-loop__eyebrow">{t('today.closingEyebrow')}</p>
-        <h1 className="text-2xl font-bold tracking-tight">{t('today.closingTitle')}</h1>
-        <p className="mt-1.5 text-sm text-muted">{outcomeCopy(outcome, t)}</p>
+        <h1 className="closing-loop__title">{t('today.closingTitle')}</h1>
+        <p className="closing-loop__lede">{t('today.closingLede')}</p>
+        <p className="closing-loop__steps" aria-hidden>
+          {step} / 4
+        </p>
       </header>
 
-      <Card className="closing-loop__truth space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {t('today.closingTruth')}
-        </p>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium">
-            {t('today.reviewPartial', { done: done.length, total: items.length || done.length })}
-          </p>
-          {combo > 0 ? <ApRewardSticker ap={combo} size="sm" mark="⚡" animate={false} /> : null}
-        </div>
-
-        {done.length > 0 ? (
-          <ul className="space-y-2">
-            {done.map((i) => (
-              <li key={i.id} className="flex items-center gap-2 text-sm">
-                <span aria-hidden className="text-accent-deep">
-                  ✓
-                </span>
-                <span className="min-w-0 flex-1 text-muted line-through">{i.title}</span>
-                <ApRewardSticker
-                  ap={scoreDailyMission(i.mission_type, { engineScore: i.score })}
-                  size="sm"
-                  animate={false}
-                />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted">{t('today.closingNoWins')}</p>
-        )}
-
-        {open.length > 0 ? (
-          <div className="closing-loop__carry rounded-xl border border-line/80 bg-surface/60 px-3 py-2.5">
-            <p className="text-xs font-semibold text-muted">{t('today.closingCarry')}</p>
-            <ul className="mt-1.5 space-y-1">
-              {open.slice(0, 4).map((i) => (
-                <li key={i.id} className="text-sm">
-                  → {i.title}
-                </li>
-              ))}
-            </ul>
+      {step === 1 ? (
+        <section className="closing-loop__panel" aria-label={t('today.closingPriorityLabel')}>
+          <p className="closing-loop__label">{t('today.closingPriorityLabel')}</p>
+          <p className="closing-loop__priority">{priorityTitle}</p>
+          <p className="closing-loop__question">{t('today.closingPriorityAsk')}</p>
+          <div className="closing-loop__choices">
+            <button
+              type="button"
+              className={`closing-loop__choice${priorityWasMain ? ' is-on' : ''}`}
+              onClick={() => setPriorityWasMain(true)}
+            >
+              {t('today.closingYes')}
+            </button>
+            <button
+              type="button"
+              className={`closing-loop__choice${priorityWasMain ? '' : ' is-on'}`}
+              onClick={() => setPriorityWasMain(false)}
+            >
+              {t('today.closingNo')}
+            </button>
           </div>
-        ) : null}
+          <Button onClick={() => setStep(2)}>{t('today.closingNext')}</Button>
+        </section>
+      ) : null}
 
-        {skipped.length > 0 ? (
-          <p className="text-xs text-muted">
-            {t('today.closingSkipped', { count: skipped.length })}
-          </p>
-        ) : null}
-      </Card>
+      {step === 2 ? (
+        <section className="closing-loop__panel" aria-label={t('today.closingStatusLabel')}>
+          <p className="closing-loop__label">{t('today.closingStatusLabel')}</p>
+          <p className="closing-loop__question">{t('today.closingStatusAsk')}</p>
+          <div className="closing-loop__radios" role="radiogroup">
+            {(
+              [
+                ['done', t('today.closingStatusDone')],
+                ['partial', t('today.closingStatusPartial')],
+                ['missed', t('today.closingStatusMissed')],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={outcome === value}
+                className={`closing-loop__radio${outcome === value ? ' is-on' : ''}${
+                  value === 'done' && !evidenceOk ? ' is-disabled' : ''
+                }`}
+                onClick={() => selectOutcome(value)}
+              >
+                <span className="closing-loop__radio-mark" aria-hidden />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+          {doneBlocked || (outcome === 'done' && !evidenceOk) ? (
+            <p className="closing-loop__warn">{t('today.closingNeedEvidence')}</p>
+          ) : null}
+          {!evidenceOk ? (
+            <p className="closing-loop__hint">{t('today.closingEvidenceHint')}</p>
+          ) : (
+            <p className="closing-loop__hint">{t('today.closingEvidenceOk')}</p>
+          )}
+          <div className="closing-loop__nav">
+            <Button variant="ghost" onClick={() => setStep(1)}>
+              {t('common.back')}
+            </Button>
+            <Button onClick={() => setStep(3)}>{t('today.closingNext')}</Button>
+          </div>
+        </section>
+      ) : null}
 
-      <div className="closing-loop__actions space-y-2">
-        <Button onClick={onClose} disabled={busy} aria-busy={busy}>
-          {busy ? t('today.closingBusy') : t('today.closingCta')}
-        </Button>
-        {sourceHint === 'manual_close' && onKeepWorking ? (
-          <Button variant="ghost" disabled={busy} onClick={onKeepWorking}>
-            {t('today.closingKeepWorking')}
-          </Button>
-        ) : null}
-      </div>
+      {step === 3 ? (
+        <section className="closing-loop__panel" aria-label={t('today.closingReasonLabel')}>
+          <p className="closing-loop__label">{t('today.closingReasonLabel')}</p>
+          <p className="closing-loop__question">{t('today.closingReasonAsk')}</p>
+          <div className="closing-loop__chips">
+            {reasonChips.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                className={`closing-loop__chip${reason === chip ? ' is-on' : ''}`}
+                onClick={() => setReason(chip)}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+          <label className="closing-loop__field">
+            <span className="sr-only">{t('today.closingReasonLabel')}</span>
+            <textarea
+              className="closing-loop__textarea"
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t('today.closingReasonPlaceholder')}
+            />
+          </label>
+          <div className="closing-loop__nav">
+            <Button variant="ghost" onClick={() => setStep(2)}>
+              {t('common.back')}
+            </Button>
+            <Button onClick={() => setStep(4)}>{t('today.closingNext')}</Button>
+          </div>
+        </section>
+      ) : null}
 
-      <p className="text-center text-xs text-muted">{t('today.closingHint')}</p>
+      {step === 4 ? (
+        <section className="closing-loop__panel" aria-label={t('today.closingTomorrowLabel')}>
+          <p className="closing-loop__label">{t('today.closingTomorrowLabel')}</p>
+          <p className="closing-loop__question">{t('today.closingTomorrowAsk')}</p>
+          <label className="closing-loop__field">
+            <span className="sr-only">{t('today.closingTomorrowLabel')}</span>
+            <textarea
+              className="closing-loop__textarea"
+              rows={3}
+              value={tomorrowNote}
+              onChange={(e) => setTomorrowNote(e.target.value)}
+              placeholder={t('today.closingTomorrowPlaceholder')}
+            />
+          </label>
+          <div className="closing-loop__nav">
+            <Button variant="ghost" onClick={() => setStep(3)}>
+              {t('common.back')}
+            </Button>
+            <Button onClick={save} disabled={busy} aria-busy={busy}>
+              {busy ? t('today.closingBusy') : t('today.closingSave')}
+            </Button>
+          </div>
+          {sourceHint === 'manual_close' || sourceHint === 'evening_reminder' ? (
+            onKeepWorking ? (
+              <Button variant="ghost" disabled={busy} onClick={onKeepWorking}>
+                {t('today.closingKeepWorking')}
+              </Button>
+            ) : null
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }
 
-export function ClosedDay({
-  outcome,
-  missionsDone,
-  missionsTotal,
-  tomorrowSeed,
-}: {
-  outcome: DayCloseOutcome;
-  missionsDone: number;
-  missionsTotal: number;
-  tomorrowSeed: string[];
-}) {
+export function ClosedDay({ record }: { record: DayCloseRecord }) {
   const { t } = useI18n();
   return (
     <div className="closing-loop closing-loop--closed space-y-5">
       <header className="closing-loop__hero">
         <p className="closing-loop__eyebrow">{t('today.closedEyebrow')}</p>
-        <h1 className="text-2xl font-bold tracking-tight">{t('today.closedTitle')}</h1>
-        <p className="mt-1.5 text-sm text-muted">{outcomeCopy(outcome, t)}</p>
+        <h1 className="closing-loop__title">{t('today.closedConfirmTitle')}</h1>
+        <p className="closing-loop__lede">{t('today.closedConfirmBody')}</p>
       </header>
 
-      <Card className="space-y-2">
-        <p className="text-sm font-medium">
-          {t('today.reviewPartial', {
-            done: missionsDone,
-            total: missionsTotal || missionsDone,
-          })}
-        </p>
-        {tomorrowSeed.length > 0 ? (
-          <div className="closing-loop__carry rounded-xl border border-line/80 bg-surface/60 px-3 py-2.5">
-            <p className="text-xs font-semibold text-muted">{t('today.closedTomorrow')}</p>
+      <section className="closing-loop__panel space-y-3">
+        {record.priorityTitle ? (
+          <div>
+            <p className="closing-loop__label">{t('today.closingPriorityLabel')}</p>
+            <p className="text-sm font-medium">{record.priorityTitle}</p>
+          </div>
+        ) : null}
+        <div>
+          <p className="closing-loop__label">{t('today.closingStatusLabel')}</p>
+          <p className="text-sm">
+            {record.outcome === 'done'
+              ? t('today.closingStatusDone')
+              : record.outcome === 'partial'
+                ? t('today.closingStatusPartial')
+                : t('today.closingStatusMissed')}
+          </p>
+        </div>
+        {record.tomorrowNote || record.tomorrowSeed.length > 0 ? (
+          <div>
+            <p className="closing-loop__label">{t('today.closedTomorrow')}</p>
             <ul className="mt-1.5 space-y-1">
-              {tomorrowSeed.map((title) => (
-                <li key={title} className="text-sm text-muted">
-                  → {title}
+              {(record.tomorrowNote ? [record.tomorrowNote] : record.tomorrowSeed).map((line) => (
+                <li key={line} className="text-sm text-muted">
+                  → {line}
                 </li>
               ))}
             </ul>
@@ -145,24 +281,23 @@ export function ClosedDay({
         ) : (
           <p className="text-sm text-muted">{t('today.closedClean')}</p>
         )}
-      </Card>
-
-      <Card>
-        <p className="text-sm font-medium">{t('today.energyLeft')}</p>
-        <p className="mt-1 text-sm text-muted">
-          {t('today.energyBodyBefore')}{' '}
-          <Link to="/kontakte" className="font-medium text-primary">
-            {t('today.pipeline')}
-          </Link>{' '}
-          {t('today.energyBodyAfter')}
-        </p>
-      </Card>
+      </section>
     </div>
   );
 }
 
-function outcomeCopy(outcome: DayCloseOutcome, t: ReturnType<typeof useI18n>['t']): string {
-  if (outcome === 'done') return t('today.closingOutcomeDone');
-  if (outcome === 'partial') return t('today.closingOutcomePartial');
-  return t('today.closingOutcomeMissed');
+/** Calm evening nudge — not a celebration. */
+export function EveningCloseReminder({ onEndDay }: { onEndDay: () => void }) {
+  const { t } = useI18n();
+  return (
+    <aside className="closing-loop__reminder" role="note">
+      <div>
+        <p className="closing-loop__label">{t('today.closingReminderEyebrow')}</p>
+        <p className="text-sm font-medium">{t('today.closingReminderBody')}</p>
+      </div>
+      <Button size="sm" fullWidth={false} onClick={onEndDay}>
+        {t('today.endWorkday')}
+      </Button>
+    </aside>
+  );
 }
