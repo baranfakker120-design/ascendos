@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import de from './catalogs/de.json';
 import en from './catalogs/en.json';
 import fr from './catalogs/fr.json';
-import it from './catalogs/it.json';
+import itCatalog from './catalogs/it.json';
 import tr from './catalogs/tr.json';
 import { createCoachTranslator, interpolate } from '.';
 
@@ -17,7 +17,7 @@ function keys(value: unknown, prefix = ''): string[] {
 describe('coach i18n', () => {
   it('keeps full key parity across every coach catalog', () => {
     const expected = keys(de).sort();
-    for (const catalog of [en, fr, tr, it]) {
+    for (const catalog of [en, fr, tr, itCatalog]) {
       expect(keys(catalog).sort()).toEqual(expected);
     }
   });

@@ -349,10 +349,10 @@
     }
   },
   "reading": {
-    "mistake": "En Sık Yapılan Hata",
-    "tip": "Profesyonel İpucu",
-    "action": "Bir Sonraki Adımın",
-    "why": "Bu Neden Önemli",
+    "mistake": "En büyük hata",
+    "tip": "Uzman ipucu",
+    "action": "Bir sonraki adımın",
+    "why": "Neden önemli",
     "important": "Önemli"
   },
   "story": {

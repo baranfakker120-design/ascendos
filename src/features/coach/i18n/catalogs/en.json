@@ -349,10 +349,10 @@
     }
   },
   "reading": {
-    "mistake": "Most Common Mistake",
-    "tip": "Pro Tip",
-    "action": "Your Next Step",
-    "why": "Why This Matters",
+    "mistake": "Biggest mistake",
+    "tip": "Pro tip",
+    "action": "Your next step",
+    "why": "Why it matters",
     "important": "Important"
   },
   "story": {
