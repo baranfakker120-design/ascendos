@@ -43,7 +43,8 @@
     "done": "Tamam",
     "errorGeneric": "Bir şeyler ters gitti.",
     "connectionHint": "Bağlantını kontrol et ve tekrar dene.",
-    "copyLink": "Bağlantıyı kopyala"
+    "copyLink": "Bağlantıyı kopyala",
+    "continue": "Devam"
   },
   "boot": {
     "configMissingTitle": "AscendOS henüz yapılandırılmadı.",
@@ -684,7 +685,17 @@
     "cropHint": "Yakınlaştırmalı daire kırpma — yalnızca onaydan sonra kaydet.",
     "photo": "Profil fotoğrafı",
     "cropGesture": "Yakınlaştırmak için sıkıştır veya kaydır · Taşımak için sürükle",
-    "previewFrame": "Çerçeveli önizleme"
+    "previewFrame": "Çerçeveli önizleme",
+    "framesTitle": "Çerçevelerim",
+    "framesHint": "Açılmış bir çerçeve seç. Super Admin, Developer ve Ayın Danışmanı önceliklidir.",
+    "framesEmpty": "Henüz çerçeve açılmadı — başlamak için AP kazan.",
+    "framesLoading": "Çerçeveler yükleniyor …",
+    "framesLoadError": "Çerçeveler yüklenemedi.",
+    "frameEquip": "Kuşan",
+    "frameEquipped": "Kuşanıldı",
+    "rankUpEyebrow": "Yeni rütbe",
+    "rankUpTitle": "Çerçeve açıldı",
+    "beraterDesMonats": "Ayın Danışmanı"
   },
   "team": {
     "title": "Takımın",

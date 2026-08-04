@@ -93,6 +93,7 @@ function ProfileEditForm({ data }: { data: ProfileDetail }) {
             role: membershipRole,
             rankFrameKey: data.rank.current?.frame_asset ?? null,
             isBeraterDesMonats: data.rank.isBeraterDesMonats,
+            equippedFrameKey: data.rank.equippedFrameKey,
           })}
           src={avatarUrl}
           name={displayName}
@@ -105,6 +106,7 @@ function ProfileEditForm({ data }: { data: ProfileDetail }) {
             role: membershipRole,
             rankFrameKey: data.rank.current?.frame_asset ?? null,
             isBeraterDesMonats: data.rank.isBeraterDesMonats,
+            equippedFrameKey: data.rank.equippedFrameKey,
           })}
           onUploaded={(url) => {
             setAvatarUrl(url);

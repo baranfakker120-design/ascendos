@@ -43,7 +43,8 @@
     "done": "Fatto",
     "errorGeneric": "Qualcosa è andato storto.",
     "connectionHint": "Controlla la connessione e riprova.",
-    "copyLink": "Copia link"
+    "copyLink": "Copia link",
+    "continue": "Continua"
   },
   "boot": {
     "configMissingTitle": "AscendOS non è ancora configurato.",
@@ -684,7 +685,17 @@
     "cropHint": "Ritaglio circolare con zoom — salva solo dopo conferma.",
     "photo": "Foto profilo",
     "cropGesture": "Pizzica o scorri per zoom · Trascina per spostare",
-    "previewFrame": "Anteprima con cornice"
+    "previewFrame": "Anteprima con cornice",
+    "framesTitle": "Le mie cornici",
+    "framesHint": "Scegli una cornice sbloccata. Super Admin, Developer e Consulente del mese hanno priorità.",
+    "framesEmpty": "Nessuna cornice sbloccata — guadagna AP per iniziare.",
+    "framesLoading": "Caricamento cornici …",
+    "framesLoadError": "Impossibile caricare le cornici.",
+    "frameEquip": "Indossa",
+    "frameEquipped": "Attiva",
+    "rankUpEyebrow": "Nuovo grado",
+    "rankUpTitle": "Cornice sbloccata",
+    "beraterDesMonats": "Consulente del mese"
   },
   "team": {
     "title": "Il tuo team",
