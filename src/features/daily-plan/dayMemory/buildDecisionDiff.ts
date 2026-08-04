@@ -1,16 +1,34 @@
 import type { DailyPlanItem } from '@shared/types/domain';
 import type { DayCloseRecord } from './types';
 
+/** Impact-sorted change kinds from existing truth only. */
 export type DecisionDiffKind =
-  'carry_over' | 'missed_priority' | 'team_signal' | 'plan_delta' | 'clean_start';
+  | 'priority_done'
+  | 'priority_open'
+  | 'carry_over'
+  | 'contact_colder'
+  | 'contact_hot'
+  | 'follow_up_overdue'
+  | 'partner_signal'
+  | 'team_warning'
+  | 'opportunity'
+  | 'stable';
 
-export interface DecisionDiffLine {
+export type DecisionDiffSoWhat = 'follow_today' | 'wait' | 'observe' | 'celebrate' | 'prepare';
+
+export interface DecisionDiffChange {
   id: string;
   kind: DecisionDiffKind;
-  title: string;
+  /** Higher = more important. Sort descending. */
+  impact: number;
+  /** Human subject (name / mission title). */
+  subject: string;
+  /** Evidence-backed WHY (never invented). */
   why: string;
+  soWhat: DecisionDiffSoWhat;
   relatedItemId?: string | null;
   relatedContactId?: string | null;
+  relatedMembershipId?: string | null;
 }
 
 export interface DecisionDiffWarning {
@@ -18,6 +36,7 @@ export interface DecisionDiffWarning {
   title: string;
   name: string;
   action: string;
+  severity?: 'critical' | 'high' | 'medium' | 'low';
 }
 
 export interface DecisionDiffFollowUp {
@@ -27,103 +46,278 @@ export interface DecisionDiffFollowUp {
   why: string;
 }
 
+export interface DecisionDiffPartnerSignal {
+  membershipId: string;
+  name: string;
+  /** inactive | activating */
+  tone: 'inactive' | 'activating';
+  detail: string;
+}
+
 export interface DecisionDiffInput {
   yesterdayClose: DayCloseRecord | null;
   todayItems: Pick<DailyPlanItem, 'id' | 'title' | 'status' | 'score' | 'position'>[];
   warnings: DecisionDiffWarning[];
   followUps: DecisionDiffFollowUp[];
+  partnerSignals?: DecisionDiffPartnerSignal[];
+  /** Change ids shown yesterday morning — soft-dedupe identical repeats. */
+  previouslyShownIds?: string[];
 }
 
-function norm(title: string): string {
-  return title.trim().toLowerCase();
+export interface DecisionDiffResult {
+  mode: 'changes' | 'stable' | 'no_close';
+  changes: DecisionDiffChange[];
+  /** Highest-impact subject — input seed for One-Tap (PR #35). */
+  suggestedFocus: string | null;
+  suggestedFocusItemId: string | null;
+  suggestedFocusContactId: string | null;
+}
+
+function norm(s: string): string {
+  return s.trim().toLowerCase();
+}
+
+function heatImpact(heat: string): number {
+  if (heat === 'lost') return 88;
+  if (heat === 'forgotten') return 84;
+  if (heat === 'hot') return 86;
+  if (heat === 'interested') return 55;
+  return 40;
 }
 
 /**
- * Sprint 5 · L2 Decision Diff — pure day-truth handoff.
- * Max 4 actionable lines (or one clean_start). Never invents close truth.
+ * Sprint 5 · Decision Diff — morning reader of real change.
+ * Max 5 changes, impact-sorted, evidence-only. Never invents AI deltas.
  */
-export function buildDecisionDiff(input: DecisionDiffInput): DecisionDiffLine[] {
-  const lines: DecisionDiffLine[] = [];
-  const todayByTitle = new Map(input.todayItems.map((i) => [norm(i.title), i]));
-  const todayTitles = new Set(todayByTitle.keys());
+export function buildDecisionDiff(input: DecisionDiffInput): DecisionDiffResult {
+  const previous = new Set(input.previouslyShownIds ?? []);
+  const candidates: DecisionDiffChange[] = [];
+  const coveredSubjects = new Set<string>();
 
-  if (!input.yesterdayClose) {
-    return [
-      {
-        id: 'clean-start',
-        kind: 'clean_start',
-        title: 'clean_start',
-        why: 'no_close',
-      },
-    ];
-  }
+  const push = (change: DecisionDiffChange) => {
+    const key = norm(change.subject);
+    if (coveredSubjects.has(key)) return;
+    coveredSubjects.add(key);
+    // Soft-dedupe: identical id shown yesterday drops impact slightly, not removed if still true
+    const adjusted = previous.has(change.id)
+      ? { ...change, impact: Math.max(10, change.impact - 15) }
+      : change;
+    candidates.push(adjusted);
+  };
 
   const close = input.yesterdayClose;
-  const priorityNorm = close.priorityTitle ? norm(close.priorityTitle) : '';
 
-  if (close.outcome !== 'done' && close.priorityTitle) {
-    const match = todayByTitle.get(priorityNorm);
-    lines.push({
-      id: `missed:${close.priorityItemId ?? close.priorityTitle}`,
-      kind: 'missed_priority',
-      title: close.priorityTitle,
+  if (!close) {
+    // Still surface urgent real signals even without a close — but mode notes no close
+    collectLiveSignals(input, push);
+    const ranked = rankAndCap(candidates, 5);
+    if (ranked.length === 0) {
+      return {
+        mode: 'no_close',
+        changes: [
+          {
+            id: 'stable-no-close',
+            kind: 'stable',
+            impact: 1,
+            subject: 'stable',
+            why: 'no_close',
+            soWhat: 'prepare',
+          },
+        ],
+        suggestedFocus: null,
+        suggestedFocusItemId: null,
+        suggestedFocusContactId: null,
+      };
+    }
+    return resultFromChanges('no_close', ranked);
+  }
+
+  // Closing Loop truth
+  if (close.outcome === 'done' && close.priorityTitle) {
+    push({
+      id: `priority-done:${close.priorityItemId ?? close.priorityTitle}`,
+      kind: 'priority_done',
+      impact: 70,
+      subject: close.priorityTitle,
+      why: 'priority_completed',
+      soWhat: 'celebrate',
+      relatedItemId: close.priorityItemId,
+    });
+  } else if (close.priorityTitle && close.outcome !== 'done') {
+    const match = input.todayItems.find((i) => norm(i.title) === norm(close.priorityTitle!));
+    push({
+      id: `priority-open:${close.priorityItemId ?? close.priorityTitle}`,
+      kind: 'priority_open',
+      impact: close.outcome === 'missed' ? 92 : 80,
+      subject: close.priorityTitle,
       why: close.outcome === 'missed' ? 'priority_missed' : 'priority_partial',
+      soWhat: 'follow_today',
       relatedItemId: match?.id ?? close.priorityItemId,
     });
   }
 
-  const seed = (close.tomorrowSeed.length > 0 ? close.tomorrowSeed : close.openTitles).filter(
-    (title) => norm(title) !== priorityNorm
-  );
-  const carryPreferred = seed.find((title) => todayTitles.has(norm(title))) ?? seed[0] ?? null;
+  const seed = [
+    ...((close as { tomorrowNote?: string | null }).tomorrowNote
+      ? [(close as { tomorrowNote?: string | null }).tomorrowNote!]
+      : []),
+    ...(close.tomorrowSeed.length > 0 ? close.tomorrowSeed : close.openTitles),
+  ].filter(Boolean);
 
-  if (carryPreferred) {
-    const match = todayByTitle.get(norm(carryPreferred));
-    lines.push({
-      id: `carry:${carryPreferred}`,
+  for (const title of seed) {
+    if (close.priorityTitle && norm(title) === norm(close.priorityTitle)) continue;
+    const match = input.todayItems.find((i) => norm(i.title) === norm(title));
+    push({
+      id: `carry:${title}`,
       kind: 'carry_over',
-      title: carryPreferred,
+      impact: 72,
+      subject: title,
       why: match ? 'still_on_plan' : 'seeded_yesterday',
+      soWhat: 'prepare',
       relatedItemId: match?.id ?? null,
     });
   }
 
-  const warning = input.warnings[0];
-  if (warning) {
-    lines.push({
-      id: `team:${warning.kind}:${warning.name}`,
-      kind: 'team_signal',
-      title: warning.name || warning.title,
-      why: warning.action || warning.title,
+  collectLiveSignals(input, push);
+
+  const ranked = rankAndCap(candidates, 5);
+
+  if (ranked.length === 0) {
+    return {
+      mode: 'stable',
+      changes: [
+        {
+          id: 'stable-day',
+          kind: 'stable',
+          impact: 1,
+          subject: 'stable',
+          why: 'yesterday_stable',
+          soWhat: 'prepare',
+        },
+      ],
+      suggestedFocus: close.priorityTitle,
+      suggestedFocusItemId: close.priorityItemId,
+      suggestedFocusContactId: null,
+    };
+  }
+
+  // If only celebrate + nothing else urgent, still ok
+  return resultFromChanges('changes', ranked);
+}
+
+function collectLiveSignals(input: DecisionDiffInput, push: (c: DecisionDiffChange) => void): void {
+  for (const fu of input.followUps) {
+    if (fu.heat === 'forgotten' || fu.heat === 'lost') {
+      push({
+        id: `colder:${fu.contactId}`,
+        kind: 'contact_colder',
+        impact: heatImpact(fu.heat),
+        subject: fu.name,
+        why: fu.why || fu.heat,
+        soWhat: 'follow_today',
+        relatedContactId: fu.contactId,
+      });
+    } else if (fu.heat === 'hot') {
+      push({
+        id: `hot:${fu.contactId}`,
+        kind: 'contact_hot',
+        impact: heatImpact(fu.heat),
+        subject: fu.name,
+        why: fu.why || 'hot',
+        soWhat: 'prepare',
+        relatedContactId: fu.contactId,
+      });
+    } else if (fu.heat === 'interested') {
+      push({
+        id: `overdue:${fu.contactId}`,
+        kind: 'follow_up_overdue',
+        impact: 68,
+        subject: fu.name,
+        why: fu.why || 'interested',
+        soWhat: 'follow_today',
+        relatedContactId: fu.contactId,
+      });
+    }
+  }
+
+  // Mission titles that look like overdue follow-ups on today's plan
+  for (const item of input.todayItems) {
+    if (item.status !== 'pending' && item.status !== 'deferred') continue;
+    // score already encodes urgency from plan engine
+    if (item.score >= 70) {
+      push({
+        id: `mission-urgent:${item.id}`,
+        kind: 'follow_up_overdue',
+        impact: Math.min(90, 50 + item.score / 5),
+        subject: item.title,
+        why: 'plan_urgent',
+        soWhat: 'follow_today',
+        relatedItemId: item.id,
+      });
+    }
+  }
+
+  for (const w of input.warnings) {
+    const sev = w.severity ?? 'medium';
+    const impact = sev === 'critical' ? 95 : sev === 'high' ? 82 : sev === 'medium' ? 60 : 40;
+    push({
+      id: `warn:${w.kind}:${w.name}`,
+      kind: 'team_warning',
+      impact,
+      subject: w.name || w.title,
+      why: w.action || w.title,
+      soWhat: sev === 'critical' || sev === 'high' ? 'follow_today' : 'observe',
     });
   }
 
-  const covered = new Set(lines.map((l) => norm(l.title)));
-  const hot = input.followUps.find(
-    (f) =>
-      (f.heat === 'forgotten' || f.heat === 'hot' || f.heat === 'lost') &&
-      !covered.has(norm(f.name))
-  );
-  if (hot) {
-    lines.push({
-      id: `delta:${hot.contactId}`,
-      kind: 'plan_delta',
-      title: hot.name,
-      why: hot.why || hot.heat,
-      relatedContactId: hot.contactId,
-    });
+  for (const p of input.partnerSignals ?? []) {
+    if (p.tone === 'inactive') {
+      push({
+        id: `partner-inactive:${p.membershipId}`,
+        kind: 'partner_signal',
+        impact: 83,
+        subject: p.name,
+        why: p.detail,
+        soWhat: 'follow_today',
+        relatedMembershipId: p.membershipId,
+      });
+    } else {
+      push({
+        id: `partner-active:${p.membershipId}`,
+        kind: 'opportunity',
+        impact: 65,
+        subject: p.name,
+        why: p.detail,
+        soWhat: 'celebrate',
+        relatedMembershipId: p.membershipId,
+      });
+    }
   }
+}
 
-  if (lines.length === 0 && close.outcome === 'done' && close.tomorrowSeed.length === 0) {
-    return [
-      {
-        id: 'clean-after-done',
-        kind: 'clean_start',
-        title: 'clean_start',
-        why: 'yesterday_clean',
-      },
-    ];
-  }
+function rankAndCap(changes: DecisionDiffChange[], max: number): DecisionDiffChange[] {
+  return [...changes]
+    .sort((a, b) => b.impact - a.impact || a.subject.localeCompare(b.subject))
+    .slice(0, max);
+}
 
-  return lines.slice(0, 4);
+function resultFromChanges(
+  mode: DecisionDiffResult['mode'],
+  changes: DecisionDiffChange[]
+): DecisionDiffResult {
+  const actionable =
+    changes.find((c) => c.soWhat === 'follow_today' || c.soWhat === 'prepare') ??
+    changes[0] ??
+    null;
+  return {
+    mode: changes.length === 1 && changes[0]?.kind === 'stable' ? 'stable' : mode,
+    changes,
+    suggestedFocus: actionable && actionable.kind !== 'stable' ? actionable.subject : null,
+    suggestedFocusItemId: actionable?.relatedItemId ?? null,
+    suggestedFocusContactId: actionable?.relatedContactId ?? null,
+  };
+}
+
+/** @deprecated Prefer buildDecisionDiff(...).changes — kept for older call sites during transition. */
+export function buildDecisionDiffLines(input: DecisionDiffInput): DecisionDiffChange[] {
+  return buildDecisionDiff(input).changes;
 }
