@@ -625,6 +625,27 @@
       "homeBodyClosed": "Tag geschlossen. Ascent hilft dir, morgen vorzubereiten — nicht zu chatten.",
       "homeBodyFocus": "Fokus heute: {focus}. Ascent erscheint an der Entscheidung — nicht als Chatbot.",
       "suggestFocusPrompt": "Als Geschäftsführer: Mein Fokus heute ist „{focus}“. Gib mir den klaren nächsten Schritt und warum."
+    },
+    "personScreenTitle": "Ascend Coach",
+    "personWelcome": "Ich bin Ascend Coach — wir sprechen über {name}.\n\nDer Kontext zu Aktivität, Risiken und nächsten Schritten ist schon dabei. Frag einfach natürlich — z. B. „Wie helfe ich {name} heute?“",
+    "personOpenWorkspace": "Alle Coach-Gespräche",
+    "personChipOpenProfile": "Profil von {name} öffnen",
+    "waCardTitle": "WhatsApp",
+    "waSendToEditor": "Zum Editor",
+    "personChip": {
+      "aria": "Schnellaktionen",
+      "message": "Nachricht schreiben",
+      "messagePrompt": "Schreib eine freundliche WhatsApp-Nachricht an {name}. Antworte mit einem ```whatsapp Block und kurzer Begründung.",
+      "onboarding": "Onboarding",
+      "onboardingPrompt": "Plane das Onboarding für {name}: nächster klarer Schritt und kurze Nachricht.",
+      "followup": "Follow-up",
+      "followupPrompt": "Bereite ein Follow-up mit {name} vor — Timing, Ton und Entwurf.",
+      "motivation": "Motivation",
+      "motivationPrompt": "Formuliere eine motivierende Nachricht an {name}, die zum nächsten Schritt anregt.",
+      "analyse": "Analyse",
+      "analysePrompt": "Analysiere die Lage von {name} kurz und klar: Risiko, Chance, nächster Move.",
+      "next": "Nächster Schritt",
+      "nextPrompt": "Was ist der eine beste nächste Schritt für {name} heute — und warum?"
     }
   },
   "profile": {
@@ -735,7 +756,12 @@
     "directShort": "Direkt",
     "neverOpened": "Noch nie",
     "notesFollowUp": "Notizen / Follow-up",
-    "inactiveDays": "Inaktiv · {days}d"
+    "inactiveDays": "Inaktiv · {days}d",
+    "tabOverview": "Übersicht",
+    "tabCoach": "Coach",
+    "memberTabsAria": "Mitglieder-Bereiche",
+    "coachAskPlaceholder": "Frage zu {name}…",
+    "openCoachConversation": "Gespräch öffnen"
   },
   "leadership": {
     "activeToday": "Aktiv heute",

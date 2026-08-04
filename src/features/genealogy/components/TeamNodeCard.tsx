@@ -95,11 +95,8 @@ export function TeamNodeCard({
         <CoachPersonInsightBubble
           insight={coachInsight}
           onAsk={(prompt) => {
-            const name = displayName(node);
             writePendingSeed(prompt);
-            navigate(
-              `/coach?partner=${encodeURIComponent(name)}&mid=${encodeURIComponent(node.membershipId)}`
-            );
+            navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`);
           }}
         />
       </div>

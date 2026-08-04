@@ -1,0 +1,214 @@
+/* Dedicated person Coach Conversation — full-screen ChatGPT-style */
+
+.person-coach {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  animation: person-coach-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.person-coach__top {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0 0.65rem;
+  border-bottom: 1px solid rgb(var(--color-line) / 0.7);
+}
+
+.person-coach__title {
+  text-align: center;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.person-coach__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 9.5rem;
+  min-height: 2.15rem;
+  padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(255 255 255 / 0.82);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.person-coach__chip-avatar {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: rgb(var(--color-bg));
+  flex-shrink: 0;
+}
+
+.person-coach__chip-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.person-coach__chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-coach__thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.85rem 0 0.75rem;
+  scrollbar-gutter: stable;
+}
+
+.person-coach__composer {
+  flex-shrink: 0;
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgb(var(--color-line) / 0.7);
+  background: linear-gradient(180deg, rgb(var(--color-bg) / 0.92), rgb(var(--color-bg)));
+  padding-bottom: max(0.2rem, env(safe-area-inset-bottom));
+}
+
+.person-coach__chips {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.person-coach__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.person-coach__form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.wa-card {
+  margin-top: 0.35rem;
+  border-radius: 1rem;
+  border: 1px solid rgb(196 165 116 / 0.4);
+  background: linear-gradient(165deg, rgb(255 255 255 / 0.95), rgb(250 246 238 / 0.9));
+  box-shadow: 0 10px 28px rgb(17 18 20 / 0.06);
+  padding: 0.85rem 0.9rem;
+}
+
+.wa-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.wa-card__badge {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  background: rgb(37 211 102 / 0.15);
+}
+
+.wa-card__title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+}
+
+.wa-card__body {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: rgb(var(--color-ink));
+}
+
+.wa-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+@keyframes person-coach-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .person-coach {
+    animation: none;
+  }
+}
+
+/* Member sheet Coach tab */
+.node-coach-tab {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.node-detail__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border-radius: 0.9rem;
+  background: rgb(var(--color-bg));
+  border: 1px solid rgb(var(--color-line));
+}
+
+.node-detail__tab {
+  min-height: 2.35rem;
+  border-radius: 0.7rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: rgb(var(--color-muted));
+  cursor: pointer;
+}
+
+.node-detail__tab--on {
+  background: rgb(255 255 255 / 0.95);
+  color: rgb(var(--color-ink));
+  box-shadow: 0 4px 12px rgb(17 18 20 / 0.05);
+}
+
+.node-coach-tab__ask {
+  display: grid;
+  gap: 0.45rem;
+}

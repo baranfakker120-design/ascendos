@@ -625,6 +625,27 @@
       "homeBodyClosed": "Journée clôturée. Ascent t’aide à préparer demain — pas à discuter pour discuter.",
       "homeBodyFocus": "Focus aujourd’hui : {focus}. Ascent apparaît à la décision — pas comme chatbot.",
       "suggestFocusPrompt": "En tant que directeur : Mon focus aujourd’hui est « {focus} ». Donne-moi la prochaine étape claire et pourquoi."
+    },
+    "personScreenTitle": "Ascend Coach",
+    "personWelcome": "Je suis Ascend Coach — nous parlons de {name}.\n\nActivité, risques et prochaines étapes sont déjà dans le contexte. Demande naturellement — p. ex. « Comment aider {name} aujourd’hui ? »",
+    "personOpenWorkspace": "Toutes les conversations Coach",
+    "personChipOpenProfile": "Ouvrir le profil de {name}",
+    "waCardTitle": "WhatsApp",
+    "waSendToEditor": "Vers l’éditeur",
+    "personChip": {
+      "aria": "Actions rapides",
+      "message": "Écrire un message",
+      "messagePrompt": "Écris un message WhatsApp amical pour {name}. Réponds avec un bloc ```whatsapp et une courte justification.",
+      "onboarding": "Onboarding",
+      "onboardingPrompt": "Planifie l’onboarding de {name} : prochaine étape claire et court message.",
+      "followup": "Follow-up",
+      "followupPrompt": "Prépare un follow-up avec {name} — timing, ton et brouillon.",
+      "motivation": "Motivation",
+      "motivationPrompt": "Rédige un message motivant pour {name} qui pousse à l’étape suivante.",
+      "analyse": "Analyse",
+      "analysePrompt": "Analyse brièvement la situation de {name} : risque, opportunité, prochain move.",
+      "next": "Prochaine étape",
+      "nextPrompt": "Quelle est la meilleure prochaine étape pour {name} aujourd’hui — et pourquoi ?"
     }
   },
   "profile": {
@@ -735,7 +756,12 @@
     "directShort": "Direct",
     "neverOpened": "Jamais ouvert",
     "notesFollowUp": "Notes / Suivi",
-    "inactiveDays": "Inactif · {days}j"
+    "inactiveDays": "Inactif · {days}j",
+    "tabOverview": "Aperçu",
+    "tabCoach": "Coach",
+    "memberTabsAria": "Sections du membre",
+    "coachAskPlaceholder": "Question sur {name}…",
+    "openCoachConversation": "Ouvrir la conversation"
   },
   "leadership": {
     "activeToday": "Actifs aujourd’hui",
