@@ -14,11 +14,32 @@ function keys(value: unknown, prefix = ''): string[] {
   );
 }
 
+function messages(value: unknown, prefix = ''): Record<string, string> {
+  if (typeof value === 'string') return { [prefix]: value };
+  if (value == null || typeof value !== 'object') return {};
+  return Object.entries(value).reduce<Record<string, string>>(
+    (all, [key, child]) => ({
+      ...all,
+      ...messages(child, prefix ? `${prefix}.${key}` : key),
+    }),
+    {}
+  );
+}
+
+function placeholders(message: string): string[] {
+  return [...message.matchAll(/\{(\w+)\}/g)].map((match) => match[1]!).sort();
+}
+
 describe('coach i18n', () => {
   it('keeps full key parity across every coach catalog', () => {
-    const expected = keys(de).sort();
+    const expectedMessages = messages(de);
+    const expected = Object.keys(expectedMessages).sort();
     for (const catalog of [en, fr, tr, itCatalog]) {
       expect(keys(catalog).sort()).toEqual(expected);
+      const localizedMessages = messages(catalog);
+      for (const key of expected) {
+        expect(placeholders(localizedMessages[key]!)).toEqual(placeholders(expectedMessages[key]!));
+      }
     }
   });
 

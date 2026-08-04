@@ -31,9 +31,11 @@ function card(partial: Omit<StoryCard, 'accent'> & { accent?: StoryCard['accent'
  */
 export function buildCoachStories(
   intelligence: CoachOrgIntelligence,
-  max = 8,
-  t: CoachTranslateFn = DEFAULT_T
+  maxOrTranslator: number | CoachTranslateFn = 8,
+  translate?: CoachTranslateFn
 ): StoryCard[] {
+  const max = typeof maxOrTranslator === 'number' ? maxOrTranslator : 8;
+  const t = typeof maxOrTranslator === 'function' ? maxOrTranslator : (translate ?? DEFAULT_T);
   const publishedAt = intelligence.generatedAt;
   const expiresAt = expiresFrom(publishedAt);
   const stories: StoryCard[] = [];

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createCoachTranslator } from '@features/coach/i18n';
 import { buildCoachOrgIntelligence } from '@features/coach/intelligence/analyzeOrg';
 import type { CoachOrgInput, CoachPartnerSnapshot } from '@features/coach/intelligence/types';
 import { buildCoachStories, isStoryActive, mergeStoryFeeds } from './buildCoachStories';
@@ -66,6 +67,24 @@ describe('buildCoachStories', () => {
     const blob = stories.map((s) => s.body.toLowerCase()).join(' ');
     expect(blob.includes('shame')).toBe(false);
     expect(blob.includes('worse than')).toBe(false);
+  });
+
+  it('keeps story selection stable while localizing coach-authored wrappers', () => {
+    const locales = ['de', 'en', 'fr', 'tr', 'it'] as const;
+    const localized = locales.map((locale) => {
+      const t = createCoachTranslator(locale);
+      const intel = buildCoachOrgIntelligence({ ...input(), t });
+      return { locale, stories: buildCoachStories(intel, t), t };
+    });
+    const expectedIds = localized[0]!.stories.map((story) => story.id);
+
+    for (const { stories, t } of localized) {
+      expect(stories.map((story) => story.id)).toEqual(expectedIds);
+      expect(stories.every((story) => story.authorLabel === t('story.author'))).toBe(true);
+    }
+    expect(localized[0]!.stories.map((story) => story.body)).not.toEqual(
+      localized[1]!.stories.map((story) => story.body)
+    );
   });
 
   it('drops expired stories when merging', () => {
