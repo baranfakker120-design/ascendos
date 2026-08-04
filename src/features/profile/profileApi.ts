@@ -20,6 +20,10 @@ export interface ProfileRankState {
   next: NextRankForAp | null;
   /** Monatlicher Award Platz 1 im laufenden Monat — Sonderrahmen frame-10. */
   isBeraterDesMonats: boolean;
+  /** Equipped cosmetic frame asset_path (AP/special), if any. */
+  equippedFrameKey: string | null;
+  /** Team Leader firstline qualification — gates frame-06. */
+  teamLeaderQualified: boolean;
 }
 
 export interface ProfileDetail {
@@ -64,7 +68,7 @@ export function useProfileDetail() {
           : Promise.resolve({ data: null, error: null }),
         supabase
           .from('memberships')
-          .select('id, ap_total, org_id, status')
+          .select('id, ap_total, org_id, status, team_leader_qualified_at')
           .eq('identity_id', userId)
           .eq('org_id', profile.org_id)
           .eq('status', 'active')
@@ -79,6 +83,7 @@ export function useProfileDetail() {
       const apTotal = membership.data?.ap_total ?? 0;
       const orgId = membership.data?.org_id ?? profile.org_id;
       const membershipId = membership.data?.id ?? null;
+      const teamLeaderQualified = !!membership.data?.team_leader_qualified_at;
 
       // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
       const now = new Date();
@@ -86,9 +91,13 @@ export function useProfileDetail() {
         .toISOString()
         .slice(0, 10);
 
-      // Rangschwellen kommen ausschließlich aus der Datenbank.
-      const [currentRank, nextRank, monthlyAward] = await Promise.all([
-        supabase.rpc('rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
+      // Display rank is qualification-aware (Team Leader frame only when qualified).
+      const [currentRank, nextRank, monthlyAward, cosmetics] = await Promise.all([
+        supabase.rpc('display_rank_for_ap', {
+          p_org: orgId,
+          p_ap: apTotal,
+          p_team_leader_qualified: teamLeaderQualified,
+        }),
         supabase.rpc('next_rank_for_ap', { p_org_id: orgId, p_ap: apTotal }),
         membershipId
           ? supabase
@@ -100,10 +109,19 @@ export function useProfileDetail() {
               .eq('place', 1)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
+        membershipId
+          ? supabase.rpc('list_my_frame_cosmetics')
+          : Promise.resolve({ data: null, error: null }),
       ]);
       if (currentRank.error) throw currentRank.error;
       if (nextRank.error) throw nextRank.error;
       if (monthlyAward.error) throw monthlyAward.error;
+      if (cosmetics.error) throw cosmetics.error;
+
+      const equippedPath =
+        ((cosmetics.data ?? []) as Array<{ asset_path: string; is_equipped: boolean }>).find(
+          (row) => row.is_equipped
+        )?.asset_path ?? null;
 
       return {
         profile,
@@ -120,6 +138,8 @@ export function useProfileDetail() {
           current: currentRank.data?.[0] ?? null,
           next: nextRank.data?.[0] ?? null,
           isBeraterDesMonats: !!monthlyAward.data,
+          equippedFrameKey: equippedPath,
+          teamLeaderQualified,
         },
       };
     },

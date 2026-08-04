@@ -3051,6 +3051,35 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
+      display_rank_for_ap: {
+        Args: { p_org: string; p_ap: number; p_team_leader_qualified?: boolean };
+        Returns: {
+          frame_asset: string;
+          key: string;
+          label: string;
+          sort_order: number;
+          threshold_ap: number;
+        }[];
+      };
+      list_my_frame_cosmetics: {
+        Args: Record<string, never>;
+        Returns: {
+          asset_path: string;
+          is_equipped: boolean;
+          item_id: string;
+          label: string;
+          rank_key: string;
+          unlocked_at: string;
+        }[];
+      };
+      equip_frame_cosmetic: {
+        Args: { p_item_id: string };
+        Returns: undefined;
+      };
+      ensure_role_frame_cosmetics: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       redeem_invite: {
         Args: { invite_code: string };
         Returns: {

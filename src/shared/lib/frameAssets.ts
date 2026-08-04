@@ -105,21 +105,27 @@ export const SPECIAL_FRAME = {
 export interface DisplayFrameInput {
   /** memberships.role der aktiven Mitgliedschaft */
   role?: string | null;
-  /** ranks.frame_asset aus rank_for_ap — unverändert die AP-Wahrheit */
+  /** ranks.frame_asset aus display_rank_for_ap — qualification-aware AP-Wahrheit */
   rankFrameKey?: string | null;
-  /** true = aktueller monatlicher Award (Berater des Monats) */
+  /** true = aktueller monatlicher Award Platz 1 (Berater des Monats) */
   isBeraterDesMonats?: boolean;
+  /**
+   * Optional: equipped cosmetic frame asset_path.
+   * Used only when no status frame (SA / Dev / Berater) applies.
+   */
+  equippedFrameKey?: string | null;
 }
 
 /**
  * Welcher Rahmen angezeigt wird.
- * Priorität: super_admin → developer → Berater des Monats → AP-Rang.
+ * Priorität: super_admin → developer → Berater des Monats → equipped → AP-Rang.
  * Ändert keine Gamification / rank_for_ap-Daten.
  */
 export function resolveDisplayFrameKey(input: DisplayFrameInput): string | null {
   if (input.role === 'super_admin') return SPECIAL_FRAME.super_admin;
   if (input.role === 'developer') return SPECIAL_FRAME.developer;
   if (input.isBeraterDesMonats) return SPECIAL_FRAME.berater_des_monats;
+  if (input.equippedFrameKey) return input.equippedFrameKey;
   return input.rankFrameKey ?? null;
 }
 
