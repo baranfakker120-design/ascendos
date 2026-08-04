@@ -40,4 +40,21 @@ describe('resolveDisplayFrameKey', () => {
     ).toBe('frame-05');
     expect(resolveDisplayFrameKey({ role: 'berater', rankFrameKey: null })).toBeNull();
   });
+
+  it('nutzt equipped Frame unterhalb von Status-Rahmen', () => {
+    expect(
+      resolveDisplayFrameKey({
+        role: 'berater',
+        rankFrameKey: 'frame-02',
+        equippedFrameKey: 'frame-04',
+      })
+    ).toBe('frame-04');
+    expect(
+      resolveDisplayFrameKey({
+        role: 'super_admin',
+        rankFrameKey: 'frame-02',
+        equippedFrameKey: 'frame-04',
+      })
+    ).toBe(SPECIAL_FRAME.super_admin);
+  });
 });

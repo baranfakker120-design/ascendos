@@ -43,7 +43,8 @@
     "done": "Done",
     "errorGeneric": "Something went wrong.",
     "connectionHint": "Check your connection and try again.",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "continue": "Continue"
   },
   "boot": {
     "configMissingTitle": "AscendOS is not configured yet.",
@@ -684,7 +685,27 @@
     "cropHint": "Circular crop with zoom — save only after confirming.",
     "photo": "Profile photo",
     "cropGesture": "Pinch or scroll to zoom · Drag to move",
-    "previewFrame": "Preview with frame"
+    "previewFrame": "Preview with frame",
+    "framesTitle": "My frames",
+    "framesHint": "Choose an unlocked frame. Super Admin, Developer, and Advisor of the Month still take priority.",
+    "framesEmpty": "No frames unlocked yet — earn AP to get started.",
+    "framesLoading": "Loading frames …",
+    "framesLoadError": "Frames could not be loaded.",
+    "frameEquip": "Equip",
+    "frameEquipped": "Equipped",
+    "rankUpEyebrow": "New rank",
+    "rankUpTitle": "Frame unlocked",
+    "beraterDesMonats": "Advisor of the Month",
+    "advisorTitle": "Advisor of the Month",
+    "advisorHint": "Places 1–3 by AP in the previous UTC month. The title is held during the current month.",
+    "advisorEmpty": "No award for this month yet — the podium appears once last month’s AP are booked.",
+    "advisorLoading": "Loading awards …",
+    "advisorLoadError": "Awards could not be loaded.",
+    "advisorHistory": "Past months",
+    "advisorPlace1": "1st place",
+    "advisorPlace2": "2nd place",
+    "advisorPlace3": "3rd place",
+    "advisorYou": "you"
   },
   "team": {
     "title": "Your team",
