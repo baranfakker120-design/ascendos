@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isMissingRelationError, isMissingRpcError } from '@shared/api/rpcErrors';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 
@@ -39,7 +40,11 @@ export function useMyFrameCosmetics(enabled = true) {
     enabled: enabled && !!membership?.id,
     queryFn: async (): Promise<FrameCosmetic[]> => {
       const { data, error } = await supabase.rpc('list_my_frame_cosmetics');
-      if (error) throw error;
+      if (error) {
+        // Soft-fail when Sprint 6 cosmetics are not deployed yet — Profile stays usable.
+        if (isMissingRpcError(error) || isMissingRelationError(error)) return [];
+        throw error;
+      }
       return ((data ?? []) as FrameCosmeticRow[]).map(mapRow);
     },
   });

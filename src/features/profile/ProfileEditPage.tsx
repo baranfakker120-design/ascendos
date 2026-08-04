@@ -11,7 +11,12 @@ import { Card } from '@shared/ui/Card';
 import { Input } from '@shared/ui/Input';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { AvatarUpload } from './AvatarUpload';
-import { useProfileDetail, useUpdateProfile, type ProfileDetail } from './profileApi';
+import {
+  profileDetailFromAuth,
+  useProfileDetail,
+  useUpdateProfile,
+  type ProfileDetail,
+} from './profileApi';
 
 /**
  * Identitätsfelder und Avatar bearbeiten.
@@ -20,16 +25,31 @@ import { useProfileDetail, useUpdateProfile, type ProfileDetail } from './profil
  */
 export function ProfileEditPage() {
   const { t } = useI18n();
+  const { profile: authProfile, membership } = useAuth();
   const { data, isPending, isError } = useProfileDetail();
 
-  if (isError) {
-    return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
-  }
-  if (isPending || !data) {
+  if (isPending && !data && !authProfile) {
     return <p className="text-sm text-muted">{t('profile.loading')}</p>;
   }
 
-  return <ProfileEditForm key={data.profile.id} data={data} />;
+  const detail = data ?? (authProfile ? profileDetailFromAuth(authProfile, membership) : null);
+
+  if (!detail) {
+    return <p className="text-sm text-muted">{t('profile.loadError')}</p>;
+  }
+
+  const showLoadBanner = !isPending && (isError || !data);
+
+  return (
+    <>
+      {showLoadBanner ? (
+        <div className="mb-4">
+          <Alert tone="error">{t('profile.loadError')}</Alert>
+        </div>
+      ) : null}
+      <ProfileEditForm key={detail.profile.id} data={detail} />
+    </>
+  );
 }
 
 function ProfileEditForm({ data }: { data: ProfileDetail }) {
