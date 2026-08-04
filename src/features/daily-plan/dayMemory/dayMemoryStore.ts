@@ -20,10 +20,7 @@ export function shiftPlanDate(planDate: string, deltaDays: number): string {
   return dt.toLocaleDateString('sv-SE');
 }
 
-export async function readDayOpen(
-  userId: string,
-  planDate: string
-): Promise<DayOpenRecord | null> {
+export async function readDayOpen(userId: string, planDate: string): Promise<DayOpenRecord | null> {
   const row = await idbGet<DayOpenRecord>(openKey(userId, planDate));
   return row?.version === 1 ? row : null;
 }

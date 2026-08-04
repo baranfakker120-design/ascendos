@@ -161,10 +161,7 @@ export function ClosedDay({
   );
 }
 
-function outcomeCopy(
-  outcome: DayCloseOutcome,
-  t: ReturnType<typeof useI18n>['t']
-): string {
+function outcomeCopy(outcome: DayCloseOutcome, t: ReturnType<typeof useI18n>['t']): string {
   if (outcome === 'done') return t('today.closingOutcomeDone');
   if (outcome === 'partial') return t('today.closingOutcomePartial');
   return t('today.closingOutcomeMissed');

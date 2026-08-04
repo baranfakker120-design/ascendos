@@ -67,9 +67,7 @@ describe('buildDecisionDiff', () => {
       yesterdayClose: close({ outcome: 'missed' }),
       todayItems: [{ id: 'p1', title: 'Call Maya', status: 'pending', score: 10, position: 0 }],
       warnings: [{ kind: 'no_activity_7d', title: 'Quiet', name: 'Alex', action: 'Check in' }],
-      followUps: [
-        { contactId: 'c1', name: 'Nora', heat: 'forgotten', why: 'No touch in 12 days' },
-      ],
+      followUps: [{ contactId: 'c1', name: 'Nora', heat: 'forgotten', why: 'No touch in 12 days' }],
     });
     expect(lines.length).toBeLessThanOrEqual(4);
     expect(lines.some((l) => l.kind === 'team_signal')).toBe(true);

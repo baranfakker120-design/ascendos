@@ -44,10 +44,7 @@ export interface ConversationPrepPack {
 export function buildConversationPrep(input: ConversationPrepInput): ConversationPrepPack {
   const insight = input.insight;
   const situation =
-    insight?.currentSituation?.trim() ||
-    input.missionReason?.trim() ||
-    input.phase ||
-    'open';
+    insight?.currentSituation?.trim() || input.missionReason?.trim() || input.phase || 'open';
 
   const nextQuestion =
     insight?.nextBestAction?.trim() ||
@@ -60,9 +57,7 @@ export function buildConversationPrep(input: ConversationPrepInput): Conversatio
     input.missionReason?.trim() ||
     'Keep the relationship moving.';
 
-  const draft =
-    insight?.suggestedWhatsApp?.trim() ||
-    defaultDraft(input.contactName, nextQuestion);
+  const draft = insight?.suggestedWhatsApp?.trim() || defaultDraft(input.contactName, nextQuestion);
 
   return {
     contactId: input.contactId,

@@ -14,9 +14,9 @@
 **Primary metric — Daily Closing Rate**  
 Share of active users who, on a given local day:
 
-1. Commit a priority  
-2. Record at least one proven action (mission / pipeline)  
-3. Close the day intentionally  
+1. Commit a priority
+2. Record at least one proven action (mission / pipeline)
+3. Close the day intentionally
 
 **Secondary — Time-to-Outreach**  
 App open → first real contact attempt.
@@ -28,10 +28,10 @@ If it does not, rewrite it.
 
 ## 1. The three pillars (product)
 
-| Pillar | Systems | Job |
-|--------|---------|-----|
-| **Day Memory** | Closing Loop → Decision Diff | Truth across days |
-| **Day Constraint** | One-Tap Day → Gravity Engine | One action, physics of neglect |
+| Pillar              | Systems                              | Job                            |
+| ------------------- | ------------------------------------ | ------------------------------ |
+| **Day Memory**      | Closing Loop → Decision Diff         | Truth across days              |
+| **Day Constraint**  | One-Tap Day → Gravity Engine         | One action, physics of neglect |
 | **Moment of Truth** | Conversation Prep → Coach as Surface | Magic at the point of outreach |
 
 Coach is **not** chat-first. Coach appears where decisions happen.
@@ -88,7 +88,7 @@ A layer is “done” only when: UX is shippable, pure logic is tested, no regre
 ### L1 — Closing Loop
 
 **UX**  
-Intentional end-of-day ceremony (not passive AP summary). One question: *Did today’s most important work land?* Then close. Seeds tomorrow.
+Intentional end-of-day ceremony (not passive AP summary). One question: _Did today’s most important work land?_ Then close. Seeds tomorrow.
 
 **Data**
 
@@ -105,9 +105,10 @@ DayCloseRecord {
 }
 ```
 
-**Surfaces**  
-- After missions complete → Closing Loop (must tap close)  
-- From Focus Mode → “End workday” (honest partial/missed)  
+**Surfaces**
+
+- After missions complete → Closing Loop (must tap close)
+- From Focus Mode → “End workday” (honest partial/missed)
 - After close → calm Closed Day state (no re-nag)
 
 **Status:** Implemented — ClosingLoop / ClosedDay / FocusMode end-workday; IDB day memory + `day_closed` usage event.
@@ -115,7 +116,7 @@ DayCloseRecord {
 ### L2 — Decision Diff
 
 **UX**  
-Morning: *What changed since yesterday that matters?* Reads yesterday’s `DayCloseRecord` + today’s plan/warnings/events. Ends in one implied priority handoff to L3.
+Morning: _What changed since yesterday that matters?_ Reads yesterday’s `DayCloseRecord` + today’s plan/warnings/events. Ends in one implied priority handoff to L3.
 
 **Pure function**  
 `buildDecisionDiff({ yesterdayClose, todayPlan, warnings, contactsHeat }) → DiffCard[]`  
@@ -162,41 +163,41 @@ Wire Ascent into Diff, Closing, One-Tap, Prep, Gravity WHY — chat remains esca
 
 ## 5. UX strategy (cross-cutting)
 
-| Principle | Application |
-|-----------|-------------|
-| One job per region | Mission region = action; briefing = context; never both competing CTAs |
+| Principle           | Application                                                                       |
+| ------------------- | --------------------------------------------------------------------------------- |
+| One job per region  | Mission region = action; briefing = context; never both competing CTAs            |
 | Motion with meaning | Close ceremony 2–3s max; Diff enter; Prep reveal — honor `prefers-reduced-motion` |
-| Calm premium | Existing monochrome + champagne; no game HUD on workday |
-| Empty honesty | No close → no fake “all good”; Diff says “No close yesterday — start clean” |
-| Offline | Close must succeed offline (IDB); usage insert best-effort when online |
+| Calm premium        | Existing monochrome + champagne; no game HUD on workday                           |
+| Empty honesty       | No close → no fake “all good”; Diff says “No close yesterday — start clean”       |
+| Offline             | Close must succeed offline (IDB); usage insert best-effort when online            |
 
 **Home stack (unchanged order, smarter middle):**  
-Stories → Live Coaching → Sync → **Day Memory / Constraint mission** → CEO surface → Coach OS chips  
+Stories → Live Coaching → Sync → **Day Memory / Constraint mission** → CEO surface → Coach OS chips
 
 ---
 
 ## 6. Explicit non-goals (Sprint 5)
 
-- New bottom-nav destinations  
-- WhatsApp inbox / auto-send  
-- Comp-plan simulator as sprint heart  
-- Casino streaks / public shame boards  
-- Multi-agent persona zoo  
-- Analytics chart walls  
-- Knowledge corpus mass-ingest as blocker for L1–L4  
+- New bottom-nav destinations
+- WhatsApp inbox / auto-send
+- Comp-plan simulator as sprint heart
+- Casino streaks / public shame boards
+- Multi-agent persona zoo
+- Analytics chart walls
+- Knowledge corpus mass-ingest as blocker for L1–L4
 
 ---
 
 ## 7. Test strategy
 
-| Layer | Tests |
-|-------|--------|
-| L1 | `buildCloseSnapshot`, dayMemory store roundtrip, Today state transitions (unit) |
-| L2 | `buildDecisionDiff` fixtures |
-| L3–L4 | mission order + gravity pure tests |
-| L5 | prep composer from timeline fixtures |
-| L6 | surface wiring / suggestion filter tests |
-| Always | existing `missionOrder`, offline sync, analyzeOrg smoke |
+| Layer  | Tests                                                                           |
+| ------ | ------------------------------------------------------------------------------- |
+| L1     | `buildCloseSnapshot`, dayMemory store roundtrip, Today state transitions (unit) |
+| L2     | `buildDecisionDiff` fixtures                                                    |
+| L3–L4  | mission order + gravity pure tests                                              |
+| L5     | prep composer from timeline fixtures                                            |
+| L6     | surface wiring / suggestion filter tests                                        |
+| Always | existing `missionOrder`, offline sync, analyzeOrg smoke                         |
 
 ---
 

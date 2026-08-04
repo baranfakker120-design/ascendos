@@ -55,9 +55,7 @@ function lineTitle(line: DecisionDiffLine, t: ReturnType<typeof useI18n>['t']): 
 function lineWhy(line: DecisionDiffLine, t: ReturnType<typeof useI18n>['t']): string {
   if (line.kind === 'clean_start') return t('today.diffCleanHint');
   if (line.kind === 'missed_priority') {
-    return line.why === 'priority_missed'
-      ? t('today.diffWhyMissed')
-      : t('today.diffWhyPartial');
+    return line.why === 'priority_missed' ? t('today.diffWhyMissed') : t('today.diffWhyPartial');
   }
   if (line.kind === 'carry_over') {
     return line.why === 'still_on_plan' ? t('today.diffWhyStillOnPlan') : t('today.diffWhySeeded');

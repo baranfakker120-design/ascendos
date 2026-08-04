@@ -2,11 +2,7 @@ import type { DailyPlanItem } from '@shared/types/domain';
 import type { DayCloseRecord } from './types';
 
 export type DecisionDiffKind =
-  | 'carry_over'
-  | 'missed_priority'
-  | 'team_signal'
-  | 'plan_delta'
-  | 'clean_start';
+  'carry_over' | 'missed_priority' | 'team_signal' | 'plan_delta' | 'clean_start';
 
 export interface DecisionDiffLine {
   id: string;
@@ -79,8 +75,7 @@ export function buildDecisionDiff(input: DecisionDiffInput): DecisionDiffLine[] 
   const seed = (close.tomorrowSeed.length > 0 ? close.tomorrowSeed : close.openTitles).filter(
     (title) => norm(title) !== priorityNorm
   );
-  const carryPreferred =
-    seed.find((title) => todayTitles.has(norm(title))) ?? seed[0] ?? null;
+  const carryPreferred = seed.find((title) => todayTitles.has(norm(title))) ?? seed[0] ?? null;
 
   if (carryPreferred) {
     const match = todayByTitle.get(norm(carryPreferred));
