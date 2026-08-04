@@ -20,14 +20,14 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 | Rank frames 01–10 display + collection/equip    | 🟢 Complete (Sprint 6 System 1)                           |
 | Team tree pan/zoom                              | 🟡 Works; scale claims oversold                           |
 | Live Coaching Today card                        | 🟡 Works as “one Zoom event”; not a platform              |
-| Advisor of the Month                            | 🔴 Schema + readers; **no calculator, no cron**           |
+| Advisor of the Month                            | 🟢 Calculator + cron + catch-up + history UI              |
 | AAA Cinema / Hero cinema                        | 🔴 **Does not exist** (RankUpOverlay shipped in System 1) |
 | Push / scheduled notifications                  | 🔴 Tables + Settings theater; **no delivery**             |
 | Multi-org content tenancy (Stories / Live / KC) | 🔴 **No `org_id` — global to all authenticated users**    |
 | Gamification XP/Levels                          | 🔴 **Does not exist** (AP economy does)                   |
 | Settings (theme, delete account, sync controls) | 🔴 Mostly copy / fake                                     |
 
-**Ship beta only if** you accept: single-org deployment, device-local CRM retention after logout, no push reminders, no monthly award automation, and Knowledge Center content **not** feeding the Coach.
+**Ship beta only if** you accept: single-org deployment, device-local CRM retention after logout, no push reminders, and Knowledge Center content **not** feeding the Coach (until later Sprint 6 systems land).
 
 ---
 
@@ -49,16 +49,16 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 
 ### Shipped product catalog (frames 01–10)
 
-| Key         | Name                        | Trigger                                                       | Automatic                              | Disappears                               | Priority             |
-| ----------- | --------------------------- | ------------------------------------------------------------- | -------------------------------------- | ---------------------------------------- | -------------------- |
-| frame-01    | Newcomer                    | AP ≥ 0                                                        | Yes                                    | Higher AP rank                           | AP ladder            |
-| frame-02    | Active                      | AP ≥ 250                                                      | Yes                                    | Higher AP rank                           | AP ladder            |
-| frame-03…05 | Consistent / Elite / Legend | AP thresholds                                                 | Yes                                    | Higher AP rank                           | AP ladder            |
-| frame-06    | Team Leader                 | **Qualified** (5 active firstlines) via `display_rank_for_ap` | Yes                                    | When higher rank (Mentor) or unqualified | Below SA/Dev/Berater |
-| frame-07    | Mentor                      | AP ≥ 50k                                                      | Yes                                    | —                                        | AP ladder            |
-| frame-08    | Developer                   | `role = developer`                                            | Yes                                    | Role change                              | Below SA             |
-| frame-09    | Super Admin                 | `role = super_admin`                                          | Yes                                    | Role change                              | Highest              |
-| frame-10    | Berater des Monats          | `monthly_awards` **place = 1** (current UTC month)            | Display yes; **auto-award = System 2** | Period end                               | Below SA/Dev         |
+| Key         | Name                        | Trigger                                                       | Automatic                 | Disappears                               | Priority             |
+| ----------- | --------------------------- | ------------------------------------------------------------- | ------------------------- | ---------------------------------------- | -------------------- |
+| frame-01    | Newcomer                    | AP ≥ 0                                                        | Yes                       | Higher AP rank                           | AP ladder            |
+| frame-02    | Active                      | AP ≥ 250                                                      | Yes                       | Higher AP rank                           | AP ladder            |
+| frame-03…05 | Consistent / Elite / Legend | AP thresholds                                                 | Yes                       | Higher AP rank                           | AP ladder            |
+| frame-06    | Team Leader                 | **Qualified** (5 active firstlines) via `display_rank_for_ap` | Yes                       | When higher rank (Mentor) or unqualified | Below SA/Dev/Berater |
+| frame-07    | Mentor                      | AP ≥ 50k                                                      | Yes                       | —                                        | AP ladder            |
+| frame-08    | Developer                   | `role = developer`                                            | Yes                       | Role change                              | Below SA             |
+| frame-09    | Super Admin                 | `role = super_admin`                                          | Yes                       | Role change                              | Highest              |
+| frame-10    | Berater des Monats          | `monthly_awards` **place = 1** (current UTC title month)      | Yes (System 2 calculator) | Period end                               | Below SA/Dev         |
 
 **Also:** 14-day “NEU” badge (`isNewPartner`) is intentional card chrome, not a frame.  
 **Inactive** is a genealogy **filter**, not a frame (by design).
@@ -70,7 +70,7 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 | Top Recruiter                    | **No assets, no schema, no product rule** — cannot implement without new design. Deferred.                      |
 | Special Event / Temporary frames | Schema placeholders only (`seasons` / `unlock_condition`) — no content. Deferred until seasons are productized. |
 | AAA Cinema / HeroScreen          | **System 3** (not frame plumbing).                                                                              |
-| Advisor auto-calculation / cron  | **System 2** (display path place=1 is done).                                                                    |
+| Advisor auto-calculation / cron  | **Done in System 2.**                                                                                           |
 
 ### What Sprint 6 System 1 implemented
 
@@ -94,33 +94,42 @@ AscendOS is a **strong beta CRM + Coach + Daily Plan core** bolted onto a **half
 
 # 2. Advisor of the Month
 
-## Status: 🔴 Broken / Missing · Priority: P0
+## Status: 🟢 Complete · Priority: P0 · Remediated Sprint 6 System 2 (2026-08-04)
 
-| Question                  | Finding                                                                                                          |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Calculated automatically? | **No.** Zero `INSERT` into `monthly_awards` in app, SQL jobs, or Edge Functions.                                 |
-| Runs on 1st of month?     | **Nothing scheduled.** No `pg_cron`, no Cloudflare Cron, no Worker.                                              |
-| Timezone?                 | Readers use **UTC month** (`Date.UTC` in `profileApi.ts`; `date_trunc('month', now())` in genealogy). No org TZ. |
-| Tie handling?             | **Undefined** — no scorer exists. Uniques would block dupes if someone wrote manually.                           |
-| Storage?                  | Table `monthly_awards` (places 1–3, `ap_in_period`) — empty unless manual super_admin write.                     |
-| History UI?               | **None.**                                                                                                        |
-| UI / badge / frame?       | Frame-10 + gold team-node CSS **if** flag true. Display readers aligned to **place = 1** (Sprint 6 System 1).    |
-| Animation / popup?        | Rank-up overlay exists for AP ranks; **no** Advisor hero cinema (System 3).                                      |
-| Functional?               | **No** auto awards in production without System 2 calculator.                                                    |
+| Question                  | Finding                                                                                                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Calculated automatically? | **Yes.** `compute_monthly_awards` / `run_monthly_awards_job` write places 1–3 from `ap_ledger`.                                                                 |
+| Runs on 1st of month?     | **Yes.** GitHub Actions `.github/workflows/monthly-awards.yml` at `5 0 1 * *` UTC → Edge Function `run-monthly-awards`. Catch-up via `ensure_monthly_awards()`. |
+| Timezone?                 | **UTC only** (title month = current UTC month start; activity = previous UTC month). No org TZ (product decision).                                              |
+| Tie handling?             | **Defined:** AP desc → earlier `memberships.created_at` → `membership_id` asc. Documented in SQL comment + Vitest.                                              |
+| Storage?                  | `monthly_awards` filled by job/catch-up; unique on `(org, period, place)` and `(org, period, membership)`.                                                      |
+| History UI?               | **Yes.** Profile `AdvisorAwardsHistory` — current podium + past title months via `list_monthly_awards`.                                                         |
+| UI / badge / frame?       | Frame-10 + gold team-node when place=1 for **current title month**; place 1 also unlocks `hero-berater-des-monats` cosmetic.                                    |
+| Animation / popup?        | Advisor **AAA Cinema / HeroScreen** remains **System 3**. Rank-up overlay is AP ranks only (by design).                                                         |
+| Functional?               | **Yes** end-to-end with cron secrets + client catch-up safety net.                                                                                              |
 
-### Bug (display — fixed in System 1)
+### Semantics
 
-- ~~Genealogy any-place vs profile place=1~~ → both place=1.
+- **Title period** (`monthly_awards.period`) = first day of the UTC month the title is **held** (matches System 1 readers).
+- **Activity window** = previous UTC month `[title − 1 month, title)` on `ap_ledger.created_at`.
+- **Idempotent:** existing rows for `(org, period)` → `already_computed` (no rewrite).
+- **Eligibility:** any org membership with `sum(delta) > 0` in the window (inactive still eligible if they earned AP).
 
-### Remaining (System 2)
+### Ops requirements (production)
 
-- Calculator + schedule + history UI + tie rules.
+1. Deploy migration `20260818000031_sprint6_monthly_awards.sql`.
+2. Deploy Edge Function `run-monthly-awards` with secret `MONTHLY_AWARDS_CRON_SECRET`.
+3. Set GitHub Actions secrets `SUPABASE_URL` + `MONTHLY_AWARDS_CRON_SECRET`.
+4. Until (2)–(3) are live, Profile/Team catch-up still fills the **current** title month on first authenticated load.
 
 ### Evidence
 
-- Readers: `src/features/profile/profileApi.ts`, `get_genealogy_tree` (migration 30)
-- Table: `20260805000018_gamification_foundation.sql`
-- No cron: `docs/sprint-0-bericht.md`, empty schedules in `wrangler.toml`
+- `supabase/migrations/20260818000031_sprint6_monthly_awards.sql`
+- `supabase/functions/run-monthly-awards/index.ts`
+- `.github/workflows/monthly-awards.yml`
+- `src/features/profile/{AdvisorAwardsHistory,monthlyAwardsLogic,profileApi}.*`
+- `src/features/genealogy/genealogyApi.ts` (catch-up)
+- `supabase/tests/database/monthly_awards.test.sql`
 
 ---
 
@@ -191,7 +200,7 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 | Birthday                      | Draft kind / automation kind | **Never** (no `birth_date` usage in `src/`) | Never fires                          | 🔴 Stub               |
 | Zoom reminder                 | Local Notification API       | Publisher device schedule                   | Audience never gets it               | 🔴 Theater            |
 | Coach reminder                | Automation prefs             | Default OFF; no runner                      | Never                                | 🔴 Stub               |
-| Advisor of the Month          | Would be frame/story         | No award job                                | Never                                | 🔴                    |
+| Advisor of the Month          | Frame-10 + Profile history   | Job + catch-up + display                    | Title month works                    | 🟢 Award path         |
 | AAA Cinema                    | No                           | —                                           | —                                    | 🔴                    |
 | Achievement unlocked          | DB `check_achievements`      | On Progress/Journey open                    | Unlocks quietly; **no toast/push**   | 🟡 Silent             |
 | Push notification             | Settings toggle              | Requests permission                         | No VAPID / SW push / subscribe write | 🔴 UI only            |
@@ -215,19 +224,19 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 
 ## Status: 🔴 Missing platform · Priority: P0
 
-| Process                                         | Implemented?                                                                 |
-| ----------------------------------------------- | ---------------------------------------------------------------------------- |
-| Cloudflare Cron / Workers schedules             | **No** (`wrangler.toml` has no triggers)                                     |
-| `pg_cron` / `pg_net`                            | **Not installed** (documented Sprint 0)                                      |
-| Edge Function schedules                         | **No** — only on-demand: `coach-chat`, `ingest-knowledge`, `validate-invite` |
-| Coaching outbox processor                       | **No**                                                                       |
-| Monthly awards job                              | **No**                                                                       |
-| Coach birthday / inactivity / follow-up senders | **Stub prefs only**                                                          |
-| Client `setInterval`                            | UI only (countdown, notify flush, offline flush)                             |
-| Daily plan generation                           | **On user open** (`generate_daily_plan` RPC) — not midnight                  |
-| Streak sync                                     | 🟢 Trigger on `usage_events`                                                 |
-| AP award on pipeline/usage                      | 🟢 DB triggers                                                               |
-| Achievement check                               | 🟢 On-demand RPC when Progress/Journey opens                                 |
+| Process                                         | Implemented?                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Cloudflare Cron / Workers schedules             | **No** (`wrangler.toml` has no triggers)                                                    |
+| `pg_cron` / `pg_net`                            | **Not installed** (documented Sprint 0)                                                     |
+| Edge Function schedules                         | **Partial** — `run-monthly-awards` via GitHub Actions cron (System 2); no general scheduler |
+| Coaching outbox processor                       | **No**                                                                                      |
+| Monthly awards job                              | 🟢 System 2 (`run_monthly_awards_job` + GH Actions + catch-up)                              |
+| Coach birthday / inactivity / follow-up senders | **Stub prefs only**                                                                         |
+| Client `setInterval`                            | UI only (countdown, notify flush, offline flush)                                            |
+| Daily plan generation                           | **On user open** (`generate_daily_plan` RPC) — not midnight                                 |
+| Streak sync                                     | 🟢 Trigger on `usage_events`                                                                |
+| AP award on pipeline/usage                      | 🟢 DB triggers                                                                              |
+| Achievement check                               | 🟢 On-demand RPC when Progress/Journey opens                                                |
 
 **Anything that must fire when the app is closed cannot work today.**
 
@@ -237,22 +246,22 @@ Shippable as **“one Zoom card on Today + Join + calendar.”** Not shippable a
 
 ## Status: 🟡 Partially Implemented · Priority: P1
 
-| Surface                                | Status                            |
-| -------------------------------------- | --------------------------------- |
-| AP rules + ledger + totals             | 🟢 DB + triggers + pgTAP          |
-| Auto AP from pipeline/usage            | 🟢                                |
-| Manual AP tasks                        | 🟢 Leadership UI + RPC            |
-| Rank / EnergyCore / frames on Profile  | 🟢 Display                        |
-| ApRewardSticker on Daily Plan          | 🟢                                |
-| Streak days                            | 🟢 DB trigger                     |
-| Achievements / milestones              | 🟢 On-demand (`ProgressPage`)     |
-| Cosmetics unlock on AP                 | 🟢 DB insert; 🔴 no Collection UI |
-| Payout entitlements (€100 TL)          | 🟡 Entitlement rows, not payments |
-| Monthly Berater award                  | 🔴 No auto fill                   |
-| **XP**                                 | 🔴 Does not exist                 |
-| **Levels** (as XP levels)              | 🔴 Does not exist (AP ranks do)   |
-| Badges (achievement UI polish / toast) | 🟡 Data without celebration push  |
-| `features/gamification/`               | 🔴 Never created                  |
+| Surface                                | Status                                        |
+| -------------------------------------- | --------------------------------------------- |
+| AP rules + ledger + totals             | 🟢 DB + triggers + pgTAP                      |
+| Auto AP from pipeline/usage            | 🟢                                            |
+| Manual AP tasks                        | 🟢 Leadership UI + RPC                        |
+| Rank / EnergyCore / frames on Profile  | 🟢 Display                                    |
+| ApRewardSticker on Daily Plan          | 🟢                                            |
+| Streak days                            | 🟢 DB trigger                                 |
+| Achievements / milestones              | 🟢 On-demand (`ProgressPage`)                 |
+| Cosmetics unlock on AP                 | 🟢 DB insert + Collection/equip UI (System 1) |
+| Payout entitlements (€100 TL)          | 🟡 Entitlement rows, not payments             |
+| Monthly Berater award                  | 🔴 No auto fill                               |
+| **XP**                                 | 🔴 Does not exist                             |
+| **Levels** (as XP levels)              | 🔴 Does not exist (AP ranks do)               |
+| Badges (achievement UI polish / toast) | 🟡 Data without celebration push              |
+| `features/gamification/`               | 🔴 Never created                              |
 
 ---
 
@@ -391,15 +400,16 @@ Routing: incomplete Journey → Stories + Live + Sync + **JourneyToday** + CEO +
 
 ### Schema-only / dead / write-sink
 
-| Table                                                 | Verdict                                              |
-| ----------------------------------------------------- | ---------------------------------------------------- |
-| `push_subscriptions`                                  | 🔴 Dead — no client/Edge writers                     |
-| `coaching_notification_outbox`                        | 🔴 Write-only; no processor; **SELECT using (true)** |
-| `monthly_awards`                                      | 🔴 Readers only; no writers                          |
-| `seasons` / `cosmetic_items` / `membership_cosmetics` | 🟡 Backend economy; no Collection UI                 |
-| `payouts`                                             | 🟡 Entitlements; no client queries                   |
-| `knowledge_gaps`                                      | 🟡 Edge inserts; no admin UI                         |
-| `agents`                                              | 🟡 Edge-only                                         |
+| Table                                     | Verdict                                              |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `push_subscriptions`                      | 🔴 Dead — no client/Edge writers                     |
+| `coaching_notification_outbox`            | 🔴 Write-only; no processor; **SELECT using (true)** |
+| `monthly_awards`                          | 🟢 Writers: job + `ensure_monthly_awards`            |
+| `seasons`                                 | 🟡 Schema placeholder; no season product             |
+| `cosmetic_items` / `membership_cosmetics` | 🟢 Collection/equip UI (System 1)                    |
+| `payouts`                                 | 🟡 Entitlements; no client queries                   |
+| `knowledge_gaps`                          | 🟡 Edge inserts; no admin UI                         |
+| `agents`                                  | 🟡 Edge-only                                         |
 
 ### Critical issues
 
@@ -477,7 +487,7 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 | #   | System                              | Status | Priority   |
 | --- | ----------------------------------- | ------ | ---------- |
 | 1   | Avatar & Frame display              | 🟢     | —          |
-| 2   | Advisor of the Month                | 🔴     | P0         |
+| 2   | Advisor of the Month                | 🟢     | —          |
 | 3   | AAA Cinema                          | 🔴     | P0         |
 | 4   | Zoom / Live Coaching                | 🟡     | P0 honesty |
 | 5   | Notifications                       | 🔴     | P0         |
@@ -502,11 +512,11 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 # P0 Punch List (must decide before Sprint 6)
 
-1. **Do not market push / Zoom reminders / monthly Advisor / AAA Cinema** — they do not work.
+1. **Do not market push / Zoom reminders / AAA Cinema** — they do not work.
 2. **Fix or quarantine Sprint 5 content tenancy** (Stories, Live Coaching, Knowledge Center, outbox) — add `org_id` or freeze to single-org only.
 3. **Connect or rename Knowledge systems** — operators editing Knowledge Center does not feed Coach.
 4. **Clear offline stores on sign-out** — shared devices retain CRM + coach history.
-5. **Advisor of the Month:** either build calculator + schedule or remove UI promises (frame-10 / gold / stories).
+5. ~~**Advisor of the Month**~~ — **done (Sprint 6 System 2).** Deploy migration + Edge Function + GH secrets; catch-up covers misses.
 6. **Nav honesty:** Team icon vs Team Seyda.
 7. **Settings honesty:** remove or implement delete account / theme / push.
 
@@ -514,8 +524,8 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 # P1 Punch List
 
-- Collection / equip cosmetics UI or stop unlocking into a void
-- Team Leader AP-frame vs firstline qualification alignment
+- ~~Collection / equip cosmetics UI~~ — done (System 1)
+- ~~Team Leader AP-frame vs firstline qualification~~ — done (System 1)
 - Contacts phase filter server-side
 - Genealogy edge virtualization / layout cost vs 10k claim
 - Double-select on tree cards
@@ -539,21 +549,22 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 
 # Dead Code / Unused / Never Triggered (inventory)
 
-| Item                                              | Why                     |
-| ------------------------------------------------- | ----------------------- |
-| `push_subscriptions`                              | No writers              |
-| `coaching_notification_outbox` processor          | No reader/worker        |
-| `monthly_awards` auto-fill                        | No job                  |
-| `HeroScreen` / `RankUpOverlay` / `CollectionPage` | Never created           |
-| `messageDrafts` production UI                     | Tests only              |
-| Coach `automation.ts` runners                     | Prefs only; default OFF |
-| `ApBadge` in features                             | Unused                  |
-| Genealogy `messageBadge` UI                       | Always 0                |
-| `LIVE_COACHING_FUTURE` surfaces                   | All false               |
-| Settings theme/privacy/general controls           | Copy only               |
-| Settings delete account                           | Fake confirm            |
-| Event/temporary frame evaluators                  | Schema only             |
-| XP / Levels                                       | Absent                  |
+| Item                                     | Why                       |
+| ---------------------------------------- | ------------------------- |
+| `push_subscriptions`                     | No writers                |
+| `coaching_notification_outbox` processor | No reader/worker          |
+| `monthly_awards` auto-fill               | **Done** — job + catch-up |
+| `HeroScreen` / AAA Cinema                | Never created (System 3)  |
+| `RankUpOverlay` / Collection UI          | **Done** (System 1)       |
+| `messageDrafts` production UI            | Tests only                |
+| Coach `automation.ts` runners            | Prefs only; default OFF   |
+| `ApBadge` in features                    | Unused                    |
+| Genealogy `messageBadge` UI              | Always 0                  |
+| `LIVE_COACHING_FUTURE` surfaces          | All false                 |
+| Settings theme/privacy/general controls  | Copy only                 |
+| Settings delete account                  | Fake confirm              |
+| Event/temporary frame evaluators         | Schema only               |
+| XP / Levels                              | Absent                    |
 
 ---
 
@@ -563,12 +574,13 @@ Scores are code-informed estimates (structure/CSS/a11y), not visual QA lab score
 2. Contacts CRM + pipeline + share tools + offline create/update
 3. Coach chat + RAG (`knowledge_docs`) + person conversation + WhatsApp cards
 4. Daily Plan state machine + Closing Loop + Journey week-1
-5. AP economy triggers + ranks display + EnergyCore
+5. AP economy triggers + ranks display + EnergyCore + frame collection/equip
 6. Team genealogy view (for realistic team sizes) + member sheet + Coach deep link
 7. Live Coaching **admin publish + Today join card** (without relying on reminders)
 8. Ascend Stories bar when content exists
 9. i18n catalogs (de/en/fr/it/tr) for shipped surfaces
-10. CI: lint, typecheck, unit tests, build assert for `VITE_*`, pgTAP RLS suite
+10. **Advisor of the Month** calculator + schedule + Profile history (Sprint 6 System 2)
+11. CI: lint, typecheck, unit tests, build assert for `VITE_*`, pgTAP RLS suite
 
 ---
 

@@ -155,6 +155,8 @@ export function useGenealogyTree(rootIdentityId?: string | null) {
     staleTime: 30_000,
     queryFn: async (): Promise<GenealogyNode[]> => {
       const root = rootIdentityId ?? profile!.id;
+      // Advisor catch-up so gold frame / is_berater flag is current.
+      await supabase.rpc('ensure_monthly_awards');
       const { data, error } = await supabase.rpc('get_genealogy_tree', {
         p_root_identity: root,
       });

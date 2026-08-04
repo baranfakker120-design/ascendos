@@ -1,0 +1,49 @@
+name: Monthly Advisor Awards
+
+# Sprint 6 System 2 — Berater des Monats
+# Runs at 00:05 UTC on the 1st of every month. Also manual.
+#
+# Required repository secrets:
+#   SUPABASE_URL                  — project URL
+#   MONTHLY_AWARDS_CRON_SECRET    — shared with Edge Function secret
+#
+# Catch-up: authenticated clients also call ensure_monthly_awards()
+# so awards still appear if this workflow is misconfigured.
+
+on:
+  schedule:
+    - cron: '5 0 1 * *'
+  workflow_dispatch:
+    inputs:
+      title_period:
+        description: 'Optional title period YYYY-MM-01 (defaults to current UTC month)'
+        required: false
+        type: string
+
+jobs:
+  compute:
+    name: Compute monthly awards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke run-monthly-awards Edge Function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          CRON_SECRET: ${{ secrets.MONTHLY_AWARDS_CRON_SECRET }}
+          TITLE_PERIOD: ${{ inputs.title_period }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::SUPABASE_URL and MONTHLY_AWARDS_CRON_SECRET secrets are required."
+            exit 1
+          fi
+          BODY='{}'
+          if [ -n "${TITLE_PERIOD:-}" ]; then
+            BODY=$(jq -nc --arg p "$TITLE_PERIOD" '{title_period:$p}')
+          fi
+          URL="${SUPABASE_URL%/}/functions/v1/run-monthly-awards"
+          curl -fsS -X POST "$URL" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            | tee /tmp/monthly-awards.json
+          jq -e '.ok == true' /tmp/monthly-awards.json >/dev/null

@@ -695,7 +695,17 @@
     "frameEquipped": "Kuşanıldı",
     "rankUpEyebrow": "Yeni rütbe",
     "rankUpTitle": "Çerçeve açıldı",
-    "beraterDesMonats": "Ayın Danışmanı"
+    "beraterDesMonats": "Ayın Danışmanı",
+    "advisorTitle": "Ayın Danışmanı",
+    "advisorHint": "Önceki UTC ayındaki AP’ye göre 1–3. sıra. Unvan geçerli ay boyunca tutulur.",
+    "advisorEmpty": "Bu ay için henüz ödül yok — önceki ayın AP’leri işlenince podyum görünür.",
+    "advisorLoading": "Ödüller yükleniyor …",
+    "advisorLoadError": "Ödüller yüklenemedi.",
+    "advisorHistory": "Geçmiş aylar",
+    "advisorPlace1": "1. sıra",
+    "advisorPlace2": "2. sıra",
+    "advisorPlace3": "3. sıra",
+    "advisorYou": "sen"
   },
   "team": {
     "title": "Takımın",

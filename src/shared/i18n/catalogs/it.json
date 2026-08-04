@@ -695,7 +695,17 @@
     "frameEquipped": "Attiva",
     "rankUpEyebrow": "Nuovo grado",
     "rankUpTitle": "Cornice sbloccata",
-    "beraterDesMonats": "Consulente del mese"
+    "beraterDesMonats": "Consulente del mese",
+    "advisorTitle": "Consulente del mese",
+    "advisorHint": "Posti 1–3 in base agli AP del mese UTC precedente. Il titolo vale per il mese in corso.",
+    "advisorEmpty": "Nessun premio per questo mese — il podio compare quando gli AP del mese scorso sono registrati.",
+    "advisorLoading": "Caricamento premi …",
+    "advisorLoadError": "Impossibile caricare i premi.",
+    "advisorHistory": "Mesi precedenti",
+    "advisorPlace1": "1° posto",
+    "advisorPlace2": "2° posto",
+    "advisorPlace3": "3° posto",
+    "advisorYou": "tu"
   },
   "team": {
     "title": "Il tuo team",

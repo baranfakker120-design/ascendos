@@ -22,7 +22,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FUNCTIONS_DIR = join(ROOT, 'supabase', 'functions');
 const OUT_DIR = join(ROOT, 'setup', 'functions');
 
-const FUNCTIONS = ['validate-invite', 'coach-chat', 'ingest-knowledge'];
+const FUNCTIONS = ['validate-invite', 'coach-chat', 'ingest-knowledge', 'run-monthly-awards'];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
 /** Import einer Schwesterdatei INNERHALB derselben Shared-Unterverzeichnis-

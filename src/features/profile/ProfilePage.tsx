@@ -9,6 +9,7 @@ import { RankChip } from '@shared/ui/RankChip';
 import { RankFrame } from '@shared/ui/RankFrame';
 import { RoleBadge } from '@shared/ui/RoleBadge';
 import { StatCard, formatStatNumber } from '@shared/ui/StatCard';
+import { AdvisorAwardsHistory } from './AdvisorAwardsHistory';
 import { FrameCollection } from './FrameCollection';
 import { RankUpOverlay } from './RankUpOverlay';
 import { useProfileDetail } from './profileApi';
@@ -87,6 +88,8 @@ export function ProfilePage() {
       </Card>
 
       <FrameCollection />
+
+      <AdvisorAwardsHistory />
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard label={t('profile.ap')} value={formatStatNumber(rank.apTotal)} />

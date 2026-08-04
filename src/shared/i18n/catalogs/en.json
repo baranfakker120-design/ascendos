@@ -695,7 +695,17 @@
     "frameEquipped": "Equipped",
     "rankUpEyebrow": "New rank",
     "rankUpTitle": "Frame unlocked",
-    "beraterDesMonats": "Advisor of the Month"
+    "beraterDesMonats": "Advisor of the Month",
+    "advisorTitle": "Advisor of the Month",
+    "advisorHint": "Places 1–3 by AP in the previous UTC month. The title is held during the current month.",
+    "advisorEmpty": "No award for this month yet — the podium appears once last month’s AP are booked.",
+    "advisorLoading": "Loading awards …",
+    "advisorLoadError": "Awards could not be loaded.",
+    "advisorHistory": "Past months",
+    "advisorPlace1": "1st place",
+    "advisorPlace2": "2nd place",
+    "advisorPlace3": "3rd place",
+    "advisorYou": "you"
   },
   "team": {
     "title": "Your team",

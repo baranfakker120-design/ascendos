@@ -695,7 +695,17 @@
     "frameEquipped": "Aktiv",
     "rankUpEyebrow": "Neuer Rang",
     "rankUpTitle": "Rahmen freigeschaltet",
-    "beraterDesMonats": "Berater des Monats"
+    "beraterDesMonats": "Berater des Monats",
+    "advisorTitle": "Berater des Monats",
+    "advisorHint": "Platz 1–3 nach AP im Vormonat (UTC). Der Titel gilt im laufenden Monat.",
+    "advisorEmpty": "Für diesen Monat noch keine Auszeichnung — sobald AP im Vormonat gebucht wurden, erscheint das Podium.",
+    "advisorLoading": "Auszeichnungen werden geladen …",
+    "advisorLoadError": "Auszeichnungen konnten nicht geladen werden.",
+    "advisorHistory": "Vergangene Monate",
+    "advisorPlace1": "1. Platz",
+    "advisorPlace2": "2. Platz",
+    "advisorPlace3": "3. Platz",
+    "advisorYou": "du"
   },
   "team": {
     "title": "Dein Team",

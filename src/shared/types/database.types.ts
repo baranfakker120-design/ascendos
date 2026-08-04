@@ -3080,6 +3080,32 @@ export type Database = {
         Args: Record<string, never>;
         Returns: undefined;
       };
+      ensure_monthly_awards: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      compute_monthly_awards: {
+        Args: { p_org: string; p_title_period?: string };
+        Returns: Json;
+      };
+      run_monthly_awards_job: {
+        Args: { p_title_period?: string };
+        Returns: Json;
+      };
+      list_monthly_awards: {
+        Args: { p_limit?: number };
+        Returns: {
+          ap_in_period: number;
+          avatar_url: string;
+          created_at: string;
+          display_name: string;
+          is_me: boolean;
+          membership_id: string;
+          period: string;
+          place: number;
+          username: string;
+        }[];
+      };
       redeem_invite: {
         Args: { invite_code: string };
         Returns: {

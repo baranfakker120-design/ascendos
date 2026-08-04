@@ -85,7 +85,10 @@ export function useProfileDetail() {
       const membershipId = membership.data?.id ?? null;
       const teamLeaderQualified = !!membership.data?.team_leader_qualified_at;
 
-      // Erster Tag des laufenden Monats (UTC) — entspricht monthly_awards.period.
+      // Catch-up: if cron missed the 1st, compute title-month awards now.
+      await supabase.rpc('ensure_monthly_awards');
+
+      // Erster Tag des laufenden Monats (UTC) — Titelmonat (= monthly_awards.period).
       const now = new Date();
       const period = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
         .toISOString()
