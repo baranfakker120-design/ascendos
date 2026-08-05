@@ -89,9 +89,7 @@ export function GenealogyViewport({
     const focusKey = currentMembershipId ?? 'root';
     if (centeredFor.current === focusKey) return;
     const target =
-      (currentMembershipId
-        ? layout.nodes.find((n) => n.id === currentMembershipId)
-        : null) ??
+      (currentMembershipId ? layout.nodes.find((n) => n.id === currentMembershipId) : null) ??
       layout.nodes.find((n) => n.depth === 0) ??
       layout.nodes[0];
     if (!target) return;

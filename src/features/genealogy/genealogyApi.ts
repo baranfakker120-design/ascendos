@@ -156,11 +156,7 @@ export function useGenealogyTree(rootIdentityId?: string | null) {
   const { profile, membership, role } = useAuth();
   const orgScoped = rootIdentityId === undefined || rootIdentityId === null;
   return useQuery({
-    queryKey: [
-      'genealogy-tree',
-      membership?.id,
-      orgScoped ? 'org-root' : rootIdentityId,
-    ],
+    queryKey: ['genealogy-tree', membership?.id, orgScoped ? 'org-root' : rootIdentityId],
     enabled: !!profile && !!membership,
     staleTime: 30_000,
     queryFn: async (): Promise<GenealogyNode[]> => {
@@ -172,11 +168,7 @@ export function useGenealogyTree(rootIdentityId?: string | null) {
         return ((data ?? []) as RpcRow[]).map(mapRow);
       }
       if (isMissingRpcError(error)) {
-        return loadGenealogyFallback(
-          profile!.id,
-          membership!.id,
-          String(role ?? membership!.role)
-        );
+        return loadGenealogyFallback(profile!.id, membership!.id, String(role ?? membership!.role));
       }
       throw error;
     },
