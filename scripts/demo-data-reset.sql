@@ -210,7 +210,7 @@ begin
   -- Display name: Baran
   update public.profiles
      set first_name = 'Baran',
-         last_name = 'Fakker'
+         last_name = ''
    where id = v_baran_p;
 
   -- -------------------------------------------------------------------------
