@@ -57,14 +57,15 @@ export function useCoachWorkspace() {
     };
   }, []);
 
-  const { data: serverIndex } = useCoachConvoIndex(hydrated);
+  const { data: serverIndex, isSuccess: serverIndexReady } = useCoachConvoIndex(hydrated);
   useEffect(() => {
-    if (!serverIndex?.length) return;
+    // Run on empty arrays too — demo wipe must clear stale serverConversationId bindings.
+    if (!serverIndexReady || serverIndex === undefined) return;
     persist((prev) => {
       const merged = mergeServerConvos(prev, serverIndex);
       return merged === prev ? prev : merged;
     });
-  }, [serverIndex, persist]);
+  }, [serverIndex, serverIndexReady, persist]);
 
   const active = useMemo(() => findActive(snap), [snap]);
 

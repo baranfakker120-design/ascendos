@@ -242,8 +242,18 @@ export function mergeServerConvos(
   snap: WorkspaceSnapshot,
   rows: Array<{ id: string; contact_id: string | null; created_at: string }>
 ): WorkspaceSnapshot {
+  const liveIds = new Set(rows.map((r) => r.id));
+  let changed = false;
+
+  // Drop bindings to server threads that no longer exist (demo wipe / delete).
+  const conversations = snap.conversations.map((c) => {
+    if (!c.serverConversationId || liveIds.has(c.serverConversationId)) return c;
+    changed = true;
+    return { ...c, serverConversationId: null };
+  });
+
   const known = new Set(
-    snap.conversations.map((c) => c.serverConversationId).filter(Boolean) as string[]
+    conversations.map((c) => c.serverConversationId).filter(Boolean) as string[]
   );
   const additions: WorkspaceConversation[] = [];
   for (const row of rows) {
@@ -268,7 +278,18 @@ export function mergeServerConvos(
       archivedAt: null,
     });
     known.add(row.id);
+    changed = true;
   }
-  if (!additions.length) return snap;
-  return { ...snap, conversations: [...snap.conversations, ...additions] };
+  if (!changed) return snap;
+  return {
+    ...snap,
+    conversations: additions.length ? [...conversations, ...additions] : conversations,
+  };
+}
+
+/** True when the edge function reported a missing / wiped conversation. */
+export function isConversationMissingError(message: string): boolean {
+  return /konversation nicht gefunden|conversation not found|conversation introuvable|conversazione non trovata|konuşma bulunamadı/i.test(
+    message
+  );
 }

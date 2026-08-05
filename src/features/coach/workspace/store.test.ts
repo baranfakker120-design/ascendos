@@ -76,6 +76,26 @@ describe('coach workspace store', () => {
     expect(snap.conversations.filter((c) => c.serverConversationId === 'srv-1')).toHaveLength(1);
     expect(snap.conversations.some((c) => c.serverConversationId === 'srv-2')).toBe(true);
   });
+
+  it('clears stale serverConversationId after wipe (empty server index)', () => {
+    let snap = createConversation(EMPTY_WORKSPACE, {
+      title: 'Freier Chat',
+      kind: 'general',
+      serverConversationId: 'deleted-srv',
+    }).snap;
+    snap = mergeServerConvos(snap, []);
+    expect(snap.conversations).toHaveLength(1);
+    expect(snap.conversations[0].serverConversationId).toBeNull();
+  });
+});
+
+describe('isConversationMissingError', () => {
+  it('detects localized missing-conversation messages', async () => {
+    const { isConversationMissingError } = await import('./store');
+    expect(isConversationMissingError('Konversation nicht gefunden.')).toBe(true);
+    expect(isConversationMissingError('Conversation not found.')).toBe(true);
+    expect(isConversationMissingError('Network offline')).toBe(false);
+  });
 });
 
 describe('coach workspace search', () => {

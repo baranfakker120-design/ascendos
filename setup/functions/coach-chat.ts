@@ -1848,17 +1848,23 @@ Deno.serve(async (req) => {
     mark('context_ms', tContext);
 
     // ---------- Konversation laden/anlegen ----------
+    // Stale conversationId (e.g. after demo wipe) must never surface as a user-facing
+    // "Konversation nicht gefunden" — silently start a fresh thread instead.
     let history: ChatMessage[] = [];
     let agentKey: string | null = null;
     if (convoId) {
       const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
-      if (!convo) return json({ error: text.errors.conversationNotFound }, 404);
-      agentKey = convo.agent_key;
-      const { data: msgs } = await db.from('coach_messages')
-        .select('role, content').eq('convo_id', convoId)
-        .order('created_at').limit(30);
-      history = (msgs ?? []) as ChatMessage[];
-    } else {
+      if (convo) {
+        agentKey = convo.agent_key;
+        const { data: msgs } = await db.from('coach_messages')
+          .select('role, content').eq('convo_id', convoId)
+          .order('created_at').limit(30);
+        history = (msgs ?? []) as ChatMessage[];
+      } else {
+        convoId = null;
+      }
+    }
+    if (!convoId) {
       const { data: convo, error } = await db.from('coach_convos')
         .insert({ user_id: userId, org_id: profile.org_id, contact_id: contactId })
         .select().single();
