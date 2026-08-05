@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(11);
 
 create schema if not exists tests;
 grant usage on schema tests to authenticated;
@@ -128,16 +128,33 @@ select is(
   (select count(*)::int from public.get_genealogy_tree('e1000000-0000-0000-0000-00000000000a')),
   0, 'G7 FremdOrg sieht Annas Baum nicht');
 
--- Bert sieht nur eigene Downline (sich + Clara), nicht als Root Anna erzwingen ohne Ancestor-Recht... 
--- Bert IS descendant of Anna, so is_ancestor_of(Anna) from Bert is false.
--- Bert requesting Anna's tree must return empty.
+-- Bert sieht mit null denselben Org-Baum (Anna → Bert → Clara), Root = Anna.
 select tests.authenticate_as('e1000000-0000-0000-0000-00000000000b');
 select set_config('request.headers',
   json_build_object('x-ascendos-org','ea000000-0000-0000-0000-000000000001')::text, true);
 
 select is(
+  (select count(*)::int from public.get_genealogy_tree(null)),
+  3, 'G8 Bert sieht Org-Baum inkl. Upline (Anna)');
+
+select is(
+  (select identity_id from public.get_genealogy_tree(null) where depth = 0),
+  'e1000000-0000-0000-0000-00000000000a'::uuid,
+  'G9 Bert: Baum-Root ist Anna, nicht Bert');
+
+-- Explicit Sponsor-Root ohne Ancestor-Recht bleibt gesperrt.
+select is(
   (select count(*)::int from public.get_genealogy_tree('e1000000-0000-0000-0000-00000000000a')),
-  0, 'G8 Downline darf Sponsoren-Wurzel nicht als Root öffnen');
+  0, 'G10 Explicit Sponsoren-Wurzel ohne is_ancestor_of bleibt leer');
+
+-- Clara (Leaf) sieht ebenfalls die komplette Hierarchie.
+select tests.authenticate_as('e1000000-0000-0000-0000-00000000000c');
+select set_config('request.headers',
+  json_build_object('x-ascendos-org','ea000000-0000-0000-0000-000000000001')::text, true);
+
+select is(
+  (select count(*)::int from public.get_genealogy_tree(null)),
+  3, 'G11 Clara sieht Org-Baum inkl. Upline');
 
 select * from finish();
 rollback;

@@ -147,22 +147,36 @@ async function loadGenealogyFallback(
   return nodes;
 }
 
+/**
+ * Loads the structure tree.
+ * - No / null root → server climbs to the org lineage top (full org view).
+ * - Explicit identity → previous downline-from-that-root semantics.
+ */
 export function useGenealogyTree(rootIdentityId?: string | null) {
   const { profile, membership, role } = useAuth();
+  const orgScoped = rootIdentityId === undefined || rootIdentityId === null;
   return useQuery({
-    queryKey: ['genealogy-tree', membership?.id, rootIdentityId ?? profile?.id],
+    queryKey: [
+      'genealogy-tree',
+      membership?.id,
+      orgScoped ? 'org-root' : rootIdentityId,
+    ],
     enabled: !!profile && !!membership,
     staleTime: 30_000,
     queryFn: async (): Promise<GenealogyNode[]> => {
-      const root = rootIdentityId ?? profile!.id;
-      const { data, error } = await supabase.rpc('get_genealogy_tree', {
-        p_root_identity: root,
-      });
+      const { data, error } = await supabase.rpc(
+        'get_genealogy_tree',
+        orgScoped ? {} : { p_root_identity: rootIdentityId! }
+      );
       if (!error) {
         return ((data ?? []) as RpcRow[]).map(mapRow);
       }
       if (isMissingRpcError(error)) {
-        return loadGenealogyFallback(root, membership!.id, String(role ?? membership!.role));
+        return loadGenealogyFallback(
+          profile!.id,
+          membership!.id,
+          String(role ?? membership!.role)
+        );
       }
       throw error;
     },

@@ -730,6 +730,7 @@
     "directPartners": "Doğrudan partnerler",
     "sponsor": "Sponsor:",
     "badgeNew": "YENİ",
+    "youBadge": "Sen",
     "migrationBody": "Lütfen setup/production-migrations-26-27.sql dosyasını Supabase SQL Editor’de çalıştır.",
     "searchPlaceholder": "Ad, rütbe, kullanıcı adı…",
     "listAria": "Takım listesi",

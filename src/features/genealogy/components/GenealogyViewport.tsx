@@ -20,6 +20,8 @@ interface GenealogyViewportProps {
   visibleIds: Set<string>;
   collapsed: Set<string>;
   selectedId: string | null;
+  /** Logged-in membership — highlighted and used for initial camera focus. */
+  currentMembershipId: string | null;
   editableIds: Set<string>;
   onSelect: (node: GenealogyNode) => void;
   onToggleCollapse: (node: GenealogyNode) => void;
@@ -39,6 +41,7 @@ export function GenealogyViewport({
   visibleIds,
   collapsed,
   selectedId,
+  currentMembershipId,
   editableIds,
   onSelect,
   onToggleCollapse,
@@ -79,15 +82,22 @@ export function GenealogyViewport({
     return subscribe(apply);
   }, [cameraRef, subscribe]);
 
-  // Center root on first layout only — never again on touch / resize alone
-  const didCenter = useRef(false);
+  // Center the logged-in member on first layout (org root may sit above them).
+  const centeredFor = useRef<string | null>(null);
   useEffect(() => {
-    if (didCenter.current || layout.nodes.length === 0) return;
-    const root = layout.nodes.find((n) => n.depth === 0) ?? layout.nodes[0];
-    if (!root) return;
-    focusOn(root.x, root.y, size.w, size.h, 0.82);
-    didCenter.current = true;
-  }, [layout.nodes, focusOn, size.w, size.h]);
+    if (layout.nodes.length === 0 || size.w <= 0 || size.h <= 0) return;
+    const focusKey = currentMembershipId ?? 'root';
+    if (centeredFor.current === focusKey) return;
+    const target =
+      (currentMembershipId
+        ? layout.nodes.find((n) => n.id === currentMembershipId)
+        : null) ??
+      layout.nodes.find((n) => n.depth === 0) ??
+      layout.nodes[0];
+    if (!target) return;
+    focusOn(target.x, target.y, size.w, size.h, 0.82);
+    centeredFor.current = focusKey;
+  }, [layout.nodes, focusOn, size.w, size.h, currentMembershipId]);
 
   const gesturingRef = useRef(false);
   const [tick, setTick] = useState(0);
@@ -319,6 +329,7 @@ export function GenealogyViewport({
                 key={lp.id}
                 node={node}
                 selected={selectedId === lp.id}
+                isCurrent={currentMembershipId === lp.id}
                 collapsed={collapsed.has(lp.id)}
                 hasChildren={node.directCount > 0}
                 editable={editableIds.has(lp.id)}
@@ -341,9 +352,13 @@ export function GenealogyViewport({
           {layout.nodes.slice(0, 200).map((n) => (
             <span
               key={n.id}
-              className={['genealogy-minimap__dot', selectedId === n.id ? 'is-selected' : ''].join(
-                ' '
-              )}
+              className={[
+                'genealogy-minimap__dot',
+                selectedId === n.id ? 'is-selected' : '',
+                currentMembershipId === n.id ? 'is-you' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               style={{
                 left: `${(n.x / Math.max(layout.width, 1)) * 100}%`,
                 top: `${(n.y / Math.max(layout.height, 1)) * 100}%`,

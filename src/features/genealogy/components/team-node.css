@@ -43,6 +43,37 @@
     0 0 0 1.5px rgb(184 147 90 / 0.45);
 }
 
+.team-node--you {
+  border-color: rgb(184 147 90 / 0.85);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.95) inset,
+    0 0 0 2px rgb(184 147 90 / 0.55),
+    0 0 28px rgb(184 147 90 / 0.28),
+    0 22px 44px rgb(184 147 90 / 0.16);
+  z-index: 2;
+}
+
+.team-node--you .team-node__glow {
+  opacity: 0.95;
+  background: radial-gradient(circle at 50% 0%, rgb(184 147 90 / 0.42), transparent 62%);
+}
+
+.team-node__you {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgb(212 175 105), rgb(154 118 55));
+  color: white;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgb(184 147 90 / 0.4);
+}
+
 .team-node--gold {
   border-color: rgb(184 147 90 / 0.55);
 }
