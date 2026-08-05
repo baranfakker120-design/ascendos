@@ -175,6 +175,12 @@ export function CoachPage() {
     ].join('|');
     if (!contactIdParam && !partnerNameParam && !urlConvo && !kindParam && !seed) {
       deepLinkHandled.current = null;
+      // No deep link: ensure Freier Chat exists (fresh user / wipe / cleared storage).
+      if (!workspace.active) {
+        workspace.ensureKind('general', {
+          title: t('coach.ws.defaultTitle.general'),
+        });
+      }
       return;
     }
     if (deepLinkHandled.current === deepKey) return;
@@ -231,6 +237,7 @@ export function CoachPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     workspace.hydrated,
+    workspace.active,
     contactIdParam,
     partnerMidParam,
     partnerNameParam,

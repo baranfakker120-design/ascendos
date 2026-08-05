@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
-import { readStoredLocale } from '@shared/lib/locale';
+import { readStoredLocale, type AppLocale } from '@shared/lib/locale';
 import { createCoachTranslator } from './i18n';
+import { isConversationMissingError } from './workspace/store';
 
 export interface CoachMessage {
   id: string;
@@ -55,6 +56,30 @@ type SendContext = {
   tempUserId: string;
 };
 
+async function invokeCoachChat(input: {
+  message: string;
+  conversationId: string | null;
+  contactId: string | null;
+  locale: AppLocale;
+}): Promise<SendResult> {
+  const { data, error } = await supabase.functions.invoke('coach-chat', {
+    body: {
+      message: input.message,
+      conversationId: input.conversationId,
+      contactId: input.contactId,
+      locale: input.locale,
+    },
+  });
+  if (error) {
+    const context = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    const message =
+      (context as { error?: string } | null)?.error ??
+      createCoachTranslator(input.locale)('chat.unreachable');
+    throw new Error(message);
+  }
+  return data as SendResult;
+}
+
 export function useSendToCoach() {
   const qc = useQueryClient();
   return useMutation({
@@ -62,19 +87,26 @@ export function useSendToCoach() {
       // Resolve at send time so a language switch never leaves the mutation
       // with a stale locale captured by an earlier render.
       const locale = readStoredLocale();
-      const { data, error } = await supabase.functions.invoke('coach-chat', {
-        body: {
+      try {
+        return await invokeCoachChat({
           message: input.message,
           conversationId: input.conversationId,
           contactId: input.contactId,
           locale,
-        },
-      });
-      if (error) {
-        const context = await (error as { context?: Response }).context?.json?.().catch(() => null);
-        throw new Error(context?.error ?? createCoachTranslator(locale)('chat.unreachable'));
+        });
+      } catch (err) {
+        // Stale server id after wipe / delete — retry as a brand-new thread.
+        const msg = err instanceof Error ? err.message : String(err);
+        if (input.conversationId && isConversationMissingError(msg)) {
+          return await invokeCoachChat({
+            message: input.message,
+            conversationId: null,
+            contactId: input.contactId,
+            locale,
+          });
+        }
+        throw err;
       }
-      return data as SendResult;
     },
     onMutate: async (input): Promise<SendContext> => {
       const optimisticKey = messagesKey(input.conversationId);
