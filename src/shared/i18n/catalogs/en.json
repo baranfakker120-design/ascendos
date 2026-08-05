@@ -730,6 +730,7 @@
     "directPartners": "Direct partners",
     "sponsor": "Sponsor:",
     "badgeNew": "NEW",
+    "youBadge": "You",
     "migrationBody": "Please run setup/production-migrations-26-27.sql in the Supabase SQL Editor.",
     "searchPlaceholder": "Name, rank, username…",
     "listAria": "Team list",

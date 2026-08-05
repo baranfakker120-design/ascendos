@@ -131,6 +131,29 @@ export function TeamPage() {
     return () => window.clearTimeout(timer);
   }, [collapsed, mode]);
 
+  // Ensure the path to the viewer stays expanded so auto-centering can find them.
+  useEffect(() => {
+    if (!membership?.id || nodes.length === 0) return;
+    const byId = new Map(nodes.map((n) => [n.membershipId, n]));
+    const self = byId.get(membership.id);
+    if (!self) return;
+    const ancestorIds: string[] = [];
+    let walk = self.sponsorMembershipId;
+    while (walk) {
+      ancestorIds.push(walk);
+      walk = byId.get(walk)?.sponsorMembershipId ?? null;
+    }
+    if (ancestorIds.length === 0) return;
+    setCollapsed((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const id of ancestorIds) {
+        if (next.delete(id)) changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [membership?.id, nodes]);
+
   const emptyTeam = !isPending && !isError && hasNoTeamPartners(nodes);
 
   const visibleIds = useMemo(
@@ -251,6 +274,7 @@ export function TeamPage() {
               visibleIds={visibleIds}
               collapsed={collapsed}
               selectedId={selected?.membershipId ?? null}
+              currentMembershipId={membership?.id ?? null}
               editableIds={editableIds}
               onSelect={(node) => openMember(node, 'overview')}
               onToggleCollapse={onToggleCollapse}

@@ -17,6 +17,8 @@ import './team-node.css';
 interface TeamNodeCardProps {
   node: GenealogyNode;
   selected?: boolean;
+  /** Logged-in viewer — visual highlight only; not the tree root. */
+  isCurrent?: boolean;
   collapsed?: boolean;
   hasChildren?: boolean;
   /** Self + descendants of the logged-in member. */
@@ -29,6 +31,7 @@ interface TeamNodeCardProps {
 export function TeamNodeCard({
   node,
   selected,
+  isCurrent,
   collapsed,
   hasChildren,
   editable = true,
@@ -67,6 +70,7 @@ export function TeamNodeCard({
       className={[
         'team-node',
         selected ? 'team-node--selected' : '',
+        isCurrent ? 'team-node--you' : '',
         gold ? 'team-node--gold' : '',
         online ? 'team-node--online' : '',
         node.isFavorite ? 'team-node--fav' : '',
@@ -76,6 +80,7 @@ export function TeamNodeCard({
         .join(' ')}
       style={style}
       data-membership-id={node.membershipId}
+      data-current={isCurrent ? 'true' : undefined}
       onClick={() => onSelect(node)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -85,9 +90,10 @@ export function TeamNodeCard({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`${displayName(node)}, ${node.rankLabel ?? t('team.rankFallback')}${editable ? '' : `, ${t('team.viewOnly')}`}`}
+      aria-label={`${displayName(node)}${isCurrent ? ` (${t('team.youBadge')})` : ''}, ${node.rankLabel ?? t('team.rankFallback')}${editable ? '' : `, ${t('team.viewOnly')}`}`}
     >
       <div className="team-node__glow" aria-hidden />
+      {isCurrent ? <span className="team-node__you">{t('team.youBadge')}</span> : null}
       <div
         className="team-node__coach"
         data-tree-coach=""

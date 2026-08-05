@@ -92,3 +92,12 @@
   background: rgb(184 147 90);
   box-shadow: 0 0 0 3px rgb(184 147 90 / 0.25);
 }
+
+.genealogy-minimap__dot.is-you {
+  width: 7px;
+  height: 7px;
+  background: rgb(212 175 105);
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.95),
+    0 0 0 4px rgb(184 147 90 / 0.45);
+}
