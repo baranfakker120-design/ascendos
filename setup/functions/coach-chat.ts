@@ -267,9 +267,9 @@ export async function geminiEmbed(text: string, task: EmbedTask): Promise<number
  *
  * Ascent ist kein Chatbot. Ascent ist der persönliche Business-Mentor.
  */
-export type CoachLocale = 'de' | 'tr' | 'fr' | 'en' | 'it';
+export type CoachLocale = 'de' | 'tr' | 'fr' | 'en' | 'it' | 'pl';
 
-const COACH_LOCALES: readonly CoachLocale[] = ['de', 'tr', 'fr', 'en', 'it'];
+const COACH_LOCALES: readonly CoachLocale[] = ['de', 'tr', 'fr', 'en', 'it', 'pl'];
 
 export function normalizeCoachLocale(value: unknown): CoachLocale {
   return typeof value === 'string' && COACH_LOCALES.includes(value as CoachLocale)
@@ -315,6 +315,12 @@ const MENTOR_CARD_LABELS: Record<CoachLocale, MentorCardLabels> = {
     why: 'Perché è importante',
     action: 'Il tuo prossimo passo',
   },
+  pl: {
+    mistake: 'Najczęstszy błąd',
+    tip: 'Wskazówka eksperta',
+    why: 'Dlaczego to ważne',
+    action: 'Twój następny krok',
+  },
 };
 
 export function mentorCardLabels(locale: CoachLocale): MentorCardLabels {
@@ -327,6 +333,7 @@ const LANGUAGE_NAMES: Record<CoachLocale, string> = {
   fr: 'FRENCH (français)',
   en: 'ENGLISH',
   it: 'ITALIAN (italiano)',
+  pl: 'POLISH (polski)',
 };
 
 /**
@@ -1387,6 +1394,16 @@ const PHASE_LABELS: Record<CoachLocale, Record<string, string>> = {
     kunde: 'Cliente',
     partner: 'Partner',
   },
+  pl: {
+    lead: 'Lead',
+    im_gespraech: 'W rozmowie',
+    praesentation_offen: 'Prezentacja wysłana',
+    praesentation: 'Prezentacja obejrzana',
+    fit_check: 'Fit Check ukończony',
+    three_way_call: '3-Way-Call przeprowadzony',
+    kunde: 'Klient',
+    partner: 'Partner',
+  },
 };
 
 const EVENT_LABELS: Record<CoachLocale, Record<string, string>> = {
@@ -1464,6 +1481,21 @@ const EVENT_LABELS: Record<CoachLocale, Record<string, string>> = {
     party_done: 'Festa dei profumi svolta',
     became_customer: 'È diventato cliente',
     registered: 'Registrato come partner',
+  },
+  pl: {
+    contact_created: 'Kontakt utworzony',
+    first_touch: 'Pierwsza rozmowa',
+    follow_up: 'Follow-up',
+    presentation_sent: 'Prezentacja wysłana',
+    presentation_viewed: 'Prezentacja obejrzana',
+    fit_check_sent: 'Fit Check wysłany',
+    fit_check_completed: 'Fit Check ukończony',
+    waytomoon_sent: 'WayToMoon wysłany',
+    three_way_call_done: '3-Way-Call przeprowadzony',
+    party_scheduled: 'Impreza zapachowa zaplanowana',
+    party_done: 'Impreza zapachowa przeprowadzona',
+    became_customer: 'Został klientem',
+    registered: 'Zarejestrowany jako partner',
   },
 };
 
@@ -1736,6 +1768,53 @@ const TEXT: Record<CoachLocale, LocalizedText> = {
       exactMatchHeader: 'CORRISPONDENZA NUMERICA ESATTA (da usare per prima)',
       noDocumentsHint:
         'NOTA: non è stato trovato ALCUN documento del team per questa domanda. Segui la regola della base di conoscenza.',
+    },
+  },
+  pl: {
+    errors: {
+      notSignedIn: 'Nie zalogowano.',
+      profileNotFound: 'Nie znaleziono profilu.',
+      dailyLimit: (limit) =>
+        `Osiągnięto dzienny limit (${limit} wiadomości). Możesz kontynuować jutro.`,
+      emptyMessage: 'Pusta wiadomość.',
+      contactNotFound: 'Nie znaleziono kontaktu.',
+      conversationNotFound: 'Nie znaleziono rozmowy.',
+      coachNotConfigured: 'Brak skonfigurowanego coacha.',
+      emptyReply: 'Ascent nie mógł wygenerować odpowiedzi. Wyślij wiadomość ponownie.',
+      rateLimited:
+        'Ascent jest teraz mocno obciążony. Wyślij wiadomość ponownie za około minutę.',
+      timeout:
+        'Ascent potrzebował zbyt dużo czasu. Wyślij pytanie ponownie, najlepiej nieco krótsze.',
+      upstream: 'Ascent jest teraz niedostępny. Spróbuj ponownie za chwilę.',
+      invalidResponse: 'Ascent nie mógł wygenerować odpowiedzi. Wyślij wiadomość ponownie.',
+      missingApiKey:
+        'Ascent nie jest w pełni skonfigurowany. Poinformuj administratora.',
+      generic: 'Coach jest teraz niedostępny. Spróbuj ponownie za chwilę.',
+    },
+    contact: {
+      name: 'Imię',
+      pipelinePhase: 'Etap pipeline',
+      lastContact: 'Ostatni kontakt',
+      never: 'nigdy',
+      today: 'dzisiaj',
+      daysAgo: (days) =>
+        days === 1 ? '1 dzień temu' : `${days} dni temu`,
+      plannedNextStep: 'Zaplanowany następny krok',
+      notes: 'Notatki',
+      recentEvents: 'Ostatnie wydarzenia (od najnowszych)',
+      contextHeader: 'KONTEKST KONTAKTU (z pipeline użytkownika, już znany)',
+    },
+    knowledge: {
+      ragSkippedHint:
+        'UWAGA: To pytanie dotyczy prawdopodobnie kontaktów lub planu dnia użytkownika. ' +
+        'NIE masz bezpośredniego dostępu do tych danych w tej odpowiedzi, chyba że poniżej ' +
+        'podano KONTEKST KONTAKTU. Nie wymyślaj danych kontaktów ani zadań. W razie potrzeby ' +
+        'odeslij użytkownika do sekcji Kontakty lub Dzisiaj w aplikacji.',
+      extractsHeader: 'FRAGMENTY Z DOKUMENTÓW ZESPOŁU (najwyższy priorytet)',
+      documentFallback: 'Dokument wiedzy',
+      exactMatchHeader: 'DOKŁADNE DOPASOWANIE LICZBY (użyj w pierwszej kolejności)',
+      noDocumentsHint:
+        'UWAGA: Nie znaleziono ŻADNYCH dokumentów zespołu dla tego pytania. Stosuj regułę bazy wiedzy.',
     },
   },
 };

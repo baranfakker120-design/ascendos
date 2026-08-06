@@ -1,7 +1,7 @@
 import type { FirstLaunchStep } from './storage';
 import type { InstallPlatform } from './platform';
 
-export const ONBOARDING_LOCALES = ['de', 'tr', 'en', 'fr', 'it'] as const;
+export const ONBOARDING_LOCALES = ['de', 'tr', 'en', 'fr', 'it', 'pl'] as const;
 
 export type GuideFamily = 'android' | 'ios';
 

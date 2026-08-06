@@ -47,7 +47,7 @@ describe('Ascent mentor personality contract', () => {
   });
 
   it('defines localized mentor-card labels for every supported locale', () => {
-    for (const locale of ['de', 'tr', 'fr', 'en', 'it']) {
+    for (const locale of ['de', 'tr', 'fr', 'en', 'it', 'pl']) {
       expect(rules).toMatch(new RegExp(`${locale}: \\{`));
     }
     expect(rules).toMatch(/Biggest mistake/);

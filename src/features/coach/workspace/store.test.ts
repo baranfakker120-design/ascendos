@@ -94,6 +94,7 @@ describe('isConversationMissingError', () => {
     const { isConversationMissingError } = await import('./store');
     expect(isConversationMissingError('Konversation nicht gefunden.')).toBe(true);
     expect(isConversationMissingError('Conversation not found.')).toBe(true);
+    expect(isConversationMissingError('Nie znaleziono rozmowy.')).toBe(true);
     expect(isConversationMissingError('Network offline')).toBe(false);
   });
 });

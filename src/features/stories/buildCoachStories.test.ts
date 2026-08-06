@@ -70,7 +70,7 @@ describe('buildCoachStories', () => {
   });
 
   it('keeps story selection stable while localizing coach-authored wrappers', () => {
-    const locales = ['de', 'en', 'fr', 'tr', 'it'] as const;
+    const locales = ['de', 'en', 'fr', 'tr', 'it', 'pl'] as const;
     const localized = locales.map((locale) => {
       const t = createCoachTranslator(locale);
       const intel = buildCoachOrgIntelligence({ ...input(), t });

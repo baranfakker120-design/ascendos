@@ -2,6 +2,7 @@ import de from './catalogs/de.json';
 import en from './catalogs/en.json';
 import fr from './catalogs/fr.json';
 import it from './catalogs/it.json';
+import pl from './catalogs/pl.json';
 import tr from './catalogs/tr.json';
 import type { AppLocale } from '@shared/lib/locale';
 
@@ -25,6 +26,7 @@ const CATALOGS: Record<AppLocale, MessageTree> = {
   fr: fr as MessageTree,
   tr: tr as MessageTree,
   it: it as MessageTree,
+  pl: pl as MessageTree,
 };
 
 function lookup(tree: MessageTree, key: string): string | undefined {

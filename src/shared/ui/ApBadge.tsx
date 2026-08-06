@@ -21,6 +21,7 @@ const NUMBER_LOCALES: Record<AppLocale, string> = {
   fr: 'fr-FR',
   en: 'en-GB',
   it: 'it-IT',
+  pl: 'pl-PL',
 };
 
 function valueClass(size: ApBadgeSize): string {
