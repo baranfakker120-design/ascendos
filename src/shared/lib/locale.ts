@@ -1,6 +1,6 @@
 /** UI languages for AscendOS — presentation only; persisted locally. */
 
-export type AppLocale = 'de' | 'tr' | 'fr' | 'en' | 'it';
+export type AppLocale = 'de' | 'tr' | 'fr' | 'en' | 'it' | 'pl';
 
 export interface LocaleOption {
   code: AppLocale;
@@ -15,6 +15,7 @@ export const APP_LOCALES: readonly LocaleOption[] = [
   { code: 'fr', labelKey: 'locale.name.fr', flag: '/brand/nav/lang-fr.svg' },
   { code: 'en', labelKey: 'locale.name.en', flag: '/brand/nav/lang-en.svg' },
   { code: 'it', labelKey: 'locale.name.it', flag: '/brand/nav/lang-it.svg' },
+  { code: 'pl', labelKey: 'locale.name.pl', flag: '/brand/nav/lang-pl.svg' },
 ] as const;
 
 const STORAGE_KEY = 'ascendos.locale';
@@ -22,7 +23,6 @@ const STORAGE_KEY = 'ascendos.locale';
 /** Legacy codes removed from the product — map to a supported locale. */
 const LEGACY_LOCALE_MAP: Record<string, AppLocale> = {
   es: 'en',
-  pl: 'en',
 };
 
 export function isAppLocale(value: string): value is AppLocale {

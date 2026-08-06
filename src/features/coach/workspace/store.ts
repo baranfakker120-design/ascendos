@@ -289,7 +289,7 @@ export function mergeServerConvos(
 
 /** True when the edge function reported a missing / wiped conversation. */
 export function isConversationMissingError(message: string): boolean {
-  return /konversation nicht gefunden|conversation not found|conversation introuvable|conversazione non trovata|konuşma bulunamadı/i.test(
+  return /konversation nicht gefunden|conversation not found|conversation introuvable|conversazione non trovata|konuşma bulunamadı|nie znaleziono rozmowy/i.test(
     message
   );
 }

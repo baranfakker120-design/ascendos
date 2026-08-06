@@ -3,6 +3,7 @@ import de from './catalogs/de.json';
 import en from './catalogs/en.json';
 import fr from './catalogs/fr.json';
 import itCatalog from './catalogs/it.json';
+import pl from './catalogs/pl.json';
 import tr from './catalogs/tr.json';
 import { createCoachTranslator, interpolate } from '.';
 
@@ -34,7 +35,7 @@ describe('coach i18n', () => {
   it('keeps full key parity across every coach catalog', () => {
     const expectedMessages = messages(de);
     const expected = Object.keys(expectedMessages).sort();
-    for (const catalog of [en, fr, tr, itCatalog]) {
+    for (const catalog of [en, fr, tr, itCatalog, pl]) {
       expect(keys(catalog).sort()).toEqual(expected);
       const localizedMessages = messages(catalog);
       for (const key of expected) {
@@ -64,6 +65,9 @@ describe('coach i18n', () => {
     );
     expect(createCoachTranslator('it')('briefing.greeting', { name: 'Tina' })).toBe(
       'Buongiorno, Tina.'
+    );
+    expect(createCoachTranslator('pl')('briefing.greeting', { name: 'Tina' })).toBe(
+      'Dzień dobry, Tina.'
     );
   });
 });

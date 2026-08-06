@@ -2,6 +2,7 @@ import de from './catalogs/de.json';
 import en from './catalogs/en.json';
 import fr from './catalogs/fr.json';
 import it from './catalogs/it.json';
+import pl from './catalogs/pl.json';
 import tr from './catalogs/tr.json';
 import type { AppLocale } from '@shared/lib/locale';
 
@@ -16,6 +17,7 @@ const CATALOGS: Record<AppLocale, CoachCatalog> = {
   fr: fr as CoachCatalog,
   tr: tr as CoachCatalog,
   it: it as CoachCatalog,
+  pl: pl as CoachCatalog,
 };
 
 function lookup(catalog: CoachCatalog, key: string): string | undefined {

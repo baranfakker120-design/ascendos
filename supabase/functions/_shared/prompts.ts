@@ -4,9 +4,9 @@
  *
  * Ascent ist kein Chatbot. Ascent ist der persönliche Business-Mentor.
  */
-export type CoachLocale = 'de' | 'tr' | 'fr' | 'en' | 'it';
+export type CoachLocale = 'de' | 'tr' | 'fr' | 'en' | 'it' | 'pl';
 
-const COACH_LOCALES: readonly CoachLocale[] = ['de', 'tr', 'fr', 'en', 'it'];
+const COACH_LOCALES: readonly CoachLocale[] = ['de', 'tr', 'fr', 'en', 'it', 'pl'];
 
 export function normalizeCoachLocale(value: unknown): CoachLocale {
   return typeof value === 'string' && COACH_LOCALES.includes(value as CoachLocale)
@@ -52,6 +52,12 @@ const MENTOR_CARD_LABELS: Record<CoachLocale, MentorCardLabels> = {
     why: 'Perché è importante',
     action: 'Il tuo prossimo passo',
   },
+  pl: {
+    mistake: 'Najczęstszy błąd',
+    tip: 'Wskazówka eksperta',
+    why: 'Dlaczego to ważne',
+    action: 'Twój następny krok',
+  },
 };
 
 export function mentorCardLabels(locale: CoachLocale): MentorCardLabels {
@@ -64,6 +70,7 @@ const LANGUAGE_NAMES: Record<CoachLocale, string> = {
   fr: 'FRENCH (français)',
   en: 'ENGLISH',
   it: 'ITALIAN (italiano)',
+  pl: 'POLISH (polski)',
 };
 
 /**
