@@ -595,7 +595,7 @@
         "leadership": "Przywództwo",
         "general": "Otwarta rozmowa"
       },
-      "deleteTitle": "Usunąć rozmowę?",
+      "deleteTitle": "Usunąć czat?",
       "deleteBody": "Rozmowa i cała historia wiadomości zostaną trwale usunięte."
     },
     "exec": {

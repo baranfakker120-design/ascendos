@@ -595,7 +595,7 @@
         "leadership": "Liderlik",
         "general": "Serbest sohbet"
       },
-      "deleteTitle": "Konuşma silinsin mi?",
+      "deleteTitle": "Sohbet silinsin mi?",
       "deleteBody": "Konuşma ve tüm mesaj geçmişi kalıcı olarak silinir."
     },
     "exec": {
