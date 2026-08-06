@@ -1,7 +1,13 @@
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { BottomSheet } from '@shared/ui/BottomSheet';
-import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { displayConversationTitle } from './displayTitle';
 import type { WorkspaceConversation } from './types';
 
@@ -15,8 +21,8 @@ function relativeStamp(iso: string, locale: string): string {
   }
 }
 
-const SWIPE_OPEN_PX = 72;
-const SWIPE_ACTIVATE_PX = 12;
+const SWIPE_OPEN_PX = 76;
+const SWIPE_ACTIVATE_PX = 10;
 
 export function ConversationList({
   activeId,
@@ -41,6 +47,27 @@ export function ConversationList({
   const [pendingDelete, setPendingDelete] = useState<WorkspaceConversation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+  const listRef = useRef<HTMLElement>(null);
+
+  // Tap outside an open swipe row closes the action (iOS Mail / WhatsApp).
+  useEffect(() => {
+    if (!openSwipeId) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const root = listRef.current;
+      if (!root) return;
+      const target = e.target as Node | null;
+      if (!target || !root.contains(target)) {
+        setOpenSwipeId(null);
+        return;
+      }
+      const row = (target as Element).closest?.('[data-swipe-id]');
+      if (!row || row.getAttribute('data-swipe-id') !== openSwipeId) {
+        setOpenSwipeId(null);
+      }
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
+    return () => window.removeEventListener('pointerdown', onPointerDown, true);
+  }, [openSwipeId]);
 
   const confirmDelete = async () => {
     if (!pendingDelete || deleting) return;
@@ -54,8 +81,13 @@ export function ConversationList({
     }
   };
 
+  const requestDelete = (convo: WorkspaceConversation) => {
+    setOpenSwipeId(null);
+    setPendingDelete(convo);
+  };
+
   return (
-    <aside className="coach-ws__list" aria-label={t('coach.ws.listAria')}>
+    <aside ref={listRef} className="coach-ws__list" aria-label={t('coach.ws.listAria')}>
       <div className="coach-ws__list-head">
         <div className="coach-ws__list-title">
           <h1>{t('coach.ws.title')}</h1>
@@ -95,10 +127,7 @@ export function ConversationList({
             onSwipeOpen={(id) => setOpenSwipeId(id)}
             onSwipeClose={() => setOpenSwipeId((cur) => (cur === c.id ? null : cur))}
             onOpen={onOpen}
-            onRequestDelete={(convo) => {
-              setOpenSwipeId(null);
-              setPendingDelete(convo);
-            }}
+            onRequestDelete={requestDelete}
           />
         ))}
 
@@ -115,10 +144,7 @@ export function ConversationList({
                 onSwipeOpen={(id) => setOpenSwipeId(id)}
                 onSwipeClose={() => setOpenSwipeId((cur) => (cur === c.id ? null : cur))}
                 onOpen={onOpen}
-                onRequestDelete={(convo) => {
-                  setOpenSwipeId(null);
-                  setPendingDelete(convo);
-                }}
+                onRequestDelete={requestDelete}
               />
             ))}
           </>
@@ -181,24 +207,42 @@ function ConversationRow({
   const kindKey = `coach.ws.kind.${conversation.kind}` as MessageKey;
   const title = displayConversationTitle(conversation, t);
   const trackRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ startX: number; startY: number; dx: number; horizontal: boolean | null }>({
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{
+    startX: number;
+    startY: number;
+    base: number;
+    dx: number;
+    horizontal: boolean | null;
+  }>({
     startX: 0,
     startY: 0,
+    base: 0,
     dx: 0,
     horizontal: null,
   });
 
-  const setOffset = useCallback((px: number) => {
+  const setOffset = useCallback((px: number, withTransition: boolean) => {
     const el = trackRef.current;
     if (!el) return;
+    el.style.transition = withTransition
+      ? 'transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1)'
+      : 'none';
     el.style.transform = `translate3d(${px}px, 0, 0)`;
   }, []);
+
+  // Sync closed/open state when another row opens or outside tap closes.
+  useEffect(() => {
+    if (dragging) return;
+    setOffset(swipeOpen ? -SWIPE_OPEN_PX : 0, true);
+  }, [swipeOpen, dragging, setOffset]);
 
   const onPointerDown = (e: ReactPointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     drag.current = {
       startX: e.clientX,
       startY: e.clientY,
+      base: swipeOpen ? -SWIPE_OPEN_PX : 0,
       dx: swipeOpen ? -SWIPE_OPEN_PX : 0,
       horizontal: null,
     };
@@ -207,49 +251,73 @@ function ConversationRow({
 
   const onPointerMove = (e: ReactPointerEvent) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    const dx = e.clientX - drag.current.startX + (swipeOpen ? -SWIPE_OPEN_PX : 0);
+    const rawDx = e.clientX - drag.current.startX;
     const dy = e.clientY - drag.current.startY;
+
     if (drag.current.horizontal === null) {
-      if (Math.abs(dx) < SWIPE_ACTIVATE_PX && Math.abs(dy) < SWIPE_ACTIVATE_PX) return;
-      drag.current.horizontal = Math.abs(dx) > Math.abs(dy);
+      if (Math.abs(rawDx) < SWIPE_ACTIVATE_PX && Math.abs(dy) < SWIPE_ACTIVATE_PX) return;
+      drag.current.horizontal = Math.abs(rawDx) > Math.abs(dy);
       if (!drag.current.horizontal) return;
+      setDragging(true);
     }
     if (!drag.current.horizontal) return;
+
     e.preventDefault();
-    const clamped = Math.min(0, Math.max(-SWIPE_OPEN_PX, dx));
+    const clamped = Math.min(0, Math.max(-SWIPE_OPEN_PX, drag.current.base + rawDx));
     drag.current.dx = clamped;
-    setOffset(clamped);
+    setOffset(clamped, false);
   };
 
   const endPointer = (e: ReactPointerEvent) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
-    if (drag.current.horizontal) {
-      if (drag.current.dx <= -SWIPE_OPEN_PX / 2) {
-        setOffset(-SWIPE_OPEN_PX);
-        onSwipeOpen(conversation.id);
-      } else {
-        setOffset(0);
-        onSwipeClose();
-      }
-    }
+
+    const wasHorizontal = drag.current.horizontal === true;
+    const dx = drag.current.dx;
     drag.current.horizontal = null;
+    setDragging(false);
+
+    if (!wasHorizontal) return;
+
+    if (dx <= -SWIPE_OPEN_PX * 0.45) {
+      setOffset(-SWIPE_OPEN_PX, true);
+      onSwipeOpen(conversation.id);
+    } else {
+      setOffset(0, true);
+      onSwipeClose();
+    }
   };
 
+  const actionRevealed = swipeOpen || dragging;
+
   return (
-    <div className={`coach-ws__swipe${swipeOpen ? ' coach-ws__swipe--open' : ''}`}>
+    <div
+      className={[
+        'coach-ws__swipe',
+        swipeOpen ? 'coach-ws__swipe--open' : '',
+        dragging ? 'coach-ws__swipe--dragging' : '',
+        actionRevealed ? 'coach-ws__swipe--revealed' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      data-swipe-id={conversation.id}
+    >
       <button
         type="button"
         className="coach-ws__swipe-action"
         aria-label={t('common.delete')}
-        onClick={() => onRequestDelete(conversation)}
+        tabIndex={actionRevealed ? 0 : -1}
+        aria-hidden={!actionRevealed}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRequestDelete(conversation);
+        }}
       >
         <TrashIcon />
       </button>
       <div
         ref={trackRef}
         className="coach-ws__swipe-track"
-        style={{ transform: swipeOpen ? `translate3d(-${SWIPE_OPEN_PX}px, 0, 0)` : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
@@ -259,8 +327,8 @@ function ConversationRow({
           type="button"
           className={`coach-ws__item${active ? ' coach-ws__item--on' : ''}`}
           onClick={() => {
-            if (swipeOpen) {
-              setOffset(0);
+            if (swipeOpen || drag.current.dx < -SWIPE_ACTIVATE_PX) {
+              setOffset(0, true);
               onSwipeClose();
               return;
             }
@@ -280,11 +348,11 @@ function ConversationRow({
 
 function TrashIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M9 3h6m-9 4h12m-1.5 0-.7 12.1a2 2 0 0 1-2 1.9H8.2a2 2 0 0 1-2-1.9L5.5 7M10 11v6m4-6v6"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.85"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

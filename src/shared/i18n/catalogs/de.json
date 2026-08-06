@@ -595,7 +595,7 @@
         "leadership": "Leadership",
         "general": "Freier Chat"
       },
-      "deleteTitle": "Konversation löschen?",
+      "deleteTitle": "Chat löschen?",
       "deleteBody": "Die Konversation und der gesamte Verlauf werden dauerhaft entfernt."
     },
     "exec": {

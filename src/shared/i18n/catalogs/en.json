@@ -595,7 +595,7 @@
         "leadership": "Leadership",
         "general": "Open chat"
       },
-      "deleteTitle": "Delete conversation?",
+      "deleteTitle": "Delete chat?",
       "deleteBody": "This permanently removes the conversation and its message history."
     },
     "exec": {

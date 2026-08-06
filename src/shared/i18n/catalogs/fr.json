@@ -595,7 +595,7 @@
         "leadership": "Leadership",
         "general": "Chat libre"
       },
-      "deleteTitle": "Supprimer la conversation ?",
+      "deleteTitle": "Supprimer le chat ?",
       "deleteBody": "La conversation et tout l’historique seront définitivement supprimés."
     },
     "exec": {
