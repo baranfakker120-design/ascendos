@@ -4,8 +4,7 @@ import type { StoryCard, StoryType } from './types';
 import { STORY_TTL_MS } from './types';
 
 const DEFAULT_T = createCoachTranslator('de');
-const REGISTRATION_RE =
-  /registrierung|registration|inscription|kayıt|registrazion[ei]|rejestracj/i;
+const REGISTRATION_RE = /registrierung|registration|inscription|kayıt|registrazion[ei]|rejestracj/i;
 const ACTIVE_TODAY_RE =
   /heute aktiv|active today|acti(?:f|fs|ve|ves) aujourd|bugün.*aktif|attiv[ioe]* oggi|aktywnych? (?:partnerów )?dzisiaj/i;
 const QUALIFICATION_RE =

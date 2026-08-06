@@ -56,17 +56,22 @@ export function GenealogyList({ nodes, visibleIds, selectedId, onSelect }: Genea
                   <span className="truncate font-semibold">{displayName(node)}</span>
                   {isNewPartner(node) ? (
                     <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[0.58rem] font-bold tracking-wide text-accent-deep">
-                      NEW
+                      {t('team.badgeNew')}
                     </span>
                   ) : null}
                 </span>
                 <span className="block text-xs text-muted">
-                  {node.rankLabel ?? t('team.newcomer')} · {node.apTotal} AP · {presenceLabel(node)}
+                  {node.rankLabel ?? t('team.newcomer')} · {node.apTotal} AP ·{' '}
+                  {presenceLabel(node, Date.now(), t)}
                 </span>
               </span>
               <span className="shrink-0 text-right text-xs font-semibold text-muted">
-                <span className="block">{node.directCount} dir.</span>
-                <span className="block">{node.teamCount} team</span>
+                <span className="block">
+                  {node.directCount} {t('team.directShort')}
+                </span>
+                <span className="block">
+                  {node.teamCount} {t('nav.team')}
+                </span>
               </span>
             </button>
           </li>

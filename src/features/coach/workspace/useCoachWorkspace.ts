@@ -12,12 +12,15 @@ import {
   patchConversation,
   readWorkspace,
   readWorkspaceSync,
+  removeConversation,
   setMobilePane,
   writeWorkspace,
 } from './store';
 import { useCoachConvoIndex } from './convoIndexApi';
 import { filterConversations, sortConversations } from './search';
 import type { ConversationKind, WorkspaceConversation, WorkspaceSnapshot } from './types';
+import { supabase } from '@shared/api/supabase';
+import { useQueryClient } from '@tanstack/react-query';
 
 type Updater = WorkspaceSnapshot | ((prev: WorkspaceSnapshot) => WorkspaceSnapshot);
 
@@ -30,6 +33,7 @@ export function useCoachWorkspace() {
   const writing = useRef(Promise.resolve());
   const snapRef = useRef(snap);
   snapRef.current = snap;
+  const queryClient = useQueryClient();
 
   const persist = useCallback((updater: Updater) => {
     setSnap((prev) => {
@@ -203,6 +207,21 @@ export function useCoachWorkspace() {
     [persist]
   );
 
+  const remove = useCallback(
+    async (localId: string) => {
+      const row = snapRef.current.conversations.find((c) => c.id === localId);
+      const serverId = row?.serverConversationId ?? null;
+      if (serverId) {
+        const { error } = await supabase.from('coach_convos').delete().eq('id', serverId);
+        if (error) throw error;
+        queryClient.removeQueries({ queryKey: ['coach-messages', serverId] });
+        await queryClient.invalidateQueries({ queryKey: ['coach-convos-index'] });
+      }
+      persist((prev) => removeConversation(prev, localId));
+    },
+    [persist, queryClient]
+  );
+
   return {
     snap,
     hydrated,
@@ -219,6 +238,7 @@ export function useCoachWorkspace() {
     startNew,
     bindServer,
     afterSend,
+    remove,
   };
 }
 

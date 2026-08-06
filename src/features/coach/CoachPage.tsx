@@ -18,6 +18,7 @@ import {
   buildPersonContextBrief,
   composeOutboundMessage,
   defaultTitleForKind,
+  displayConversationTitle,
   readPendingSeed,
   writePendingSeed,
   useCoachWorkspace,
@@ -261,8 +262,8 @@ export function CoachPage() {
   // Keep contact title fresh once loaded.
   useEffect(() => {
     if (!active || !contact || active.contactId !== contact.id) return;
-    if (active.title === contact.name) return;
-    workspace.updateActive({ title: contact.name });
+    if (active.title === contact.name && active.partnerName === contact.name) return;
+    workspace.updateActive({ title: contact.name, partnerName: contact.name });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact?.id, contact?.name, active?.id]);
 
@@ -373,6 +374,9 @@ export function CoachPage() {
           workspace.open(id);
         }}
         onNew={() => setNewOpen(true)}
+        onDelete={async (id) => {
+          await workspace.remove(id);
+        }}
       />
 
       <div className="coach-ws__chat">
@@ -399,7 +403,9 @@ export function CoachPage() {
                   aria-hidden
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-bold leading-tight">{active.title}</p>
+                  <p className="truncate text-lg font-bold leading-tight">
+                    {displayConversationTitle(active, t)}
+                  </p>
                   <p className="text-xs text-muted">{t('coach.subtitle')}</p>
                 </div>
               </div>

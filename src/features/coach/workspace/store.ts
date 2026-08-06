@@ -172,7 +172,7 @@ export function createConversation(
   const conversation: WorkspaceConversation = {
     id: newLocalId(),
     serverConversationId: input.serverConversationId ?? null,
-    title: input.title.trim() || 'Chat',
+    title: input.title.trim() || '',
     kind: input.kind,
     topic: input.topic ?? null,
     contactId: input.contactId ?? null,
@@ -238,6 +238,22 @@ export function bindServerId(
   return { ...snap, conversations };
 }
 
+/** Permanently remove a local conversation row (and clear active if needed). */
+export function removeConversation(snap: WorkspaceSnapshot, id: string): WorkspaceSnapshot {
+  const conversations = snap.conversations.filter((c) => c.id !== id);
+  if (conversations.length === snap.conversations.length) return snap;
+  const activeId =
+    snap.activeId === id
+      ? (conversations.find((c) => !c.archivedAt)?.id ?? conversations[0]?.id ?? null)
+      : snap.activeId;
+  return {
+    ...snap,
+    conversations,
+    activeId,
+    mobilePane: activeId ? (snap.activeId === id ? 'list' : snap.mobilePane) : 'list',
+  };
+}
+
 export function mergeServerConvos(
   snap: WorkspaceSnapshot,
   rows: Array<{ id: string; contact_id: string | null; created_at: string }>
@@ -262,7 +278,8 @@ export function mergeServerConvos(
     additions.push({
       id: newLocalId(),
       serverConversationId: row.id,
-      title: row.contact_id ? 'Contact' : 'Freier Chat',
+      // Title is generated at render time from kind — never hardcode a locale.
+      title: '',
       kind: row.contact_id ? 'person' : 'general',
       topic: null,
       contactId: row.contact_id,

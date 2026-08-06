@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createTranslator } from '@shared/i18n/translate';
 import {
   autoArchiveInactive,
   createConversation,
@@ -6,7 +7,9 @@ import {
   mergeServerConvos,
   normalizeSnapshot,
   openConversation,
+  removeConversation,
 } from './store';
+import { displayConversationTitle, isGeneratedConversationTitle } from './displayTitle';
 import { EMPTY_WORKSPACE } from './types';
 import { filterConversations, sortConversations } from './search';
 import { composeOutboundMessage } from './personContext';
@@ -63,7 +66,7 @@ describe('coach workspace store', () => {
     expect(next.conversations[0].archivedAt).toBeTruthy();
   });
 
-  it('merges server threads without duplicates', () => {
+  it('merges server threads without duplicates or hardcoded locale titles', () => {
     let snap = createConversation(EMPTY_WORKSPACE, {
       title: 'Existing',
       kind: 'general',
@@ -74,7 +77,10 @@ describe('coach workspace store', () => {
       { id: 'srv-2', contact_id: null, created_at: new Date().toISOString() },
     ]);
     expect(snap.conversations.filter((c) => c.serverConversationId === 'srv-1')).toHaveLength(1);
-    expect(snap.conversations.some((c) => c.serverConversationId === 'srv-2')).toBe(true);
+    const imported = snap.conversations.find((c) => c.serverConversationId === 'srv-2');
+    expect(imported).toBeTruthy();
+    expect(imported!.title).toBe('');
+    expect(imported!.kind).toBe('general');
   });
 
   it('clears stale serverConversationId after wipe (empty server index)', () => {
@@ -86,6 +92,71 @@ describe('coach workspace store', () => {
     snap = mergeServerConvos(snap, []);
     expect(snap.conversations).toHaveLength(1);
     expect(snap.conversations[0].serverConversationId).toBeNull();
+  });
+
+  it('removes a conversation and clears active selection', () => {
+    let snap = createConversation(EMPTY_WORKSPACE, {
+      title: 'A',
+      kind: 'general',
+    }).snap;
+    const keepId = snap.activeId!;
+    snap = createConversation(snap, { title: 'B', kind: 'marketing' }).snap;
+    const removeId = snap.activeId!;
+    snap = removeConversation(snap, removeId);
+    expect(snap.conversations.map((c) => c.id)).toEqual([keepId]);
+    expect(snap.activeId).toBe(keepId);
+  });
+});
+
+describe('displayConversationTitle', () => {
+  it('re-translates generated and legacy Freier Chat titles', () => {
+    const tDe = createTranslator('de');
+    const tTr = createTranslator('tr');
+    const legacy = {
+      id: '1',
+      serverConversationId: null,
+      title: 'Freier Chat',
+      kind: 'general' as const,
+      topic: null,
+      contactId: null,
+      partnerName: null,
+      membershipId: null,
+      seedPrompt: null,
+      contextBrief: null,
+      contextAttached: false,
+      preview: null,
+      createdAt: '',
+      updatedAt: '',
+      lastOpenedAt: '',
+      archivedAt: null,
+    };
+    expect(isGeneratedConversationTitle(legacy)).toBe(true);
+    expect(displayConversationTitle(legacy, tDe)).toBe(tDe('coach.ws.defaultTitle.general'));
+    expect(displayConversationTitle(legacy, tTr)).toBe(tTr('coach.ws.defaultTitle.general'));
+    expect(displayConversationTitle(legacy, tTr)).not.toBe('Freier Chat');
+  });
+
+  it('keeps partner names as-is', () => {
+    const t = createTranslator('en');
+    const person = {
+      id: '1',
+      serverConversationId: null,
+      title: 'Freier Chat',
+      kind: 'person' as const,
+      topic: null,
+      contactId: 'c1',
+      partnerName: 'Zuhal Özkartal',
+      membershipId: null,
+      seedPrompt: null,
+      contextBrief: null,
+      contextAttached: false,
+      preview: null,
+      createdAt: '',
+      updatedAt: '',
+      lastOpenedAt: '',
+      archivedAt: null,
+    };
+    expect(displayConversationTitle(person, t)).toBe('Zuhal Özkartal');
   });
 });
 
