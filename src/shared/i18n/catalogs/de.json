@@ -10,10 +10,10 @@
     "offline": "Offline",
     "offlinePending": "Offline · {count} ausstehend",
     "pendingUploads": "{count} ausstehend",
-    "homeSynced": "Synced",
-    "homeSyncing": "Syncing",
+    "homeSynced": "Synchron",
+    "homeSyncing": "Synchronisiert …",
     "homeOffline": "Offline",
-    "homePending": "Pending"
+    "homePending": "Ausstehend"
   },
   "common": {
     "loading": "AscendOS wird geladen …",
@@ -594,7 +594,9 @@
         "story": "Story Ideen",
         "leadership": "Leadership",
         "general": "Freier Chat"
-      }
+      },
+      "deleteTitle": "Konversation löschen?",
+      "deleteBody": "Die Konversation und der gesamte Verlauf werden dauerhaft entfernt."
     },
     "exec": {
       "homeTitle": "Dein virtueller Geschäftsführer",

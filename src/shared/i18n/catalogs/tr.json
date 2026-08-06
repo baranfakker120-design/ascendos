@@ -10,10 +10,10 @@
     "offline": "Çevrimdışı",
     "offlinePending": "Çevrimdışı · {count} bekliyor",
     "pendingUploads": "{count} bekliyor",
-    "homeSynced": "Synced",
-    "homeSyncing": "Syncing",
-    "homeOffline": "Offline",
-    "homePending": "Pending"
+    "homeSynced": "Eşitlendi",
+    "homeSyncing": "Eşitleniyor",
+    "homeOffline": "Çevrimdışı",
+    "homePending": "Bekliyor"
   },
   "common": {
     "loading": "AscendOS yükleniyor …",
@@ -594,7 +594,9 @@
         "story": "Hikaye fikirleri",
         "leadership": "Liderlik",
         "general": "Serbest sohbet"
-      }
+      },
+      "deleteTitle": "Konuşma silinsin mi?",
+      "deleteBody": "Konuşma ve tüm mesaj geçmişi kalıcı olarak silinir."
     },
     "exec": {
       "homeTitle": "Sanal genel müdürün",

@@ -594,7 +594,9 @@
         "story": "Story ideas",
         "leadership": "Leadership",
         "general": "Open chat"
-      }
+      },
+      "deleteTitle": "Delete conversation?",
+      "deleteBody": "This permanently removes the conversation and its message history."
     },
     "exec": {
       "homeTitle": "Your virtual managing director",

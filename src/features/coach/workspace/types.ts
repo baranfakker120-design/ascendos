@@ -33,7 +33,7 @@ export type WorkspaceConversation = {
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string;
-  /** Set when inactive — never deleted. */
+  /** Set when inactive — hidden from the primary list until reopened. */
   archivedAt: string | null;
 };
 

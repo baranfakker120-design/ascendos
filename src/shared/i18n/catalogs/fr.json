@@ -10,10 +10,10 @@
     "offline": "Hors ligne",
     "offlinePending": "Hors ligne · {count} en attente",
     "pendingUploads": "{count} en attente",
-    "homeSynced": "Synced",
-    "homeSyncing": "Syncing",
-    "homeOffline": "Offline",
-    "homePending": "Pending"
+    "homeSynced": "Synchronisé",
+    "homeSyncing": "Sync…",
+    "homeOffline": "Hors ligne",
+    "homePending": "En attente"
   },
   "common": {
     "loading": "AscendOS charge …",
@@ -594,7 +594,9 @@
         "story": "Idées Story",
         "leadership": "Leadership",
         "general": "Chat libre"
-      }
+      },
+      "deleteTitle": "Supprimer la conversation ?",
+      "deleteBody": "La conversation et tout l’historique seront définitivement supprimés."
     },
     "exec": {
       "homeTitle": "Votre directeur virtuel",

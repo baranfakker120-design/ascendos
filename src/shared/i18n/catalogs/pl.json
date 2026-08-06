@@ -594,7 +594,9 @@
         "story": "Pomysły na historie",
         "leadership": "Przywództwo",
         "general": "Otwarta rozmowa"
-      }
+      },
+      "deleteTitle": "Usunąć rozmowę?",
+      "deleteBody": "Rozmowa i cała historia wiadomości zostaną trwale usunięte."
     },
     "exec": {
       "homeTitle": "Twój wirtualny dyrektor zarządzający",

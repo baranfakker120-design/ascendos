@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { createTranslator } from '@shared/i18n/translate';
+import { APP_LOCALES } from '@shared/lib/locale';
 import { BOTTOM_NAV_TABS } from './BottomNav';
 
 describe('BottomNav tab contract', () => {
@@ -28,5 +30,21 @@ describe('BottomNav tab contract', () => {
 
   it('keeps Ascend/Coach as the center route', () => {
     expect(BOTTOM_NAV_TABS[2]?.to).toBe('/coach');
+  });
+
+  it('resolves localized labels for every supported language', () => {
+    for (const locale of APP_LOCALES) {
+      const t = createTranslator(locale.code);
+      for (const tab of BOTTOM_NAV_TABS) {
+        const label = t(tab.labelKey);
+        expect(label.length).toBeGreaterThan(0);
+        expect(label).not.toBe(tab.labelKey);
+      }
+    }
+    const tr = createTranslator('tr');
+    expect(tr('nav.today')).toBe('Bugün');
+    expect(tr('nav.contacts')).toBe('Kişiler');
+    expect(tr('nav.team')).toBe('Takım');
+    expect(tr('nav.today')).not.toBe('Heute');
   });
 });
