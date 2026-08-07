@@ -7,7 +7,8 @@ export type ConversationKind =
  * Logical conversation channel — never mix messages across these.
  * Mapped from `ConversationKind` + contact/membership identity.
  */
-export type ConversationType = 'free_chat' | 'contact_chat' | 'team_chat' | 'ceo_chat' | 'topic_chat';
+export type ConversationType =
+  'free_chat' | 'contact_chat' | 'team_chat' | 'ceo_chat' | 'topic_chat';
 
 export const CONVERSATION_KINDS: readonly ConversationKind[] = [
   'ceo',
