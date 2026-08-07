@@ -22,8 +22,8 @@ function keyOf(item: Chip | ContactCoachSuggestion, index: number): string {
 }
 
 /**
- * Contact-coach quick actions as snap-scrolling cards.
- * ~3 cards visible; fixed width; 2–3 line clamp — no squashed chip pills.
+ * Contact-coach quick actions as an equal-size wrap grid.
+ * Phone: 2–3 rows; tablet: 2 rows when needed; desktop: one row when space allows.
  */
 export function ContactQuickActionCards({ items, onPick, ariaLabel }: Props) {
   if (!items.length) return null;
