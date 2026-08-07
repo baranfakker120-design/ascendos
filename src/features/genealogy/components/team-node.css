@@ -43,6 +43,11 @@
     0 0 0 1.5px rgb(184 147 90 / 0.45);
 }
 
+.team-node--insight-open {
+  overflow: visible;
+  z-index: 12;
+}
+
 .team-node--you {
   border-color: rgb(184 147 90 / 0.85);
   box-shadow:

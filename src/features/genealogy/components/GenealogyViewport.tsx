@@ -7,6 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { computeInsightPlacement, type InsightPlacement } from '@features/coach/intelligence';
 import { layoutGenealogyTree, intersects, nodeBounds, worldViewRect } from '../engine/layout';
 import { dist2, midpoint } from '../engine/cameraMath';
 import { useGenealogyCamera } from '../engine/useGenealogyCamera';
@@ -50,6 +51,8 @@ export function GenealogyViewport({
   const hostRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 360, h: 520 });
+  const [openInsightId, setOpenInsightId] = useState<string | null>(null);
+  const [insightPlacement, setInsightPlacement] = useState<InsightPlacement>('right');
   const { cameraRef, subscribe, commit, panBy, zoomAt, focusOn } = useGenealogyCamera({
     scale: 0.82,
   });
@@ -113,8 +116,35 @@ export function GenealogyViewport({
   const visibleLayoutNodes: LayoutPoint[] = useMemo(() => {
     void tick;
     const view = worldViewRect(cameraRef.current, size.w, size.h, 160);
-    return layout.nodes.filter((n) => intersects(nodeBounds(n), view));
-  }, [layout.nodes, size.w, size.h, tick, cameraRef]);
+    const visible = layout.nodes.filter((n) => intersects(nodeBounds(n), view));
+    // Keep the open insight node mounted so the anchored card does not unmount mid-pan.
+    if (openInsightId && !visible.some((n) => n.id === openInsightId)) {
+      const openLp = layout.nodes.find((n) => n.id === openInsightId);
+      if (openLp) visible.push(openLp);
+    }
+    return visible;
+  }, [layout.nodes, size.w, size.h, tick, cameraRef, openInsightId]);
+
+  const refreshInsightPlacement = useCallback(() => {
+    if (!openInsightId || !hostRef.current) return;
+    const nodeEl = hostRef.current.querySelector(
+      `[data-membership-id="${CSS.escape(openInsightId)}"]`
+    );
+    if (!(nodeEl instanceof HTMLElement)) return;
+    const next = computeInsightPlacement(
+      nodeEl.getBoundingClientRect(),
+      hostRef.current.getBoundingClientRect()
+    );
+    setInsightPlacement((prev) => (prev === next ? prev : next));
+  }, [openInsightId]);
+
+  useEffect(() => {
+    if (!openInsightId) return;
+    refreshInsightPlacement();
+    return subscribe(() => {
+      refreshInsightPlacement();
+    });
+  }, [openInsightId, refreshInsightPlacement, subscribe]);
 
   const drag = useRef<{
     pointers: Map<number, PointerSample>;
@@ -250,6 +280,12 @@ export function GenealogyViewport({
     if (!hit) return;
     if (hit.closest('[data-tree-collapse]')) return;
     if (hit.closest('[data-tree-coach]')) return;
+    if (hit.closest('[data-tree-insight]')) return;
+
+    // Tap outside the insight card closes it.
+    if (openInsightId) {
+      setOpenInsightId(null);
+    }
 
     const card = hit.closest('[data-membership-id]') as HTMLElement | null;
     const id = card?.dataset.membershipId;
@@ -331,6 +367,11 @@ export function GenealogyViewport({
                 collapsed={collapsed.has(lp.id)}
                 hasChildren={node.directCount > 0}
                 editable={editableIds.has(lp.id)}
+                insightOpen={openInsightId === lp.id}
+                insightPlacement={openInsightId === lp.id ? insightPlacement : 'right'}
+                onInsightOpenChange={(open) => {
+                  setOpenInsightId(open ? lp.id : null);
+                }}
                 onSelect={onSelect}
                 onToggleCollapse={onToggleCollapse}
                 style={{ left: lp.x, top: lp.y }}
