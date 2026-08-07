@@ -1,0 +1,87 @@
+/* Calm executive welcome — short intro + one next-step card */
+
+.coach-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  width: 100%;
+  max-width: min(100%, 26rem);
+  padding: 1.35rem 1.4rem 1.45rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgb(var(--color-line));
+  background: linear-gradient(180deg, #ffffff 0%, #faf9f6 100%);
+  box-shadow:
+    0 14px 32px rgb(17 18 20 / 0.05),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+  --coach-cat-accent: rgb(var(--color-accent-deep));
+}
+
+.coach-welcome--ceo {
+  --coach-cat-accent: #8a6a32;
+}
+.coach-welcome--leadership {
+  --coach-cat-accent: #3f5f8a;
+}
+.coach-welcome--marketing {
+  --coach-cat-accent: #9a4d3c;
+}
+.coach-welcome--story {
+  --coach-cat-accent: #6b4f8a;
+}
+.coach-welcome--person {
+  --coach-cat-accent: #2f6f62;
+}
+.coach-welcome--recruiting {
+  --coach-cat-accent: #6d5a2e;
+}
+.coach-welcome--general {
+  --coach-cat-accent: #5a5d66;
+}
+
+.coach-welcome__intro {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.coach-welcome__identity {
+  margin: 0;
+  font-size: 1.25rem; /* 20px */
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  color: rgb(var(--color-ink));
+}
+
+.coach-welcome__hint {
+  margin: 0;
+  font-size: 1.0625rem; /* 17px */
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  color: rgb(var(--color-muted));
+}
+
+.coach-welcome__next {
+  padding: 1rem 1.05rem;
+  border-radius: 1.05rem;
+  background: color-mix(in srgb, var(--coach-cat-accent) 10%, #f7f3ea);
+  border: 1px solid color-mix(in srgb, var(--coach-cat-accent) 22%, transparent);
+}
+
+.coach-welcome__next-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--coach-cat-accent);
+}
+
+.coach-welcome__next-body {
+  margin: 0;
+  font-size: 1.125rem; /* 18px */
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  color: rgb(var(--color-ink));
+}

@@ -3,10 +3,10 @@
 .coach-md {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  font-size: 0.955rem;
-  line-height: 1.58;
-  letter-spacing: -0.012em;
+  gap: 0.95rem;
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.52;
+  letter-spacing: -0.015em;
   color: rgb(var(--color-ink));
   text-wrap: pretty;
 }
@@ -74,17 +74,17 @@
 
 .coach-md__h {
   margin: 0.35rem 0 0;
-  font-size: 1.04rem;
+  font-size: 1.4rem; /* ~22px */
   font-weight: 650;
-  letter-spacing: -0.022em;
-  line-height: 1.32;
+  letter-spacing: -0.028em;
+  line-height: 1.28;
   color: rgb(var(--color-ink));
 }
 
 .coach-md__h--sub {
-  font-size: 0.98rem;
+  font-size: 1.2rem;
   font-weight: 600;
-  letter-spacing: -0.016em;
+  letter-spacing: -0.02em;
   color: rgb(42 44 48);
 }
 

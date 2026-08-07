@@ -8,6 +8,8 @@ import { Card } from '@shared/ui/Card';
 import { Input } from '@shared/ui/Input';
 import { CoachBubble, UserBubble } from './CoachBubbles';
 import { CoachMarkdown } from './CoachMarkdown';
+import { CoachWelcomePanel } from './CoachWelcomePanel';
+import { kindHintKey } from './CoachWelcomeContent';
 import { useCoachContact, useCoachMessages, useSendToCoach } from './coachApi';
 import { ContactCoachHeader } from './contact/ContactCoachHeader';
 import { ContactQuickActionCards } from './contact/ContactQuickActionCards';
@@ -433,8 +435,8 @@ export function CoachPage() {
 
       <div className="coach-ws__chat">
         {active ? (
-          <div className="coach-page">
-            <div className="coach-page__header space-y-3">
+          <div className="coach-page" data-kind={active.kind}>
+            <div className="coach-page__header">
               <div className="coach-ws__chat-bar coach-ws__chat-bar--back">
                 <Button
                   type="button"
@@ -451,27 +453,25 @@ export function CoachPage() {
                 contact ? (
                   <ContactCoachHeader contact={contact} />
                 ) : (
-                  <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
-                    <p className="text-sm font-bold leading-tight">
+                  <div className="coach-page__loading-card">
+                    <p className="coach-page__title coach-page__title--sm">
                       {displayConversationTitle(active, t)}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted">{t('common.loading')}</p>
+                    <p className="coach-page__subtitle">{t('common.loading')}</p>
                   </div>
                 )
               ) : (
                 <>
-                  <div className="flex items-center gap-3">
+                  <div className={`coach-page__brand coach-page__brand--${active.kind}`}>
                     <img
                       src="/brand/ascendos-symbol-mono-v2.png"
                       alt=""
-                      className="h-8 w-auto"
+                      className="coach-page__brand-mark"
                       aria-hidden
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-lg font-bold leading-tight">
-                        {displayConversationTitle(active, t)}
-                      </p>
-                      <p className="text-xs text-muted">{t('coach.subtitle')}</p>
+                      <h1 className="coach-page__title">{displayConversationTitle(active, t)}</h1>
+                      <p className="coach-page__subtitle">{t(kindHintKey(active.kind))}</p>
                     </div>
                   </div>
 
@@ -486,7 +486,7 @@ export function CoachPage() {
                     />
                   ) : null}
 
-                  {partnerInsight ? (
+                  {!showWelcome && partnerInsight ? (
                     <Card padding="sm">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted">
                         {t('coach.analysis', { name: partnerInsight.name })}
@@ -536,7 +536,7 @@ export function CoachPage() {
                     </Card>
                   ) : null}
 
-                  {partnerName ? (
+                  {!showWelcome && partnerName ? (
                     <Card padding="sm">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted">
                         {t('coach.teamContext')}
@@ -558,9 +558,9 @@ export function CoachPage() {
               onScroll={updateStick}
             >
               {showWelcome ? (
-                <CoachBubble animate>
-                  <CoachMarkdown content={t('coach.welcome')} />
-                </CoachBubble>
+                <div className="coach-page__welcome-wrap">
+                  <CoachWelcomePanel kind={active.kind} welcome={t('coach.welcome')} t={t} />
+                </div>
               ) : null}
 
               {messages?.map((m) =>
@@ -579,7 +579,7 @@ export function CoachPage() {
               {error ? <Alert tone="error">{error}</Alert> : null}
             </div>
 
-            <div className="coach-page__composer space-y-2 border-t border-line pt-3">
+            <div className="coach-page__composer">
               {showContactSuggestions && contactChips.length > 0 ? (
                 <ContactQuickActionCards
                   items={contactChips}
@@ -592,23 +592,14 @@ export function CoachPage() {
                 />
               ) : null}
               {showWelcome && freeChatChips.length > 0 ? (
-                <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {freeChatChips.map((chip) => (
-                    <Button
-                      key={chip.label}
-                      type="button"
-                      variant="secondary"
-                      size="chip"
-                      fullWidth={false}
-                      onClick={() => setInput(chip.text)}
-                    >
-                      {chip.label}
-                    </Button>
-                  ))}
-                </div>
+                <ContactQuickActionCards
+                  items={freeChatChips}
+                  onPick={setInput}
+                  ariaLabel={t('coach.inputPlaceholder')}
+                />
               ) : null}
               <form
-                className="flex items-end gap-2"
+                className="coach-page__composer-form"
                 onSubmit={(e) => {
                   e.preventDefault();
                   void submit(input);
@@ -643,7 +634,7 @@ export function CoachPage() {
                   fullWidth={false}
                   disabled={send.isPending || !input.trim()}
                   aria-label={t('coach.send')}
-                  className="!px-4"
+                  className="coach-page__send"
                 >
                   →
                 </Button>
