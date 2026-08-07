@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
-import { phaseLabel } from '@shared/lib/pipeline';
 import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
@@ -10,6 +9,8 @@ import { Input } from '@shared/ui/Input';
 import { CoachBubble, UserBubble } from './CoachBubbles';
 import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useSendToCoach } from './coachApi';
+import { ContactCoachHeader } from './contact/ContactCoachHeader';
+import { buildContactCoachSuggestions } from './contact/contactSuggestions';
 import { createCoachTranslator } from './i18n';
 import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from './intelligence';
 import {
@@ -29,6 +30,7 @@ import { buildProactiveSuggestions } from './executive';
 import './coach-chat.css';
 import './workspace/coach-workspace.css';
 import './executive/executive.css';
+import './contact/contact-coach.css';
 
 const URL_PATTERN = /(https?:\/\/[^\s]+[^\s.,;:!?)\]"'])/g;
 const STICK_THRESHOLD_PX = 96;
@@ -104,7 +106,10 @@ export function CoachPage() {
   const { intelligence, isMorning, isLoading: intelLoading } = useCoachOrgIntelligence(true);
   const partnerInsight = findPersonInsight(intelligence, partnerMid);
 
-  const chips = useMemo(() => {
+  const isContactCoach =
+    !!active && active.kind === 'person' && !!active.contactId && !active.membershipId;
+
+  const freeChatChips = useMemo(() => {
     const proactive = buildProactiveSuggestions(intelligence, t).slice(0, 5);
     if (proactive.length) {
       return proactive.map((s) => ({ label: s.label, text: s.prompt }));
@@ -115,6 +120,18 @@ export function CoachPage() {
       { label: t('coach.chipPrep'), text: t('coach.chipPrepPrompt') },
     ];
   }, [intelligence, t]);
+
+  const contactChips = useMemo(() => {
+    if (!isContactCoach) return [];
+    const name = contact?.name ?? active?.partnerName ?? active?.title ?? '';
+    if (!name) return [];
+    return buildContactCoachSuggestions(coachT, name).map((s) => ({
+      label: s.label,
+      text: s.prompt,
+    }));
+  }, [isContactCoach, contact?.name, active?.partnerName, active?.title, coachT]);
+
+  const chips = isContactCoach ? contactChips : freeChatChips;
 
   const draftScope = DRAFT_SCOPES.coachThread(active?.id ?? 'none');
   const {
@@ -204,6 +221,8 @@ export function CoachPage() {
         contactId: contactIdParam,
         phase: contact?.phase ?? null,
         notes: contact?.notes ?? null,
+        nextStep: contact?.next_step ?? null,
+        recentEvents: contact?.recentEvents ?? null,
       });
       workspace.ensureKind('person', {
         title: name,
@@ -270,6 +289,8 @@ export function CoachPage() {
       contactId: contact.id,
       phase: contact.phase,
       notes: contact.notes,
+      nextStep: contact.next_step,
+      recentEvents: contact.recentEvents,
     });
     const patch: { title?: string; partnerName?: string; contextBrief?: string } = {};
     if (active.title !== contact.name || active.partnerName !== contact.name) {
@@ -281,7 +302,15 @@ export function CoachPage() {
     }
     if (Object.keys(patch).length) workspace.updateActive(patch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact?.id, contact?.name, contact?.phase, contact?.notes, active?.id]);
+  }, [
+    contact?.id,
+    contact?.name,
+    contact?.phase,
+    contact?.notes,
+    contact?.next_step,
+    contact?.recentEventCount,
+    active?.id,
+  ]);
 
   // Enrich team person brief when intelligence arrives after deep link.
   useEffect(() => {
@@ -360,7 +389,14 @@ export function CoachPage() {
   };
 
   const showWelcome =
-    !!active && !send.isPending && !messages?.length && !(conversationId && messagesPending);
+    !!active &&
+    !isContactCoach &&
+    !send.isPending &&
+    !messages?.length &&
+    !(conversationId && messagesPending);
+
+  const showContactSuggestions =
+    isContactCoach && !send.isPending && !(messages && messages.length > 0);
 
   const mobilePane = workspace.snap.mobilePane;
   const wsClass =
@@ -412,105 +448,109 @@ export function CoachPage() {
                 </Button>
               </div>
 
-              <div className="flex items-center gap-3">
-                <img
-                  src="/brand/ascendos-symbol-mono-v2.png"
-                  alt=""
-                  className="h-8 w-auto"
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-lg font-bold leading-tight">
-                    {displayConversationTitle(active, t)}
-                  </p>
-                  <p className="text-xs text-muted">{t('coach.subtitle')}</p>
-                </div>
-              </div>
-
-              {active.kind === 'ceo' ||
-              active.kind === 'leadership' ||
-              active.kind === 'general' ? (
-                <CoachBriefingPanel
-                  intelligence={intelligence}
-                  isMorning={isMorning}
-                  isLoading={intelLoading}
-                  onAskAbout={(text) => setInput(text)}
-                />
-              ) : null}
-
-              {partnerInsight ? (
-                <Card padding="sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                    {t('coach.analysis', { name: partnerInsight.name })}
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold">{partnerInsight.currentSituation}</p>
-                  <p className="mt-2 text-xs font-medium text-ink">
-                    {partnerInsight.nextBestAction}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {t('coach.whyPrefix', { reason: partnerInsight.nextBestActionWhy })}
-                  </p>
-                  {partnerInsight.possibleObjection ? (
-                    <p className="mt-1 text-xs text-muted">
-                      {t('coach.possibleObjection', { text: partnerInsight.possibleObjection })}
+              {isContactCoach ? (
+                contact ? (
+                  <ContactCoachHeader contact={contact} />
+                ) : (
+                  <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+                    <p className="text-sm font-bold leading-tight">
+                      {displayConversationTitle(active, t)}
                     </p>
-                  ) : null}
-                  <p className="mt-2 whitespace-pre-wrap text-xs text-ink">
-                    {partnerInsight.suggestedWhatsApp}
-                  </p>
-                  <p className="mt-2 text-xs text-muted">
-                    {t('coach.probs', {
-                      reg: partnerInsight.probabilityOfRegistration,
-                      inactive: partnerInsight.probabilityOfInactivity,
-                      risk: partnerInsight.riskScore,
-                    })}
-                  </p>
-                  {partnerInsight.recommendation ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => {
-                        setInput(
-                          t('coach.improveDraft', {
-                            name: partnerInsight.name,
-                            draft: partnerInsight.suggestedWhatsApp,
-                          })
-                        );
-                      }}
-                    >
-                      {t('coach.prepMessage')}
-                    </Button>
-                  ) : null}
-                </Card>
-              ) : null}
+                    <p className="mt-0.5 text-xs text-muted">{t('common.loading')}</p>
+                  </div>
+                )
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/brand/ascendos-symbol-mono-v2.png"
+                      alt=""
+                      className="h-8 w-auto"
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-bold leading-tight">
+                        {displayConversationTitle(active, t)}
+                      </p>
+                      <p className="text-xs text-muted">{t('coach.subtitle')}</p>
+                    </div>
+                  </div>
 
-              {contact ? (
-                <Card padding="sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                    {t('coach.knowsAlready')}
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold">
-                    {contact.name} · {phaseLabel(contact.phase, t)}
-                    <Link to={`/kontakte/${contact.id}`} className="ml-2 font-medium text-primary">
-                      {t('coach.viewContact')}
-                    </Link>
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted">{t('coach.contextHint')}</p>
-                </Card>
-              ) : partnerName ? (
-                <Card padding="sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                    {t('coach.teamContext')}
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold">{partnerName}</p>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {t('coach.teamContextHint', { name: partnerName })}
-                    {partnerMid ? t('coach.andTeamStructure') : ''}.
-                  </p>
-                </Card>
-              ) : null}
+                  {active.kind === 'ceo' ||
+                  active.kind === 'leadership' ||
+                  active.kind === 'general' ? (
+                    <CoachBriefingPanel
+                      intelligence={intelligence}
+                      isMorning={isMorning}
+                      isLoading={intelLoading}
+                      onAskAbout={(text) => setInput(text)}
+                    />
+                  ) : null}
+
+                  {partnerInsight ? (
+                    <Card padding="sm">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                        {t('coach.analysis', { name: partnerInsight.name })}
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold">
+                        {partnerInsight.currentSituation}
+                      </p>
+                      <p className="mt-2 text-xs font-medium text-ink">
+                        {partnerInsight.nextBestAction}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {t('coach.whyPrefix', { reason: partnerInsight.nextBestActionWhy })}
+                      </p>
+                      {partnerInsight.possibleObjection ? (
+                        <p className="mt-1 text-xs text-muted">
+                          {t('coach.possibleObjection', { text: partnerInsight.possibleObjection })}
+                        </p>
+                      ) : null}
+                      <p className="mt-2 whitespace-pre-wrap text-xs text-ink">
+                        {partnerInsight.suggestedWhatsApp}
+                      </p>
+                      <p className="mt-2 text-xs text-muted">
+                        {t('coach.probs', {
+                          reg: partnerInsight.probabilityOfRegistration,
+                          inactive: partnerInsight.probabilityOfInactivity,
+                          risk: partnerInsight.riskScore,
+                        })}
+                      </p>
+                      {partnerInsight.recommendation ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => {
+                            setInput(
+                              t('coach.improveDraft', {
+                                name: partnerInsight.name,
+                                draft: partnerInsight.suggestedWhatsApp,
+                              })
+                            );
+                          }}
+                        >
+                          {t('coach.prepMessage')}
+                        </Button>
+                      ) : null}
+                    </Card>
+                  ) : null}
+
+                  {partnerName ? (
+                    <Card padding="sm">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                        {t('coach.teamContext')}
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold">{partnerName}</p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {t('coach.teamContextHint', { name: partnerName })}
+                        {partnerMid ? t('coach.andTeamStructure') : ''}.
+                      </p>
+                    </Card>
+                  ) : null}
+                </>
+              )}
             </div>
 
             <div
@@ -541,7 +581,7 @@ export function CoachPage() {
             </div>
 
             <div className="coach-page__composer space-y-2 border-t border-line pt-3">
-              {showWelcome ? (
+              {(showWelcome || showContactSuggestions) && chips.length > 0 ? (
                 <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {chips.map((chip) => (
                     <Button
@@ -571,9 +611,11 @@ export function CoachPage() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={
-                      contact
+                      isContactCoach
                         ? t('coach.contactPlaceholder', {
-                            name: contact.name.split(' ')[0] ?? contact.name,
+                            name:
+                              (contact?.name ?? active.partnerName ?? active.title).split(' ')[0] ??
+                              t('coach.ws.kind.person'),
                           })
                         : partnerName
                           ? t('coach.contactPlaceholder', {

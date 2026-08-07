@@ -196,12 +196,17 @@ describe('buildContactContextBrief', () => {
       contactId: 'c-erol',
       phase: 'follow_up',
       notes: 'Wants info pack',
+      nextStep: 'Send Zoom link',
+      recentEvents: [{ event_type: 'message_sent', occurred_at: '2026-08-01T10:00:00.000Z' }],
     });
     expect(brief).toContain('Erol');
     expect(brief).toContain('c-erol');
     expect(brief).toContain('follow_up');
     expect(brief).toContain('Wants info pack');
+    expect(brief).toContain('Send Zoom link');
+    expect(brief).toContain('message_sent');
     expect(brief).toMatch(/this contact only/i);
+    expect(brief).toMatch(/Do not discuss other people/i);
   });
 });
 

@@ -384,5 +384,30 @@
       "title": "30 days without app activity",
       "action": "Book a 10-minute check-in and set one shared daily goal."
     }
+  },
+  "contactCoach": {
+    "knowsAlready": "Ascent already knows",
+    "factPhase": "Phase",
+    "factTimeline": "Timeline",
+    "factNotes": "Notes",
+    "factActivity": "recent activity",
+    "factNextStep": "next step",
+    "viewContact": "Contact",
+    "chipWhatsApp": "Write a WhatsApp for {name}",
+    "promptWhatsApp": "Write a WhatsApp message for {name}. Use phase, notes, and the next step.",
+    "chipZoom": "How do I get {name} on Zoom?",
+    "promptZoom": "How do I get {name} on Zoom? Give me the best next step and a short invite.",
+    "chipNextStep": "What next step do you recommend?",
+    "promptNextStep": "What next step do you recommend for {name} — concrete and doable today?",
+    "chipObjection": "How do I answer their objection?",
+    "promptObjection": "How do I answer an objection from {name}? Give me a short, natural reply.",
+    "chipFollowUp": "Create a follow-up message",
+    "promptFollowUp": "Create a follow-up message for {name}, matching phase and last contact.",
+    "chipActivate": "How do I activate {name}?",
+    "promptActivate": "How do I activate {name}? Give me the best next move and a short message.",
+    "chipClose": "How do I close {name}?",
+    "promptClose": "How do I close {name}? Give me a clear close and the right wording.",
+    "chipKnows": "What do you already know about {name}?",
+    "promptKnows": "Summarize what you already know about {name} — phase, timeline, notes, activity, and next step."
   }
 }

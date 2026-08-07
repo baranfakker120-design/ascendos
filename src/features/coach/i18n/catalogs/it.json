@@ -384,5 +384,30 @@
       "title": "30 giorni senza attività nell’app",
       "action": "Fissa un check-in di 10 minuti e un obiettivo giornaliero condiviso."
     }
+  },
+  "contactCoach": {
+    "knowsAlready": "Ascent conosce già",
+    "factPhase": "Fase",
+    "factTimeline": "Timeline",
+    "factNotes": "Note",
+    "factActivity": "ultime attività",
+    "factNextStep": "prossimo passo",
+    "viewContact": "Contatto",
+    "chipWhatsApp": "Scrivi un WhatsApp per {name}",
+    "promptWhatsApp": "Scrivi un messaggio WhatsApp per {name}. Usa fase, note e prossimo passo.",
+    "chipZoom": "Come porto {name} su Zoom?",
+    "promptZoom": "Come porto {name} su Zoom? Dammi il miglior prossimo passo e un invito breve.",
+    "chipNextStep": "Quale prossimo passo consigli?",
+    "promptNextStep": "Quale prossimo passo consigli per {name} — concreto e fattibile oggi?",
+    "chipObjection": "Come rispondo alla sua obiezione?",
+    "promptObjection": "Come rispondo a un’obiezione di {name}? Dammi una risposta breve e naturale.",
+    "chipFollowUp": "Crea messaggio di follow-up",
+    "promptFollowUp": "Crea un messaggio di follow-up per {name}, adatto a fase e ultimo contatto.",
+    "chipActivate": "Come attivo {name}?",
+    "promptActivate": "Come attivo {name}? Dammi la mossa migliore e un messaggio breve.",
+    "chipClose": "Come chiudo con {name}?",
+    "promptClose": "Come chiudo con {name}? Dammi una chiusura chiara e la formulazione giusta.",
+    "chipKnows": "Cosa sai già su {name}?",
+    "promptKnows": "Riassumi ciò che sai già su {name} — fase, timeline, note, attività e prossimo passo."
   }
 }
