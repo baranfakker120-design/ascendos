@@ -7,6 +7,7 @@ import {
   CoachPersonInsightBubble,
   buildPersonInsight,
   mapGenealogyNodeToPartner,
+  type InsightPlacement,
 } from '@features/coach/intelligence';
 import { writePendingSeed } from '@features/coach/workspace';
 import { RankFrame } from '@shared/ui/RankFrame';
@@ -23,6 +24,9 @@ interface TeamNodeCardProps {
   hasChildren?: boolean;
   /** Self + descendants of the logged-in member. */
   editable?: boolean;
+  insightOpen?: boolean;
+  insightPlacement?: InsightPlacement;
+  onInsightOpenChange?: (open: boolean) => void;
   onSelect: (node: GenealogyNode) => void;
   onToggleCollapse?: (node: GenealogyNode) => void;
   style?: CSSProperties;
@@ -35,6 +39,9 @@ export function TeamNodeCard({
   collapsed,
   hasChildren,
   editable = true,
+  insightOpen = false,
+  insightPlacement = 'right',
+  onInsightOpenChange,
   onSelect,
   onToggleCollapse,
   style,
@@ -75,6 +82,7 @@ export function TeamNodeCard({
         online ? 'team-node--online' : '',
         node.isFavorite ? 'team-node--fav' : '',
         editable ? 'team-node--editable' : 'team-node--readonly',
+        insightOpen ? 'team-node--insight-open' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -96,12 +104,14 @@ export function TeamNodeCard({
       {isCurrent ? <span className="team-node__you">{t('team.youBadge')}</span> : null}
       <div
         className="team-node__coach"
-        data-tree-coach=""
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
         <CoachPersonInsightBubble
           insight={coachInsight}
+          open={insightOpen}
+          placement={insightPlacement}
+          onOpenChange={(next) => onInsightOpenChange?.(next)}
           onAsk={(prompt) => {
             writePendingSeed(prompt);
             navigate(`/coach/person/${encodeURIComponent(node.membershipId)}`, {

@@ -88,4 +88,6 @@ export type { AscentVisionAnalyzer, VisionScreenshotSummary } from './visionCont
 export { mapGenealogyNodeToPartner } from './mapGenealogyPartner';
 export { CoachBriefingPanel } from './CoachBriefingPanel';
 export { CoachPersonInsightBubble } from './CoachPersonInsightBubble';
+export { computeInsightPlacement } from './insightPlacement';
+export type { InsightPlacement } from './insightPlacement';
 export { findPersonInsight, useCoachOrgIntelligence } from './useCoachOrgIntelligence';
