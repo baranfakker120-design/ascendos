@@ -7,10 +7,67 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
+  --coach-title-size: clamp(2.125rem, 5.5vw, 2.375rem); /* 34–38px */
+  --coach-card-title: 1.4rem; /* ~22px */
+  --coach-body: 1.175rem; /* ~18.8px */
+  --coach-secondary: 1.05rem; /* ~16.8px */
 }
 
 .coach-page__header {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding-bottom: 0.35rem;
+}
+
+.coach-page__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding-top: 0.15rem;
+}
+
+.coach-page__brand-mark {
+  height: 2.4rem;
+  width: auto;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.coach-page__title {
+  margin: 0;
+  font-size: var(--coach-title-size);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: rgb(var(--color-ink));
+}
+
+.coach-page__title--sm {
+  font-size: 1.5rem;
+}
+
+.coach-page__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: var(--coach-secondary);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: rgb(var(--color-muted));
+}
+
+.coach-page__loading-card {
+  border-radius: 1.25rem;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(var(--color-surface));
+  padding: 1.1rem 1.2rem;
+}
+
+.coach-page__welcome-wrap {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 0.35rem;
 }
 
 .coach-page__thread {
@@ -20,19 +77,61 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 0.75rem;
+  padding-bottom: 1rem;
 }
 
 .coach-page__composer {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-top: 1px solid rgb(var(--color-line));
+  padding-top: 0.95rem;
   background: linear-gradient(180deg, rgb(var(--color-bg) / 0.92), rgb(var(--color-bg)));
-  padding-bottom: 0.15rem;
+  padding-bottom: 0.25rem;
+}
+
+.coach-page__composer-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+/* Premium touch targets inside Coach only — do not alter global Button. */
+.coach-page__composer .ui-btn--md,
+.coach-page__send.ui-btn {
+  min-height: 56px;
+  min-width: 56px;
+  padding-inline: 1.1rem;
+  font-size: 1.125rem;
+  border-radius: 1rem;
+}
+
+.coach-page__composer input,
+.coach-page__composer .ui-input,
+.coach-page__composer [data-input] {
+  font-size: 1.125rem;
+}
+
+/* Lage / briefing: calmer, larger first impression */
+.coach-page__header section {
+  border-radius: 1.25rem;
+  padding: 1rem 1.05rem;
+}
+
+.coach-page__header section .text-sm.font-semibold {
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.coach-page__header section .text-xs {
+  font-size: 0.95rem;
 }
 
 .coach-thread {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
   width: 100%;
   max-width: 100%;
   /* Reserve scrollbar space so vertical scroll never nudges the column */
@@ -121,14 +220,15 @@
   /* Same max width for both sides → column stays visually centered */
   flex: 0 1 auto;
   width: fit-content;
-  max-width: min(100%, 22.5rem);
-  padding: 1.05rem 1.15rem 1.1rem;
-  font-size: 0.95rem;
-  line-height: 1.55;
+  max-width: min(100%, 26rem);
+  padding: 1.25rem 1.3rem 1.3rem;
+  font-size: var(--coach-body, 1.175rem);
+  line-height: 1.5;
   overflow-wrap: anywhere;
   word-break: break-word;
   transform-origin: bottom left;
   will-change: transform, opacity;
+  border-radius: 1.35rem;
 }
 
 .coach-bubble--pop {
@@ -137,7 +237,7 @@
 
 .coach-bubble--assistant {
   transform-origin: bottom left;
-  border-radius: 1.25rem 1.25rem 1.25rem 0.35rem;
+  border-radius: 1.35rem 1.35rem 1.35rem 0.45rem;
   background: linear-gradient(180deg, #ffffff 0%, #faf9f6 100%);
   border: 1px solid rgb(var(--color-line));
   color: rgb(var(--color-ink));
@@ -149,7 +249,7 @@
 .coach-bubble--user {
   white-space: pre-wrap;
   transform-origin: bottom right;
-  border-radius: 1.25rem 1.25rem 0.35rem 1.25rem;
+  border-radius: 1.35rem 1.35rem 0.45rem 1.35rem;
   background: linear-gradient(165deg, #2c2e35 0%, #1a1b1e 58%, #101114 100%);
   color: rgb(var(--color-primary-ink));
   box-shadow:

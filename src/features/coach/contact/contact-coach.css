@@ -1,10 +1,10 @@
 /* Contact-coach identity — compact CRM advisor, not free-chat chrome. */
 
 .contact-coach-header {
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   border: 1px solid rgb(var(--color-line));
   background: rgb(var(--color-surface));
-  padding: 0.75rem 0.9rem;
+  padding: 1.05rem 1.15rem;
 }
 
 .contact-coach-header__identity {
@@ -16,15 +16,16 @@
 
 .contact-coach-header__name {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: clamp(1.75rem, 5vw, 2.125rem);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
   color: rgb(var(--color-ink));
 }
 
 .contact-coach-header__phase {
-  margin: 0.15rem 0 0;
-  font-size: 0.8rem;
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
   font-weight: 600;
   color: rgb(var(--color-muted));
 }
@@ -111,9 +112,9 @@
 
 .contact-qa__card {
   /* ~3 cards visible on ~360–430px phones with 12px gaps */
-  flex: 0 0 clamp(110px, 31.5vw, 140px);
-  width: clamp(110px, 31.5vw, 140px);
-  min-height: 4.75rem;
+  flex: 0 0 clamp(118px, 32vw, 140px);
+  width: clamp(118px, 32vw, 140px);
+  min-height: 5.35rem;
   box-sizing: border-box;
   scroll-snap-align: start;
   scroll-snap-stop: always;
@@ -121,8 +122,8 @@
   align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
-  padding: 0.7rem 0.75rem;
-  border-radius: 0.9rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 1.05rem;
   border: 1px solid rgb(var(--color-line));
   background: rgb(var(--color-surface));
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
@@ -157,10 +158,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   line-clamp: 3;
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  line-height: 1.28;
+  letter-spacing: -0.015em;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
