@@ -10,6 +10,7 @@ import { CoachBubble, UserBubble } from './CoachBubbles';
 import { CoachMarkdown } from './CoachMarkdown';
 import { useCoachContact, useCoachMessages, useSendToCoach } from './coachApi';
 import { ContactCoachHeader } from './contact/ContactCoachHeader';
+import { ContactQuickActionCards } from './contact/ContactQuickActionCards';
 import { buildContactCoachSuggestions } from './contact/contactSuggestions';
 import { createCoachTranslator } from './i18n';
 import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from './intelligence';
@@ -130,8 +131,6 @@ export function CoachPage() {
       text: s.prompt,
     }));
   }, [isContactCoach, contact?.name, active?.partnerName, active?.title, coachT]);
-
-  const chips = isContactCoach ? contactChips : freeChatChips;
 
   const draftScope = DRAFT_SCOPES.coachThread(active?.id ?? 'none');
   const {
@@ -581,9 +580,20 @@ export function CoachPage() {
             </div>
 
             <div className="coach-page__composer space-y-2 border-t border-line pt-3">
-              {(showWelcome || showContactSuggestions) && chips.length > 0 ? (
+              {showContactSuggestions && contactChips.length > 0 ? (
+                <ContactQuickActionCards
+                  items={contactChips}
+                  onPick={setInput}
+                  ariaLabel={t('coach.contactPlaceholder', {
+                    name:
+                      (contact?.name ?? active.partnerName ?? active.title).split(' ')[0] ??
+                      t('coach.ws.kind.person'),
+                  })}
+                />
+              ) : null}
+              {showWelcome && freeChatChips.length > 0 ? (
                 <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {chips.map((chip) => (
+                  {freeChatChips.map((chip) => (
                     <Button
                       key={chip.label}
                       type="button"
