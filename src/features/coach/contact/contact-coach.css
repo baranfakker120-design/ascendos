@@ -1,0 +1,86 @@
+/* Contact-coach identity — compact CRM advisor, not free-chat chrome. */
+
+.contact-coach-header {
+  border-radius: 1rem;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(var(--color-surface));
+  padding: 0.75rem 0.9rem;
+}
+
+.contact-coach-header__identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.contact-coach-header__name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: rgb(var(--color-ink));
+}
+
+.contact-coach-header__phase {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(var(--color-muted));
+}
+
+.contact-coach-header__link {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--color-primary));
+}
+
+.contact-coach-header__knows {
+  margin: 0.7rem 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+}
+
+.contact-coach-header__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-coach-header__facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: rgb(var(--color-ink));
+}
+
+.contact-coach-header__facts li span:first-child {
+  color: rgb(var(--color-accent-deep));
+  font-weight: 700;
+}
+
+.contact-coach-header__next {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0.65rem 0 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgb(var(--color-line));
+  font-size: 0.82rem;
+  color: rgb(var(--color-ink));
+}
+
+.contact-coach-header__next-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+}

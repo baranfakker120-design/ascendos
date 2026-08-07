@@ -53,15 +53,25 @@ export function buildContactContextBrief(input: {
   contactId: string;
   phase?: string | null;
   notes?: string | null;
+  nextStep?: string | null;
+  recentEvents?: Array<{ event_type: string; occurred_at: string }> | null;
 }): string {
   const lines: string[] = [
     `Context for Ascend Coach — CRM contact conversation about ${input.name}.`,
     `Contact id: ${input.contactId}`,
     'Use this background silently; do not ask me to repeat it.',
     'Stay focused on this contact only. Never reuse or mix messages from other contacts.',
+    'Do not discuss other people, team lines, org priorities, or leadership strategy unless I explicitly ask about this contact.',
   ];
   if (input.phase) lines.push(`Pipeline phase: ${input.phase}`);
   if (input.notes?.trim()) lines.push(`Notes: ${input.notes.trim()}`);
+  if (input.nextStep?.trim()) lines.push(`Next step: ${input.nextStep.trim()}`);
+  if (input.recentEvents?.length) {
+    lines.push('Recent timeline:');
+    for (const event of input.recentEvents.slice(0, 6)) {
+      lines.push(`- ${event.occurred_at}: ${event.event_type}`);
+    }
+  }
   lines.push(
     'When answering, use this contact’s status, timeline, notes, follow-ups, and recent activities only.'
   );
