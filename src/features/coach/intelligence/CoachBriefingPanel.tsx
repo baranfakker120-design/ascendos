@@ -22,6 +22,28 @@ const GRADE_KEYS: Record<BranchHealthGrade, MessageKey> = {
   critical: 'coach.gradeCritical',
 };
 
+const LAGE_OPEN_KEY = 'ascendos.coach.briefing-open.v1';
+
+function readLageOpen(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = window.localStorage.getItem(LAGE_OPEN_KEY);
+    if (raw === null) return false; // default: collapsed
+    return raw === '1' || raw === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeLageOpen(open: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LAGE_OPEN_KEY, open ? '1' : '0');
+  } catch {
+    // private mode
+  }
+}
+
 interface Props {
   intelligence: CoachOrgIntelligence | null;
   isMorning: boolean;
@@ -32,12 +54,12 @@ interface Props {
 
 /**
  * Compact COO briefing above the chat thread.
- * Does not alter CoachBubbles / Markdown / composer layout contracts.
+ * Default: collapsed (greeting + team line + "Lage"). Expands only on tap; state persists.
  */
 export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAbout }: Props) {
   const { t } = useI18n();
   const titleId = useId();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(readLageOpen);
   const approvedKnowledge = useApprovedCoachKnowledge();
 
   useEffect(() => {
@@ -57,6 +79,14 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
     // Only when intelligence identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intelligence?.generatedAt]);
+
+  const toggleOpen = () => {
+    setOpen((v) => {
+      const next = !v;
+      writeLageOpen(next);
+      return next;
+    });
+  };
 
   if (isLoading && !intelligence) {
     return (
@@ -92,13 +122,13 @@ export function CoachBriefingPanel({ intelligence, isMorning, isLoading, onAskAb
               grade: t(GRADE_KEYS[health.grade]),
               score: health.score,
             })}
-            {knowledgeHint ? ` · ${knowledgeHint}` : ''}
+            {knowledgeHint && open ? ` · ${knowledgeHint}` : ''}
           </p>
         </div>
         <button
           type="button"
           className="shrink-0 text-xs font-semibold text-accent-deep"
-          onClick={() => setOpen((v) => !v)}
+          onClick={toggleOpen}
           aria-expanded={open}
         >
           {open ? t('coach.briefingLess') : t('coach.briefingLage')}

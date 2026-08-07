@@ -3,6 +3,12 @@
 export type ConversationKind =
   'ceo' | 'person' | 'marketing' | 'recruiting' | 'story' | 'leadership' | 'general';
 
+/**
+ * Logical conversation channel — never mix messages across these.
+ * Mapped from `ConversationKind` + contact/membership identity.
+ */
+export type ConversationType = 'free_chat' | 'contact_chat' | 'team_chat' | 'ceo_chat' | 'topic_chat';
+
 export const CONVERSATION_KINDS: readonly ConversationKind[] = [
   'ceo',
   'person',
@@ -36,6 +42,15 @@ export type WorkspaceConversation = {
   /** Set when inactive — hidden from the primary list until reopened. */
   archivedAt: string | null;
 };
+
+/** Stable channel identity: free / contact / team / ceo / topic. */
+export function conversationTypeOf(c: WorkspaceConversation): ConversationType {
+  if (c.kind === 'ceo') return 'ceo_chat';
+  if (c.kind === 'general') return 'free_chat';
+  if (c.kind === 'person' && c.membershipId) return 'team_chat';
+  if (c.kind === 'person') return 'contact_chat';
+  return 'topic_chat';
+}
 
 export type WorkspaceSnapshot = {
   version: 1;

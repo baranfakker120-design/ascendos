@@ -4,9 +4,10 @@ export { NewConversationSheet, defaultTitleForKind } from './NewConversationShee
 export { displayConversationTitle, isGeneratedConversationTitle } from './displayTitle';
 export {
   buildPersonContextBrief,
+  buildContactContextBrief,
   composeOutboundMessage,
   readPendingSeed,
   writePendingSeed,
 } from './personContext';
-export type { ConversationKind, WorkspaceConversation } from './types';
-export { CONVERSATION_KINDS } from './types';
+export type { ConversationKind, ConversationType, WorkspaceConversation } from './types';
+export { CONVERSATION_KINDS, conversationTypeOf } from './types';

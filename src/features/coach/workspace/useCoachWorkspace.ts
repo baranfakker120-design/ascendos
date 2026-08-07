@@ -6,6 +6,7 @@ import {
   findActive,
   findCeoConversation,
   findContactConversation,
+  findFreeChatConversation,
   findPersonConversation,
   mergeServerConvos,
   openConversation,
@@ -138,6 +139,20 @@ export function useCoachWorkspace() {
               return next;
             }
           }
+          if (kind === 'general') {
+            const existing = findFreeChatConversation(prev);
+            if (existing) {
+              let next = openConversation(prev, existing.id);
+              if (opts.seedPrompt || opts.contextBrief) {
+                next = patchConversation(next, existing.id, {
+                  seedPrompt: opts.seedPrompt ?? existing.seedPrompt,
+                  contextBrief: opts.contextBrief ?? existing.contextBrief,
+                });
+              }
+              return next;
+            }
+          }
+          // Team chat: keyed by membershipId — never share with CRM contact chats.
           if (kind === 'person' && opts.membershipId) {
             const existing = findPersonConversation(prev, opts.membershipId);
             if (existing) {
@@ -145,15 +160,27 @@ export function useCoachWorkspace() {
               next = patchConversation(next, existing.id, {
                 title: opts.title || existing.title,
                 partnerName: opts.partnerName ?? existing.partnerName,
+                membershipId: opts.membershipId,
                 seedPrompt: opts.seedPrompt ?? existing.seedPrompt,
                 contextBrief: opts.contextBrief ?? existing.contextBrief,
               });
               return next;
             }
           }
-          if (opts.contactId) {
+          // Contact chat: keyed by contactId — one conversation per contact.
+          if (kind === 'person' && opts.contactId && !opts.membershipId) {
             const existing = findContactConversation(prev, opts.contactId);
-            if (existing) return openConversation(prev, existing.id);
+            if (existing) {
+              let next = openConversation(prev, existing.id);
+              next = patchConversation(next, existing.id, {
+                title: opts.title || existing.title,
+                partnerName: opts.partnerName ?? existing.partnerName,
+                contactId: opts.contactId,
+                seedPrompt: opts.seedPrompt ?? existing.seedPrompt,
+                contextBrief: opts.contextBrief ?? existing.contextBrief,
+              });
+              return next;
+            }
           }
           if (opts.serverConversationId) {
             const existing = prev.conversations.find(
@@ -167,7 +194,7 @@ export function useCoachWorkspace() {
           kind,
           title: opts.title,
           topic: opts.topic,
-          contactId: opts.contactId,
+          contactId: opts.membershipId ? null : (opts.contactId ?? null),
           partnerName: opts.partnerName,
           membershipId: opts.membershipId,
           seedPrompt: opts.seedPrompt,
@@ -181,7 +208,13 @@ export function useCoachWorkspace() {
 
   const startNew = useCallback(
     (kind: ConversationKind, title: string) => {
-      ensureKind(kind, { title, forceNew: kind !== 'ceo' });
+      // Singletons stay singletons. Topic kinds may open a fresh sheet.
+      // Contact / team chats are created only via deep links with identity keys.
+      if (kind === 'ceo' || kind === 'general') {
+        ensureKind(kind, { title, forceNew: false });
+        return;
+      }
+      ensureKind(kind, { title, forceNew: true });
     },
     [ensureKind]
   );
@@ -217,6 +250,7 @@ export function useCoachWorkspace() {
         queryClient.removeQueries({ queryKey: ['coach-messages', serverId] });
         await queryClient.invalidateQueries({ queryKey: ['coach-convos-index'] });
       }
+      queryClient.removeQueries({ queryKey: ['coach-messages', `local:${localId}`] });
       persist((prev) => removeConversation(prev, localId));
     },
     [persist, queryClient]

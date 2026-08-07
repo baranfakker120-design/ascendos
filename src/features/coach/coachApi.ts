@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { readStoredLocale, type AppLocale } from '@shared/lib/locale';
 import { createCoachTranslator } from './i18n';
+import { messagesKey } from './messageCacheKey';
 import { isConversationMissingError } from './workspace/store';
 
 export interface CoachMessage {
@@ -11,17 +12,17 @@ export interface CoachMessage {
   created_at: string;
 }
 
-const messagesKey = (conversationId: string | null) =>
-  ['coach-messages', conversationId ?? '__pending__'] as const;
+export { messagesKey } from './messageCacheKey';
 
-export function useCoachMessages(conversationId: string | null) {
+export function useCoachMessages(conversationId: string | null, localId?: string | null) {
   const qc = useQueryClient();
+  const key = messagesKey(conversationId, localId);
   return useQuery({
-    queryKey: messagesKey(conversationId),
+    queryKey: key,
     queryFn: async (): Promise<CoachMessage[]> => {
-      // Pending / brand-new thread: serve optimistic cache only.
+      // Pending / brand-new thread: serve optimistic cache only for THIS local id.
       if (!conversationId) {
-        return qc.getQueryData<CoachMessage[]>(messagesKey(null)) ?? [];
+        return qc.getQueryData<CoachMessage[]>(key) ?? [];
       }
       const { data, error } = await supabase
         .from('coach_messages')
@@ -31,8 +32,13 @@ export function useCoachMessages(conversationId: string | null) {
       if (error) throw error;
       return data as CoachMessage[];
     },
-    // Keep prior messages visible while refetching after send.
-    placeholderData: (prev) => prev,
+    // Keep prior messages only while refetching the SAME thread — never flash another chat.
+    placeholderData: (previousData, previousQuery) => {
+      const prevKey = previousQuery?.queryKey;
+      if (!prevKey || prevKey[0] !== 'coach-messages') return undefined;
+      if (prevKey[1] !== key[1]) return undefined;
+      return previousData;
+    },
   });
 }
 
@@ -41,6 +47,8 @@ interface SendInput {
   /** Optional bubble text when `message` includes a hidden context brief. */
   displayContent?: string;
   conversationId: string | null;
+  /** Local workspace conversation id — isolates pending optimistic caches. */
+  localConversationId: string;
   contactId: string | null;
 }
 
@@ -109,7 +117,7 @@ export function useSendToCoach() {
       }
     },
     onMutate: async (input): Promise<SendContext> => {
-      const optimisticKey = messagesKey(input.conversationId);
+      const optimisticKey = messagesKey(input.conversationId, input.localConversationId);
       await qc.cancelQueries({ queryKey: optimisticKey });
       const previous = qc.getQueryData<CoachMessage[]>(optimisticKey);
       const tempUserId = `temp-user-${Date.now()}`;
@@ -125,14 +133,14 @@ export function useSendToCoach() {
     onError: (_err, input, ctx) => {
       if (!ctx) return;
       qc.setQueryData(ctx.optimisticKey, ctx.previous);
-      // If we were on a real convo id, also restore that key.
       if (input.conversationId) {
         qc.setQueryData(messagesKey(input.conversationId), ctx.previous);
       }
     },
     onSuccess: (result, input, ctx) => {
       const targetKey = messagesKey(result.conversationId);
-      const sourceKey = ctx?.optimisticKey ?? messagesKey(input.conversationId);
+      const sourceKey =
+        ctx?.optimisticKey ?? messagesKey(input.conversationId, input.localConversationId);
 
       const fromSource = qc.getQueryData<CoachMessage[]>(sourceKey) ?? [];
       const withoutTemp = fromSource.filter((m) => !m.id.startsWith('temp-'));
@@ -197,12 +205,13 @@ export function useCoachContact(contactId: string | null) {
     enabled: !!contactId,
     queryFn: async () => {
       const [contact, phase] = await Promise.all([
-        supabase.from('contacts').select('id, name').eq('id', contactId!).single(),
+        supabase.from('contacts').select('id, name, notes').eq('id', contactId!).single(),
         supabase.from('contact_phases').select('phase').eq('contact_id', contactId!).single(),
       ]);
       if (contact.error) throw contact.error;
       return {
         ...contact.data,
+        notes: (contact.data as { notes?: string | null }).notes ?? null,
         phase: (phase.data?.phase ?? 'lead') as import('@shared/types/domain').ContactPhase,
       };
     },

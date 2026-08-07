@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTranslator } from '@shared/i18n/translate';
 import {
   autoArchiveInactive,
+  consolidateConversations,
   createConversation,
+  findContactConversation,
+  findFreeChatConversation,
   findPersonConversation,
   mergeServerConvos,
   normalizeSnapshot,
@@ -10,9 +13,10 @@ import {
   removeConversation,
 } from './store';
 import { displayConversationTitle, isGeneratedConversationTitle } from './displayTitle';
-import { EMPTY_WORKSPACE } from './types';
+import { conversationTypeOf, EMPTY_WORKSPACE } from './types';
 import { filterConversations, sortConversations } from './search';
-import { composeOutboundMessage } from './personContext';
+import { buildContactContextBrief, composeOutboundMessage } from './personContext';
+import { messagesKey } from '../messageCacheKey';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -31,6 +35,58 @@ describe('coach workspace store', () => {
     expect(again?.id).toBe(first.conversation.id);
     snap = openConversation(snap, first.conversation.id);
     expect(snap.activeId).toBe(first.conversation.id);
+  });
+
+  it('keeps contact chats isolated from team chats and free chat', () => {
+    let snap = createConversation(EMPTY_WORKSPACE, {
+      title: 'Zuhal',
+      kind: 'person',
+      contactId: 'c-zuhal',
+    }).snap;
+    const zuhalId = snap.activeId!;
+    snap = createConversation(snap, {
+      title: 'Erol',
+      kind: 'person',
+      contactId: 'c-erol',
+    }).snap;
+    const erolId = snap.activeId!;
+    snap = createConversation(snap, {
+      title: 'Team Erol',
+      kind: 'person',
+      membershipId: 'mid-erol',
+    }).snap;
+    snap = createConversation(snap, {
+      title: 'Freier Chat',
+      kind: 'general',
+    }).snap;
+
+    expect(findContactConversation(snap, 'c-erol')?.id).toBe(erolId);
+    expect(findContactConversation(snap, 'c-zuhal')?.id).toBe(zuhalId);
+    expect(findContactConversation(snap, 'c-erol')?.id).not.toBe(zuhalId);
+    expect(findPersonConversation(snap, 'mid-erol')?.contactId).toBeNull();
+    expect(findFreeChatConversation(snap)?.kind).toBe('general');
+    expect(conversationTypeOf(findContactConversation(snap, 'c-erol')!)).toBe('contact_chat');
+    expect(conversationTypeOf(findPersonConversation(snap, 'mid-erol')!)).toBe('team_chat');
+    expect(conversationTypeOf(findFreeChatConversation(snap)!)).toBe('free_chat');
+  });
+
+  it('consolidates duplicate contact conversations into one', () => {
+    let snap = createConversation(EMPTY_WORKSPACE, {
+      title: 'Erol',
+      kind: 'person',
+      contactId: 'c-erol',
+      serverConversationId: 'srv-old',
+    }).snap;
+    snap = createConversation(snap, {
+      title: 'Erol again',
+      kind: 'person',
+      contactId: 'c-erol',
+    }).snap;
+    expect(snap.conversations.filter((c) => c.contactId === 'c-erol')).toHaveLength(2);
+    snap = consolidateConversations(snap);
+    const contacts = snap.conversations.filter((c) => c.contactId === 'c-erol');
+    expect(contacts).toHaveLength(1);
+    expect(contacts[0].serverConversationId).toBe('srv-old');
   });
 
   it('auto-archives inactive conversations but never deletes', () => {
@@ -83,6 +139,22 @@ describe('coach workspace store', () => {
     expect(imported!.kind).toBe('general');
   });
 
+  it('does not create a second list row for the same contact_id from server', () => {
+    let snap = createConversation(EMPTY_WORKSPACE, {
+      title: 'Erol',
+      kind: 'person',
+      contactId: 'c-erol',
+    }).snap;
+    snap = mergeServerConvos(snap, [
+      { id: 'srv-erol-1', contact_id: 'c-erol', created_at: new Date().toISOString() },
+      { id: 'srv-erol-2', contact_id: 'c-erol', created_at: new Date().toISOString() },
+    ]);
+    expect(snap.conversations.filter((c) => c.contactId === 'c-erol')).toHaveLength(1);
+    expect(snap.conversations.find((c) => c.contactId === 'c-erol')?.serverConversationId).toBe(
+      'srv-erol-1'
+    );
+  });
+
   it('clears stale serverConversationId after wipe (empty server index)', () => {
     let snap = createConversation(EMPTY_WORKSPACE, {
       title: 'Freier Chat',
@@ -105,6 +177,31 @@ describe('coach workspace store', () => {
     snap = removeConversation(snap, removeId);
     expect(snap.conversations.map((c) => c.id)).toEqual([keepId]);
     expect(snap.activeId).toBe(keepId);
+  });
+});
+
+describe('messagesKey isolation', () => {
+  it('isolates pending threads by local conversation id', () => {
+    expect(messagesKey(null, 'local-a')).toEqual(['coach-messages', 'local:local-a']);
+    expect(messagesKey(null, 'local-b')).toEqual(['coach-messages', 'local:local-b']);
+    expect(messagesKey(null, 'local-a')[1]).not.toBe(messagesKey(null, 'local-b')[1]);
+    expect(messagesKey('srv-1')[1]).toBe('srv-1');
+  });
+});
+
+describe('buildContactContextBrief', () => {
+  it('scopes the brief to one CRM contact', () => {
+    const brief = buildContactContextBrief({
+      name: 'Erol',
+      contactId: 'c-erol',
+      phase: 'follow_up',
+      notes: 'Wants info pack',
+    });
+    expect(brief).toContain('Erol');
+    expect(brief).toContain('c-erol');
+    expect(brief).toContain('follow_up');
+    expect(brief).toContain('Wants info pack');
+    expect(brief).toMatch(/this contact only/i);
   });
 });
 
