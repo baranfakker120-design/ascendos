@@ -23,59 +23,71 @@ function close(partial: Partial<DayCloseRecord> & Pick<DayCloseRecord, 'outcome'
 }
 
 describe('buildDecisionDiff', () => {
-  it('returns clean_start when yesterday was never closed', () => {
-    const lines = buildDecisionDiff({
+  it('returns honest no_close / stable when nothing real changed', () => {
+    const result = buildDecisionDiff({
       yesterdayClose: null,
       todayItems: [],
       warnings: [],
       followUps: [],
     });
-    expect(lines).toHaveLength(1);
-    expect(lines[0]?.kind).toBe('clean_start');
-    expect(lines[0]?.why).toBe('no_close');
+    expect(result.mode).toBe('no_close');
+    expect(result.changes).toHaveLength(1);
+    expect(result.changes[0]?.kind).toBe('stable');
   });
 
-  it('surfaces missed priority and carry-over from close seed', () => {
-    const lines = buildDecisionDiff({
-      yesterdayClose: close({ outcome: 'partial' }),
+  it('ranks missed priority and colder contact by impact, max 5', () => {
+    const result = buildDecisionDiff({
+      yesterdayClose: close({ outcome: 'missed' }),
       todayItems: [
+        { id: 'p1', title: 'Call Maya', status: 'pending', score: 30, position: 0 },
+        { id: 'p2', title: 'Follow up Sam', status: 'pending', score: 20, position: 1 },
+      ],
+      warnings: [
         {
-          id: 'p1',
-          title: 'Call Maya',
-          status: 'pending',
-          score: 30,
-          position: 0,
-        },
-        {
-          id: 'p2',
-          title: 'Follow up Sam',
-          status: 'pending',
-          score: 20,
-          position: 1,
+          kind: 'no_activity_7d',
+          title: 'Quiet',
+          name: 'Alex',
+          action: 'Alex idle 7 days — check in before momentum dies.',
+          severity: 'high',
         },
       ],
-      warnings: [],
-      followUps: [],
+      followUps: [
+        {
+          contactId: 'c1',
+          name: 'Nora',
+          heat: 'forgotten',
+          why: 'Nora has been inactive for 12 days. Waiting longer raises the chance of losing the thread.',
+        },
+        {
+          contactId: 'c2',
+          name: 'Ken',
+          heat: 'hot',
+          why: 'Ken opened the presentation yesterday — window is open.',
+        },
+      ],
+      partnerSignals: [
+        {
+          membershipId: 'm1',
+          name: 'Dogukan',
+          tone: 'inactive',
+          detail: 'Dogukan has been inactive for 5 days. If nothing changes, momentum drops.',
+        },
+      ],
     });
-    expect(lines.map((l) => l.kind)).toEqual(['missed_priority', 'carry_over']);
-    expect(lines[0]?.title).toBe('Call Maya');
-    expect(lines[1]?.title).toBe('Follow up Sam');
+
+    expect(result.mode).toBe('changes');
+    expect(result.changes.length).toBeGreaterThan(0);
+    expect(result.changes.length).toBeLessThanOrEqual(5);
+    // Highest impact first
+    for (let i = 1; i < result.changes.length; i++) {
+      expect(result.changes[i - 1]!.impact).toBeGreaterThanOrEqual(result.changes[i]!.impact);
+    }
+    expect(result.changes.every((c) => c.why.length > 0 && c.soWhat)).toBe(true);
+    expect(result.suggestedFocus).toBeTruthy();
   });
 
-  it('adds team_signal and plan_delta without exceeding 4 lines', () => {
-    const lines = buildDecisionDiff({
-      yesterdayClose: close({ outcome: 'missed' }),
-      todayItems: [{ id: 'p1', title: 'Call Maya', status: 'pending', score: 10, position: 0 }],
-      warnings: [{ kind: 'no_activity_7d', title: 'Quiet', name: 'Alex', action: 'Check in' }],
-      followUps: [{ contactId: 'c1', name: 'Nora', heat: 'forgotten', why: 'No touch in 12 days' }],
-    });
-    expect(lines.length).toBeLessThanOrEqual(4);
-    expect(lines.some((l) => l.kind === 'team_signal')).toBe(true);
-    expect(lines.some((l) => l.kind === 'plan_delta' && l.title === 'Nora')).toBe(true);
-  });
-
-  it('returns clean_start after a fully closed clean day', () => {
-    const lines = buildDecisionDiff({
+  it('celebrates completed priority without inventing extra noise', () => {
+    const result = buildDecisionDiff({
       yesterdayClose: close({
         outcome: 'done',
         tomorrowSeed: [],
@@ -88,8 +100,52 @@ describe('buildDecisionDiff', () => {
       warnings: [],
       followUps: [],
     });
-    expect(lines).toEqual([
-      expect.objectContaining({ kind: 'clean_start', why: 'yesterday_clean' }),
-    ]);
+    expect(result.changes.some((c) => c.kind === 'priority_done')).toBe(true);
+    expect(result.changes.every((c) => c.kind !== 'contact_colder')).toBe(true);
+  });
+
+  it('returns stable when yesterday was clean and no live signals', () => {
+    const result = buildDecisionDiff({
+      yesterdayClose: close({
+        outcome: 'done',
+        priorityTitle: null,
+        priorityItemId: null,
+        tomorrowSeed: [],
+        openTitles: [],
+        missionsDone: 1,
+        missionsTotal: 1,
+        missionsDeferred: 0,
+      }),
+      todayItems: [],
+      warnings: [],
+      followUps: [],
+    });
+    expect(result.mode).toBe('stable');
+    expect(result.changes[0]?.kind).toBe('stable');
+  });
+
+  it('soft-dedupes identical ids from yesterday without inventing replacements', () => {
+    const result = buildDecisionDiff({
+      yesterdayClose: close({ outcome: 'partial' }),
+      todayItems: [{ id: 'p1', title: 'Call Maya', status: 'pending', score: 10, position: 0 }],
+      warnings: [],
+      followUps: [],
+      previouslyShownIds: ['priority-open:p1', 'carry:Follow up Sam'],
+    });
+    expect(result.changes.length).toBeGreaterThan(0);
+    const open = result.changes.find((c) => c.id.startsWith('priority-open:'));
+    expect(open && open.impact < 92).toBe(true);
+  });
+
+  it('attaches So what? to every change', () => {
+    const result = buildDecisionDiff({
+      yesterdayClose: close({ outcome: 'done', tomorrowSeed: [], openTitles: [] }),
+      todayItems: [],
+      warnings: [],
+      followUps: [{ contactId: 'c1', name: 'Nora', heat: 'forgotten', why: '12 days idle' }],
+    });
+    for (const c of result.changes) {
+      expect(['follow_today', 'wait', 'observe', 'celebrate', 'prepare']).toContain(c.soWhat);
+    }
   });
 });

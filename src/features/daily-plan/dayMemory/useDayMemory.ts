@@ -8,9 +8,11 @@ import {
   readDayClose,
   readDayOpen,
   readYesterdayClose,
+  shiftPlanDate,
   writeDayClose,
   writeDayOpen,
 } from './dayMemoryStore';
+import { readDiffShownIds, writeDiffShownIds } from './diffShownStore';
 import type { DayCloseRecord, DayCloseSource, DayOpenRecord } from './types';
 
 /**
@@ -24,6 +26,7 @@ export function useDayMemory() {
   const [close, setClose] = useState<DayCloseRecord | null>(null);
   const [open, setOpen] = useState<DayOpenRecord | null>(null);
   const [yesterdayClose, setYesterdayClose] = useState<DayCloseRecord | null>(null);
+  const [previouslyShownIds, setPreviouslyShownIds] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -31,20 +34,24 @@ export function useDayMemory() {
       setClose(null);
       setOpen(null);
       setYesterdayClose(null);
+      setPreviouslyShownIds([]);
       setReady(true);
       return;
     }
     let cancelled = false;
     setReady(false);
+    const yesterday = shiftPlanDate(planDate, -1);
     void Promise.all([
       readDayClose(userId, planDate),
       readDayOpen(userId, planDate),
       readYesterdayClose(userId, planDate),
-    ]).then(([c, o, y]) => {
+      readDiffShownIds(userId, yesterday),
+    ]).then(([c, o, y, shown]) => {
       if (cancelled) return;
       setClose(c);
       setOpen(o);
       setYesterdayClose(y);
+      setPreviouslyShownIds(shown);
       setReady(true);
     });
     return () => {
@@ -113,14 +120,24 @@ export function useDayMemory() {
     [userId, planDate, open, membership?.org_id, profile?.org_id]
   );
 
+  const markDiffShown = useCallback(
+    async (ids: string[]) => {
+      if (!userId || ids.length === 0) return;
+      await writeDiffShownIds(userId, planDate, ids);
+    },
+    [userId, planDate]
+  );
+
   return {
     ready,
     planDate,
     close,
     open,
     yesterdayClose,
+    previouslyShownIds,
     isClosed: Boolean(close),
     markDayOpened,
     closeDay,
+    markDiffShown,
   };
 }

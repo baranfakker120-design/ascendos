@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SyncStatusIndicator } from '@shared/offline';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executive';
@@ -53,6 +54,7 @@ export function TodayPage() {
 
 function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> }) {
   const { t } = useI18n();
+  const { profile } = useAuth();
   const { data, isPending, isError } = useDailyPlan();
   const { commitPlan, setMissionStatus } = useDailyPlanMutations();
   const { intelligence } = useCoachOrgIntelligence(true);
@@ -68,16 +70,37 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
     return map;
   }, [contacts.data?.items]);
 
-  const diffLines = useMemo(() => {
-    if (!data || data.plan.committed_at) return [];
+  const decisionDiff = useMemo(() => {
+    if (!data || data.plan.committed_at) return null;
+    const inactivePartners = (intelligence?.personInsights ?? [])
+      .filter((p) => p.riskScore >= 60 || p.recommendation === 'reactivation')
+      .slice(0, 3)
+      .map((p) => ({
+        membershipId: p.membershipId,
+        name: p.name,
+        tone: 'inactive' as const,
+        detail: p.nextBestActionWhy || p.currentSituation,
+      }));
+    const activating = (intelligence?.onboarding ?? [])
+      .filter((o) => o.stage === 'opened' || (o.stuckDays !== null && o.stuckDays <= 2))
+      .slice(0, 2)
+      .map((o) => ({
+        membershipId: o.membershipId,
+        name: o.name,
+        tone: 'activating' as const,
+        detail: o.note,
+      }));
+
     return buildDecisionDiff({
       yesterdayClose: memory.yesterdayClose,
       todayItems: data.items,
-      warnings: (intelligence?.managerMessages ?? []).slice(0, 3).map((m) => ({
+      previouslyShownIds: memory.previouslyShownIds,
+      warnings: (intelligence?.managerMessages ?? []).slice(0, 5).map((m) => ({
         kind: m.id,
         title: m.text,
         name: m.text,
         action: m.why,
+        severity: m.severity,
       })),
       followUps: (intelligence?.followUps ?? []).map((f) => ({
         contactId: f.contactId,
@@ -85,8 +108,16 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
         heat: f.heat,
         why: f.why,
       })),
+      partnerSignals: [...inactivePartners, ...activating],
     });
-  }, [data, memory.yesterdayClose, intelligence]);
+  }, [data, memory.yesterdayClose, memory.previouslyShownIds, intelligence]);
+
+  useEffect(() => {
+    if (!decisionDiff || decisionDiff.changes.length === 0) return;
+    void memory.markDiffShown(decisionDiff.changes.map((c) => c.id));
+    // Persist today's fingerprint for tomorrow's soft-dedupe only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when change set identity shifts
+  }, [decisionDiff]);
 
   if (isPending || !memory.ready) {
     return <p className="text-sm text-muted">{t('today.loading')}</p>;
@@ -118,7 +149,9 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
     if (data.items.length === 0) {
       return (
         <div className="space-y-4">
-          {diffLines.length > 0 ? <DecisionDiff lines={diffLines} /> : null}
+          {decisionDiff ? (
+            <DecisionDiff result={decisionDiff} firstName={profile?.first_name} />
+          ) : null}
           <Card>
             <p className="font-medium">{t('today.empty')}</p>
             <p className="mt-1 text-sm text-muted">{t('today.emptyHint')}</p>
@@ -128,7 +161,9 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
     }
     return (
       <div className="space-y-4">
-        {diffLines.length > 0 ? <DecisionDiff lines={diffLines} /> : null}
+        {decisionDiff ? (
+          <DecisionDiff result={decisionDiff} firstName={profile?.first_name} />
+        ) : null}
         <MorningCommit
           items={data.items}
           busy={commitPlan.isPending}

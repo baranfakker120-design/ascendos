@@ -8,12 +8,17 @@ export {
 } from './buildCloseSnapshot';
 export {
   buildDecisionDiff,
+  buildDecisionDiffLines,
+  type DecisionDiffChange,
   type DecisionDiffFollowUp,
   type DecisionDiffInput,
   type DecisionDiffKind,
-  type DecisionDiffLine,
+  type DecisionDiffPartnerSignal,
+  type DecisionDiffResult,
+  type DecisionDiffSoWhat,
   type DecisionDiffWarning,
 } from './buildDecisionDiff';
+export { readDiffShownIds, writeDiffShownIds } from './diffShownStore';
 export {
   daysIdle,
   pickGravityPriority,
