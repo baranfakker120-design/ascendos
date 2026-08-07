@@ -89,16 +89,67 @@
   padding-bottom: max(0.2rem, env(safe-area-inset-bottom));
 }
 
+/* Equal-size wrap grid — no horizontal scroll on phones */
 .person-coach__chips {
-  display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
-  padding-bottom: 0.15rem;
-  scrollbar-width: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  overflow: visible;
+  padding: 0;
+  align-items: stretch;
 }
 
-.person-coach__chips::-webkit-scrollbar {
-  display: none;
+.person-coach__chips .person-coach__qa {
+  width: 100%;
+  height: 100%;
+  min-height: 3.35rem;
+  min-width: 0;
+  padding: 0.4rem 0.45rem;
+  border-radius: 0.75rem;
+}
+
+.person-coach__chips .person-coach__qa .ui-btn__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.person-coach__qa-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.person-coach__qa-label {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 480px) {
+  .person-coach__chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .person-coach__chips {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
 
 .person-coach__form {
@@ -151,10 +202,30 @@
 }
 
 .wa-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
   margin-top: 0.7rem;
+}
+
+.wa-card__actions .ui-btn {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.35rem;
+}
+
+.wa-card__actions .ui-btn__label {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  font-size: 0.72rem;
 }
 
 @keyframes person-coach-in {

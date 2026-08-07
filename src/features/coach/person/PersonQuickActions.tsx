@@ -69,9 +69,13 @@ export function PersonQuickActions({ personName, onSend, disabled }: Props) {
           fullWidth={false}
           disabled={disabled}
           role="listitem"
+          className="person-coach__qa"
           onClick={() => onSend(t(a.promptKey, { name: first }))}
         >
-          <span aria-hidden>{a.icon}</span> {t(a.labelKey)}
+          <span className="person-coach__qa-icon" aria-hidden>
+            {a.icon}
+          </span>
+          <span className="person-coach__qa-label">{t(a.labelKey)}</span>
         </Button>
       ))}
     </div>
