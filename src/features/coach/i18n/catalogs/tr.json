@@ -384,5 +384,30 @@
       "title": "30 gündür uygulama aktivitesi yok",
       "action": "10 dakikalık bir check-in ayarla ve ortak bir günlük hedef koyun."
     }
+  },
+  "contactCoach": {
+    "knowsAlready": "Ascent zaten biliyor",
+    "factPhase": "Aşama",
+    "factTimeline": "Zaman çizelgesi",
+    "factNotes": "Notlar",
+    "factActivity": "son aktiviteler",
+    "factNextStep": "sonraki adım",
+    "viewContact": "Kişi",
+    "chipWhatsApp": "{name} için WhatsApp yaz",
+    "promptWhatsApp": "{name} için bir WhatsApp mesajı yaz. Aşama, notlar ve sonraki adımı kullan.",
+    "chipZoom": "{name} kişisini Zoom’a nasıl getiririm?",
+    "promptZoom": "{name} kişisini Zoom’a nasıl getiririm? En iyi sonraki adımı ve kısa bir davet yaz.",
+    "chipNextStep": "Hangi sonraki adımı önerirsin?",
+    "promptNextStep": "{name} için hangi sonraki adımı önerirsin — net ve bugün uygulanabilir?",
+    "chipObjection": "İtirazına nasıl cevap veririm?",
+    "promptObjection": "{name} kişisinin itirazına nasıl cevap veririm? Kısa, doğal bir yanıt yaz.",
+    "chipFollowUp": "Takip mesajı oluştur",
+    "promptFollowUp": "{name} için aşama ve son temasa uygun bir takip mesajı oluştur.",
+    "chipActivate": "{name} kişisini nasıl aktive ederim?",
+    "promptActivate": "{name} kişisini nasıl aktive ederim? En iyi sonraki hamleyi ve kısa bir mesaj yaz.",
+    "chipClose": "{name} ile nasıl kapanış yaparım?",
+    "promptClose": "{name} ile nasıl kapanış yaparım? Net bir kapanış ve doğru ifadeyi yaz.",
+    "chipKnows": "{name} hakkında zaten ne biliyorsun?",
+    "promptKnows": "{name} hakkında zaten bildiklerini özetle — aşama, zaman çizelgesi, notlar, aktiviteler ve sonraki adım."
   }
 }

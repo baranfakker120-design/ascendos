@@ -204,15 +204,35 @@ export function useCoachContact(contactId: string | null) {
     queryKey: ['coach-contact', contactId],
     enabled: !!contactId,
     queryFn: async () => {
-      const [contact, phase] = await Promise.all([
-        supabase.from('contacts').select('id, name, notes').eq('id', contactId!).single(),
+      const [contact, phase, events] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('id, name, notes, next_step, next_step_due')
+          .eq('id', contactId!)
+          .single(),
         supabase.from('contact_phases').select('phase').eq('contact_id', contactId!).single(),
+        supabase
+          .from('pipeline_events')
+          .select('id, event_type, occurred_at')
+          .eq('contact_id', contactId!)
+          .order('occurred_at', { ascending: false })
+          .limit(6),
       ]);
       if (contact.error) throw contact.error;
+      const recentEvents = (events.data ?? []) as Array<{
+        id: string;
+        event_type: string;
+        occurred_at: string;
+      }>;
       return {
-        ...contact.data,
-        notes: (contact.data as { notes?: string | null }).notes ?? null,
+        id: contact.data.id as string,
+        name: contact.data.name as string,
+        notes: (contact.data.notes as string | null) ?? null,
+        next_step: (contact.data.next_step as string | null) ?? null,
+        next_step_due: (contact.data.next_step_due as string | null) ?? null,
         phase: (phase.data?.phase ?? 'lead') as import('@shared/types/domain').ContactPhase,
+        recentEvents,
+        recentEventCount: recentEvents.length,
       };
     },
   });
