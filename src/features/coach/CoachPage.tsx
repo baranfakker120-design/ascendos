@@ -15,6 +15,7 @@ import { CoachBriefingPanel, findPersonInsight, useCoachOrgIntelligence } from '
 import {
   ConversationList,
   NewConversationSheet,
+  buildContactContextBrief,
   buildPersonContextBrief,
   composeOutboundMessage,
   defaultTitleForKind,
@@ -124,7 +125,10 @@ export function CoachPage() {
   const setInput = (text: string) => patchInputDraft({ text });
 
   const [error, setError] = useState<string | null>(null);
-  const { data: messages, isPending: messagesPending } = useCoachMessages(conversationId);
+  const { data: messages, isPending: messagesPending } = useCoachMessages(
+    conversationId,
+    active?.id ?? null
+  );
   const send = useSendToCoach();
 
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -187,28 +191,26 @@ export function CoachPage() {
     if (deepLinkHandled.current === deepKey) return;
     deepLinkHandled.current = deepKey;
 
-    if (partnerNameParam) {
-      const name = partnerNameParam;
-      const brief = buildPersonContextBrief({
-        name,
-        membershipId: null,
-        insight: null,
-      });
-      workspace.ensureKind('person', {
-        title: name,
-        partnerName: name,
-        membershipId: null,
-        seedPrompt: seed,
-        contextBrief: brief,
-      });
+    if (partnerNameParam && !contactIdParam) {
+      // Name-only links without kontakt/mid must not spawn orphan person threads.
+      // Team chats use /coach/person/:mid; CRM uses ?kontakt=.
       return;
     }
 
     if (contactIdParam) {
+      const name = contact?.name ?? partnerNameParam ?? t('coach.ws.kind.person');
+      const brief = buildContactContextBrief({
+        name,
+        contactId: contactIdParam,
+        phase: contact?.phase ?? null,
+        notes: contact?.notes ?? null,
+      });
       workspace.ensureKind('person', {
-        title: contact?.name ?? t('coach.ws.kind.person'),
+        title: name,
+        partnerName: name,
         contactId: contactIdParam,
         seedPrompt: seed,
+        contextBrief: brief,
       });
       return;
     }
@@ -259,15 +261,29 @@ export function CoachPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.id, active?.seedPrompt, messages, messagesPending]);
 
-  // Keep contact title fresh once loaded.
+  // Keep contact title + context brief fresh once loaded (contact_chat only).
   useEffect(() => {
     if (!active || !contact || active.contactId !== contact.id) return;
-    if (active.title === contact.name && active.partnerName === contact.name) return;
-    workspace.updateActive({ title: contact.name, partnerName: contact.name });
+    if (active.membershipId) return;
+    const brief = buildContactContextBrief({
+      name: contact.name,
+      contactId: contact.id,
+      phase: contact.phase,
+      notes: contact.notes,
+    });
+    const patch: { title?: string; partnerName?: string; contextBrief?: string } = {};
+    if (active.title !== contact.name || active.partnerName !== contact.name) {
+      patch.title = contact.name;
+      patch.partnerName = contact.name;
+    }
+    if (!active.contextAttached && brief !== active.contextBrief) {
+      patch.contextBrief = brief;
+    }
+    if (Object.keys(patch).length) workspace.updateActive(patch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact?.id, contact?.name, active?.id]);
+  }, [contact?.id, contact?.name, contact?.phase, contact?.notes, active?.id]);
 
-  // Enrich person brief when intelligence arrives after deep link.
+  // Enrich team person brief when intelligence arrives after deep link.
   useEffect(() => {
     if (!active || active.kind !== 'person' || !partnerMid) return;
     if (active.contextAttached) return;
@@ -327,6 +343,7 @@ export function CoachPage() {
         message,
         displayContent: attached ? raw : undefined,
         conversationId: active.serverConversationId,
+        localConversationId: active.id,
         contactId: active.contactId,
       });
       await clearInputDraft();

@@ -11,8 +11,9 @@ export function buildPersonContextBrief(input: {
   insight: PersonCoachInsight | null;
 }): string {
   const lines: string[] = [
-    `Context for Ascend Coach — conversation about ${input.name}.`,
+    `Context for Ascend Coach — team member conversation about ${input.name}.`,
     'Use this background silently; do not ask me to repeat it.',
+    'Stay focused on this team member only. Do not mix in CRM contacts or other partners.',
   ];
 
   if (input.membershipId) {
@@ -40,6 +41,30 @@ export function buildPersonContextBrief(input: {
     'Also consider prior leadership notes, onboarding, activity, stories, and earlier coach threads when relevant.'
   );
 
+  return lines.join('\n');
+}
+
+/**
+ * Client-side context brief for CRM contact chats ("Ascent zu … fragen").
+ * Server coach-chat still loads timeline / notes / follow-ups via contactId.
+ */
+export function buildContactContextBrief(input: {
+  name: string;
+  contactId: string;
+  phase?: string | null;
+  notes?: string | null;
+}): string {
+  const lines: string[] = [
+    `Context for Ascend Coach — CRM contact conversation about ${input.name}.`,
+    `Contact id: ${input.contactId}`,
+    'Use this background silently; do not ask me to repeat it.',
+    'Stay focused on this contact only. Never reuse or mix messages from other contacts.',
+  ];
+  if (input.phase) lines.push(`Pipeline phase: ${input.phase}`);
+  if (input.notes?.trim()) lines.push(`Notes: ${input.notes.trim()}`);
+  lines.push(
+    'When answering, use this contact’s status, timeline, notes, follow-ups, and recent activities only.'
+  );
   return lines.join('\n');
 }
 

@@ -46,13 +46,13 @@ export function normalizeSnapshot(raw: unknown): WorkspaceSnapshot {
         archivedAt: c.archivedAt ?? null,
       }))
     : [];
-  return {
+  return consolidateConversations({
     version: 1,
     conversations,
     activeId: typeof s.activeId === 'string' ? s.activeId : null,
     mobilePane: s.mobilePane === 'chat' ? 'chat' : 'list',
     updatedAt: typeof s.updatedAt === 'number' ? s.updatedAt : 0,
-  };
+  });
 }
 
 /** Sync bootstrap — avoids flash before IDB resolves. */
@@ -135,13 +135,16 @@ export function findPersonConversation(
   );
 }
 
+/** CRM contact chat only — never matches team_chat (membership) or free/ceo. */
 export function findContactConversation(
   snap: WorkspaceSnapshot,
   contactId: string
 ): WorkspaceConversation | null {
+  const isContactChat = (c: WorkspaceConversation) =>
+    c.kind === 'person' && c.contactId === contactId && !c.membershipId;
   return (
-    snap.conversations.find((c) => c.contactId === contactId && !c.archivedAt) ??
-    snap.conversations.find((c) => c.contactId === contactId) ??
+    snap.conversations.find((c) => isContactChat(c) && !c.archivedAt) ??
+    snap.conversations.find(isContactChat) ??
     null
   );
 }
@@ -152,6 +155,87 @@ export function findCeoConversation(snap: WorkspaceSnapshot): WorkspaceConversat
     snap.conversations.find((c) => c.kind === 'ceo') ??
     null
   );
+}
+
+export function findFreeChatConversation(snap: WorkspaceSnapshot): WorkspaceConversation | null {
+  return (
+    snap.conversations.find((c) => c.kind === 'general' && !c.archivedAt) ??
+    snap.conversations.find((c) => c.kind === 'general') ??
+    null
+  );
+}
+
+function conversationScore(c: WorkspaceConversation): number {
+  const opened = Date.parse(c.lastOpenedAt || c.updatedAt || c.createdAt) || 0;
+  return (c.serverConversationId ? 1_000_000_000_000 : 0) + opened;
+}
+
+/**
+ * One contact = one conversation, one team member = one conversation.
+ * Keeps the strongest row and drops duplicates (list + context isolation).
+ */
+export function consolidateConversations(snap: WorkspaceSnapshot): WorkspaceSnapshot {
+  const contactBest = new Map<string, WorkspaceConversation>();
+  const memberBest = new Map<string, WorkspaceConversation>();
+  const others: WorkspaceConversation[] = [];
+  let changed = false;
+
+  for (const c of snap.conversations) {
+    if (c.kind === 'person' && c.membershipId) {
+      const prev = memberBest.get(c.membershipId);
+      if (!prev) {
+        memberBest.set(c.membershipId, c);
+        continue;
+      }
+      changed = true;
+      const winner = conversationScore(c) >= conversationScore(prev) ? c : prev;
+      const loser = winner.id === c.id ? prev : c;
+      memberBest.set(
+        c.membershipId,
+        winner.serverConversationId || !loser.serverConversationId
+          ? winner
+          : { ...winner, serverConversationId: loser.serverConversationId }
+      );
+      continue;
+    }
+    if (c.kind === 'person' && c.contactId && !c.membershipId) {
+      const prev = contactBest.get(c.contactId);
+      if (!prev) {
+        contactBest.set(c.contactId, c);
+        continue;
+      }
+      changed = true;
+      const winner = conversationScore(c) >= conversationScore(prev) ? c : prev;
+      const loser = winner.id === c.id ? prev : c;
+      contactBest.set(
+        c.contactId,
+        winner.serverConversationId || !loser.serverConversationId
+          ? winner
+          : { ...winner, serverConversationId: loser.serverConversationId }
+      );
+      continue;
+    }
+    others.push(c);
+  }
+
+  if (!changed) return snap;
+
+  const conversations = [
+    ...others,
+    ...Array.from(contactBest.values()),
+    ...Array.from(memberBest.values()),
+  ];
+  const ids = new Set(conversations.map((c) => c.id));
+  let activeId = snap.activeId && ids.has(snap.activeId) ? snap.activeId : null;
+  if (!activeId && snap.activeId) {
+    const dropped = snap.conversations.find((c) => c.id === snap.activeId);
+    if (dropped?.kind === 'person' && dropped.membershipId) {
+      activeId = memberBest.get(dropped.membershipId)?.id ?? null;
+    } else if (dropped?.kind === 'person' && dropped.contactId) {
+      activeId = contactBest.get(dropped.contactId)?.id ?? null;
+    }
+  }
+  return { ...snap, conversations, activeId };
 }
 
 export function createConversation(
@@ -262,7 +346,7 @@ export function mergeServerConvos(
   let changed = false;
 
   // Drop bindings to server threads that no longer exist (demo wipe / delete).
-  const conversations = snap.conversations.map((c) => {
+  let conversations = snap.conversations.map((c) => {
     if (!c.serverConversationId || liveIds.has(c.serverConversationId)) return c;
     changed = true;
     return { ...c, serverConversationId: null };
@@ -274,6 +358,39 @@ export function mergeServerConvos(
   const additions: WorkspaceConversation[] = [];
   for (const row of rows) {
     if (known.has(row.id)) continue;
+
+    // Attach to existing CRM contact chat instead of creating a duplicate list row.
+    if (row.contact_id) {
+      const existingIdx = conversations.findIndex(
+        (c) => c.kind === 'person' && c.contactId === row.contact_id && !c.membershipId
+      );
+      if (existingIdx >= 0) {
+        const existing = conversations[existingIdx];
+        if (!existing.serverConversationId) {
+          conversations = conversations.map((c, i) =>
+            i === existingIdx ? { ...c, serverConversationId: row.id, updatedAt: nowIso() } : c
+          );
+          known.add(row.id);
+          changed = true;
+        }
+        // Already bound (or bound to another server id): never list a second contact row.
+        continue;
+      }
+    } else {
+      // Bind first unbound free chat rather than spawning a twin.
+      const freeIdx = conversations.findIndex(
+        (c) => c.kind === 'general' && !c.serverConversationId
+      );
+      if (freeIdx >= 0) {
+        conversations = conversations.map((c, i) =>
+          i === freeIdx ? { ...c, serverConversationId: row.id, updatedAt: nowIso() } : c
+        );
+        known.add(row.id);
+        changed = true;
+        continue;
+      }
+    }
+
     const ts = row.created_at || nowIso();
     additions.push({
       id: newLocalId(),
@@ -298,10 +415,11 @@ export function mergeServerConvos(
     changed = true;
   }
   if (!changed) return snap;
-  return {
+  const merged: WorkspaceSnapshot = {
     ...snap,
     conversations: additions.length ? [...conversations, ...additions] : conversations,
   };
+  return consolidateConversations(merged);
 }
 
 /** True when the edge function reported a missing / wiped conversation. */

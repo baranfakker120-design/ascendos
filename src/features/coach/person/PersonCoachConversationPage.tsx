@@ -58,11 +58,12 @@ export function PersonCoachConversationPage() {
 
   const seedRef = useRef<string | null | undefined>(undefined);
   if (seedRef.current === undefined) seedRef.current = readPendingSeed();
-  const openedRef = useRef(false);
+  const openedForMidRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!workspace.hydrated || !membershipId || openedRef.current) return;
-    openedRef.current = true;
+    if (!workspace.hydrated || !membershipId) return;
+    if (openedForMidRef.current === membershipId) return;
+    openedForMidRef.current = membershipId;
     const brief = buildPersonContextBrief({
       name: personName,
       membershipId,
@@ -75,6 +76,7 @@ export function PersonCoachConversationPage() {
       seedPrompt: seedRef.current,
       contextBrief: brief,
     });
+    seedRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.hydrated, membershipId, personName]);
 
@@ -94,7 +96,10 @@ export function PersonCoachConversationPage() {
   }, [partnerInsight, active?.id, membershipId, personName]);
 
   const conversationId = active?.serverConversationId ?? null;
-  const { data: messages, isPending: messagesPending } = useCoachMessages(conversationId);
+  const { data: messages, isPending: messagesPending } = useCoachMessages(
+    conversationId,
+    active?.id ?? null
+  );
   const send = useSendToCoach();
 
   const draftScope = DRAFT_SCOPES.coachThread(active?.id ?? `person:${membershipId}`);
@@ -174,6 +179,7 @@ export function PersonCoachConversationPage() {
         message,
         displayContent: attached ? raw : undefined,
         conversationId: active.serverConversationId,
+        localConversationId: active.id,
         contactId: active.contactId,
       });
       await clearInputDraft();
