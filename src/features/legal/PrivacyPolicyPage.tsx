@@ -6,7 +6,6 @@ import { SiteFooter } from '@shared/ui/SiteFooter';
 /**
  * Öffentliche Datenschutzseite (/datenschutz).
  * Inhalt basiert auf der tatsächlichen Code-/Architektur-Analyse von AscendOS.
- * Fehlende Verantwortlichen-Angaben sind als TODO markiert.
  */
 export function PrivacyPolicyPage() {
   const { t } = useI18n();
@@ -41,27 +40,20 @@ export function PrivacyPolicyPage() {
             (DSGVO) ist:
           </p>
           <div className="mt-3 space-y-1 rounded-xl border border-line bg-surface px-4 py-3 text-muted">
-            <p>
-              <strong className="text-ink">TODO:</strong> Vollständiger Name der verantwortlichen
-              Person bzw. Firma
-            </p>
-            <p>
-              <strong className="text-ink">TODO:</strong> Straße und Hausnummer
-            </p>
-            <p>
-              <strong className="text-ink">TODO:</strong> PLZ und Ort, Land
-            </p>
-            <p>
-              <strong className="text-ink">TODO:</strong> E-Mail-Adresse des Verantwortlichen
-              (rechtlich)
+            <p className="font-semibold text-ink">Hacibekir Cayir</p>
+            <p>Chemnitzer Strasse 7</p>
+            <p>35260 Stadtallendorf</p>
+            <p>Deutschland</p>
+            <p className="pt-2">
+              E-Mail: <a href="mailto:hacibekircayir@gmail.com">hacibekircayir@gmail.com</a>
             </p>
           </div>
           <p className="mt-3">
-            Für allgemeine Nutzungsanfragen zur App werden in AscendOS derzeit die Kontaktadressen{' '}
+            Datenschutzrechtliche Anfragen richten Sie bitte an die oben genannte E-Mail-Adresse des
+            Verantwortlichen. Für allgemeine Nutzungs- und Supportanfragen zur App stehen zusätzlich
+            die in AscendOS hinterlegten Adressen{' '}
             <a href="mailto:support@ascendos.app">support@ascendos.app</a> und{' '}
-            <a href="mailto:feedback@ascendos.app">feedback@ascendos.app</a> verwendet. Ob diese
-            Adressen mit dem datenschutzrechtlichen Verantwortlichen identisch sind, ist unter den
-            TODOs oben zu bestätigen.
+            <a href="mailto:feedback@ascendos.app">feedback@ascendos.app</a> zur Verfügung.
           </p>
         </Section>
 
@@ -259,11 +251,14 @@ export function PrivacyPolicyPage() {
 
         <Section title="10. Kontaktaufnahme">
           <p>
-            AscendOS enthält kein öffentliches Kontaktformular auf der Website. Eine Kontaktaufnahme
-            ist über die in den Einstellungen hinterlegten E-Mail-Adressen möglich
-            (support@ascendos.app, feedback@ascendos.app). Dabei werden die von Ihnen übermittelten
-            Angaben (mindestens E-Mail-Adresse und Nachrichteninhalt) zur Bearbeitung der Anfrage
-            verarbeitet.
+            AscendOS enthält kein öffentliches Kontaktformular auf der Website. Für
+            datenschutzrechtliche Anfragen erreichen Sie den Verantwortlichen unter{' '}
+            <a href="mailto:hacibekircayir@gmail.com">hacibekircayir@gmail.com</a>. Für allgemeine
+            Nutzungs- und Supportanfragen stehen die in den Einstellungen hinterlegten
+            E-Mail-Adressen <a href="mailto:support@ascendos.app">support@ascendos.app</a> und{' '}
+            <a href="mailto:feedback@ascendos.app">feedback@ascendos.app</a> zur Verfügung. Dabei
+            werden die von Ihnen übermittelten Angaben (mindestens E-Mail-Adresse und
+            Nachrichteninhalt) zur Bearbeitung der Anfrage verarbeitet.
           </p>
         </Section>
 
