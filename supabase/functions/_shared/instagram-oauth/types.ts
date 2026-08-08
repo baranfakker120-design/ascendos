@@ -13,6 +13,12 @@ export interface OAuthStatePayload {
   oid: string; // org_id
   nonce: string;
   exp: number; // unix seconds
+  /**
+   * Exact redirect_uri used in the authorize dialog (after normalizeRedirectUri).
+   * Callback must reuse this byte-for-byte for the token exchange.
+   * Optional only to tolerate in-flight states during deploy.
+   */
+  ruri?: string;
 }
 
 export interface SafeConnectionView {

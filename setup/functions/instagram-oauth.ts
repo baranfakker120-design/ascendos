@@ -42,6 +42,12 @@ export interface OAuthStatePayload {
   oid: string; // org_id
   nonce: string;
   exp: number; // unix seconds
+  /**
+   * Exact redirect_uri used in the authorize dialog (after normalizeRedirectUri).
+   * Callback must reuse this byte-for-byte for the token exchange.
+   * Optional only to tolerate in-flight states during deploy.
+   */
+  ruri?: string;
 }
 
 export interface SafeConnectionView {
@@ -179,6 +185,12 @@ export async function verifyOAuthState(
     const payload = JSON.parse(textDecoder.decode(fromBase64Url(body))) as OAuthStatePayload;
     if (!payload?.mid || !payload?.oid || !payload?.nonce || !payload?.exp) return null;
     if (payload.exp < nowSec) return null;
+    // New flows always set ruri; tolerate missing on in-flight states mid-deploy.
+    if (typeof payload.ruri === 'string') {
+      payload.ruri = payload.ruri.trim();
+    } else {
+      delete payload.ruri;
+    }
     return payload;
   } catch {
     return null;
@@ -198,9 +210,9 @@ const TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
 const GRAPH = 'https://graph.instagram.com';
 
 /**
- * Normalize META_REDIRECT_URI so authorize + token exchange always share
- * the exact same string (trim, strip wrapping quotes, no trailing slash).
- * Meta App Dashboard may add a trailing slash — keep secret and dashboard aligned.
+ * Normalize META_REDIRECT_URI for authorize + token exchange.
+ * Trim + strip wrapping quotes only — preserve trailing slash exactly as configured
+ * (Meta App Dashboard often auto-appends `/` and compares strings character-for-character).
  */
 export function normalizeRedirectUri(raw: string): string {
   let value = raw.trim();
@@ -210,16 +222,35 @@ export function normalizeRedirectUri(raw: string): string {
   ) {
     value = value.slice(1, -1).trim();
   }
-  // Function callback paths must not end with "/"; Meta compares exact strings.
-  if (value.length > 1 && value.endsWith('/')) {
-    value = value.slice(0, -1);
-  }
   return value;
 }
 
 /** Instagram appends `#_` to the redirect; strip if it ever lands in `code`. */
 export function normalizeOAuthCode(raw: string): string {
   return raw.trim().split('#')[0]!.trim();
+}
+
+/** Safe redirect_uri diagnostics — never includes secrets or auth codes. */
+export function describeRedirectUri(uri: string): {
+  redirectUri: string;
+  length: number;
+  endsWithSlash: boolean;
+  hasQuery: boolean;
+  hasSpace: boolean;
+  scheme: 'https' | 'http' | 'other';
+} {
+  const redirectUri = normalizeRedirectUri(uri);
+  let scheme: 'https' | 'http' | 'other' = 'other';
+  if (redirectUri.startsWith('https://')) scheme = 'https';
+  else if (redirectUri.startsWith('http://')) scheme = 'http';
+  return {
+    redirectUri,
+    length: redirectUri.length,
+    endsWithSlash: redirectUri.endsWith('/'),
+    hasQuery: redirectUri.includes('?'),
+    hasSpace: /\s/.test(redirectUri),
+    scheme,
+  };
 }
 
 export function buildAuthorizeUrl(params: {
@@ -265,17 +296,19 @@ export async function exchangeCodeForShortLivedToken(params: {
   const redirectUri = normalizeRedirectUri(params.redirectUri);
   const code = normalizeOAuthCode(params.code);
 
-  // Official Meta examples use multipart form fields (-F), not urlencoded.
-  // Using the same encoding avoids false redirect_uri mismatch rejections.
-  const body = new FormData();
-  body.set('client_id', params.appId);
-  body.set('client_secret', params.appSecret);
-  body.set('grant_type', 'authorization_code');
-  body.set('redirect_uri', redirectUri);
-  body.set('code', code);
+  // Meta accepts form-urlencoded; URLSearchParams matches working IG Business Login clients
+  // and avoids Deno FormData multipart quirks that can surface as redirect_uri mismatches.
+  const body = new URLSearchParams({
+    client_id: params.appId,
+    client_secret: params.appSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+    code,
+  });
 
   const res = await fetchFn(TOKEN_URL, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -341,12 +374,22 @@ export async function fetchIgProfile(params: {
 }
 
 /** Strip secrets from error strings before persisting/returning. */
-export function sanitizeMetaError(message: string): string {
+export function sanitizeMetaError(message: string, maxLen = 280): string {
   return message
     .replace(/EAA[A-Za-z0-9]+/g, '[redacted]')
     .replace(/IGAA[A-Za-z0-9]+/g, '[redacted]')
     .replace(/access_token=[^&\s]+/gi, 'access_token=[redacted]')
-    .slice(0, 280);
+    .slice(0, maxLen);
+}
+
+/** Append safe OAuth debug suffix to a sanitized error (no secrets/codes). */
+export function appendOAuthDebug(
+  message: string,
+  debug: Record<string, string | number | boolean>
+): string {
+  const parts = Object.entries(debug).map(([k, v]) => `${k}=${String(v)}`);
+  // Allow room for redirect_uri diagnostics in last_error.
+  return sanitizeMetaError(`${message} | ${parts.join(' ')}`, 480);
 }
 
 // ---- inline: _shared/instagram-oauth/index.ts ----
@@ -557,12 +600,22 @@ Deno.serve(async (req) => {
         return frontendRedirect(meta.appOrigin, { ig: 'error', reason: 'invalid_state' });
       }
 
+      // Prefer the exact redirect_uri that was signed into authorize state.
+      const exchangeRedirectUri = normalizeRedirectUri(
+        typeof payload.ruri === 'string' && payload.ruri ? payload.ruri : meta.redirectUri
+      );
+      const authDiag = describeRedirectUri(
+        typeof payload.ruri === 'string' && payload.ruri ? payload.ruri : meta.redirectUri
+      );
+      const envDiag = describeRedirectUri(meta.redirectUri);
+      const codeHadHash = Boolean(codeRaw && codeRaw.includes('#'));
+
       const admin = adminClient();
       try {
         const short = await exchangeCodeForShortLivedToken({
           appId: meta.appId,
           appSecret: meta.appSecret,
-          redirectUri: meta.redirectUri,
+          redirectUri: exchangeRedirectUri,
           code,
         });
         const long = await exchangeForLongLivedToken({
@@ -591,7 +644,28 @@ Deno.serve(async (req) => {
         // Ensure we never return tokens — redirect only.
         return frontendRedirect(meta.appOrigin, { ig: 'connected' });
       } catch (e) {
-        const msg = sanitizeMetaError(e instanceof Error ? e.message : 'oauth_failed');
+        const base = e instanceof Error ? e.message : 'oauth_failed';
+        const msg = appendOAuthDebug(base, {
+          redirect_uri: authDiag.redirectUri,
+          len: authDiag.length,
+          slash: authDiag.endsWithSlash ? 1 : 0,
+          scheme: authDiag.scheme,
+          query: authDiag.hasQuery ? 1 : 0,
+          space: authDiag.hasSpace ? 1 : 0,
+          ruri_state: typeof payload.ruri === 'string' && payload.ruri ? 1 : 0,
+          env_match: authDiag.redirectUri === envDiag.redirectUri ? 1 : 0,
+          code_hash: codeHadHash ? 1 : 0,
+          code_len: code.length,
+        });
+        console.error('instagram_oauth_token_exchange_failed', {
+          redirect_uri: authDiag.redirectUri,
+          len: authDiag.length,
+          slash: authDiag.endsWithSlash,
+          ruri_state: Boolean(payload.ruri),
+          env_match: authDiag.redirectUri === envDiag.redirectUri,
+          code_hash: codeHadHash,
+          code_len: code.length,
+        });
         await admin.from('content_instagram_connections').upsert(
           {
             org_id: payload.oid,
@@ -631,12 +705,14 @@ Deno.serve(async (req) => {
         return json({ error: 'invalid_return_origin' }, 400);
       }
 
+      const redirectUri = meta.redirectUri;
       const state = await signOAuthState(
         {
           mid: membership.id,
           oid: membership.org_id,
           nonce: randomNonce(),
           exp: Math.floor(Date.now() / 1000) + 600,
+          ruri: redirectUri,
         },
         meta.tokenSecret
       );
@@ -654,8 +730,16 @@ Deno.serve(async (req) => {
 
       const authorizeUrl = buildAuthorizeUrl({
         appId: meta.appId,
-        redirectUri: meta.redirectUri,
+        redirectUri,
         state,
+      });
+
+      const diag = describeRedirectUri(redirectUri);
+      console.log('instagram_oauth_start', {
+        redirect_uri: diag.redirectUri,
+        len: diag.length,
+        slash: diag.endsWithSlash,
+        scheme: diag.scheme,
       });
 
       return json({

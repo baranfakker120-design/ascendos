@@ -3,6 +3,7 @@ import {
   assertNoTokenLeak,
   buildAuthorizeUrl,
   dbStatusToUi,
+  describeRedirectUri,
   isOAuthUserCancel,
   normalizeOAuthCode,
   normalizeRedirectUri,
@@ -82,7 +83,7 @@ describe('buildAuthorizeUrl', () => {
     expect(url).not.toContain('instagram_business_content_publish');
   });
 
-  it('uses the same normalized redirect_uri (no trailing slash / quotes)', () => {
+  it('preserves trailing slash and strips wrapping quotes on redirect_uri', () => {
     const url = buildAuthorizeUrl({
       appId: '1',
       redirectUri: '"https://example.supabase.co/functions/v1/instagram-oauth/"',
@@ -90,20 +91,30 @@ describe('buildAuthorizeUrl', () => {
     });
     expect(url).toContain(
       'redirect_uri=' +
-        encodeURIComponent('https://example.supabase.co/functions/v1/instagram-oauth')
+        encodeURIComponent('https://example.supabase.co/functions/v1/instagram-oauth/')
     );
-    expect(url).not.toContain(encodeURIComponent('instagram-oauth/'));
   });
 });
 
 describe('normalizeRedirectUri / normalizeOAuthCode', () => {
-  it('normalizes redirect URI consistently for authorize + exchange', () => {
+  it('trims/quotes only — preserves trailing slash for Meta exact match', () => {
     expect(normalizeRedirectUri(' https://x.supabase.co/functions/v1/instagram-oauth/ ')).toBe(
-      'https://x.supabase.co/functions/v1/instagram-oauth'
+      'https://x.supabase.co/functions/v1/instagram-oauth/'
     );
     expect(normalizeRedirectUri('"https://x.supabase.co/functions/v1/instagram-oauth"')).toBe(
       'https://x.supabase.co/functions/v1/instagram-oauth'
     );
+    expect(normalizeRedirectUri('https://x.supabase.co/functions/v1/instagram-oauth')).toBe(
+      'https://x.supabase.co/functions/v1/instagram-oauth'
+    );
+  });
+
+  it('describes redirect URI safely', () => {
+    const d = describeRedirectUri('https://x.supabase.co/functions/v1/instagram-oauth/');
+    expect(d.endsWithSlash).toBe(true);
+    expect(d.scheme).toBe('https');
+    expect(d.hasQuery).toBe(false);
+    expect(d.hasSpace).toBe(false);
   });
 
   it('strips Instagram #_ suffix from oauth code', () => {

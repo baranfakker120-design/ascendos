@@ -74,15 +74,36 @@ export function normalizeRedirectUri(raw: string): string {
   ) {
     value = value.slice(1, -1).trim();
   }
-  if (value.length > 1 && value.endsWith('/')) {
-    value = value.slice(0, -1);
-  }
+  // Preserve trailing slash — Meta compares redirect_uri character-for-character.
   return value;
 }
 
 /** Keep in sync with edge `normalizeOAuthCode`. */
 export function normalizeOAuthCode(raw: string): string {
   return raw.trim().split('#')[0]!.trim();
+}
+
+/** Keep in sync with edge `describeRedirectUri`. */
+export function describeRedirectUri(uri: string): {
+  redirectUri: string;
+  length: number;
+  endsWithSlash: boolean;
+  hasQuery: boolean;
+  hasSpace: boolean;
+  scheme: 'https' | 'http' | 'other';
+} {
+  const redirectUri = normalizeRedirectUri(uri);
+  let scheme: 'https' | 'http' | 'other' = 'other';
+  if (redirectUri.startsWith('https://')) scheme = 'https';
+  else if (redirectUri.startsWith('http://')) scheme = 'http';
+  return {
+    redirectUri,
+    length: redirectUri.length,
+    endsWithSlash: redirectUri.endsWith('/'),
+    hasQuery: redirectUri.includes('?'),
+    hasSpace: /\s/.test(redirectUri),
+    scheme,
+  };
 }
 
 export function buildAuthorizeUrl(params: {
