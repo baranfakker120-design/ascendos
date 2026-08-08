@@ -363,8 +363,7 @@ export function PrivacyPolicyPage() {
                 <p>35260 Stadtallendorf</p>
                 <p>Deutschland</p>
                 <p className="pt-3">
-                  E-Mail:{' '}
-                  <a href="mailto:hacibekircayir@gmail.com">hacibekircayir@gmail.com</a>
+                  E-Mail: <a href="mailto:hacibekircayir@gmail.com">hacibekircayir@gmail.com</a>
                 </p>
               </div>
             </address>
