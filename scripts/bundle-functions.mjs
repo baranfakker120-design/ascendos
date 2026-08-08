@@ -29,6 +29,7 @@ const FUNCTIONS = [
   'content-assistant',
   'content-daily-prepare',
   'instagram-oauth',
+  'meta-data-deletion',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
@@ -93,6 +94,7 @@ const SHARED_GROUPS = [
   'content-generate',
   'content-daily',
   'instagram-oauth',
+  'meta',
 ];
 
 const DECL_RE =

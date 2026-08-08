@@ -3,13 +3,14 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(14);
 
 select has_table('public', 'content_assets', 'content_assets exists');
 select has_table('public', 'content_drafts', 'content_drafts exists');
 select has_table('public', 'content_daily_preparations', 'content_daily_preparations exists');
 select has_table('public', 'content_instagram_connections', 'content_instagram_connections exists');
 select has_table('public', 'content_publish_attempts', 'content_publish_attempts exists');
+select has_table('public', 'meta_data_deletion_requests', 'meta_data_deletion_requests exists');
 
 select has_function('public', 'content_asset_limit', 'content_asset_limit rpc');
 select has_function('public', 'content_personal_asset_count', 'content_personal_asset_count rpc');
@@ -23,6 +24,7 @@ select ok(
 select has_column('public', 'content_assets', 'storage_path', 'immutable original path column');
 select has_column('public', 'content_instagram_connections', 'token_ref', 'token_ref only — no password column');
 select has_column('public', 'content_publish_attempts', 'user_confirmed_at', 'publish requires confirm column');
+select has_column('public', 'meta_data_deletion_requests', 'confirmation_code', 'Meta confirmation_code column');
 
 select * from finish();
 rollback;
