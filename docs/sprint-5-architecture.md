@@ -2,7 +2,8 @@
 
 **Status:** Binding product + engineering contract  
 **Mission:** AscendOS becomes a daily Leadership Operating System — begin and end every workday here.  
-**Rule:** Layers ship sequentially. No parallel feature sprawl.
+**Rule:** Layers ship sequentially. No parallel feature sprawl.  
+**Constitution:** Implements [`ASCENDOS_CONSTITUTION_v2.md`](./ASCENDOS_CONSTITUTION_v2.md) Rules #1–#10.
 
 ---
 
