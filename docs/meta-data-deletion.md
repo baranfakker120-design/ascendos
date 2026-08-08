@@ -16,11 +16,11 @@ Feld in der Meta App: **URL für Anfrage zur Datenlöschung** / **Data Deletion 
 
 ## HTTP-Methode
 
-| Methode   | Zweck                                                                |
-| --------- | -------------------------------------------------------------------- |
-| `POST`    | Meta Data-Deletion-Callback (`signed_request`)                       |
+| Methode   | Zweck                                                                 |
+| --------- | --------------------------------------------------------------------- |
+| `POST`    | Meta Data-Deletion-Callback (`signed_request`)                        |
 | `GET`     | Status für Nutzer: `?code=<confirmation_code>` (menschenlesbar, Text) |
-| `OPTIONS` | CORS-Preflight                                                       |
+| `OPTIONS` | CORS-Preflight                                                        |
 
 ## Request (Meta → AscendOS)
 
