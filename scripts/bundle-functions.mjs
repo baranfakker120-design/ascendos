@@ -28,6 +28,7 @@ const FUNCTIONS = [
   'ingest-knowledge',
   'content-assistant',
   'content-daily-prepare',
+  'instagram-oauth',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
@@ -91,6 +92,7 @@ const SHARED_GROUPS = [
   'content-research',
   'content-generate',
   'content-daily',
+  'instagram-oauth',
 ];
 
 const DECL_RE =

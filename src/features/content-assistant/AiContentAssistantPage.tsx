@@ -7,11 +7,8 @@ import {
   DAILY_CONTENT_JOB,
   DAILY_CONTENT_COMPLIANCE,
 } from './architecture/dailyContentArchitecture';
-import {
-  INSTAGRAM_META_APP_REVIEW_TODOS,
-  isInstagramPublishingEnabled,
-} from './architecture/instagramArchitecture';
 import { ContentAssetThumb } from './ContentAssetThumb';
+import { InstagramConnectionCard } from './InstagramConnectionCard';
 import {
   useContentLibrary,
   type ContentAsset,
@@ -27,8 +24,8 @@ import {
 import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
- * AI Content Assistant — Phase 3 generation + Phase 4 daily prep display.
- * No Instagram OAuth/publish. Cron not activated from the client.
+ * AI Content Assistant — Phase 3 generation + Phase 4 daily prep + Phase 5A IG connect.
+ * No Instagram publishing. Cron not activated from the client.
  * Does not touch Coach domains.
  */
 export function AiContentAssistantPage() {
@@ -607,20 +604,7 @@ export function AiContentAssistantPage() {
         ) : null}
       </Card>
 
-      <Card className="space-y-2">
-        <p className="font-semibold text-ink">{t('todayHub.contentOpenIg')}</p>
-        <p className="text-sm text-muted">{t('contentAssistant.instagramArchitectureHint')}</p>
-        {!isInstagramPublishingEnabled() ? (
-          <p className="text-xs text-muted">
-            {t('contentAssistant.instagramTodoCount', {
-              count: String(INSTAGRAM_META_APP_REVIEW_TODOS.length),
-            })}
-          </p>
-        ) : null}
-        <Button type="button" size="sm" fullWidth={false} disabled>
-          {t('contentAssistant.connectInstagram')}
-        </Button>
-      </Card>
+      <InstagramConnectionCard />
 
       <Link
         to="/"

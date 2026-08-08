@@ -1,26 +1,28 @@
 /**
- * Instagram connection + publishing architecture (Phase 2 foundation).
+ * Instagram connection + publishing architecture.
  *
- * OFFICIAL PATH ONLY — Meta Graph / Instagram Content Publishing API.
- * Sources:
- * - https://developers.facebook.com/docs/instagram-platform/content-publishing
- * - https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/hashtag-search/
- * - https://developers.facebook.com/docs/development/terms-and-policies/automated-data-collection/
+ * Phase 5A: Official OAuth connect only (Business Login for Instagram).
+ * Publishing remains disabled until a later phase + Meta App Review.
  *
+ * OFFICIAL PATH ONLY — Meta Graph / Instagram APIs.
  * Forbidden: password storage, scraping, browser bots, cookie hijacking,
  * click simulation, unofficial private APIs, shadowban “guarantees”.
  */
 
 export const INSTAGRAM_ARCHITECTURE = {
   auth: 'oauth_only',
+  loginPath: 'instagram_business_login',
+  connectScope: 'instagram_business_basic',
   publishing: 'meta_graph_content_publishing',
   mediaDelivery: 'signed_or_temporarily_fetchable_url',
   userConfirmRequired: true,
   storePasswords: false,
   storeTokensInClient: false,
+  edgeFunction: 'instagram-oauth',
+  table: 'content_instagram_connections',
 } as const;
 
-/** Product workflow (target). */
+/** Product workflow (target). Phase 5A implements only the first step. */
 export type InstagramPublishFlowStep =
   | 'connect_instagram_oauth'
   | 'select_content'
@@ -32,30 +34,35 @@ export type InstagramPublishFlowStep =
   | 'record_attempt';
 
 /**
- * TODO (Meta App Review / Phase 6) — do not workaround:
- * 1. Create Meta developer app + Business verification as required.
- * 2. Request Content Publishing permissions (Instagram Login or Facebook Login path).
- * 3. Optional: Instagram Public Content Access for Hashtag Search (30 unique / 7 days).
- * 4. Implement OAuth in Edge Function; persist only token_ref / vault reference
- *    in `content_instagram_connections` — never plaintext tokens in the Vite bundle.
- * 5. For publish, Meta must fetch media via URL — use short-lived signed URL or
- *    controlled temporary fetchable URL; bucket remains private by default.
- * 6. Enforce explicit `user_confirmed_at` before `content_publish_attempts` submit.
- * 7. Respect Meta rate limits (e.g. professional account publish caps).
+ * Meta App Review / Dashboard TODOs (human configuration — not automated):
+ * 1. Create Meta developer app; add Instagram product.
+ * 2. Configure Business Login for Instagram + Valid OAuth Redirect URIs.
+ * 3. Set Edge secrets: META_APP_ID, META_APP_SECRET, META_REDIRECT_URI, APP_ORIGIN.
+ * 4. Optional: META_TOKEN_ENCRYPTION_KEY (else app secret is used for AES-GCM).
+ * 5. Request `instagram_business_basic` (connect). Publish scopes later.
+ * 6. Business verification / App Review as required by Meta for production users.
+ * 7. Publishing: `instagram_business_content_publish` + user confirm + rate limits.
  */
 export const INSTAGRAM_META_APP_REVIEW_TODOS = [
   'meta_developer_app',
+  'instagram_product_business_login',
+  'oauth_redirect_uri',
+  'edge_secrets_meta',
+  'permission_instagram_business_basic',
   'business_verification_if_required',
-  'permissions_content_publish',
-  'optional_public_content_access_hashtags',
-  'oauth_edge_handler',
-  'token_vault_ref_only',
+  'app_review_for_production',
+  'permissions_content_publish_later',
+  'token_refresh_job_later',
   'signed_url_for_meta_fetch',
   'explicit_user_confirm',
   'rate_limit_handling',
 ] as const;
 
+/** Phase 5A: OAuth connect UI/API is implemented; publishing stays off. */
+export function isInstagramConnectEnabled(): boolean {
+  return true;
+}
+
 export function isInstagramPublishingEnabled(): boolean {
-  // Foundation: UI + tables only. Enable after OAuth + App Review land.
   return false;
 }
