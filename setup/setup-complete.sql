@@ -8344,6 +8344,7 @@ comment on table public.content_publish_attempts is
 create or replace function public.content_set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
