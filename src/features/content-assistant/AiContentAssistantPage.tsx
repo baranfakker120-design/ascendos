@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
@@ -12,48 +12,101 @@ import {
   isInstagramPublishingEnabled,
 } from './architecture/instagramArchitecture';
 import { ContentAssetThumb } from './ContentAssetThumb';
-import { useContentLibrary, type ContentAssetScope } from './contentAssetsApi';
+import {
+  useContentLibrary,
+  type ContentAsset,
+  type ContentAssetScope,
+  type ContentFormat,
+} from './contentAssetsApi';
+import { useContentDrafts, type ContentDraft } from './contentDraftsApi';
 
 /**
- * AI Content Assistant — Phase 2 foundation UI.
- * Private library + quota + architecture surfaces. No fake AI generation.
- * Does not modify Coach / Contacts / Team / AP.
+ * AI Content Assistant — Phase 3: real AI generation on Phase-2 foundation.
+ * No Instagram OAuth/publish. No daily cron. Does not touch Coach domains.
  */
 export function AiContentAssistantPage() {
   const { t } = useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
   const [scope, setScope] = useState<ContentAssetScope>('personal');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [format, setFormat] = useState<ContentFormat>('feed');
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [edit, setEdit] = useState<{
+    hook: string;
+    caption: string;
+    cta: string;
+    keywords: string;
+    hashtags: string;
+  } | null>(null);
+
   const { assetsQuery, quotaQuery, todayQuery, uploadMutation, deleteMutation, canCentral } =
     useContentLibrary();
+  const { draftsQuery, generateMutation, saveMutation, prepareMutation } =
+    useContentDrafts(selectedAssetId);
 
-  const formats = [
+  const formats: {
+    id: ContentFormat;
+    titleKey: 'todayHub.contentStory' | 'todayHub.contentFeed' | 'todayHub.contentReel';
+    subKey: 'todayHub.contentStorySub' | 'todayHub.contentFeedSub' | 'todayHub.contentReelSub';
+  }[] = [
     {
       id: 'story',
-      titleKey: 'todayHub.contentStory' as const,
-      subKey: 'todayHub.contentStorySub' as const,
+      titleKey: 'todayHub.contentStory',
+      subKey: 'todayHub.contentStorySub',
     },
     {
       id: 'feed',
-      titleKey: 'todayHub.contentFeed' as const,
-      subKey: 'todayHub.contentFeedSub' as const,
+      titleKey: 'todayHub.contentFeed',
+      subKey: 'todayHub.contentFeedSub',
     },
     {
       id: 'reel',
-      titleKey: 'todayHub.contentReel' as const,
-      subKey: 'todayHub.contentReelSub' as const,
+      titleKey: 'todayHub.contentReel',
+      subKey: 'todayHub.contentReelSub',
     },
   ];
 
   const quota = quotaQuery.data;
   const assets = assetsQuery.data ?? [];
   const today = todayQuery.data;
+  const selectedAsset = useMemo(
+    () => assets.find((a) => a.id === selectedAssetId) ?? null,
+    [assets, selectedAssetId]
+  );
+  const activeDraft: ContentDraft | null = draftsQuery.data?.[0] ?? null;
+
+  useEffect(() => {
+    if (!activeDraft) {
+      setEdit(null);
+      return;
+    }
+    setEdit({
+      hook: activeDraft.hook ?? '',
+      caption: activeDraft.caption ?? '',
+      cta: activeDraft.cta ?? '',
+      keywords: (activeDraft.keywords ?? []).join(', '),
+      hashtags: (activeDraft.hashtags ?? [])
+        .map((h) => (h.startsWith('#') ? h : `#${h}`))
+        .join(' '),
+    });
+  }, [activeDraft?.id, activeDraft?.updated_at]);
+
+  useEffect(() => {
+    if (!selectedAsset) return;
+    const suggested = selectedAsset.suggested_formats?.[0] as ContentFormat | undefined;
+    if (suggested === 'story' || suggested === 'feed' || suggested === 'reel') {
+      setFormat(suggested);
+    }
+  }, [selectedAsset?.id]);
 
   const onPickFile = async (file: File | null) => {
     if (!file) return;
     setUploadError(null);
     try {
-      await uploadMutation.mutateAsync({ file, scope });
+      const uploaded = await uploadMutation.mutateAsync({ file, scope });
+      setSelectedAssetId(uploaded.id);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'upload_failed';
       if (msg.includes('content_asset_limit_reached'))
@@ -65,6 +118,67 @@ export function AiContentAssistantPage() {
     } finally {
       if (fileRef.current) fileRef.current.value = '';
     }
+  };
+
+  const onGenerate = async () => {
+    if (!selectedAssetId) return;
+    setGenerateError(null);
+    setSaveMessage(null);
+    try {
+      await generateMutation.mutateAsync({ format });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'generate_failed';
+      if (msg.includes('content_generation_quota_reached'))
+        setGenerateError(t('contentAssistant.generationQuotaFull'));
+      else if (msg.includes('ai_not_configured'))
+        setGenerateError(t('contentAssistant.aiNotConfigured'));
+      else setGenerateError(t('contentAssistant.generateFailed'));
+    }
+  };
+
+  const onSave = async () => {
+    if (!activeDraft || !edit) return;
+    setSaveMessage(null);
+    setGenerateError(null);
+    try {
+      await saveMutation.mutateAsync({
+        draftId: activeDraft.id,
+        patch: {
+          hook: edit.hook.trim(),
+          caption: edit.caption.trim(),
+          cta: edit.cta.trim(),
+          keywords: edit.keywords
+            .split(/[,;\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+          hashtags: edit.hashtags
+            .split(/[\s,;]+/)
+            .map((s) => s.trim().replace(/^#/, ''))
+            .filter(Boolean),
+          format,
+        },
+      });
+      setSaveMessage(t('contentAssistant.draftSaved'));
+    } catch {
+      setGenerateError(t('contentAssistant.draftSaveFailed'));
+    }
+  };
+
+  const onPrepareIg = async () => {
+    if (!activeDraft) return;
+    setSaveMessage(null);
+    try {
+      await prepareMutation.mutateAsync(activeDraft.id);
+      setSaveMessage(t('contentAssistant.instagramPrepared'));
+    } catch {
+      setGenerateError(t('contentAssistant.draftSaveFailed'));
+    }
+  };
+
+  const selectAsset = (asset: ContentAsset) => {
+    setSelectedAssetId(asset.id);
+    setGenerateError(null);
+    setSaveMessage(null);
   };
 
   return (
@@ -146,37 +260,207 @@ export function AiContentAssistantPage() {
           <p className="text-sm text-muted">{t('contentAssistant.emptyLibrary')}</p>
         ) : (
           <ul className="space-y-2" aria-label={t('contentAssistant.libraryTitle')}>
-            {assets.map((asset) => (
-              <li
-                key={asset.id}
-                className="flex items-center gap-3 rounded-xl border border-line bg-[rgb(var(--color-bg))]/60 px-2.5 py-2"
-              >
-                <ContentAssetThumb asset={asset} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">
-                    {asset.title || asset.file_name}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {asset.media_kind} · {asset.aspect_ratio || '—'} · {asset.scope}
-                    {asset.suggested_formats.length
-                      ? ` · ${asset.suggested_formats.join(', ')}`
-                      : ''}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  fullWidth={false}
-                  disabled={deleteMutation.isPending}
-                  onClick={() => void deleteMutation.mutateAsync(asset)}
+            {assets.map((asset) => {
+              const selected = asset.id === selectedAssetId;
+              return (
+                <li
+                  key={asset.id}
+                  className={`flex items-center gap-3 rounded-xl border px-2.5 py-2 ${
+                    selected
+                      ? 'border-accent bg-accent/10'
+                      : 'border-line bg-[rgb(var(--color-bg))]/60'
+                  }`}
                 >
-                  {t('contentAssistant.delete')}
-                </Button>
-              </li>
-            ))}
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    onClick={() => selectAsset(asset)}
+                  >
+                    <ContentAssetThumb asset={asset} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">
+                        {asset.title || asset.file_name}
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        {asset.media_kind} · {asset.aspect_ratio || '—'} · {asset.scope}
+                        {asset.analysis_status ? ` · ${asset.analysis_status}` : ''}
+                      </p>
+                    </div>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    fullWidth={false}
+                    disabled={deleteMutation.isPending}
+                    onClick={() => {
+                      if (selectedAssetId === asset.id) setSelectedAssetId(null);
+                      void deleteMutation.mutateAsync(asset);
+                    }}
+                  >
+                    {t('contentAssistant.delete')}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
+      </Card>
+
+      <Card className="space-y-3">
+        <div>
+          <p className="font-semibold text-ink">{t('contentAssistant.generateTitle')}</p>
+          <p className="text-sm text-muted">{t('contentAssistant.generateHint')}</p>
+        </div>
+
+        <div
+          className="flex flex-wrap gap-1"
+          role="group"
+          aria-label={t('todayHub.contentFormatsAria')}
+        >
+          {formats.map((fmt) => (
+            <Button
+              key={fmt.id}
+              type="button"
+              size="chip"
+              variant={format === fmt.id ? 'secondary' : 'ghost'}
+              fullWidth={false}
+              onClick={() => setFormat(fmt.id)}
+            >
+              {t(fmt.titleKey)}
+            </Button>
+          ))}
+        </div>
+
+        <Button
+          type="button"
+          size="sm"
+          fullWidth={false}
+          disabled={!selectedAssetId || generateMutation.isPending}
+          onClick={() => void onGenerate()}
+        >
+          {generateMutation.isPending
+            ? t('contentAssistant.generating')
+            : t('contentAssistant.generateCta')}
+        </Button>
+        {!selectedAssetId ? (
+          <p className="text-xs text-muted">{t('contentAssistant.selectAssetFirst')}</p>
+        ) : null}
+        {generateError ? <p className="text-sm font-medium text-red-700">{generateError}</p> : null}
+        {saveMessage ? <p className="text-sm font-medium text-ink">{saveMessage}</p> : null}
+
+        {draftsQuery.isLoading && selectedAssetId ? (
+          <p className="text-sm text-muted">{t('contentAssistant.draftLoading')}</p>
+        ) : null}
+
+        {activeDraft && edit ? (
+          <div className="space-y-3 border-t border-line pt-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              {t('contentAssistant.draftTitle')} · {activeDraft.format}
+            </p>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted">
+                {t('contentAssistant.fieldHook')}
+              </span>
+              <input
+                className="w-full rounded-xl border border-line bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-ink"
+                value={edit.hook}
+                onChange={(e) => setEdit((s) => (s ? { ...s, hook: e.target.value } : s))}
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted">
+                {t('contentAssistant.fieldCaption')}
+              </span>
+              <textarea
+                className="min-h-[120px] w-full rounded-xl border border-line bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-ink"
+                value={edit.caption}
+                onChange={(e) => setEdit((s) => (s ? { ...s, caption: e.target.value } : s))}
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted">
+                {t('contentAssistant.fieldCta')}
+              </span>
+              <input
+                className="w-full rounded-xl border border-line bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-ink"
+                value={edit.cta}
+                onChange={(e) => setEdit((s) => (s ? { ...s, cta: e.target.value } : s))}
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted">
+                {t('contentAssistant.fieldKeywords')}
+              </span>
+              <input
+                className="w-full rounded-xl border border-line bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-ink"
+                value={edit.keywords}
+                onChange={(e) => setEdit((s) => (s ? { ...s, keywords: e.target.value } : s))}
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted">
+                {t('contentAssistant.fieldHashtags')}
+              </span>
+              <input
+                className="w-full rounded-xl border border-line bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-ink"
+                value={edit.hashtags}
+                onChange={(e) => setEdit((s) => (s ? { ...s, hashtags: e.target.value } : s))}
+              />
+            </label>
+
+            <div className="rounded-xl border border-line px-3 py-2">
+              <p className="text-xs font-semibold text-muted">
+                {t('contentAssistant.cleanCheckLabel')} ·{' '}
+                <span className="text-ink">
+                  {activeDraft.clean_check_status === 'clean'
+                    ? t('contentAssistant.cleanCheckClean')
+                    : activeDraft.clean_check_status === 'attention'
+                      ? t('contentAssistant.cleanCheckAttention')
+                      : t('contentAssistant.cleanCheckPending')}
+                </span>
+              </p>
+              {activeDraft.clean_check_notes ? (
+                <p className="mt-1 text-xs text-muted">{activeDraft.clean_check_notes}</p>
+              ) : null}
+              <p className="mt-1 text-[0.68rem] text-muted">
+                {t('contentAssistant.cleanCheckDisclaimer')}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                fullWidth={false}
+                disabled={saveMutation.isPending}
+                onClick={() => void onSave()}
+              >
+                {saveMutation.isPending
+                  ? t('contentAssistant.saving')
+                  : t('contentAssistant.saveDraft')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                fullWidth={false}
+                disabled={prepareMutation.isPending}
+                onClick={() => void onPrepareIg()}
+              >
+                {t('contentAssistant.prepareInstagram')}
+              </Button>
+            </div>
+            <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>
+          </div>
+        ) : selectedAssetId ? (
+          <p className="text-sm text-muted">{t('contentAssistant.noDraftYet')}</p>
+        ) : null}
       </Card>
 
       <Card className="space-y-1">
@@ -199,20 +483,6 @@ export function AiContentAssistantPage() {
           <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>
         ) : null}
       </Card>
-
-      <section className="space-y-2" aria-label={t('todayHub.contentFormatsAria')}>
-        {formats.map((fmt) => (
-          <Card key={fmt.id} className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-semibold text-ink">{t(fmt.titleKey)}</p>
-              <p className="mt-0.5 text-sm text-muted">{t(fmt.subKey)}</p>
-            </div>
-            <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-muted">
-              {t('contentAssistant.formatReadyLater')}
-            </span>
-          </Card>
-        ))}
-      </section>
 
       <Card className="space-y-2">
         <p className="font-semibold text-ink">{t('todayHub.contentOpenIg')}</p>
