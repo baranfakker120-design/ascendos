@@ -44,7 +44,8 @@
     "errorGeneric": "Bir şeyler ters gitti.",
     "connectionHint": "Bağlantını kontrol et ve tekrar dene.",
     "copyLink": "Bağlantıyı kopyala",
-    "continue": "Devam"
+    "continue": "Devam",
+    "privacy": "Gizlilik"
   },
   "boot": {
     "configMissingTitle": "AscendOS henüz yapılandırılmadı.",

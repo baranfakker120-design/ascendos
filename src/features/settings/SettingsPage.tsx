@@ -115,6 +115,12 @@ export function SettingsPage() {
           {t('settings.privacy')}
         </p>
         <p className="mt-2 text-sm text-muted">{t('settings.privacyBody')}</p>
+        <Link
+          to="/datenschutz"
+          className="mt-3 inline-flex text-sm font-semibold text-accent-deep hover:underline"
+        >
+          {t('common.privacy')}
+        </Link>
       </Card>
 
       <Card>

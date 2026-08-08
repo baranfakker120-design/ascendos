@@ -44,7 +44,8 @@
     "errorGeneric": "Qualcosa è andato storto.",
     "connectionHint": "Controlla la connessione e riprova.",
     "copyLink": "Copia link",
-    "continue": "Continua"
+    "continue": "Continua",
+    "privacy": "Privacy"
   },
   "boot": {
     "configMissingTitle": "AscendOS non è ancora configurato.",

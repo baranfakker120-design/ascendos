@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
+import { SiteFooter } from '@shared/ui/SiteFooter';
 
 export function AuthLayout() {
   const { t } = useI18n();
@@ -26,6 +27,7 @@ export function AuthLayout() {
           />
         </div>
         <Outlet />
+        <SiteFooter className="mt-8 px-0" />
       </div>
     </div>
   );

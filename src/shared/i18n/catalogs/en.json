@@ -44,7 +44,8 @@
     "errorGeneric": "Something went wrong.",
     "connectionHint": "Check your connection and try again.",
     "copyLink": "Copy link",
-    "continue": "Continue"
+    "continue": "Continue",
+    "privacy": "Privacy"
   },
   "boot": {
     "configMissingTitle": "AscendOS is not configured yet.",

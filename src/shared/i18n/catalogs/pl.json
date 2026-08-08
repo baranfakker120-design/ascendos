@@ -44,7 +44,8 @@
     "errorGeneric": "Coś poszło nie tak.",
     "connectionHint": "Sprawdź połączenie i spróbuj ponownie.",
     "copyLink": "Kopiuj link",
-    "continue": "Kontynuuj"
+    "continue": "Kontynuuj",
+    "privacy": "Prywatność"
   },
   "boot": {
     "configMissingTitle": "AscendOS nie został jeszcze skonfigurowany.",
