@@ -236,7 +236,7 @@ function appOrigin(): string {
     .replace(/\/$/, '');
 }
 
-function statusHtml(opts: {
+function statusText(opts: {
   confirmationCode: string;
   status: string;
   connectionsCleared: number;
@@ -260,67 +260,31 @@ function statusHtml(opts: {
           ? 'Die Löschanfrage konnte nicht vollständig verarbeitet werden. Bitte kontaktieren Sie den Verantwortlichen über die Datenschutzerklärung.'
           : 'Für diesen Bestätigungscode liegt keine bekannte Löschanfrage vor.';
 
-  const completedLine = opts.completedAt
-    ? `<p><strong>Zeitpunkt:</strong> ${escapeHtml(opts.completedAt)}</p>`
-    : '';
-
   const privacyHref = appOrigin() ? `${appOrigin()}/datenschutz` : '';
-  const privacyLine = privacyHref
-    ? `<p>Weitere Informationen: <a href="${escapeHtml(privacyHref)}">Datenschutzerklärung</a>.</p>`
-    : '';
+  const lines = [
+    'AscendOS — Status der Datenlöschung',
+    'Meta / Instagram Data Deletion Request',
+    '',
+    `Bestätigungscode: ${opts.confirmationCode}`,
+    `Status: ${statusLabel}`,
+  ];
+  if (opts.completedAt) lines.push(`Zeitpunkt: ${opts.completedAt}`);
+  lines.push('', detail);
+  if (privacyHref) {
+    lines.push('', `Datenschutzerklärung: ${privacyHref}`);
+  }
 
-  const body = `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AscendOS — Status der Datenlöschung</title>
-  <style>
-    :root { color-scheme: light; }
-    body { font-family: Georgia, "Times New Roman", serif; margin: 0; background: #f3efe6; color: #1c1915; }
-    main { max-width: 40rem; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
-    h1 { font-size: 1.5rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
-    .sub { color: #5c564c; margin: 0 0 1.75rem; font-size: 0.95rem; }
-    .card { background: #fffdf8; border: 1px solid #d9d0c2; border-radius: 12px; padding: 1.25rem 1.35rem; line-height: 1.55; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
-    a { color: #0f5c4c; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>Status der Datenlöschung</h1>
-    <p class="sub">AscendOS · Meta / Instagram Data Deletion Request</p>
-    <div class="card">
-      <p><strong>Bestätigungscode:</strong> <code>${escapeHtml(opts.confirmationCode)}</code></p>
-      <p><strong>Status:</strong> ${escapeHtml(statusLabel)}</p>
-      ${completedLine}
-      <p>${escapeHtml(detail)}</p>
-      ${privacyLine}
-    </div>
-  </main>
-</body>
-</html>`;
-
-  return new Response(body, {
+  return new Response(lines.join('\n') + '\n', {
     status: 200,
     headers: {
-      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-store',
     },
   });
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function notFoundStatusHtml(code: string): Response {
-  return statusHtml({
+function notFoundStatusText(code: string): Response {
+  return statusText({
     confirmationCode: code,
     status: 'unknown',
     connectionsCleared: 0,
@@ -350,9 +314,9 @@ Deno.serve(async (req) => {
         .eq('confirmation_code', code)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return notFoundStatusHtml(code);
+      if (!data) return notFoundStatusText(code);
 
-      return statusHtml({
+      return statusText({
         confirmationCode: data.confirmation_code,
         status: data.status,
         connectionsCleared: data.connections_cleared ?? 0,
