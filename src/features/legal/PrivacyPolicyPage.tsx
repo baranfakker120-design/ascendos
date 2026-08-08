@@ -34,30 +34,7 @@ export function PrivacyPolicyPage() {
       </header>
 
       <article className="space-y-6 pb-6 text-sm leading-relaxed text-ink">
-        <Section title="1. Verantwortlicher">
-          <p>
-            Verantwortlich für die Datenverarbeitung im Sinne der Datenschutz-Grundverordnung
-            (DSGVO) ist:
-          </p>
-          <div className="mt-3 space-y-1 rounded-xl border border-line bg-surface px-4 py-3 text-muted">
-            <p className="font-semibold text-ink">Hacibekir Cayir</p>
-            <p>Chemnitzer Strasse 7</p>
-            <p>35260 Stadtallendorf</p>
-            <p>Deutschland</p>
-            <p className="pt-2">
-              E-Mail: <a href="mailto:hacibekircayir@gmail.com">hacibekircayir@gmail.com</a>
-            </p>
-          </div>
-          <p className="mt-3">
-            Datenschutzrechtliche Anfragen richten Sie bitte an die oben genannte E-Mail-Adresse des
-            Verantwortlichen. Für allgemeine Nutzungs- und Supportanfragen zur App stehen zusätzlich
-            die in AscendOS hinterlegten Adressen{' '}
-            <a href="mailto:support@ascendos.app">support@ascendos.app</a> und{' '}
-            <a href="mailto:feedback@ascendos.app">feedback@ascendos.app</a> zur Verfügung.
-          </p>
-        </Section>
-
-        <Section title="2. Allgemeine Hinweise zur Datenverarbeitung">
+        <Section title="1. Allgemeine Hinweise zur Datenverarbeitung">
           <p>
             AscendOS ist eine webbasierte Business-Plattform (PWA) für Organisation, Coaching,
             Kontakte, Team-/Qualifikationsübersichten und Content-Unterstützung im
@@ -77,7 +54,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="3. Hosting">
+        <Section title="2. Hosting">
           <p>Die Web-Anwendung AscendOS wird technisch wie folgt betrieben:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>
@@ -99,7 +76,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="4. Aufruf der Website">
+        <Section title="3. Aufruf der Website">
           <p>
             Beim Aufruf von AscendOS werden durch die Hosting- und Plattforminfrastruktur technisch
             notwendige Verbindungsdaten verarbeitet (z. B. IP-Adresse in Server-/Zugangslogs der
@@ -113,7 +90,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="5. Verarbeitung personenbezogener Daten">
+        <Section title="4. Verarbeitung personenbezogener Daten">
           <p>Je nach Nutzung können insbesondere folgende Daten verarbeitet werden:</p>
           <ul className="mt-2 list-disc space-y-2 pl-5">
             <li>
@@ -157,7 +134,7 @@ export function PrivacyPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="6. Speicherung von Daten">
+        <Section title="5. Speicherung von Daten">
           <p>
             Die genannten Anwendungsdaten werden in der AscendOS-Backend-Infrastruktur (Supabase:
             Datenbank und Storage-Buckets) gespeichert. Speicherdauer richtet sich nach der Dauer
@@ -174,7 +151,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="7. LocalStorage, SessionStorage und IndexedDB">
+        <Section title="6. LocalStorage, SessionStorage und IndexedDB">
           <p>
             AscendOS setzt <strong>keine</strong> eigenen Tracking-Cookies ein. Es werden jedoch
             lokale Speichertechniken des Browsers verwendet, die für Login, Offline-Fähigkeit und
@@ -201,7 +178,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="8. Externe Dienste und Drittanbieter">
+        <Section title="7. Externe Dienste und Drittanbieter">
           <p>
             AscendOS nutzt – soweit die jeweilige Funktion verwendet wird – folgende externe
             Dienste:
@@ -238,7 +215,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="9. Server-Logfiles">
+        <Section title="8. Server-Logfiles">
           <p>
             Die Hosting- und Backend-Anbieter (Cloudflare Pages, Supabase) können Server- bzw.
             Zugriffsprotokolle führen. Diese können insbesondere IP-Adresse, Zeitstempel,
@@ -249,7 +226,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="10. Kontaktaufnahme">
+        <Section title="9. Kontaktaufnahme">
           <p>
             AscendOS enthält kein öffentliches Kontaktformular auf der Website. Für
             datenschutzrechtliche Anfragen erreichen Sie den Verantwortlichen unter{' '}
@@ -262,22 +239,22 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="11. Rechte der betroffenen Personen">
+        <Section title="10. Rechte der betroffenen Personen">
           <p>
             Sie haben gegenüber dem Verantwortlichen Rechte nach der DSGVO. Die wichtigsten Rechte
-            sind nachfolgend beschrieben. Zur Ausübung wenden Sie sich bitte an die unter Abschnitt
-            1 genannten Kontaktdaten des Verantwortlichen.
+            sind nachfolgend beschrieben. Zur Ausübung wenden Sie sich bitte an die im Abschnitt
+            „Verantwortlicher“ genannten Kontaktdaten.
           </p>
         </Section>
 
-        <Section title="12. Recht auf Auskunft">
+        <Section title="11. Recht auf Auskunft">
           <p>
             Sie haben das Recht, Auskunft darüber zu verlangen, ob und welche personenbezogenen
             Daten wir zu Ihrer Person verarbeiten (Art. 15 DSGVO).
           </p>
         </Section>
 
-        <Section title="13. Recht auf Berichtigung">
+        <Section title="12. Recht auf Berichtigung">
           <p>
             Sie haben das Recht, unverzüglich die Berichtigung unrichtiger oder die
             Vervollständigung unvollständiger personenbezogener Daten zu verlangen (Art. 16 DSGVO).
@@ -285,7 +262,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="14. Recht auf Löschung">
+        <Section title="13. Recht auf Löschung">
           <p>
             Sie haben unter den Voraussetzungen des Art. 17 DSGVO das Recht auf Löschung Ihrer
             personenbezogenen Daten („Recht auf Vergessenwerden“), soweit keine gesetzlichen
@@ -293,14 +270,14 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="15. Recht auf Einschränkung der Verarbeitung">
+        <Section title="14. Recht auf Einschränkung der Verarbeitung">
           <p>
             Sie haben das Recht, unter den Voraussetzungen des Art. 18 DSGVO die Einschränkung der
             Verarbeitung Ihrer personenbezogenen Daten zu verlangen.
           </p>
         </Section>
 
-        <Section title="16. Recht auf Datenübertragbarkeit">
+        <Section title="15. Recht auf Datenübertragbarkeit">
           <p>
             Sie haben das Recht, Sie betreffende personenbezogene Daten, die Sie uns bereitgestellt
             haben, in einem strukturierten, gängigen und maschinenlesbaren Format zu erhalten bzw. –
@@ -309,7 +286,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="17. Widerspruchsrecht">
+        <Section title="16. Widerspruchsrecht">
           <p>
             Sie haben das Recht, aus Gründen, die sich aus Ihrer besonderen Situation ergeben,
             jederzeit gegen die Verarbeitung Sie betreffender personenbezogener Daten Widerspruch
@@ -317,7 +294,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="18. Widerruf einer Einwilligung">
+        <Section title="17. Widerruf einer Einwilligung">
           <p>
             Sofern die Verarbeitung auf einer Einwilligung beruht, können Sie diese jederzeit mit
             Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO). Die Rechtmäßigkeit der bis zum
@@ -326,7 +303,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="19. Beschwerderecht bei einer Datenschutzaufsichtsbehörde">
+        <Section title="18. Beschwerderecht bei einer Datenschutzaufsichtsbehörde">
           <p>
             Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehörde über die Verarbeitung
             Ihrer personenbezogenen Daten zu beschweren (Art. 77 DSGVO). Zuständig ist in der Regel
@@ -339,7 +316,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="20. Datensicherheit">
+        <Section title="19. Datensicherheit">
           <p>
             Wir setzen technische und organisatorische Maßnahmen ein, um personenbezogene Daten
             gegen Verlust, Manipulation und unbefugten Zugriff zu schützen. Dazu zählen insbesondere
@@ -349,7 +326,7 @@ export function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="21. Änderungen dieser Datenschutzerklärung">
+        <Section title="20. Änderungen dieser Datenschutzerklärung">
           <p>
             Wir behalten uns vor, diese Datenschutzerklärung anzupassen, wenn sich die Rechtslage,
             unsere Dienste oder die Datenverarbeitung ändern. Die aktuelle Fassung ist unter der URL{' '}
@@ -362,6 +339,43 @@ export function PrivacyPolicyPage() {
           Hinweis: Diese Erklärung beschreibt die aus dem aktuellen Stand der AscendOS-Software
           ableitbare Datenverarbeitung. Sie ersetzt keine individuelle Rechtsberatung.
         </p>
+
+        <section
+          id="verantwortlicher"
+          aria-labelledby="verantwortlicher-heading"
+          className="mt-2 space-y-3 border-t border-line pt-8"
+        >
+          <h2
+            id="verantwortlicher-heading"
+            className="text-base font-semibold tracking-tight text-ink"
+          >
+            Verantwortlicher
+          </h2>
+          <div className="text-muted [&_a]:font-medium [&_a]:text-accent-deep [&_a]:underline-offset-2 hover:[&_a]:underline">
+            <p>
+              Verantwortlich für die Datenverarbeitung im Sinne der Datenschutz-Grundverordnung
+              (DSGVO) ist:
+            </p>
+            <address className="mt-4 not-italic">
+              <div className="space-y-1 rounded-xl border border-line bg-surface px-4 py-4 leading-relaxed">
+                <p className="text-base font-semibold text-ink">Hacibekir Cayir</p>
+                <p>Chemnitzer Strasse 7</p>
+                <p>35260 Stadtallendorf</p>
+                <p>Deutschland</p>
+                <p className="pt-3">
+                  E-Mail: <a href="mailto:hacibekircayir@gmail.com">hacibekircayir@gmail.com</a>
+                </p>
+              </div>
+            </address>
+            <p className="mt-4">
+              Datenschutzrechtliche Anfragen richten Sie bitte an die oben genannte E-Mail-Adresse
+              des Verantwortlichen. Für allgemeine Nutzungs- und Supportanfragen zur App stehen
+              zusätzlich die in AscendOS hinterlegten Adressen{' '}
+              <a href="mailto:support@ascendos.app">support@ascendos.app</a> und{' '}
+              <a href="mailto:feedback@ascendos.app">feedback@ascendos.app</a> zur Verfügung.
+            </p>
+          </div>
+        </section>
       </article>
 
       <SiteFooter />
