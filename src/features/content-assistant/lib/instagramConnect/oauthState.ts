@@ -8,6 +8,8 @@ export interface OAuthStatePayload {
   oid: string;
   nonce: string;
   exp: number;
+  /** Exact authorize redirect_uri; reused at token exchange. */
+  ruri?: string;
 }
 
 const textEncoder = new TextEncoder();
@@ -67,6 +69,11 @@ export async function verifyOAuthState(
     const payload = JSON.parse(textDecoder.decode(fromBase64Url(body))) as OAuthStatePayload;
     if (!payload?.mid || !payload?.oid || !payload?.nonce || !payload?.exp) return null;
     if (payload.exp < nowSec) return null;
+    if (typeof payload.ruri === 'string') {
+      payload.ruri = payload.ruri.trim();
+    } else {
+      delete payload.ruri;
+    }
     return payload;
   } catch {
     return null;
