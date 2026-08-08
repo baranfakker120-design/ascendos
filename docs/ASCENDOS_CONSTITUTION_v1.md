@@ -66,11 +66,11 @@ The AI coach **Ascent** is the operating face of that digital Geschäftsführer 
 
 AscendOS must move from **reactive chat** to a **proactive business system**.
 
-| Ordinary chatbot | AscendOS (digital Geschäftsführer) |
-| --- | --- |
-| „Was möchtest du wissen?“ | „Baran, du hast heute noch kein Follow-up gemacht. Erol wartet nach seiner Präsentation auf deinen Anruf. Das ist heute deine höchste Priorität.“ → *[Follow-up vorbereiten]* |
-| Waits for a prompt | Surfaces the highest-value action from real CRM / team signals |
-| Answers, then stops | Prepares the next task — ideally with a draft ready to review: „Ich habe dir bereits einen Nachrichtenvorschlag vorbereitet.“ → *[Nachricht ansehen]* |
+| Ordinary chatbot          | AscendOS (digital Geschäftsführer)                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| „Was möchtest du wissen?“ | „Baran, du hast heute noch kein Follow-up gemacht. Erol wartet nach seiner Präsentation auf deinen Anruf. Das ist heute deine höchste Priorität.“ → _[Follow-up vorbereiten]_ |
+| Waits for a prompt        | Surfaces the highest-value action from real CRM / team signals                                                                                                                |
+| Answers, then stops       | Prepares the next task — ideally with a draft ready to review: „Ich habe dir bereits einen Nachrichtenvorschlag vorbereitet.“ → _[Nachricht ansehen]_                         |
 
 This distinction is a **core product philosophy** for AscendOS and for Ascent. Chat remains a surface; proactivity is the product.
 
@@ -467,13 +467,14 @@ Future features must still pass the bottleneck test: **Does this increase real o
 1. **Never a casino.** AP farming, loot-box psychology, or dopamine dark patterns.
 2. **Never a surveillance dystopia.** No stalking of private lives beyond entitled business visibility.
 3. **Never an income-promise machine.** No earnings tables as marketing copy inside Coach.
-4. **Never a prompt playground.** AI features without product law, evals, and privacy review.
-5. **Never a redesign treadmill.** Visual rewrites every sprint that erase user memory.
-6. **Never a second WhatsApp.** Auto-messaging people without consent and logging.
-7. **Never a schema junkyard.** Tables and RPCs for every whim.
-8. **Never a broken tree demo.** Genealogy that looks premium but lies about permissions or performance.
-9. **Never an annoying COO.** Notification spam, repeated tips, guilt UX.
-10. **Never “move fast” at the cost of RLS.** Speed without security is sabotage.
+4. **Never a reactive chatbot.** A blank „Was möchtest du wissen?“ that ignores live CRM and team signals is the wrong product. AscendOS is a proactive digital Geschäftsführer.
+5. **Never a prompt playground.** AI features without product law, evals, and privacy review.
+6. **Never a redesign treadmill.** Visual rewrites every sprint that erase user memory.
+7. **Never a second WhatsApp.** Auto-messaging people without consent and logging.
+8. **Never a schema junkyard.** Tables and RPCs for every whim.
+9. **Never a broken tree demo.** Genealogy that looks premium but lies about permissions or performance.
+10. **Never an annoying COO.** Notification spam, repeated tips, guilt UX.
+11. **Never “move fast” at the cost of RLS.** Speed without security is sabotage.
 
 **Why:** The fastest way to kill AscendOS is to succeed at the wrong product.
 
@@ -493,6 +494,7 @@ Future features must still pass the bottleneck test: **Does this increase real o
 Before writing code, affirm:
 
 - I will improve business productivity, not vanity.
+- I will build toward a proactive digital Geschäftsführer — not another reactive chatbot.
 - I will explain WHY to users when I recommend.
 - I will not award AP without integrity.
 - I will not weaken RLS or invent permissions in the client.

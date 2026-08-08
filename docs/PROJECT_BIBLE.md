@@ -43,7 +43,7 @@ Gamification exists only to increase **motivation**, **consistency**, and **enga
 
 Ordinary chatbots ask: „Was möchtest du wissen?“
 
-AscendOS should sound like: „Du hast heute noch kein Follow-up gemacht. Erol wartet nach seiner Präsentation auf deinen Anruf — das ist heute deine höchste Priorität.“ Then offer a prepared action (*Follow-up vorbereiten*, *Nachricht ansehen*).
+AscendOS should sound like: „Du hast heute noch kein Follow-up gemacht. Erol wartet nach seiner Präsentation auf deinen Anruf — das ist heute deine höchste Priorität.“ Then offer a prepared action (_Follow-up vorbereiten_, _Nachricht ansehen_).
 
 Long-term product direction: **recognize → prioritize → propose → prepare**. Chat is a surface; proactivity is the product. Details and permanent Coach rules: `docs/ASCENDOS_CONSTITUTION_v1.md` Chapters 1–3 and 16.
 
@@ -459,7 +459,7 @@ AscendOS aims to become the best **AI-powered Business Operating System for Netw
 Long-term direction (from roadmap, constitution, and ADRs — not a claim of present completeness):
 
 - Proactive briefings that name the highest-priority person and action before the sponsor asks
-- Prepared tasks and message drafts ready to review (*Nachricht ansehen*, *Follow-up vorbereiten*)
+- Prepared tasks and message drafts ready to review (_Nachricht ansehen_, _Follow-up vorbereiten_)
 - Activate a curated, status-aware team knowledge base so Ascent answers from real team truth
 - Deterministic qualification and license tooling where numbers must never be “guessed” by a model
 - Leadership views that activate downline without exposing foreign contact identities
