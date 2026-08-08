@@ -1120,12 +1120,26 @@
     "cleanCheckClean": "Temiz",
     "cleanCheckAttention": "Dikkat",
     "cleanCheckPending": "Beklemede",
-    "cleanCheckDisclaimer": "Yalnızca destek — Instagram uyumu veya erişim garantisi değil.",
+    "cleanCheckDisclaimer": "Yalnızca teknik önlem — Instagram uyumu veya erişim kaybına karşı garanti değil.",
     "saveDraft": "Kaydet",
     "saving": "Kaydediliyor …",
     "draftSaved": "Taslak kaydedildi.",
     "draftSaveFailed": "Kaydetme başarısız.",
     "prepareInstagram": "Instagram için hazırla",
-    "instagramPrepared": "Taslak hazır olarak işaretlendi. OAuth/yayın sonra — otomatik yayın yok."
+    "instagramPrepared": "Taslak hazır olarak işaretlendi. OAuth/yayın sonra — otomatik yayın yok.",
+    "hashtagResearchTitle": "Bu hashtagler neden?",
+    "hashtagResearchLiveOn": "Canlı araştırma kaynağı kullanılıyor.",
+    "hashtagResearchLiveOff": "Canlı trend araştırması yok — varlık temalı/kürasyonlu.",
+    "hashtagResearchEmpty": "Bu varlık için güvenli hashtag önerisi yok.",
+    "hashtagReasonTheme": "Temaya uygun",
+    "hashtagReasonRelevance": "Yüksek tematik alaka",
+    "hashtagReasonCurated": "Kürasyonlu konu kataloğundan",
+    "hashtagReasonLive": "Güncel araştırıldı",
+    "hashtagReasonRejectedSpam": "Önerilmez — spam/alakasızlık riski",
+    "hashtagReasonRejectedIrrelevant": "Önerilmez — zayıf tema bağı",
+    "hashtagReasonRejectedDuplicate": "Önerilmez — yinelenen",
+    "hashtagReasonLowContext": "Öneri için yeterli bağlam yok",
+    "assetAnalysisDraftOnly": "Analiz yalnızca taslakta (merkezi/yabancı varlık: meta veri üzerine yazılmadı).",
+    "assetAnalysisPersistFailed": "Taslak kaydedildi; varlık meta verisi güncellenemedi."
   }
 }

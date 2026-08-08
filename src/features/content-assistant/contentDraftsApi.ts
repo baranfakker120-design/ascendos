@@ -4,6 +4,7 @@ import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
 import type { ContentFormat } from './contentAssetsApi';
 import { formatCleanCheckNotes, runCleanCheck, type CleanCheckStatus } from './lib/cleanCheck';
+import type { HashtagCandidate, HashtagResearchResult } from './lib/hashtagResearch';
 
 export type ContentDraftStatus = 'draft' | 'ready' | 'archived';
 
@@ -28,14 +29,22 @@ export interface ContentDraft {
   updated_at: string;
 }
 
+export type ContentResearchPayload = Pick<
+  HashtagResearchResult,
+  'mode' | 'liveResearchActive' | 'providersUsed' | 'recommended' | 'rejected' | 'notes'
+> & { hashtagApi: string };
+
 export interface ContentGenerateResult {
   draft: ContentDraft;
   analysis: {
     visual_summary?: string;
     theme?: string | null;
     uncertain?: string[];
-    research?: { mode: string; hashtagApi: string };
+    research?: ContentResearchPayload;
   };
+  research?: ContentResearchPayload;
+  assetAnalysisPersisted?: boolean;
+  assetAnalysisMode?: 'persisted' | 'persist_failed' | 'draft_only_central_or_foreign';
   cleanCheck: {
     status: CleanCheckStatus;
     notes: string[];
@@ -43,6 +52,8 @@ export interface ContentGenerateResult {
   };
   quota: { used: number; limit: number };
 }
+
+export type { HashtagCandidate };
 
 const DRAFT_SELECT =
   'id, org_id, asset_id, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';

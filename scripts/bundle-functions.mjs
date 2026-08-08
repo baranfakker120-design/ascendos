@@ -74,7 +74,7 @@ const SHARED_ORDER = ['cors.ts', 'gemini.ts', 'prompts.ts'];
  *  `./relativ.ts` importieren (siehe resolveSharedGroup). Ein neuer
  *  Provider-Ordner nach demselben Muster braucht hier nur einen Eintrag,
  *  keinen weiteren Eingriff im Bundler. */
-const SHARED_GROUPS = ['ai-providers', 'intent-router', 'format'];
+const SHARED_GROUPS = ['ai-providers', 'intent-router', 'format', 'content-research'];
 
 const DECL_RE =
   /^(?:export\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+([A-Za-z_$][\w$]*)/gm;

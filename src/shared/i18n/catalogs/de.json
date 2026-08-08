@@ -1120,12 +1120,26 @@
     "cleanCheckClean": "Unauffällig",
     "cleanCheckAttention": "Attention",
     "cleanCheckPending": "Offen",
-    "cleanCheckDisclaimer": "Unterstützung nur — keine Garantie für Instagram-Compliance oder Reichweite.",
+    "cleanCheckDisclaimer": "Technische Vorsichtsprüfung — keine Garantie für Instagram-Compliance oder Schutz vor Reichweitenverlust.",
     "saveDraft": "Speichern",
     "saving": "Speichern …",
     "draftSaved": "Entwurf gespeichert.",
     "draftSaveFailed": "Speichern fehlgeschlagen.",
     "prepareInstagram": "Instagram vorbereiten",
-    "instagramPrepared": "Entwurf als bereit markiert. OAuth/Publish folgt später — kein Auto-Publish."
+    "instagramPrepared": "Entwurf als bereit markiert. OAuth/Publish folgt später — kein Auto-Publish.",
+    "hashtagResearchTitle": "Warum diese Hashtags?",
+    "hashtagResearchLiveOn": "Mit Live-Recherchequelle.",
+    "hashtagResearchLiveOff": "Keine Live-Trend-Recherche aktiv — thematisch/kuratiert aus dem Asset.",
+    "hashtagResearchEmpty": "Keine sicheren Hashtag-Empfehlungen für dieses Asset.",
+    "hashtagReasonTheme": "Passend zum Thema",
+    "hashtagReasonRelevance": "Hohe thematische Relevanz",
+    "hashtagReasonCurated": "Aus kuratiertem Themenkatalog",
+    "hashtagReasonLive": "Aktuell recherchiert",
+    "hashtagReasonRejectedSpam": "Nicht empfohlen wegen Spam-/Irrelevanz-Risiko",
+    "hashtagReasonRejectedIrrelevant": "Nicht empfohlen — schwacher Themenbezug",
+    "hashtagReasonRejectedDuplicate": "Nicht empfohlen — Duplikat",
+    "hashtagReasonLowContext": "Zu wenig Kontext für eine Empfehlung",
+    "assetAnalysisDraftOnly": "Analyse nur im Draft gespeichert (Central-/Fremd-Asset: Metadaten nicht überschrieben).",
+    "assetAnalysisPersistFailed": "Draft gespeichert, Asset-Metadaten konnten nicht aktualisiert werden."
   }
 }
