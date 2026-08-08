@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { SyncStatusIndicator } from '@shared/offline';
 import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
@@ -22,6 +23,7 @@ import '@features/coach/executive/executive.css';
  */
 export function TodayPage() {
   const { t } = useI18n();
+  const { hash } = useLocation();
   const memory = useDayMemory();
 
   const dayContext = useMemo(
@@ -34,6 +36,14 @@ export function TodayPage() {
     [memory.open, memory.close, memory.yesterdayClose]
   );
 
+  useEffect(() => {
+    const id = hash.replace(/^#/, '');
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hash]);
+
   return (
     <div className="space-y-4">
       <TodayStoriesSlot />
@@ -41,11 +51,19 @@ export function TodayPage() {
       <div className="exec-home-sync">
         <SyncStatusIndicator variant="home" />
       </div>
-      <section className="exec-mission" aria-label={t('today.missionTitle')}>
+      <section
+        id="heute-tagesplan"
+        className="exec-mission scroll-mt-4"
+        aria-label={t('today.missionTitle')}
+      >
         <p className="exec-mission__label">{t('today.missionTitle')}</p>
-        <TodayDailyPlan memory={memory} />
+        <div id="heute-aufgaben" className="scroll-mt-4">
+          <TodayDailyPlan memory={memory} />
+        </div>
       </section>
-      <TodayCeoBriefingSlot />
+      <div id="heute-prioritaeten" className="scroll-mt-4">
+        <TodayCeoBriefingSlot />
+      </div>
       <TodayCoachOsSlot dayContext={dayContext} />
     </div>
   );

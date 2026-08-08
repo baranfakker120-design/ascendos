@@ -5,6 +5,7 @@ import { triggerNavHaptic } from '@shared/lib/haptics';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
 import { AscendLogo, ContactsIcon, TeamSeydaIcon, TodayIcon } from './nav/NavIcons';
 import { ProfileStack } from './nav/ProfileStack';
+import { TodayHubMenu } from './nav/TodayHubMenu';
 
 export type NavTabId = 'heute' | 'kontakte' | 'coach' | 'team' | 'profil';
 
@@ -42,6 +43,9 @@ function isTabActive(tab: NavTab, pathname: string): boolean {
       pathname === '/mehr' ||
       pathname.startsWith('/mehr/')
     );
+  }
+  if (tab.id === 'heute') {
+    return pathname === '/' || pathname.startsWith('/heute/');
   }
   if (tab.id === 'team') {
     return pathname === '/team' || pathname.startsWith('/team/');
@@ -115,6 +119,23 @@ export function BottomNav() {
               );
             }
 
+            if (tab.id === 'heute') {
+              return (
+                <TodayHubMenu
+                  key={tab.id}
+                  burst={burstId === 'heute'}
+                  burstKey={burstKey}
+                  onBurst={() => {
+                    setBurstId('heute');
+                    setBurstKey((k) => k + 1);
+                    window.setTimeout(() => {
+                      setBurstId((current) => (current === 'heute' ? null : current));
+                    }, 520);
+                  }}
+                />
+              );
+            }
+
             if (isCenter) {
               return (
                 <div key={tab.id} className="relative flex justify-center">
@@ -158,7 +179,7 @@ export function BottomNav() {
               );
             }
 
-            const sideId = tab.id as 'heute' | 'kontakte' | 'team';
+            const sideId = tab.id as 'kontakte' | 'team';
 
             return (
               <LiquidChampagne key={tab.id} className="w-full justify-center">

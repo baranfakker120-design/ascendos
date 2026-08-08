@@ -13,6 +13,7 @@ import { LiveCoachingAdminPage } from '@features/live-coaching/LiveCoachingAdmin
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { StoriesAdminPage } from '@features/stories/StoriesAdminPage';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
+import { AiContentAssistantPage } from '@features/content-assistant/AiContentAssistantPage';
 import { TodayPage } from '@features/daily-plan/TodayPage';
 import { MorePage } from '@features/more/MorePage';
 import { JourneyToday } from '@features/onboarding/JourneyToday';
@@ -161,6 +162,7 @@ export const router = createBrowserRouter([
             element: <ShellOutlet />,
             children: [
               { path: '/', element: <TodayRoute /> },
+              { path: '/heute/content', element: <AiContentAssistantPage /> },
               { path: '/reise', element: <ProgressPage /> },
               { path: '/kontakte', element: <ContactsPage /> },
               { path: '/kontakte/neu', element: <ContactFormPage /> },
