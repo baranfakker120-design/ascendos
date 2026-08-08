@@ -305,15 +305,15 @@ export function TodayHubMenu({ burst, burstKey, onBurst }: TodayHubMenuProps) {
                       {item.icon}
                     </span>
                     <span className="min-w-0 flex-1 text-left">
-                      <span className="flex items-center gap-1.5">
-                        <span className="truncate text-[0.86rem] font-bold tracking-tight text-[rgb(70_48_28)]">
+                      <span className="flex items-start gap-1.5">
+                        <span className="text-[0.86rem] font-bold leading-[1.2] tracking-tight text-[rgb(70_48_28)]">
                           {t(item.titleKey)}
                         </span>
-                        <span className="today-hub__sparkle shrink-0" aria-hidden>
+                        <span className="today-hub__sparkle mt-0.5 shrink-0" aria-hidden>
                           ✦
                         </span>
                       </span>
-                      <span className="mt-0.5 block truncate text-[0.7rem] font-medium text-muted">
+                      <span className="mt-0.5 block text-[0.7rem] font-medium leading-snug text-muted">
                         {t(item.subKey)}
                       </span>
                     </span>
