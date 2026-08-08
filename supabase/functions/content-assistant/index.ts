@@ -327,8 +327,15 @@ Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
+    // Forward org selector so current_org_id()/RLS resolve the same membership as the client.
+    const forwardHeaders: Record<string, string> = {
+      Authorization: req.headers.get('Authorization') ?? '',
+    };
+    const orgSelector = req.headers.get('x-ascendos-org');
+    if (orgSelector) forwardHeaders['x-ascendos-org'] = orgSelector;
+
     const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
+      global: { headers: forwardHeaders },
     });
 
     const { data: userData, error: authError } = await db.auth.getUser();
