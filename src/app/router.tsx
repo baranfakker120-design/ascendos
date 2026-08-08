@@ -29,6 +29,7 @@ import { QualificationsPage } from '@features/leadership/QualificationsPage';
 import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
+import { PrivacyPolicyPage } from '@features/legal/PrivacyPolicyPage';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
 import { SyncStatusIndicator } from '@shared/offline';
@@ -140,6 +141,8 @@ function RequireGuest() {
 }
 
 export const router = createBrowserRouter([
+  /** Öffentlich erreichbar (auch ohne Login; SPA-Direktaufruf via _redirects). */
+  { path: '/datenschutz', element: <PrivacyPolicyPage /> },
   {
     element: <RequireGuest />,
     children: [

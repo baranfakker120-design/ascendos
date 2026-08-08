@@ -44,7 +44,8 @@
     "errorGeneric": "Etwas ist schiefgelaufen.",
     "connectionHint": "Prüfe deine Verbindung und versuche es erneut.",
     "copyLink": "Link kopieren",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "privacy": "Datenschutz"
   },
   "boot": {
     "configMissingTitle": "AscendOS ist noch nicht konfiguriert.",
