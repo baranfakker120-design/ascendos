@@ -1074,5 +1074,31 @@
     "alreadyInstalled": "Zainstalowano na tym urządzeniu",
     "alreadyInstalledBody": "AscendOS działa już jako zainstalowana aplikacja. W każdej chwili możesz ponownie przejrzeć przewodnik.",
     "progressLabel": "Postęp w przewodniku instalacji"
+  },
+  "contentAssistant": {
+    "libraryTitle": "Biblioteka zasobów",
+    "libraryHint": "Przechowuj obrazy i wideo prywatnie. Oryginały nigdy nie są nadpisywane. Dostarczanie tylko przez podpisane URL.",
+    "quotaLabel": "{used} / {limit} zasobów",
+    "quotaFull": "Limit treści wyczerpany. Usuń zasób lub poproś o wyższy limit.",
+    "unsupportedType": "Ten typ pliku nie jest obsługiwany.",
+    "fileTooLarge": "Plik jest za duży (maks. 50 MB).",
+    "uploadFailed": "Przesyłanie nie powiodło się. Spróbuj ponownie.",
+    "uploadCta": "Prześlij zasób",
+    "uploading": "Przesyłanie …",
+    "loading": "Ładowanie biblioteki …",
+    "loadError": "Nie udało się załadować biblioteki.",
+    "emptyLibrary": "Brak zasobów. Prześlij pierwsze zdjęcie lub wideo.",
+    "delete": "Usuń",
+    "scopePersonal": "Moje",
+    "scopeCentral": "Centralne",
+    "todayTitle": "Treść na dziś",
+    "todayHint": "Przygotowanie na {time} ({tz}). Bez auto-publikacji.",
+    "todayStatus": "Status: {status}",
+    "todayEmpty": "Na dziś jeszcze nic nie przygotowano.",
+    "noAutoPublish": "Publikacja zawsze wymaga Twojego potwierdzenia.",
+    "formatReadyLater": "Przygotowanie później",
+    "instagramArchitectureHint": "Cel: połącz Instagram (OAuth) → sprawdź treść → potwierdź → oficjalne Meta Graph API. Bez haseł, scrapingu i botów.",
+    "instagramTodoCount": "Meta App Review / OAuth: {count} otwartych TODO (udokumentowane).",
+    "connectInstagram": "Połącz Instagram"
   }
 }

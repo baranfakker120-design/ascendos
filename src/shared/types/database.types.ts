@@ -940,6 +940,407 @@ export type Database = {
           },
         ];
       };
+      content_assets: {
+        Row: {
+          analysis_json: Json;
+          analysis_status: string;
+          aspect_ratio: string | null;
+          audience_hint: string | null;
+          byte_size: number;
+          created_at: string;
+          created_by: string;
+          detected_summary: string | null;
+          file_name: string;
+          height_px: number | null;
+          id: string;
+          keywords: string[];
+          last_used_at: string | null;
+          media_kind: string;
+          mime_type: string;
+          mood: string | null;
+          org_id: string;
+          owner_membership_id: string;
+          product_hint: string | null;
+          scope: string;
+          storage_path: string;
+          suggested_formats: string[];
+          theme: string | null;
+          title: string | null;
+          updated_at: string;
+          usage_count: number;
+          width_px: number | null;
+        };
+        Insert: {
+          analysis_json?: Json;
+          analysis_status?: string;
+          aspect_ratio?: string | null;
+          audience_hint?: string | null;
+          byte_size: number;
+          created_at?: string;
+          created_by: string;
+          detected_summary?: string | null;
+          file_name: string;
+          height_px?: number | null;
+          id?: string;
+          keywords?: string[];
+          last_used_at?: string | null;
+          media_kind: string;
+          mime_type: string;
+          mood?: string | null;
+          org_id: string;
+          owner_membership_id: string;
+          product_hint?: string | null;
+          scope?: string;
+          storage_path: string;
+          suggested_formats?: string[];
+          theme?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          usage_count?: number;
+          width_px?: number | null;
+        };
+        Update: {
+          analysis_json?: Json;
+          analysis_status?: string;
+          aspect_ratio?: string | null;
+          audience_hint?: string | null;
+          byte_size?: number;
+          created_at?: string;
+          created_by?: string;
+          detected_summary?: string | null;
+          file_name?: string;
+          height_px?: number | null;
+          id?: string;
+          keywords?: string[];
+          last_used_at?: string | null;
+          media_kind?: string;
+          mime_type?: string;
+          mood?: string | null;
+          org_id?: string;
+          owner_membership_id?: string;
+          product_hint?: string | null;
+          scope?: string;
+          storage_path?: string;
+          suggested_formats?: string[];
+          theme?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          usage_count?: number;
+          width_px?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_assets_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_assets_owner_membership_id_fkey';
+            columns: ['owner_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      content_daily_preparations: {
+        Row: {
+          asset_id: string | null;
+          created_at: string;
+          draft_id: string | null;
+          id: string;
+          membership_id: string;
+          org_id: string;
+          prep_date: string;
+          score: number | null;
+          status: string;
+          summary: string | null;
+          timezone: string;
+          updated_at: string;
+        };
+        Insert: {
+          asset_id?: string | null;
+          created_at?: string;
+          draft_id?: string | null;
+          id?: string;
+          membership_id: string;
+          org_id: string;
+          prep_date: string;
+          score?: number | null;
+          status?: string;
+          summary?: string | null;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          asset_id?: string | null;
+          created_at?: string;
+          draft_id?: string | null;
+          id?: string;
+          membership_id?: string;
+          org_id?: string;
+          prep_date?: string;
+          score?: number | null;
+          status?: string;
+          summary?: string | null;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_daily_preparations_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_assets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_daily_preparations_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_drafts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_daily_preparations_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_daily_preparations_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      content_drafts: {
+        Row: {
+          asset_id: string;
+          caption: string | null;
+          clean_check_notes: string | null;
+          clean_check_status: string;
+          content_score: number | null;
+          created_at: string;
+          cta: string | null;
+          format: string;
+          hashtags: string[];
+          hook: string | null;
+          id: string;
+          keywords: string[];
+          org_id: string;
+          owner_membership_id: string;
+          posting_hint: string | null;
+          status: string;
+          target_audience: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          asset_id: string;
+          caption?: string | null;
+          clean_check_notes?: string | null;
+          clean_check_status?: string;
+          content_score?: number | null;
+          created_at?: string;
+          cta?: string | null;
+          format: string;
+          hashtags?: string[];
+          hook?: string | null;
+          id?: string;
+          keywords?: string[];
+          org_id: string;
+          owner_membership_id: string;
+          posting_hint?: string | null;
+          status?: string;
+          target_audience?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          asset_id?: string;
+          caption?: string | null;
+          clean_check_notes?: string | null;
+          clean_check_status?: string;
+          content_score?: number | null;
+          created_at?: string;
+          cta?: string | null;
+          format?: string;
+          hashtags?: string[];
+          hook?: string | null;
+          id?: string;
+          keywords?: string[];
+          org_id?: string;
+          owner_membership_id?: string;
+          posting_hint?: string | null;
+          status?: string;
+          target_audience?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_drafts_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_assets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_drafts_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_drafts_owner_membership_id_fkey';
+            columns: ['owner_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      content_instagram_connections: {
+        Row: {
+          connected_at: string | null;
+          created_at: string;
+          disconnected_at: string | null;
+          id: string;
+          ig_user_id: string | null;
+          ig_username: string | null;
+          last_error: string | null;
+          membership_id: string;
+          org_id: string;
+          scopes: string[];
+          status: string;
+          token_ref: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          connected_at?: string | null;
+          created_at?: string;
+          disconnected_at?: string | null;
+          id?: string;
+          ig_user_id?: string | null;
+          ig_username?: string | null;
+          last_error?: string | null;
+          membership_id: string;
+          org_id: string;
+          scopes?: string[];
+          status?: string;
+          token_ref?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          connected_at?: string | null;
+          created_at?: string;
+          disconnected_at?: string | null;
+          id?: string;
+          ig_user_id?: string | null;
+          ig_username?: string | null;
+          last_error?: string | null;
+          membership_id?: string;
+          org_id?: string;
+          scopes?: string[];
+          status?: string;
+          token_ref?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_instagram_connections_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_instagram_connections_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      content_publish_attempts: {
+        Row: {
+          connection_id: string | null;
+          created_at: string;
+          draft_id: string;
+          error_message: string | null;
+          id: string;
+          membership_id: string;
+          meta_container_id: string | null;
+          meta_media_id: string | null;
+          org_id: string;
+          status: string;
+          updated_at: string;
+          user_confirmed_at: string | null;
+        };
+        Insert: {
+          connection_id?: string | null;
+          created_at?: string;
+          draft_id: string;
+          error_message?: string | null;
+          id?: string;
+          membership_id: string;
+          meta_container_id?: string | null;
+          meta_media_id?: string | null;
+          org_id: string;
+          status?: string;
+          updated_at?: string;
+          user_confirmed_at?: string | null;
+        };
+        Update: {
+          connection_id?: string | null;
+          created_at?: string;
+          draft_id?: string;
+          error_message?: string | null;
+          id?: string;
+          membership_id?: string;
+          meta_container_id?: string | null;
+          meta_media_id?: string | null;
+          org_id?: string;
+          status?: string;
+          updated_at?: string;
+          user_confirmed_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_publish_attempts_connection_id_fkey';
+            columns: ['connection_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_instagram_connections';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_publish_attempts_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_drafts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_publish_attempts_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_publish_attempts_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       cosmetic_items: {
         Row: {
           asset_path: string | null;
@@ -2830,6 +3231,9 @@ export type Database = {
         }[];
       };
       complete_journey_step: { Args: { p_step_id: string }; Returns: undefined };
+      content_asset_limit: { Args: never; Returns: number };
+      content_can_upload_asset: { Args: { p_scope?: string }; Returns: boolean };
+      content_personal_asset_count: { Args: never; Returns: number };
       correct_pipeline_event: {
         Args: { p_event_id: string };
         Returns: undefined;
