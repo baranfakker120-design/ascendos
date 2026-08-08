@@ -251,9 +251,7 @@ export async function fetchTodayPreparation(): Promise<ContentDailyPreparation |
   if (prep.draft_id) {
     const { data: draft } = await supabase
       .from('content_drafts')
-      .select(
-        'id, format, hook, caption, hashtags, clean_check_status, clean_check_notes, status'
-      )
+      .select('id, format, hook, caption, hashtags, clean_check_status, clean_check_notes, status')
       .eq('id', prep.draft_id)
       .maybeSingle();
     prep.draft = draft

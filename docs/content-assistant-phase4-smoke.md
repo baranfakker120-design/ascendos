@@ -5,11 +5,11 @@
 
 ## Secrets (Edge only — never commit)
 
-| Secret | Purpose |
-|--------|---------|
-| `CRON_SECRET` | Gate for `content-daily-prepare` (`x-cron-secret` or Bearer) |
-| `OPENROUTER_API_KEY` | Vision generation (same as Phase 3) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Provided by Supabase runtime for the function |
+| Secret                      | Purpose                                                      |
+| --------------------------- | ------------------------------------------------------------ |
+| `CRON_SECRET`               | Gate for `content-daily-prepare` (`x-cron-secret` or Bearer) |
+| `OPENROUTER_API_KEY`        | Vision generation (same as Phase 3)                          |
+| `SUPABASE_SERVICE_ROLE_KEY` | Provided by Supabase runtime for the function                |
 
 ```bash
 # Example (local/staging project; do not paste keys into git):
@@ -50,13 +50,13 @@ Optional filters: `orgId`, `limit`.
 
 ### Expected skips
 
-| `summary` / reason | When |
-|--------------------|------|
-| `outside_berlin_noon_window` | Cron without `force` outside 12:00–12:19 Berlin |
-| `no_assets` | Member has no personal/central candidates |
-| `no_suitable_asset` | All candidates excluded (today/cooldown) |
-| `generation_quota_reached` | `content_daily_generation_limit` exhausted (default 25) |
-| `already_ready` / noop | Slot already `ready` — **no second draft** |
+| `summary` / reason           | When                                                    |
+| ---------------------------- | ------------------------------------------------------- |
+| `outside_berlin_noon_window` | Cron without `force` outside 12:00–12:19 Berlin         |
+| `no_assets`                  | Member has no personal/central candidates               |
+| `no_suitable_asset`          | All candidates excluded (today/cooldown)                |
+| `generation_quota_reached`   | `content_daily_generation_limit` exhausted (default 25) |
+| `already_ready` / noop       | Slot already `ready` — **no second draft**              |
 
 ### Expected failure
 

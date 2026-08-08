@@ -550,9 +550,7 @@ export function AiContentAssistantPage() {
                 ) : null}
                 {today.draft.hashtags?.length ? (
                   <p className="text-xs text-muted">
-                    {today.draft.hashtags
-                      .map((h) => (h.startsWith('#') ? h : `#${h}`))
-                      .join(' ')}
+                    {today.draft.hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ')}
                   </p>
                 ) : null}
                 <p className="text-xs text-muted">
