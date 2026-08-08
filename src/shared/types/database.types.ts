@@ -2413,6 +2413,39 @@ export type Database = {
           },
         ];
       };
+      meta_data_deletion_requests: {
+        Row: {
+          completed_at: string | null;
+          confirmation_code: string;
+          connections_cleared: number;
+          created_at: string;
+          id: string;
+          meta_user_id: string;
+          publish_attempts_cleared: number;
+          status: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          confirmation_code: string;
+          connections_cleared?: number;
+          created_at?: string;
+          id?: string;
+          meta_user_id: string;
+          publish_attempts_cleared?: number;
+          status: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          confirmation_code?: string;
+          connections_cleared?: number;
+          created_at?: string;
+          id?: string;
+          meta_user_id?: string;
+          publish_attempts_cleared?: number;
+          status?: string;
+        };
+        Relationships: [];
+      };
       organizations: {
         Row: {
           branding: Json;
