@@ -22,7 +22,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FUNCTIONS_DIR = join(ROOT, 'supabase', 'functions');
 const OUT_DIR = join(ROOT, 'setup', 'functions');
 
-const FUNCTIONS = ['validate-invite', 'coach-chat', 'ingest-knowledge', 'content-assistant'];
+const FUNCTIONS = [
+  'validate-invite',
+  'coach-chat',
+  'ingest-knowledge',
+  'content-assistant',
+  'content-daily-prepare',
+];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
 /** Import einer Schwesterdatei INNERHALB derselben Shared-Unterverzeichnis-
@@ -31,6 +37,10 @@ const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
  *  Import INNERHALB der Gruppe — genau der Fall, den flache Shared-Module
  *  wie `gemini.ts` nicht kennen, weil sie keine Nachbardateien haben. */
 const SIBLING_RE = /^\.\/(.+)$/;
+/** Import einer ANDEREN Shared-Gruppe, z. B. `../content-research/index.ts`
+ *  aus `_shared/content-generate/index.ts`. Wird nicht als Remote belassen,
+ *  sondern als transitive Gruppen-Abhängigkeit aufgelöst (siehe bundle). */
+const CROSS_GROUP_RE = /^\.\.\/([A-Za-z0-9_-]+)\/(.+)$/;
 
 /**
  * Zerlegt eine Datei in Import-Specifier und Rest-Body.
@@ -74,7 +84,14 @@ const SHARED_ORDER = ['cors.ts', 'gemini.ts', 'prompts.ts'];
  *  `./relativ.ts` importieren (siehe resolveSharedGroup). Ein neuer
  *  Provider-Ordner nach demselben Muster braucht hier nur einen Eintrag,
  *  keinen weiteren Eingriff im Bundler. */
-const SHARED_GROUPS = ['ai-providers', 'intent-router', 'format', 'content-research'];
+const SHARED_GROUPS = [
+  'ai-providers',
+  'intent-router',
+  'format',
+  'content-research',
+  'content-generate',
+  'content-daily',
+];
 
 const DECL_RE =
   /^(?:export\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+([A-Za-z_$][\w$]*)/gm;
@@ -141,6 +158,11 @@ function resolveSharedGroup(groupDir, entryFile, remoteImports, seen = new Map()
         `${entryFile}: Import zurück nach _shared/ aus einer Gruppe heraus wird nicht unterstützt.`
       );
     }
+    // Cross-group (`../content-research/index.ts`): Import-Zeile verwerfen —
+    // die Zielgruppe wird in bundle() separat (und genau einmal) inlinet.
+    if (CROSS_GROUP_RE.test(spec)) {
+      continue;
+    }
     // jsr:/npm:/https: — echter externer Import, nach oben ziehen.
     remoteImports.push(statement);
   }
@@ -150,6 +172,35 @@ function resolveSharedGroup(groupDir, entryFile, remoteImports, seen = new Map()
     `// ---- inline: _shared/${groupDir.split('/').pop()}/${entryFile} ----\n${parsed.body.trim()}\n`
   );
   return ownParts;
+}
+
+/** Sammelt transitive Cross-Group-Abhängigkeiten (../other-group/entry). */
+function collectCrossGroupDeps(groupName, entryFile, out, seenFiles = new Set()) {
+  const key = `${groupName}/${entryFile}`;
+  if (seenFiles.has(key)) return;
+  seenFiles.add(key);
+  const groupDir = join(FUNCTIONS_DIR, '_shared', groupName);
+  const raw = readFileSync(join(groupDir, entryFile), 'utf8');
+  const parsed = splitImports(raw);
+  for (const { spec } of parsed.specifiers) {
+    const siblingMatch = spec.match(SIBLING_RE);
+    if (siblingMatch) {
+      collectCrossGroupDeps(groupName, siblingMatch[1], out, seenFiles);
+      continue;
+    }
+    const cross = spec.match(CROSS_GROUP_RE);
+    if (cross) {
+      const depGroup = cross[1];
+      const depEntry = cross[2];
+      if (!SHARED_GROUPS.includes(depGroup)) {
+        throw new Error(
+          `Unbekannte Cross-Group ${depGroup} (aus ${groupName}/${entryFile}) — SHARED_GROUPS ergänzen.`
+        );
+      }
+      if (!out.has(depGroup)) out.set(depGroup, depEntry);
+      collectCrossGroupDeps(depGroup, depEntry, out, seenFiles);
+    }
+  }
 }
 
 function bundle(name) {
@@ -206,13 +257,20 @@ function bundle(name) {
     return `// ---- inline: _shared/${file} ----\n${parsed.body.trim()}\n`;
   });
 
-  // Gruppen: für jeden Gruppennamen genau EINMAL rekursiv auflösen,
-  // beginnend bei der konkreten Einstiegsdatei, die die Function
-  // importiert hat (z. B. 'index.ts' aus 'ai-providers/index.ts').
-  const inlinedGroups = SHARED_GROUPS.filter((g) =>
-    grouped.some((f) => f.startsWith(`${g}/`))
-  ).flatMap((groupName) => {
-    const entry = grouped.find((f) => f.startsWith(`${groupName}/`)).slice(groupName.length + 1);
+  // Gruppen: direkte Imports + transitive Cross-Group-Deps
+  // (z. B. content-generate → content-research / ai-providers).
+  const groupEntries = new Map();
+  for (const f of grouped) {
+    const groupName = f.split('/')[0];
+    const entry = f.slice(groupName.length + 1);
+    if (!groupEntries.has(groupName)) groupEntries.set(groupName, entry);
+  }
+  for (const [groupName, entry] of [...groupEntries]) {
+    collectCrossGroupDeps(groupName, entry, groupEntries);
+  }
+
+  const inlinedGroups = SHARED_GROUPS.filter((g) => groupEntries.has(g)).flatMap((groupName) => {
+    const entry = groupEntries.get(groupName);
     return resolveSharedGroup(join(FUNCTIONS_DIR, '_shared', groupName), entry, remoteImports);
   });
 
