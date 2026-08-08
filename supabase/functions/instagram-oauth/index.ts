@@ -21,6 +21,8 @@ import {
   fetchIgProfile,
   IG_CONNECT_SCOPES,
   isOAuthUserCancel,
+  normalizeOAuthCode,
+  normalizeRedirectUri,
   randomNonce,
   sanitizeMetaError,
   signOAuthState,
@@ -46,7 +48,8 @@ interface MetaEnv {
 function readMetaEnv(): MetaEnv | null {
   const appId = Deno.env.get('META_APP_ID')?.trim() ?? '';
   const appSecret = Deno.env.get('META_APP_SECRET')?.trim() ?? '';
-  const redirectUri = Deno.env.get('META_REDIRECT_URI')?.trim() ?? '';
+  // One canonical redirect URI for authorize URL AND code exchange.
+  const redirectUri = normalizeRedirectUri(Deno.env.get('META_REDIRECT_URI') ?? '');
   const appOrigin = (Deno.env.get('APP_ORIGIN') ?? Deno.env.get('PUBLIC_APP_ORIGIN') ?? '')
     .trim()
     .replace(/\/$/, '');
@@ -164,7 +167,8 @@ Deno.serve(async (req) => {
 
     // ---- OAuth callback (GET from Meta) ----
     if (req.method === 'GET') {
-      const code = url.searchParams.get('code');
+      const codeRaw = url.searchParams.get('code');
+      const code = codeRaw ? normalizeOAuthCode(codeRaw) : null;
       const state = url.searchParams.get('state');
       const oauthError = url.searchParams.get('error');
       const meta = readMetaEnv();
