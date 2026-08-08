@@ -1,5 +1,5 @@
 import { idbGet, idbSet } from '@shared/offline/idb';
-import type { DayCloseRecord, DayOpenRecord } from './types';
+import type { DayCloseRecord, DayCloseRecordV1, DayOpenRecord } from './types';
 
 const OPEN_PREFIX = 'ascendos.day-memory.open.v1';
 const CLOSE_PREFIX = 'ascendos.day-memory.close.v1';
@@ -29,12 +29,44 @@ export async function writeDayOpen(record: DayOpenRecord): Promise<void> {
   await idbSet(openKey(record.userId, record.planDate), record);
 }
 
+/** Normalize v1 close records so Decision Diff / Closed Day keep working. */
+export function normalizeDayClose(
+  row: DayCloseRecord | DayCloseRecordV1 | null | undefined
+): DayCloseRecord | null {
+  if (!row) return null;
+  if (row.version === 2) return row;
+  if (row.version === 1) {
+    return {
+      version: 2,
+      userId: row.userId,
+      planDate: row.planDate,
+      closedAt: row.closedAt,
+      outcome: row.outcome,
+      priorityWasMain: true,
+      priorityItemId: row.priorityItemId,
+      priorityTitle: row.priorityTitle,
+      priorityMissionType: row.priorityMissionType,
+      reason: null,
+      tomorrowNote: null,
+      evidence: [],
+      missionsDone: row.missionsDone,
+      missionsTotal: row.missionsTotal,
+      missionsSkipped: row.missionsSkipped,
+      missionsDeferred: row.missionsDeferred,
+      openTitles: row.openTitles,
+      tomorrowSeed: row.tomorrowSeed,
+      source: row.source,
+    };
+  }
+  return null;
+}
+
 export async function readDayClose(
   userId: string,
   planDate: string
 ): Promise<DayCloseRecord | null> {
-  const row = await idbGet<DayCloseRecord>(closeKey(userId, planDate));
-  return row?.version === 1 ? row : null;
+  const row = await idbGet<DayCloseRecord | DayCloseRecordV1>(closeKey(userId, planDate));
+  return normalizeDayClose(row);
 }
 
 export async function writeDayClose(record: DayCloseRecord): Promise<void> {

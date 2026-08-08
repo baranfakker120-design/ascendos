@@ -1,10 +1,22 @@
-export type { DayCloseOutcome, DayCloseRecord, DayCloseSource, DayOpenRecord } from './types';
+export type {
+  DayCloseEvidenceRef,
+  DayCloseJournal,
+  DayCloseOutcome,
+  DayCloseRecord,
+  DayCloseRecordV1,
+  DayCloseSource,
+  DayOpenRecord,
+} from './types';
 export {
   buildCloseSnapshot,
   buildOpenSnapshot,
   buildTomorrowSeed,
+  canClaimDone,
+  collectCloseEvidence,
   deriveCloseOutcome,
+  isEveningCloseWindow,
   pickPriorityMission,
+  resolveJournalOutcome,
 } from './buildCloseSnapshot';
 export {
   buildDecisionDiff,
@@ -28,6 +40,7 @@ export {
   type PrepEventLine,
 } from './buildConversationPrep';
 export {
+  normalizeDayClose,
   readDayClose,
   readDayOpen,
   readYesterdayClose,
