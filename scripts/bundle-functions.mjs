@@ -30,6 +30,7 @@ const FUNCTIONS = [
   'content-daily-prepare',
   'instagram-oauth',
   'meta-data-deletion',
+  'instagram-webhook',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
