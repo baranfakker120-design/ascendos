@@ -12,7 +12,9 @@ This bible describes AscendOS as it exists in the repository today. It does not 
 
 AscendOS is a professional **Business Operating System for Network Marketing**.
 
-It is **not a game**.
+It is **not a game**. It is **not a chatbot**.
+
+**Positioning:** AscendOS is your **digital Geschäftsführer** — a proactive business system that recognizes what matters now, proposes concrete next steps, and prepares tasks so you mostly execute.
 
 It exists so that network marketers can run their workday with clarity: who to contact, what to do next, how the pipeline moves, how the team grows, and how knowledge and coaching support real conversations. The product goal is to help users become **more productive**, **more consistent**, and **better leaders**.
 
@@ -21,7 +23,7 @@ In the current product, that means:
 - Invite-only registration with genealogy (sponsor, team, organization)
 - Contact pipeline from first touch to partner
 - A daily command center that turns pipeline signals into missions
-- An AI coach (**Ascent**) that works with real contact context and team knowledge
+- An AI coach (**Ascent**) that works with real contact context and team knowledge — as the operating face of the digital Geschäftsführer, not as a blank chat waiting for a prompt
 - A data-driven onboarding journey for new partners
 - A gamification foundation that rewards productive activity — without replacing the business tools
 
@@ -36,6 +38,14 @@ AscendOS starts with Team Şeyda / Chogan / Essence Tribe context, but the archi
 Every feature must improve business productivity first: outreach, follow-up, pipeline discipline, onboarding, coaching quality, leadership visibility, or operational safety.
 
 Gamification exists only to increase **motivation**, **consistency**, and **engagement**. It must never become the reason the application exists.
+
+### Proactive Geschäftsführer — not reactive chat
+
+Ordinary chatbots ask: „Was möchtest du wissen?“
+
+AscendOS should sound like: „Du hast heute noch kein Follow-up gemacht. Erol wartet nach seiner Präsentation auf deinen Anruf — das ist heute deine höchste Priorität.“ Then offer a prepared action (_Follow-up vorbereiten_, _Nachricht ansehen_).
+
+Long-term product direction: **recognize → prioritize → propose → prepare**. Chat is a surface; proactivity is the product. Details and permanent Coach rules: `docs/ASCENDOS_CONSTITUTION_v1.md` Chapters 1–3 and 16.
 
 Never sacrifice usability for visual effects. If a motion, frame, particle effect, or celebration makes the next business action harder, slower, or less trustworthy, it does not ship.
 
@@ -119,7 +129,7 @@ Shared-database multi-tenancy (`org_id` + RLS), membership-based authorization, 
 
 ### AI Assisted
 
-AI (Ascent) prioritizes, explains, drafts, and guides. It does **not** autonomously message contacts or make irreversible decisions about people. Keys and model calls stay behind Edge Functions.
+AI (Ascent) acts as a **digital Geschäftsführer**: it recognizes priorities from real context, explains WHY, drafts, and prepares the next task. It does **not** wait forever for a blank prompt — and it does **not** autonomously message contacts or make irreversible decisions about people. Keys and model calls stay behind Edge Functions.
 
 ### Data Driven
 
@@ -345,7 +355,7 @@ Honor `prefers-reduced-motion`. Animations must be disableable, not merely quiet
 
 ### Business-first UX
 
-The first question of every screen: **What is the next productive action?** Empty states should be honest. Coach answers should end in a next step. Daily plan missions should explain why they matter. Gamification chrome must not bury that answer.
+The first question of every screen: **What is the next productive action?** Prefer surfacing that answer proactively (named person, priority, prepared draft) over waiting for the user to invent a question. Empty states should be honest. Coach answers should end in a next step. Daily plan missions should explain why they matter. Gamification chrome must not bury that answer.
 
 ---
 
@@ -444,10 +454,12 @@ Examples that are planned in docs but **not** the active gamification delivery:
 
 # 11. Future Vision
 
-AscendOS aims to become the best **AI-powered Business Operating System for Network Marketing**.
+AscendOS aims to become the best **AI-powered Business Operating System for Network Marketing** — experienced as a **proactive digital Geschäftsführer**, not as another chatbot wrapper.
 
-Long-term direction (from roadmap and ADRs, not a claim of present completeness):
+Long-term direction (from roadmap, constitution, and ADRs — not a claim of present completeness):
 
+- Proactive briefings that name the highest-priority person and action before the sponsor asks
+- Prepared tasks and message drafts ready to review (_Nachricht ansehen_, _Follow-up vorbereiten_)
 - Activate a curated, status-aware team knowledge base so Ascent answers from real team truth
 - Deterministic qualification and license tooling where numbers must never be “guessed” by a model
 - Leadership views that activate downline without exposing foreign contact identities
