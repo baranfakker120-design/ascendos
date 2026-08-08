@@ -27,8 +27,9 @@ import {
 import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
- * AI Content Assistant — Phase 3: real AI generation on Phase-2 foundation.
- * No Instagram OAuth/publish. No daily cron. Does not touch Coach domains.
+ * AI Content Assistant — Phase 3 generation + Phase 4 daily prep display.
+ * No Instagram OAuth/publish. Cron not activated from the client.
+ * Does not touch Coach domains.
  */
 export function AiContentAssistantPage() {
   const { t } = useI18n();
@@ -520,22 +521,89 @@ export function AiContentAssistantPage() {
         ) : null}
       </Card>
 
-      <Card className="space-y-1">
-        <p className="font-semibold text-ink">{t('contentAssistant.todayTitle')}</p>
-        <p className="text-sm text-muted">
-          {t('contentAssistant.todayHint', {
-            time: DAILY_CONTENT_JOB.localTime,
-            tz: DAILY_CONTENT_JOB.defaultTimezone,
-          })}
-        </p>
-        {today ? (
+      <Card className="space-y-3">
+        <div className="space-y-1">
+          <p className="font-semibold text-ink">{t('contentAssistant.todayTitle')}</p>
+          <p className="text-sm text-muted">
+            {t('contentAssistant.todayHint', {
+              time: DAILY_CONTENT_JOB.localTime,
+              tz: DAILY_CONTENT_JOB.defaultTimezone,
+            })}
+          </p>
+        </div>
+
+        {!today ? (
+          <p className="text-sm text-muted">{t('contentAssistant.todayEmpty')}</p>
+        ) : today.status === 'ready' && today.draft ? (
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              {today.asset ? <ContentAssetThumb asset={today.asset} /> : null}
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {t('contentAssistant.todayReady')} · {today.draft.format}
+                </p>
+                {today.draft.hook ? (
+                  <p className="text-sm font-medium text-ink">{today.draft.hook}</p>
+                ) : null}
+                {today.draft.caption ? (
+                  <p className="line-clamp-3 text-sm text-muted">{today.draft.caption}</p>
+                ) : null}
+                {today.draft.hashtags?.length ? (
+                  <p className="text-xs text-muted">
+                    {today.draft.hashtags
+                      .map((h) => (h.startsWith('#') ? h : `#${h}`))
+                      .join(' ')}
+                  </p>
+                ) : null}
+                <p className="text-xs text-muted">
+                  {t('contentAssistant.cleanCheckLabel')} · {today.draft.clean_check_status}
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              fullWidth={false}
+              onClick={() => {
+                if (today.asset_id) setSelectedAssetId(today.asset_id);
+                setSaveMessage(null);
+                setGenerateError(null);
+              }}
+            >
+              {t('contentAssistant.todayViewEdit')}
+            </Button>
+          </div>
+        ) : today.status === 'skipped' ? (
+          <div className="space-y-1">
+            <p className="text-sm text-ink">{t('contentAssistant.todaySkipped')}</p>
+            <p className="text-sm text-muted">
+              {today.summary === 'generation_quota_reached'
+                ? t('contentAssistant.todaySkippedQuota')
+                : today.summary === 'no_assets' || today.summary === 'no_suitable_asset'
+                  ? t('contentAssistant.todaySkippedNoAsset')
+                  : t('contentAssistant.todaySkippedGeneric', {
+                      reason: today.summary ?? today.status,
+                    })}
+            </p>
+            <p className="text-xs text-muted">{t('contentAssistant.todayManualGenerateHint')}</p>
+          </div>
+        ) : today.status === 'failed' ? (
+          <div className="space-y-1">
+            <p className="text-sm text-ink">{t('contentAssistant.todayFailed')}</p>
+            <p className="text-sm text-muted">
+              {t('contentAssistant.todayFailedDetail', {
+                reason: today.summary ?? 'error',
+              })}
+            </p>
+            <p className="text-xs text-muted">{t('contentAssistant.todayManualGenerateHint')}</p>
+          </div>
+        ) : (
           <p className="text-sm text-ink">
             {t('contentAssistant.todayStatus', { status: today.status })}
             {today.summary ? ` — ${today.summary}` : ''}
           </p>
-        ) : (
-          <p className="text-sm text-muted">{t('contentAssistant.todayEmpty')}</p>
         )}
+
         {!DAILY_CONTENT_COMPLIANCE.autoPublish ? (
           <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>
         ) : null}

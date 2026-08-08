@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { canManageCoachContent } from '@shared/auth/coachContentAuthority';
+import { berlinPrepDate } from './lib/dailyPrepare/berlinTime';
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
 export const DEFAULT_CONTENT_ASSET_LIMIT = 25;
@@ -50,6 +51,18 @@ export interface ContentDailyPreparation {
   summary: string | null;
   draft_id: string | null;
   asset_id: string | null;
+  /** Populated when status=ready and relations resolve. */
+  asset?: ContentAsset | null;
+  draft?: {
+    id: string;
+    format: ContentFormat;
+    hook: string | null;
+    caption: string | null;
+    hashtags: string[];
+    clean_check_status: string;
+    clean_check_notes: string | null;
+    status: string;
+  } | null;
 }
 
 function extForMime(mime: string): string {
@@ -214,18 +227,49 @@ export async function deleteContentAsset(asset: ContentAsset): Promise<void> {
 }
 
 export async function fetchTodayPreparation(): Promise<ContentDailyPreparation | null> {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const prepDate = `${yyyy}-${mm}-${dd}`;
+  // Must match the daily job: Europe/Berlin calendar day (not browser local TZ).
+  const prepDate = berlinPrepDate();
   const { data, error } = await supabase
     .from('content_daily_preparations')
     .select('id, prep_date, status, score, summary, draft_id, asset_id')
     .eq('prep_date', prepDate)
     .maybeSingle();
   if (error) throw error;
-  return (data as ContentDailyPreparation | null) ?? null;
+  if (!data) return null;
+
+  const prep = data as ContentDailyPreparation;
+  if (prep.asset_id) {
+    const { data: asset } = await supabase
+      .from('content_assets')
+      .select(
+        'id, org_id, owner_membership_id, created_by, scope, media_kind, storage_path, file_name, mime_type, byte_size, width_px, height_px, aspect_ratio, suggested_formats, title, theme, keywords, analysis_status, last_used_at, usage_count, created_at, updated_at'
+      )
+      .eq('id', prep.asset_id)
+      .maybeSingle();
+    prep.asset = (asset as ContentAsset | null) ?? null;
+  }
+  if (prep.draft_id) {
+    const { data: draft } = await supabase
+      .from('content_drafts')
+      .select(
+        'id, format, hook, caption, hashtags, clean_check_status, clean_check_notes, status'
+      )
+      .eq('id', prep.draft_id)
+      .maybeSingle();
+    prep.draft = draft
+      ? {
+          id: draft.id,
+          format: draft.format as ContentFormat,
+          hook: draft.hook,
+          caption: draft.caption,
+          hashtags: (draft.hashtags ?? []) as string[],
+          clean_check_status: draft.clean_check_status,
+          clean_check_notes: draft.clean_check_notes,
+          status: draft.status,
+        }
+      : null;
+  }
+  return prep;
 }
 
 export function useContentLibrary() {
