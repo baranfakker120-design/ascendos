@@ -1074,5 +1074,31 @@
     "alreadyInstalled": "Installé sur cet appareil",
     "alreadyInstalledBody": "AscendOS tourne déjà comme une app installée. Tu peux quand même revoir le guide.",
     "progressLabel": "Progression du guide d’installation"
+  },
+  "contentAssistant": {
+    "libraryTitle": "Bibliothèque d’assets",
+    "libraryHint": "Stockez images et vidéos en privé. Les originaux ne sont jamais écrasés. Livraison uniquement via URL signées.",
+    "quotaLabel": "{used} / {limit} assets",
+    "quotaFull": "Quota contenu atteint. Supprimez un asset ou demandez une limite plus haute.",
+    "unsupportedType": "Ce type de fichier n’est pas pris en charge.",
+    "fileTooLarge": "Fichier trop volumineux (max. 50 Mo).",
+    "uploadFailed": "Échec du téléversement. Réessayez.",
+    "uploadCta": "Téléverser un asset",
+    "uploading": "Téléversement …",
+    "loading": "Chargement de la bibliothèque …",
+    "loadError": "Impossible de charger la bibliothèque.",
+    "emptyLibrary": "Aucun asset. Téléversez votre première image ou vidéo.",
+    "delete": "Supprimer",
+    "scopePersonal": "Les miens",
+    "scopeCentral": "Central",
+    "todayTitle": "Contenu du jour",
+    "todayHint": "Préparation pour {time} ({tz}). Pas de publication auto.",
+    "todayStatus": "Statut : {status}",
+    "todayEmpty": "Rien n’est encore préparé pour aujourd’hui.",
+    "noAutoPublish": "La publication exige toujours votre confirmation.",
+    "formatReadyLater": "Préparation plus tard",
+    "instagramArchitectureHint": "Objectif : connecter Instagram (OAuth) → revoir → confirmer → Meta Graph API officielle. Pas de mot de passe, scraping ni bots.",
+    "instagramTodoCount": "Meta App Review / OAuth : {count} TODO ouverts (documentés).",
+    "connectInstagram": "Connecter Instagram"
   }
 }

@@ -1074,5 +1074,31 @@
     "alreadyInstalled": "Installato su questo dispositivo",
     "alreadyInstalledBody": "AscendOS è già in esecuzione come app installata. Puoi comunque rivedere la guida.",
     "progressLabel": "Progresso guida di installazione"
+  },
+  "contentAssistant": {
+    "libraryTitle": "Libreria asset",
+    "libraryHint": "Salva immagini e video in privato. Gli originali non vengono mai sovrascritti. Consegna solo con URL firmati.",
+    "quotaLabel": "{used} / {limit} asset",
+    "quotaFull": "Quota contenuti raggiunta. Elimina un asset o chiedi un limite più alto.",
+    "unsupportedType": "Tipo di file non supportato.",
+    "fileTooLarge": "File troppo grande (max 50 MB).",
+    "uploadFailed": "Caricamento non riuscito. Riprova.",
+    "uploadCta": "Carica asset",
+    "uploading": "Caricamento …",
+    "loading": "Caricamento libreria …",
+    "loadError": "Impossibile caricare la libreria.",
+    "emptyLibrary": "Nessun asset. Carica la prima immagine o il primo video.",
+    "delete": "Elimina",
+    "scopePersonal": "Miei",
+    "scopeCentral": "Centrali",
+    "todayTitle": "Contenuti di oggi",
+    "todayHint": "Preparazione per le {time} ({tz}). Nessuna pubblicazione automatica.",
+    "todayStatus": "Stato: {status}",
+    "todayEmpty": "Niente di preparato per oggi.",
+    "noAutoPublish": "La pubblicazione richiede sempre la tua conferma.",
+    "formatReadyLater": "Prep in arrivo",
+    "instagramArchitectureHint": "Obiettivo: collega Instagram (OAuth) → rivedi → conferma → Meta Graph API ufficiale. Niente password, scraping o bot.",
+    "instagramTodoCount": "Meta App Review / OAuth: {count} TODO aperti (documentati).",
+    "connectInstagram": "Collega Instagram"
   }
 }

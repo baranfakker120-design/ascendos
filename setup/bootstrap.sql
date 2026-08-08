@@ -4,7 +4,7 @@
 
 insert into public.organizations (id, name, settings)
 values ('00000000-0000-0000-0000-000000000001', 'Chogan',
-        '{"coach_daily_message_limit": 50}'::jsonb);
+        '{"coach_daily_message_limit": 50, "content_asset_limit": 25}'::jsonb);
 
 insert into public.teams (id, org_id, name)
 values ('00000000-0000-0000-0000-000000000011',

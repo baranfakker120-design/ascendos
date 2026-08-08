@@ -1074,5 +1074,31 @@
     "alreadyInstalled": "Bu cihazda kurulu",
     "alreadyInstalledBody": "AscendOS zaten yüklü uygulama olarak çalışıyor. Rehberi yine de istediğin zaman görebilirsin.",
     "progressLabel": "Kurulum rehberi ilerlemesi"
+  },
+  "contentAssistant": {
+    "libraryTitle": "Varlık kütüphanesi",
+    "libraryHint": "Görselleri ve videoları özel sakla. Originaller asla üzerine yazılmaz. Yalnızca imzalı URL ile teslim.",
+    "quotaLabel": "{used} / {limit} varlık",
+    "quotaFull": "İçerik kotası doldu. Bir varlığı sil veya limit artırımı iste.",
+    "unsupportedType": "Bu dosya türü desteklenmiyor.",
+    "fileTooLarge": "Dosya çok büyük (en fazla 50 MB).",
+    "uploadFailed": "Yükleme başarısız. Lütfen tekrar dene.",
+    "uploadCta": "Varlık yükle",
+    "uploading": "Yükleniyor …",
+    "loading": "Kütüphane yükleniyor …",
+    "loadError": "Kütüphane yüklenemedi.",
+    "emptyLibrary": "Henüz varlık yok. İlk görsel veya videoyu yükle.",
+    "delete": "Sil",
+    "scopePersonal": "Benim",
+    "scopeCentral": "Merkezi",
+    "todayTitle": "Bugünün içeriği",
+    "todayHint": "{time} ({tz}) için hazırlık. Otomatik yayın yok.",
+    "todayStatus": "Durum: {status}",
+    "todayEmpty": "Bugün için henüz hazırlık yok.",
+    "noAutoPublish": "Yayın her zaman senin onayını gerektirir.",
+    "formatReadyLater": "Hazırlık sonra",
+    "instagramArchitectureHint": "Hedef: Instagram bağla (OAuth) → içeriği kontrol et → onayla → resmi Meta Graph API. Şifre, scraping, bot yok.",
+    "instagramTodoCount": "Meta App Review / OAuth: {count} açık TODO (belgelendi).",
+    "connectInstagram": "Instagram’ı bağla"
   }
 }

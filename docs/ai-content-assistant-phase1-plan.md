@@ -324,15 +324,15 @@ Zwischen jeder Phase: Regression Smoke (Coach, Kontakte, Team, Profil, Today, Sy
 
 ---
 
-## 13. Offene Entscheidungen (STOPP vor Implementierung)
+## 13. Entscheidungen — FREIGEGEBEN (Phase 2)
 
-1. Wer darf Assets hochladen — jeder Berater oder nur Content-Manager/Admin?
-2. Bucket public vs. signed-only (beeinflusst Meta `image_url`/`video_url`)?
-3. Eigene Content-Quota vs. separates Billing?
-4. Wann Meta App Review starten (Phase 6)?
-5. Soll „täglicher Content um 12:00“ serverseitig cronnen oder nur on-open berechnen?
+1. Upload: alle Berater (personal) + Content-Manager/Admin (central)
+2. Bucket **privat**, nur signed URLs
+3. Eigene Content-Quota (`content_asset_limit`, Default 25), getrennt von Coach
+4. Instagram-Ziel: OAuth + Graph Publishing; App Review als TODO, keine Workarounds
+5. Daily Job Ziel **12:00** Europe/Berlin (`content_daily_preparations` + Stub Edge)
 
-**Keine dieser Punkte wird ohne Freigabe implementiert.**
+Phase-2 Foundation geliefert in Migration `20260819000032_content_assistant_foundation.sql` + `src/features/content-assistant/*`.
 
 ---
 
