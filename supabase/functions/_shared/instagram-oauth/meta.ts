@@ -6,6 +6,31 @@ const AUTH_URL = 'https://www.instagram.com/oauth/authorize';
 const TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
 const GRAPH = 'https://graph.instagram.com';
 
+/**
+ * Normalize META_REDIRECT_URI so authorize + token exchange always share
+ * the exact same string (trim, strip wrapping quotes, no trailing slash).
+ * Meta App Dashboard may add a trailing slash — keep secret and dashboard aligned.
+ */
+export function normalizeRedirectUri(raw: string): string {
+  let value = raw.trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  // Function callback paths must not end with "/"; Meta compares exact strings.
+  if (value.length > 1 && value.endsWith('/')) {
+    value = value.slice(0, -1);
+  }
+  return value;
+}
+
+/** Instagram appends `#_` to the redirect; strip if it ever lands in `code`. */
+export function normalizeOAuthCode(raw: string): string {
+  return raw.trim().split('#')[0]!.trim();
+}
+
 export function buildAuthorizeUrl(params: {
   appId: string;
   redirectUri: string;
@@ -13,9 +38,10 @@ export function buildAuthorizeUrl(params: {
   scopes?: readonly string[];
 }): string {
   const scope = (params.scopes ?? IG_CONNECT_SCOPES).join(',');
+  const redirectUri = normalizeRedirectUri(params.redirectUri);
   const q = new URLSearchParams({
     client_id: params.appId,
-    redirect_uri: params.redirectUri,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope,
     state: params.state,
@@ -29,6 +55,14 @@ export interface ShortLivedTokenResult {
   permissions: string[];
 }
 
+function readTokenExchangeRow(json: Record<string, unknown>): Record<string, unknown> {
+  // Meta may return a flat object or `{ data: [ { access_token, user_id, ... } ] }`.
+  if (Array.isArray(json.data) && json.data[0] && typeof json.data[0] === 'object') {
+    return json.data[0] as Record<string, unknown>;
+  }
+  return json;
+}
+
 export async function exchangeCodeForShortLivedToken(params: {
   appId: string;
   appSecret: string;
@@ -37,27 +71,36 @@ export async function exchangeCodeForShortLivedToken(params: {
   fetchFn?: typeof fetch;
 }): Promise<ShortLivedTokenResult> {
   const fetchFn = params.fetchFn ?? fetch;
-  const body = new URLSearchParams({
-    client_id: params.appId,
-    client_secret: params.appSecret,
-    grant_type: 'authorization_code',
-    redirect_uri: params.redirectUri,
-    code: params.code,
-  });
+  const redirectUri = normalizeRedirectUri(params.redirectUri);
+  const code = normalizeOAuthCode(params.code);
+
+  // Official Meta examples use multipart form fields (-F), not urlencoded.
+  // Using the same encoding avoids false redirect_uri mismatch rejections.
+  const body = new FormData();
+  body.set('client_id', params.appId);
+  body.set('client_secret', params.appSecret);
+  body.set('grant_type', 'authorization_code');
+  body.set('redirect_uri', redirectUri);
+  body.set('code', code);
+
   const res = await fetchFn(TOKEN_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     throw new Error(String(json.error_message ?? json.error ?? `token_exchange_${res.status}`));
   }
-  const userId = String(json.user_id ?? '');
+  const row = readTokenExchangeRow(json);
+  const accessToken = String(row.access_token ?? '');
+  const userId = String(row.user_id ?? '');
   if (!accessToken) throw new Error('token_exchange_missing_access_token');
-  const permissions = Array.isArray(json.permissions)
-    ? (json.permissions as unknown[]).map(String)
-    : [...IG_CONNECT_SCOPES];
+  const permissionsRaw = row.permissions ?? json.permissions;
+  const permissions = Array.isArray(permissionsRaw)
+    ? permissionsRaw.map(String)
+    : typeof permissionsRaw === 'string' && permissionsRaw
+      ? permissionsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+      : [...IG_CONNECT_SCOPES];
   return { accessToken, userId, permissions };
 }
 

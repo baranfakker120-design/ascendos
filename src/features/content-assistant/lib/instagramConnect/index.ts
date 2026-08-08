@@ -65,6 +65,26 @@ export function toSafeConnection(
   };
 }
 
+/** Keep in sync with edge `normalizeRedirectUri`. */
+export function normalizeRedirectUri(raw: string): string {
+  let value = raw.trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  if (value.length > 1 && value.endsWith('/')) {
+    value = value.slice(0, -1);
+  }
+  return value;
+}
+
+/** Keep in sync with edge `normalizeOAuthCode`. */
+export function normalizeOAuthCode(raw: string): string {
+  return raw.trim().split('#')[0]!.trim();
+}
+
 export function buildAuthorizeUrl(params: {
   appId: string;
   redirectUri: string;
@@ -72,9 +92,10 @@ export function buildAuthorizeUrl(params: {
   scopes?: string[];
 }): string {
   const scope = (params.scopes ?? ['instagram_business_basic']).join(',');
+  const redirectUri = normalizeRedirectUri(params.redirectUri);
   const q = new URLSearchParams({
     client_id: params.appId,
-    redirect_uri: params.redirectUri,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope,
     state: params.state,

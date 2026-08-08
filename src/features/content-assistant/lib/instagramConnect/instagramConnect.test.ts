@@ -4,6 +4,8 @@ import {
   buildAuthorizeUrl,
   dbStatusToUi,
   isOAuthUserCancel,
+  normalizeOAuthCode,
+  normalizeRedirectUri,
   parseIgCallbackParam,
   toSafeConnection,
 } from './index';
@@ -78,6 +80,35 @@ describe('buildAuthorizeUrl', () => {
     expect(url).toContain('scope=instagram_business_basic');
     expect(url).toContain('state=abc.def');
     expect(url).not.toContain('instagram_business_content_publish');
+  });
+
+  it('uses the same normalized redirect_uri (no trailing slash / quotes)', () => {
+    const url = buildAuthorizeUrl({
+      appId: '1',
+      redirectUri: '"https://example.supabase.co/functions/v1/instagram-oauth/"',
+      state: 's',
+    });
+    expect(url).toContain(
+      'redirect_uri=' +
+        encodeURIComponent('https://example.supabase.co/functions/v1/instagram-oauth')
+    );
+    expect(url).not.toContain(encodeURIComponent('instagram-oauth/'));
+  });
+});
+
+describe('normalizeRedirectUri / normalizeOAuthCode', () => {
+  it('normalizes redirect URI consistently for authorize + exchange', () => {
+    expect(normalizeRedirectUri(' https://x.supabase.co/functions/v1/instagram-oauth/ ')).toBe(
+      'https://x.supabase.co/functions/v1/instagram-oauth'
+    );
+    expect(normalizeRedirectUri('"https://x.supabase.co/functions/v1/instagram-oauth"')).toBe(
+      'https://x.supabase.co/functions/v1/instagram-oauth'
+    );
+  });
+
+  it('strips Instagram #_ suffix from oauth code', () => {
+    expect(normalizeOAuthCode('AQBx-hBsH3#_')).toBe('AQBx-hBsH3');
+    expect(normalizeOAuthCode('AQBx-hBsH3')).toBe('AQBx-hBsH3');
   });
 });
 
