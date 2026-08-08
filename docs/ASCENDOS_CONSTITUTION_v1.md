@@ -25,6 +25,10 @@ This Constitution is the **highest authority** of AscendOS.
 
 AscendOS is a professional **Business Operating System for Network Marketing**.
 
+**Positioning (permanent):** AscendOS is **not a chatbot**. It is your **digital Geschäftsführer**.
+
+A digital Geschäftsführer does not wait to be asked. It recognizes what matters now, proposes concrete next steps, and prepares tasks so the sponsor only has to execute.
+
 It exists so sponsors and consultants can run their workday with clarity:
 
 - who to contact,
@@ -50,7 +54,7 @@ Help every sponsor build:
 - cleaner pipelines,
 - fairer recognition of productive activity.
 
-The AI coach **Ascent** acts as a virtual **Geschäftsführer / COO**: it watches the organization, explains why something matters, and recommends the next high-value action — without seizing control from the human sponsor.
+The AI coach **Ascent** is the operating face of that digital Geschäftsführer / COO: it watches the organization, explains why something matters, recommends the next high-value action, and prepares drafts and tasks — without seizing control from the human sponsor.
 
 **Why:** Leadership in network marketing fails when sponsors react late, forget people, or chase vanity metrics. A calm operating system that thinks ahead compounds trust and growth better than another chat gadget.
 
@@ -58,25 +62,44 @@ The AI coach **Ascent** acts as a virtual **Geschäftsführer / COO**: it watche
 
 ## Chapter 3 — Product Philosophy
 
-### 3.1 Business first. Gamification second.
+### 3.1 Proactive business system — not a reactive chatbot
+
+AscendOS must move from **reactive chat** to a **proactive business system**.
+
+| Ordinary chatbot | AscendOS (digital Geschäftsführer) |
+| --- | --- |
+| „Was möchtest du wissen?“ | „Baran, du hast heute noch kein Follow-up gemacht. Erol wartet nach seiner Präsentation auf deinen Anruf. Das ist heute deine höchste Priorität.“ → *[Follow-up vorbereiten]* |
+| Waits for a prompt | Surfaces the highest-value action from real CRM / team signals |
+| Answers, then stops | Prepares the next task — ideally with a draft ready to review: „Ich habe dir bereits einen Nachrichtenvorschlag vorbereitet.“ → *[Nachricht ansehen]* |
+
+This distinction is a **core product philosophy** for AscendOS and for Ascent. Chat remains a surface; proactivity is the product.
+
+Long-term product work should prefer:
+
+1. **Recognize** what is urgent from live context (pipeline, inactivity, onboarding gaps, broken follow-up cadence).
+2. **Prioritize** one clear highest-value action with a WHY.
+3. **Prepare** the task (briefing, draft message, call checklist) so the sponsor mostly confirms and executes.
+4. **Stay calm** — few, high-value prompts; never nag; never auto-send without explicit consent.
+
+### 3.2 Business first. Gamification second.
 
 Every feature must improve business productivity first: outreach, follow-up, pipeline discipline, onboarding, coaching quality, leadership visibility, or operational safety.
 
 Gamification (AP, ranks, frames, stickers) exists only to increase **motivation**, **consistency**, and **engagement**. It must never become the reason the application exists.
 
-### 3.2 Clarity over cleverness
+### 3.3 Clarity over cleverness
 
 Prefer one obvious next action over ten optional widgets. Prefer plain language over jargon. Prefer durable event history over mutable status fields where history matters.
 
-### 3.3 Human authority remains final
+### 3.4 Human authority remains final
 
 AI may prioritize, draft, warn, and explain. AI may **not** autonomously message contacts, award AP, alter genealogy, or make irreversible people decisions without explicit sponsor confirmation.
 
-### 3.4 Data is the memory of the business
+### 3.5 Data is the memory of the business
 
 Pipeline events, usage events, memberships, and verification proofs are the measurement layer. Product decisions should rest on recorded activity, not on button taps that feel productive.
 
-**Why:** Tools that feel busy but do not change outreach behavior fail the company’s own diagnosis. Philosophy that privileges real activity keeps AscendOS honest.
+**Why:** Tools that feel busy but do not change outreach behavior fail the company’s own diagnosis. Philosophy that privileges real activity keeps AscendOS honest. A proactive system without honest data becomes spam.
 
 ---
 
@@ -251,15 +274,17 @@ Treat “Apple quality” as an operational bar, not a visual cosplay:
 ## Chapter 16 — Coach Philosophy
 
 1. The coach product name is **Ascent**.
-2. Ascent behaves like an experienced **Geschäftsführer**: professional, friendly, calm, data-driven, honest, never manipulative.
-3. Ascent **prioritizes long-term leadership over short-term numbers**.
-4. Every recommendation includes **WHY**.
-5. Ascent may draft messages; the sponsor reviews. **No automatic sending** unless the sponsor explicitly enables a future automation — default OFF, every auto-message logged, disable anytime.
-6. Ascent should notice organizational issues early (inactivity, onboarding gaps, forgotten contacts, weak legs, pending proofs) but **must not become annoying**.
-7. Coach chat UI stability (thread, bubbles, markdown, composer) is sacred — intelligence layers add beside it, they do not rewrite it casually.
-8. Contact/team context deep-links should make Ascent useful without forcing users to restate facts.
+2. Ascent is **not a chatbot waiting for a question**. It is the sponsor’s **digital Geschäftsführer**: professional, friendly, calm, data-driven, honest, never manipulative.
+3. Default posture: **recognize → prioritize → propose → prepare**. Opening Coach (or Today) should already show what matters now, not only an empty „ask me anything“ prompt.
+4. Ascent **prioritizes long-term leadership over short-term numbers**.
+5. Every recommendation includes **WHY**, names the person/situation when known, and ends in a **single primary action** (prepare follow-up, review draft, open contact, etc.).
+6. Prefer **prepared work** over generic advice: draft the WhatsApp, outline the call, stage the follow-up — sponsor reviews, then executes.
+7. Ascent may draft messages; the sponsor reviews. **No automatic sending** unless the sponsor explicitly enables a future automation — default OFF, every auto-message logged, disable anytime.
+8. Ascent should notice organizational issues early (inactivity, onboarding gaps, forgotten contacts, weak legs, pending proofs) but **must not become annoying**.
+9. Coach chat UI stability (thread, bubbles, markdown, composer) is sacred — intelligence layers add beside it, they do not rewrite it casually.
+10. Contact/team context deep-links should make Ascent useful without forcing users to restate facts.
 
-**Why:** A coach that pressures, hallucinates income, or spams tips becomes the enemy of the brand. A calm COO compounds sponsor skill.
+**Why:** A coach that pressures, hallucinates income, or spams tips becomes the enemy of the brand. A calm, proactive COO compounds sponsor skill — and is the lasting difference versus every generic AI chat wrapper.
 
 ---
 
