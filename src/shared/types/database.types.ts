@@ -869,7 +869,77 @@ export type Database = {
           },
         ];
       };
-
+      contacts: {
+        Row: {
+          created_at: string;
+          email: string | null;
+          id: string;
+          name: string;
+          next_step: string | null;
+          next_step_due: string | null;
+          notes: string | null;
+          org_id: string;
+          owner_id: string;
+          phone: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          name: string;
+          next_step?: string | null;
+          next_step_due?: string | null;
+          notes?: string | null;
+          org_id: string;
+          owner_id: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          name?: string;
+          next_step?: string | null;
+          next_step_due?: string | null;
+          notes?: string | null;
+          org_id?: string;
+          owner_id?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'contacts_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contacts_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       content_assets: {
         Row: {
           analysis_json: Json;
@@ -958,7 +1028,22 @@ export type Database = {
           usage_count?: number;
           width_px?: number | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'content_assets_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_assets_owner_membership_id_fkey';
+            columns: ['owner_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       content_daily_preparations: {
         Row: {
@@ -1003,7 +1088,36 @@ export type Database = {
           timezone?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'content_daily_preparations_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_assets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_daily_preparations_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_drafts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_daily_preparations_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_daily_preparations_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       content_drafts: {
         Row: {
@@ -1066,7 +1180,29 @@ export type Database = {
           target_audience?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'content_drafts_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_assets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_drafts_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_drafts_owner_membership_id_fkey';
+            columns: ['owner_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       content_instagram_connections: {
         Row: {
@@ -1114,7 +1250,22 @@ export type Database = {
           token_ref?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'content_instagram_connections_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_instagram_connections_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       content_publish_attempts: {
         Row: {
@@ -1159,76 +1310,33 @@ export type Database = {
           updated_at?: string;
           user_confirmed_at?: string | null;
         };
-        Relationships: [];
-      };
-
-      contacts: {
-        Row: {
-          created_at: string;
-          email: string | null;
-          id: string;
-          name: string;
-          next_step: string | null;
-          next_step_due: string | null;
-          notes: string | null;
-          org_id: string;
-          owner_id: string;
-          phone: string | null;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          email?: string | null;
-          id?: string;
-          name: string;
-          next_step?: string | null;
-          next_step_due?: string | null;
-          notes?: string | null;
-          org_id: string;
-          owner_id: string;
-          phone?: string | null;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          email?: string | null;
-          id?: string;
-          name?: string;
-          next_step?: string | null;
-          next_step_due?: string | null;
-          notes?: string | null;
-          org_id?: string;
-          owner_id?: string;
-          phone?: string | null;
-          updated_at?: string;
-        };
         Relationships: [
           {
-            foreignKeyName: 'contacts_org_id_fkey';
+            foreignKeyName: 'content_publish_attempts_connection_id_fkey';
+            columns: ['connection_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_instagram_connections';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_publish_attempts_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_drafts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_publish_attempts_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_publish_attempts_org_id_fkey';
             columns: ['org_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'contacts_owner_id_fkey';
-            columns: ['owner_id'];
-            isOneToOne: false;
-            referencedRelation: 'firstline_journey_progress';
-            referencedColumns: ['user_id'];
-          },
-          {
-            foreignKeyName: 'contacts_owner_id_fkey';
-            columns: ['owner_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'contacts_owner_id_fkey';
-            columns: ['owner_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles_public';
             referencedColumns: ['id'];
           },
         ];
@@ -3112,9 +3220,6 @@ export type Database = {
       };
       ap_recalculate: { Args: { p_membership_id: string }; Returns: number };
       check_achievements: { Args: never; Returns: string[] };
-      content_asset_limit: { Args: never; Returns: number };
-      content_can_upload_asset: { Args: { p_scope?: string }; Returns: boolean };
-      content_personal_asset_count: { Args: never; Returns: number };
       coach_messages_today: { Args: { p_user: string }; Returns: number };
       commit_daily_plan: { Args: { p_plan_id: string }; Returns: undefined };
       complete_ap_task: {
@@ -3126,6 +3231,9 @@ export type Database = {
         }[];
       };
       complete_journey_step: { Args: { p_step_id: string }; Returns: undefined };
+      content_asset_limit: { Args: never; Returns: number };
+      content_can_upload_asset: { Args: { p_scope?: string }; Returns: boolean };
+      content_personal_asset_count: { Args: never; Returns: number };
       correct_pipeline_event: {
         Args: { p_event_id: string };
         Returns: undefined;
