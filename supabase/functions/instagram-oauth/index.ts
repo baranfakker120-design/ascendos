@@ -13,8 +13,10 @@
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import {
+  appendOAuthDebug,
   buildAuthorizeUrl,
   dbStatusToUi,
+  describeRedirectUri,
   encryptToken,
   exchangeCodeForShortLivedToken,
   exchangeForLongLivedToken,
@@ -222,12 +224,22 @@ Deno.serve(async (req) => {
         return frontendRedirect(meta.appOrigin, { ig: 'error', reason: 'invalid_state' });
       }
 
+      // Prefer the exact redirect_uri that was signed into authorize state.
+      const exchangeRedirectUri = normalizeRedirectUri(
+        typeof payload.ruri === 'string' && payload.ruri ? payload.ruri : meta.redirectUri
+      );
+      const authDiag = describeRedirectUri(
+        typeof payload.ruri === 'string' && payload.ruri ? payload.ruri : meta.redirectUri
+      );
+      const envDiag = describeRedirectUri(meta.redirectUri);
+      const codeHadHash = Boolean(codeRaw && codeRaw.includes('#'));
+
       const admin = adminClient();
       try {
         const short = await exchangeCodeForShortLivedToken({
           appId: meta.appId,
           appSecret: meta.appSecret,
-          redirectUri: meta.redirectUri,
+          redirectUri: exchangeRedirectUri,
           code,
         });
         const long = await exchangeForLongLivedToken({
@@ -256,7 +268,28 @@ Deno.serve(async (req) => {
         // Ensure we never return tokens — redirect only.
         return frontendRedirect(meta.appOrigin, { ig: 'connected' });
       } catch (e) {
-        const msg = sanitizeMetaError(e instanceof Error ? e.message : 'oauth_failed');
+        const base = e instanceof Error ? e.message : 'oauth_failed';
+        const msg = appendOAuthDebug(base, {
+          redirect_uri: authDiag.redirectUri,
+          len: authDiag.length,
+          slash: authDiag.endsWithSlash ? 1 : 0,
+          scheme: authDiag.scheme,
+          query: authDiag.hasQuery ? 1 : 0,
+          space: authDiag.hasSpace ? 1 : 0,
+          ruri_state: typeof payload.ruri === 'string' && payload.ruri ? 1 : 0,
+          env_match: authDiag.redirectUri === envDiag.redirectUri ? 1 : 0,
+          code_hash: codeHadHash ? 1 : 0,
+          code_len: code.length,
+        });
+        console.error('instagram_oauth_token_exchange_failed', {
+          redirect_uri: authDiag.redirectUri,
+          len: authDiag.length,
+          slash: authDiag.endsWithSlash,
+          ruri_state: Boolean(payload.ruri),
+          env_match: authDiag.redirectUri === envDiag.redirectUri,
+          code_hash: codeHadHash,
+          code_len: code.length,
+        });
         await admin.from('content_instagram_connections').upsert(
           {
             org_id: payload.oid,
@@ -296,12 +329,14 @@ Deno.serve(async (req) => {
         return json({ error: 'invalid_return_origin' }, 400);
       }
 
+      const redirectUri = meta.redirectUri;
       const state = await signOAuthState(
         {
           mid: membership.id,
           oid: membership.org_id,
           nonce: randomNonce(),
           exp: Math.floor(Date.now() / 1000) + 600,
+          ruri: redirectUri,
         },
         meta.tokenSecret
       );
@@ -319,8 +354,16 @@ Deno.serve(async (req) => {
 
       const authorizeUrl = buildAuthorizeUrl({
         appId: meta.appId,
-        redirectUri: meta.redirectUri,
+        redirectUri,
         state,
+      });
+
+      const diag = describeRedirectUri(redirectUri);
+      console.log('instagram_oauth_start', {
+        redirect_uri: diag.redirectUri,
+        len: diag.length,
+        slash: diag.endsWithSlash,
+        scheme: diag.scheme,
       });
 
       return json({

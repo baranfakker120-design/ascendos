@@ -11,12 +11,14 @@ describe('oauth state HMAC', () => {
         oid: 'o1',
         nonce: 'n1',
         exp: Math.floor(Date.now() / 1000) + 600,
+        ruri: 'https://example.supabase.co/functions/v1/instagram-oauth',
       },
       secret
     );
     const payload = await verifyOAuthState(state, secret);
     expect(payload?.mid).toBe('m1');
     expect(payload?.oid).toBe('o1');
+    expect(payload?.ruri).toBe('https://example.supabase.co/functions/v1/instagram-oauth');
   });
 
   it('rejects tampered state', async () => {
