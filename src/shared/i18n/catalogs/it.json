@@ -1120,12 +1120,26 @@
     "cleanCheckClean": "Ok",
     "cleanCheckAttention": "Attenzione",
     "cleanCheckPending": "In attesa",
-    "cleanCheckDisclaimer": "Solo supporto — nessuna garanzia di conformità Instagram o reach.",
+    "cleanCheckDisclaimer": "Solo precauzione tecnica — nessuna garanzia di conformità Instagram o reach.",
     "saveDraft": "Salva",
     "saving": "Salvataggio …",
     "draftSaved": "Bozza salvata.",
     "draftSaveFailed": "Salvataggio non riuscito.",
     "prepareInstagram": "Prepara Instagram",
-    "instagramPrepared": "Bozza segnata come pronta. OAuth/publish dopo — niente auto-publish."
+    "instagramPrepared": "Bozza segnata come pronta. OAuth/publish dopo — niente auto-publish.",
+    "hashtagResearchTitle": "Perché questi hashtag?",
+    "hashtagResearchLiveOn": "Fonte di ricerca live attiva.",
+    "hashtagResearchLiveOff": "Nessuna ricerca trend live — tematico/curato dall’asset.",
+    "hashtagResearchEmpty": "Nessuna raccomandazione hashtag affidabile per questo asset.",
+    "hashtagReasonTheme": "In linea con il tema",
+    "hashtagReasonRelevance": "Alta rilevanza tematica",
+    "hashtagReasonCurated": "Dal catalogo tematico curato",
+    "hashtagReasonLive": "Ricercato attualmente",
+    "hashtagReasonRejectedSpam": "Non consigliato — rischio spam/irrilevanza",
+    "hashtagReasonRejectedIrrelevant": "Non consigliato — legame tematico debole",
+    "hashtagReasonRejectedDuplicate": "Non consigliato — duplicato",
+    "hashtagReasonLowContext": "Contesto insufficiente per consigliare",
+    "assetAnalysisDraftOnly": "Analisi solo nella bozza (asset centrale/altrui: metadati non sovrascritti).",
+    "assetAnalysisPersistFailed": "Bozza salvata; metadati asset non aggiornati."
   }
 }

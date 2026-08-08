@@ -14,6 +14,11 @@ import {
   fetchWithTimeout,
   parseOpenAiResponse,
 } from '../_shared/ai-providers/openai-format.ts';
+import {
+  formatResearchPostingHint,
+  runHashtagResearch,
+  type HashtagResearchResult,
+} from '../_shared/content-research/index.ts';
 
 const CONTENT_ASSETS_BUCKET = 'content-assets';
 const DEFAULT_DAILY_GENERATION_LIMIT = 25;
@@ -79,16 +84,37 @@ const SPAM_HASHTAGS = new Set([
   'l4l',
   'f4f',
   'spam',
+  'instagood',
+  'instalike',
+  'followme',
 ]);
 
 const ENGAGEMENT_BAIT =
-  /\b(like\s*and\s*share|like\s*for\s*like|comment\s*yes|tag\s*(3|three)\s*friends|double\s*tap|smash\s*that)\b/i;
+  /\b(like\s*and\s*share|like\s*for\s*like|comment\s*yes|tag\s*(3|three)\s*friends|double\s*tap|smash\s*that|follow\s*for\s*follow)\b/i;
 
 const MISLEADING_CLAIMS =
-  /\b(guaranteed\s*income|passive\s*income\s*guaranteed|get\s*rich|make\s*\$?\d+|earn\s*\$?\d+|miracle\s*cure|100\s*%\s*safe\s*from\s*shadowban|shadowban[\s-]*proof|instagram\s*guaranteed)\b/i;
+  /\b(guaranteed\s*income|passive\s*income\s*guaranteed|get\s*rich|make\s*\$?\d+|earn\s*\$?\d+k?|miracle\s*cure|100\s*%\s*safe\s*from\s*shadowban|shadowban[\s-]*proof|instagram\s*guaranteed|financial\s*freedom\s*guaranteed)\b/i;
+
+const RISKY_TERMS =
+  /\b(shadowban\s*hack|algorithm\s*hack|bot\s*growth|buy\s*followers|fake\s*engagement)\b/i;
+
+const CLEAN_CHECK_DISCLAIMER =
+  'Clean Check is a technical precaution only — not a guarantee of Instagram compliance or protection from reach loss.';
 
 function normalizeTag(tag: string): string {
   return tag.trim().replace(/^#/, '').toLowerCase();
+}
+
+function detectKeywordStuffing(caption: string, keywords: string[]): boolean {
+  if (!caption || keywords.length < 3) return false;
+  const lower = caption.toLowerCase();
+  let hits = 0;
+  for (const kw of keywords) {
+    const k = kw.trim().toLowerCase();
+    if (k.length < 3) continue;
+    if (lower.includes(k)) hits += 1;
+  }
+  return hits >= Math.min(keywords.length, 5) && hits / Math.max(keywords.length, 1) >= 0.7;
 }
 
 function runHeuristicCleanCheck(input: {
@@ -115,14 +141,31 @@ function runHeuristicCleanCheck(input: {
   if (MISLEADING_CLAIMS.test(blob)) {
     notes.push('Potentially misleading or absolute claim language detected.');
   }
+  if (RISKY_TERMS.test(blob)) {
+    notes.push('Potentially risky growth/manipulation language detected.');
+  }
+  const letters = input.caption.replace(/[^A-Za-zÄÖÜäöüß]/g, '');
+  if (letters.length >= 24) {
+    const caps = letters.replace(/[^A-ZÄÖÜ]/g, '').length;
+    if (caps / letters.length >= 0.45) notes.push('Caption uses excessive capitalization.');
+  }
+  if ((input.caption.match(/!/g) ?? []).length >= 4) {
+    notes.push('Caption uses many exclamation marks.');
+  }
+  if (detectKeywordStuffing(input.caption, input.keywords)) {
+    notes.push('Caption looks keyword-stuffed.');
+  }
   for (const flag of input.llmFlags) {
     const f = flag.trim();
     if (f) notes.push(f);
   }
-  notes.push(
-    'Clean Check is supportive only — not a guarantee of Instagram compliance or reach.'
-  );
+  notes.push(CLEAN_CHECK_DISCLAIMER);
   return { status: notes.length > 1 ? 'attention' : 'clean', notes };
+}
+
+function canPersistAssetAnalysis(asset: AssetRow, membership: MembershipRow): boolean {
+  if (asset.scope === 'personal') return asset.owner_membership_id === membership.id;
+  return membership.role === 'super_admin' || membership.role === 'developer';
 }
 
 function extractJsonObject(text: string): unknown {
@@ -197,8 +240,10 @@ function buildSystemPrompt(locale: string): string {
 Do NOT invent details you cannot see. If unsure, list the uncertainty in "uncertain" and keep related fields null or cautious.
 Never claim shadowban safety or Instagram guarantees.
 Never invent income, health, or miracle claims.
+Never claim hashtags are "trending", "viral right now", or "currently popular" — you have no live trend feed.
 Write captions that sound natural for the audience — not robotic, not keyword-stuffed, not spammy.
-Hashtags must match the actual content. Do NOT default to fyp/viral/explore/trending unless clearly justified by the media (prefer omitting them).
+Hashtags must match the actual content. Do NOT default to fyp/viral/explore/trending (omit them).
+If the media is unclear or nearly empty, say so in uncertain and keep hashtags sparse.
 No black-hat, scraping, bots, or fake-engagement advice.
 
 Respond with ONE JSON object only (no markdown) using this shape:
@@ -445,14 +490,15 @@ Deno.serve(async (req) => {
       providerMeta = { provider: vision.provider, model: vision.model };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      // Best-effort mark analysis failed (may be denied by RLS on central assets for non-managers).
-      await db
-        .from('content_assets')
-        .update({
-          analysis_status: 'failed',
-          analysis_json: { error: msg, at: new Date().toISOString() },
-        })
-        .eq('id', assetRow.id);
+      if (canPersistAssetAnalysis(assetRow, active)) {
+        await db
+          .from('content_assets')
+          .update({
+            analysis_status: 'failed',
+            analysis_json: { error: msg, at: new Date().toISOString() },
+          })
+          .eq('id', assetRow.id);
+      }
       if (msg.includes('missing_openrouter_key') || msg.includes('OPENROUTER')) {
         return json({ error: 'ai_not_configured', detail: msg }, 503);
       }
@@ -463,17 +509,19 @@ Deno.serve(async (req) => {
     try {
       parsed = parseGeneration(extractJsonObject(visionText), format);
     } catch (e) {
-      await db
-        .from('content_assets')
-        .update({
-          analysis_status: 'failed',
-          analysis_json: {
-            error: 'parse_failed',
-            rawPreview: visionText.slice(0, 800),
-            at: new Date().toISOString(),
-          },
-        })
-        .eq('id', assetRow.id);
+      if (canPersistAssetAnalysis(assetRow, active)) {
+        await db
+          .from('content_assets')
+          .update({
+            analysis_status: 'failed',
+            analysis_json: {
+              error: 'parse_failed',
+              rawPreview: visionText.slice(0, 800),
+              at: new Date().toISOString(),
+            },
+          })
+          .eq('id', assetRow.id);
+      }
       return json(
         {
           error: 'ai_parse_failed',
@@ -483,14 +531,35 @@ Deno.serve(async (req) => {
       );
     }
 
+    const research: HashtagResearchResult = runHashtagResearch({
+      theme: parsed.theme,
+      contentCategory: parsed.content_category,
+      mood: parsed.mood,
+      visualSummary: parsed.visual_summary,
+      keywords: parsed.keywords,
+      llmHashtags: parsed.hashtags,
+      locale,
+    });
+    const finalHashtags = research.recommended.map((c) => c.tag);
+
     const clean = runHeuristicCleanCheck({
       hook: parsed.hook,
       caption: parsed.caption,
       cta: parsed.cta,
       keywords: parsed.keywords,
-      hashtags: parsed.hashtags,
+      hashtags: finalHashtags,
       llmFlags: parsed.llm_clean_flags,
     });
+
+    const researchPayload = {
+      mode: research.mode,
+      liveResearchActive: research.liveResearchActive,
+      providersUsed: research.providersUsed,
+      recommended: research.recommended,
+      rejected: research.rejected,
+      notes: research.notes,
+      hashtagApi: 'not_enabled',
+    };
 
     const analysisJson = {
       provider: providerMeta.provider,
@@ -504,31 +573,37 @@ Deno.serve(async (req) => {
       product_hint: parsed.product_hint,
       uncertain: parsed.uncertain,
       generated_at: new Date().toISOString(),
-      // Architecture hook for later curated/official hashtag research (Phase 5+) — not used yet.
-      research: { mode: 'asset_derived_only', hashtagApi: 'not_enabled' },
+      research: researchPayload,
     };
 
-    // Best-effort asset analysis update (RLS may block non-managers on central assets).
-    const { data: usageRow } = await db
-      .from('content_assets')
-      .select('usage_count')
-      .eq('id', assetRow.id)
-      .maybeSingle();
-    await db
-      .from('content_assets')
-      .update({
-        analysis_status: 'ready',
-        detected_summary: parsed.visual_summary.slice(0, 2000),
-        theme: parsed.theme,
-        mood: parsed.mood,
-        product_hint: parsed.product_hint,
-        audience_hint: parsed.audience_hint,
-        keywords: parsed.keywords,
-        analysis_json: analysisJson,
-        last_used_at: new Date().toISOString(),
-        usage_count: Number(usageRow?.usage_count ?? 0) + 1,
-      })
-      .eq('id', assetRow.id);
+    const persistAsset = canPersistAssetAnalysis(assetRow, active);
+    let assetAnalysisPersisted = false;
+    if (persistAsset) {
+      const { data: usageRow } = await db
+        .from('content_assets')
+        .select('usage_count')
+        .eq('id', assetRow.id)
+        .maybeSingle();
+      const { error: assetUpdateError } = await db
+        .from('content_assets')
+        .update({
+          analysis_status: 'ready',
+          detected_summary: parsed.visual_summary.slice(0, 2000),
+          theme: parsed.theme,
+          mood: parsed.mood,
+          product_hint: parsed.product_hint,
+          audience_hint: parsed.audience_hint,
+          keywords: parsed.keywords,
+          analysis_json: analysisJson,
+          last_used_at: new Date().toISOString(),
+          usage_count: Number(usageRow?.usage_count ?? 0) + 1,
+        })
+        .eq('id', assetRow.id);
+      assetAnalysisPersisted = !assetUpdateError;
+    }
+
+    const researchHint = formatResearchPostingHint(research);
+    const postingHint = [parsed.posting_hint, researchHint].filter(Boolean).join(' · ');
 
     const draftInsert = {
       org_id: active.org_id,
@@ -539,11 +614,11 @@ Deno.serve(async (req) => {
       caption: parsed.caption,
       cta: parsed.cta,
       keywords: parsed.keywords,
-      hashtags: parsed.hashtags.map((h) => h.replace(/^#/, '')),
+      hashtags: finalHashtags,
       clean_check_status: clean.status,
       clean_check_notes: clean.notes.join(' · '),
       target_audience: parsed.target_audience ?? parsed.audience_hint,
-      posting_hint: parsed.posting_hint,
+      posting_hint: postingHint,
       status: 'draft' as const,
     };
 
@@ -560,6 +635,13 @@ Deno.serve(async (req) => {
       ok: true,
       draft,
       analysis: analysisJson,
+      research: researchPayload,
+      assetAnalysisPersisted,
+      assetAnalysisMode: persistAsset
+        ? assetAnalysisPersisted
+          ? 'persisted'
+          : 'persist_failed'
+        : 'draft_only_central_or_foreign',
       cleanCheck: {
         status: clean.status,
         notes: clean.notes,

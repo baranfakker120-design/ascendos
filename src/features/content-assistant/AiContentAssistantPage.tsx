@@ -18,7 +18,13 @@ import {
   type ContentAssetScope,
   type ContentFormat,
 } from './contentAssetsApi';
-import { useContentDrafts, type ContentDraft } from './contentDraftsApi';
+import {
+  useContentDrafts,
+  type ContentDraft,
+  type ContentGenerateResult,
+  type ContentResearchPayload,
+} from './contentDraftsApi';
+import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
  * AI Content Assistant — Phase 3: real AI generation on Phase-2 foundation.
@@ -33,6 +39,8 @@ export function AiContentAssistantPage() {
   const [format, setFormat] = useState<ContentFormat>('feed');
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [research, setResearch] = useState<ContentResearchPayload | null>(null);
+  const [assetPersistNote, setAssetPersistNote] = useState<string | null>(null);
   const [edit, setEdit] = useState<{
     hook: string;
     caption: string;
@@ -124,8 +132,17 @@ export function AiContentAssistantPage() {
     if (!selectedAssetId) return;
     setGenerateError(null);
     setSaveMessage(null);
+    setAssetPersistNote(null);
     try {
-      await generateMutation.mutateAsync({ format });
+      const result: ContentGenerateResult = await generateMutation.mutateAsync({ format });
+      setResearch(result.research ?? result.analysis?.research ?? null);
+      if (result.assetAnalysisMode === 'draft_only_central_or_foreign') {
+        setAssetPersistNote(t('contentAssistant.assetAnalysisDraftOnly'));
+      } else if (result.assetAnalysisMode === 'persist_failed') {
+        setAssetPersistNote(t('contentAssistant.assetAnalysisPersistFailed'));
+      } else {
+        setAssetPersistNote(null);
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'generate_failed';
       if (msg.includes('content_generation_quota_reached'))
@@ -179,6 +196,8 @@ export function AiContentAssistantPage() {
     setSelectedAssetId(asset.id);
     setGenerateError(null);
     setSaveMessage(null);
+    setResearch(null);
+    setAssetPersistNote(null);
   };
 
   return (
@@ -413,6 +432,44 @@ export function AiContentAssistantPage() {
                 onChange={(e) => setEdit((s) => (s ? { ...s, hashtags: e.target.value } : s))}
               />
             </label>
+
+            {research ? (
+              <div className="space-y-1.5 rounded-xl border border-line px-3 py-2">
+                <p className="text-xs font-semibold text-muted">
+                  {t('contentAssistant.hashtagResearchTitle')}
+                </p>
+                <p className="text-[0.68rem] text-muted">
+                  {research.liveResearchActive
+                    ? t('contentAssistant.hashtagResearchLiveOn')
+                    : t('contentAssistant.hashtagResearchLiveOff')}
+                </p>
+                {research.recommended.length > 0 ? (
+                  <ul className="space-y-1">
+                    {research.recommended.slice(0, 10).map((c) => (
+                      <li key={`ok-${c.tag}`} className="text-xs text-ink">
+                        #{c.tag}{' '}
+                        <span className="text-muted">
+                          — {t(hashtagReasonI18nKey(c.reasonCode))}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted">{t('contentAssistant.hashtagResearchEmpty')}</p>
+                )}
+                {research.rejected.slice(0, 4).map((c) => (
+                  <p key={`no-${c.tag}`} className="text-[0.68rem] text-muted">
+                    #{c.tag} — {t(hashtagReasonI18nKey(c.reasonCode))}
+                  </p>
+                ))}
+              </div>
+            ) : activeDraft.posting_hint ? (
+              <p className="text-xs text-muted">{activeDraft.posting_hint}</p>
+            ) : null}
+
+            {assetPersistNote ? (
+              <p className="text-xs font-medium text-muted">{assetPersistNote}</p>
+            ) : null}
 
             <div className="rounded-xl border border-line px-3 py-2">
               <p className="text-xs font-semibold text-muted">

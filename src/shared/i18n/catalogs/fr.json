@@ -1120,12 +1120,26 @@
     "cleanCheckClean": "OK",
     "cleanCheckAttention": "Attention",
     "cleanCheckPending": "En attente",
-    "cleanCheckDisclaimer": "Aide seulement — aucune garantie de conformité Instagram ou de portée.",
+    "cleanCheckDisclaimer": "Précaution technique seulement — aucune garantie de conformité Instagram ni de portée.",
     "saveDraft": "Enregistrer",
     "saving": "Enregistrement …",
     "draftSaved": "Brouillon enregistré.",
     "draftSaveFailed": "Échec de l’enregistrement.",
     "prepareInstagram": "Préparer Instagram",
-    "instagramPrepared": "Brouillon marqué prêt. OAuth/publication plus tard — pas d’auto-publish."
+    "instagramPrepared": "Brouillon marqué prêt. OAuth/publication plus tard — pas d’auto-publish.",
+    "hashtagResearchTitle": "Pourquoi ces hashtags ?",
+    "hashtagResearchLiveOn": "Source de recherche live active.",
+    "hashtagResearchLiveOff": "Pas de recherche de tendances live — thématique/curaté depuis l’asset.",
+    "hashtagResearchEmpty": "Aucune recommandation de hashtag fiable pour cet asset.",
+    "hashtagReasonTheme": "Adapté au thème",
+    "hashtagReasonRelevance": "Forte pertinence thématique",
+    "hashtagReasonCurated": "Catalogue thématique curaté",
+    "hashtagReasonLive": "Recherché actuellement",
+    "hashtagReasonRejectedSpam": "Non recommandé — risque spam/irrelevance",
+    "hashtagReasonRejectedIrrelevant": "Non recommandé — lien thématique faible",
+    "hashtagReasonRejectedDuplicate": "Non recommandé — doublon",
+    "hashtagReasonLowContext": "Contexte insuffisant pour recommander",
+    "assetAnalysisDraftOnly": "Analyse enregistrée seulement dans le brouillon (asset central/étranger : métadonnées non écrasées).",
+    "assetAnalysisPersistFailed": "Brouillon enregistré ; métadonnées asset non mises à jour."
   }
 }

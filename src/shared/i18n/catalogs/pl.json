@@ -1120,12 +1120,26 @@
     "cleanCheckClean": "OK",
     "cleanCheckAttention": "Uwaga",
     "cleanCheckPending": "Oczekuje",
-    "cleanCheckDisclaimer": "Tylko wsparcie — bez gwarancji zgodności z Instagramem ani zasięgu.",
+    "cleanCheckDisclaimer": "Tylko ostrożność techniczna — bez gwarancji zgodności z Instagramem ani zasięgu.",
     "saveDraft": "Zapisz",
     "saving": "Zapisywanie …",
     "draftSaved": "Szkic zapisany.",
     "draftSaveFailed": "Zapis nie powiódł się.",
     "prepareInstagram": "Przygotuj Instagram",
-    "instagramPrepared": "Szkic oznaczony jako gotowy. OAuth/publish później — bez auto-publish."
+    "instagramPrepared": "Szkic oznaczony jako gotowy. OAuth/publish później — bez auto-publish.",
+    "hashtagResearchTitle": "Dlaczego te hashtagi?",
+    "hashtagResearchLiveOn": "Aktywne żywe źródło badań.",
+    "hashtagResearchLiveOff": "Brak live research trendów — tematycznie/kuratorowane z assetu.",
+    "hashtagResearchEmpty": "Brak pewnych rekomendacji hashtagów dla tego assetu.",
+    "hashtagReasonTheme": "Pasuje do tematu",
+    "hashtagReasonRelevance": "Wysoka trafność tematyczna",
+    "hashtagReasonCurated": "Z kuratorowanego katalogu tematów",
+    "hashtagReasonLive": "Aktualnie zbadane",
+    "hashtagReasonRejectedSpam": "Niezalecane — ryzyko spamu/nieistotności",
+    "hashtagReasonRejectedIrrelevant": "Niezalecane — słaby związek z tematem",
+    "hashtagReasonRejectedDuplicate": "Niezalecane — duplikat",
+    "hashtagReasonLowContext": "Za mało kontekstu na rekomendację",
+    "assetAnalysisDraftOnly": "Analiza tylko w szkicu (asset centralny/obcy: metadane nie nadpisane).",
+    "assetAnalysisPersistFailed": "Szkic zapisany; metadanych assetu nie udało się zaktualizować."
   }
 }

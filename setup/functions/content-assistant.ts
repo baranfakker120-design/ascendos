@@ -234,6 +234,390 @@ export function errorOf(code: ProviderErrorCode, provider: string, message: stri
   return new ProviderError(code, provider, message);
 }
 
+// ---- inline: _shared/content-research/types.ts ----
+/**
+ * Content hashtag research contracts (policy-safe).
+ * No scraping, bots, passwords, or fake “trending” claims.
+ */
+
+export type ResearchProviderId = 'llm_analysis' | 'curated_catalog' | 'official_meta_hashtag';
+
+export type ResearchSourceKind = 'asset_llm' | 'curated' | 'official_meta';
+
+/** User-facing reason codes (map to i18n in the client). */
+export type HashtagReasonCode =
+  | 'theme_match'
+  | 'high_relevance'
+  | 'curated_catalog'
+  | 'live_researched'
+  | 'rejected_spam'
+  | 'rejected_irrelevant'
+  | 'rejected_duplicate'
+  | 'low_context';
+
+export interface ResearchProviderInfo {
+  id: ResearchProviderId;
+  kind: ResearchSourceKind | 'disabled';
+  enabled: boolean;
+  /** If false, results MUST NOT be labeled as live/trending. */
+  claimsLiveTrends: boolean;
+  description: string;
+}
+
+export interface ResearchInput {
+  theme?: string | null;
+  contentCategory?: string | null;
+  mood?: string | null;
+  visualSummary?: string | null;
+  keywords?: string[];
+  llmHashtags?: string[];
+  locale?: string;
+}
+
+export interface HashtagCandidate {
+  tag: string;
+  source: ResearchSourceKind;
+  score: number;
+  reasonCode: HashtagReasonCode;
+  rejected: boolean;
+  rejectReason?: string;
+}
+
+export interface HashtagResearchResult {
+  /** Final recommended tags (not rejected), highest score first. */
+  recommended: HashtagCandidate[];
+  /** Rejected / not recommended (for UI transparency). */
+  rejected: HashtagCandidate[];
+  providersUsed: ResearchProviderId[];
+  /** True only when an enabled live provider contributed tags. */
+  liveResearchActive: boolean;
+  mode: 'curated_plus_llm' | 'llm_only' | 'insufficient_context';
+  notes: string[];
+}
+
+// ---- inline: _shared/content-research/curated-catalog.ts ----
+/**
+ * Curated, evergreen topic → hashtag catalog.
+ * NOT a live trend feed. Tags are thematic suggestions only.
+ */
+
+export interface CuratedTopic {
+  id: string;
+  /** Match against theme/category/keywords/summary (lowercase). */
+  matchers: string[];
+  hashtags: string[];
+}
+
+export const CURATED_TOPICS: readonly CuratedTopic[] = [
+  {
+    id: 'fragrance',
+    matchers: ['duft', 'parfum', 'perfume', 'fragrance', 'scent', 'eau de', 'note', 'olfaktor'],
+    hashtags: ['parfum', 'duftliebe', 'fragrance', 'scentoftheday', 'perfumelovers'],
+  },
+  {
+    id: 'team_business',
+    matchers: [
+      'team',
+      'network',
+      'business',
+      'leadership',
+      'partner',
+      'aufbau',
+      'community',
+      'mentor',
+    ],
+    hashtags: ['teamarbeit', 'businessmindset', 'netzwerk', 'leadership', 'community'],
+  },
+  {
+    id: 'lifestyle',
+    matchers: ['lifestyle', 'alltag', 'everyday', 'moment', 'leben', 'balance', 'wohlfühl'],
+    hashtags: ['lifestyle', 'alltagsmomente', 'mindfulmoments', 'everydaylife'],
+  },
+  {
+    id: 'product_showcase',
+    matchers: ['produkt', 'product', 'flasche', 'bottle', 'packaging', 'unboxing', 'neuheit'],
+    hashtags: ['productlove', 'newin', 'packagingdesign', 'detailshot'],
+  },
+  {
+    id: 'motivation',
+    matchers: ['motivation', 'inspiration', 'ziele', 'focus', 'mindset', 'erfolg'],
+    hashtags: ['motivation', 'mindset', 'inspirationdaily', 'fokus'],
+  },
+  {
+    id: 'event_social',
+    matchers: ['party', 'event', 'treffen', 'workshop', 'live', 'abend', 'celebration'],
+    hashtags: ['eventvibes', 'zusammenkommen', 'workshopday'],
+  },
+];
+
+export function matchCuratedTopics(blob: string): CuratedTopic[] {
+  const text = blob.toLowerCase();
+  if (!text.trim()) return [];
+  return CURATED_TOPICS.filter((topic) => topic.matchers.some((m) => text.includes(m)));
+}
+
+// ---- inline: _shared/content-research/pipeline.ts ----
+export const RESEARCH_PROVIDERS: readonly ResearchProviderInfo[] = [
+  {
+    id: 'llm_analysis',
+    kind: 'asset_llm',
+    enabled: true,
+    claimsLiveTrends: false,
+    description: 'Hashtags derived from vision/LLM analysis of the actual asset.',
+  },
+  {
+    id: 'curated_catalog',
+    kind: 'curated',
+    enabled: true,
+    claimsLiveTrends: false,
+    description: 'Evergreen curated topic catalog — not a live Instagram trend feed.',
+  },
+  {
+    id: 'official_meta_hashtag',
+    kind: 'disabled',
+    enabled: false,
+    claimsLiveTrends: true,
+    description:
+      'Reserved for official Meta IG Hashtag Search after App Review. Disabled in Phase 3.',
+  },
+] as const;
+
+const SPAM_TAGS = new Set([
+  'fyp',
+  'foryou',
+  'foryoupage',
+  'viral',
+  'viralvideo',
+  'explorepage',
+  'explore',
+  'trending',
+  'follow4follow',
+  'like4like',
+  'l4l',
+  'f4f',
+  'spam',
+  'instagood',
+  'photooftheday',
+  'love',
+  'beautiful',
+  'cute',
+  'happy',
+  'followme',
+  'instalike',
+]);
+
+const RISKY_TAGS = new Set(['guaranteedincome', 'getrich', 'miraclecure', 'shadowbanproof']);
+
+function normalizeResearchTag(tag: string): string {
+  return tag
+    .trim()
+    .replace(/^#/, '')
+    .replace(/\s+/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}_]/gu, '');
+}
+
+function contextBlob(input: ResearchInput): string {
+  return [
+    input.theme,
+    input.contentCategory,
+    input.mood,
+    input.visualSummary,
+    ...(input.keywords ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function keywordHitScore(tag: string, keywords: string[], theme: string): number {
+  let score = 0;
+  const t = tag.toLowerCase();
+  for (const kw of keywords) {
+    const k = kw.toLowerCase().replace(/^#/, '');
+    if (!k) continue;
+    if (t === k || t.includes(k) || k.includes(t)) score += 0.35;
+  }
+  if (theme) {
+    const parts = theme
+      .toLowerCase()
+      .split(/[\s,/|-]+/)
+      .filter((p) => p.length >= 3);
+    for (const p of parts) {
+      if (t.includes(p) || p.includes(t)) score += 0.25;
+    }
+  }
+  return Math.min(1, score);
+}
+
+function upsert(map: Map<string, HashtagCandidate>, next: HashtagCandidate): void {
+  const prev = map.get(next.tag);
+  if (!prev) {
+    map.set(next.tag, next);
+    return;
+  }
+  if (next.rejected && !prev.rejected) return;
+  if (!next.rejected && prev.rejected) {
+    map.set(next.tag, next);
+    return;
+  }
+  if (next.score > prev.score) map.set(next.tag, next);
+}
+
+/**
+ * Policy-safe hashtag research pipeline:
+ * LLM candidates + curated catalog → score → reject spam/irrelevant.
+ * Official Meta provider is wired but disabled (no fake live trends).
+ */
+export function runHashtagResearch(input: ResearchInput): HashtagResearchResult {
+  const blob = contextBlob(input);
+  const keywords = (input.keywords ?? []).map((k) => k.trim()).filter(Boolean);
+  const theme = (input.theme ?? '').trim();
+  const providersUsed: ResearchProviderId[] = [];
+  const map = new Map<string, HashtagCandidate>();
+  const notes: string[] = [];
+
+  const lowContext =
+    blob.replace(/\s+/g, ' ').trim().length < 12 &&
+    keywords.length === 0 &&
+    (input.llmHashtags ?? []).length === 0;
+
+  if (lowContext) {
+    notes.push('Insufficient thematic context for confident hashtag research.');
+    return {
+      recommended: [],
+      rejected: [],
+      providersUsed: [],
+      liveResearchActive: false,
+      mode: 'insufficient_context',
+      notes,
+    };
+  }
+
+  // 1) LLM / asset-derived candidates
+  providersUsed.push('llm_analysis');
+  for (const raw of input.llmHashtags ?? []) {
+    const tag = normalizeResearchTag(raw);
+    if (!tag || tag.length < 2) continue;
+    if (SPAM_TAGS.has(tag) || RISKY_TAGS.has(tag)) {
+      upsert(map, {
+        tag,
+        source: 'asset_llm',
+        score: 0,
+        reasonCode: 'rejected_spam',
+        rejected: true,
+        rejectReason: 'spam_or_generic',
+      });
+      continue;
+    }
+    // Vision/LLM tags are kept unless spam — they already come from the asset.
+    const hit = keywordHitScore(tag, keywords, theme);
+    upsert(map, {
+      tag,
+      source: 'asset_llm',
+      score: 0.5 + hit * 0.45,
+      reasonCode: hit >= 0.35 ? 'theme_match' : 'high_relevance',
+      rejected: false,
+    });
+  }
+
+  // 2) Curated evergreen catalog (never labeled as live/trending)
+  providersUsed.push('curated_catalog');
+  const topics = matchCuratedTopics(blob);
+  if (topics.length === 0) {
+    notes.push('No curated catalog topic matched; using asset-derived tags only.');
+  }
+  for (const topic of topics) {
+    for (const raw of topic.hashtags) {
+      const tag = normalizeResearchTag(raw);
+      if (!tag) continue;
+      if (SPAM_TAGS.has(tag)) {
+        upsert(map, {
+          tag,
+          source: 'curated',
+          score: 0,
+          reasonCode: 'rejected_spam',
+          rejected: true,
+          rejectReason: 'spam_or_generic',
+        });
+        continue;
+      }
+      const hit = keywordHitScore(tag, keywords, theme);
+      upsert(map, {
+        tag,
+        source: 'curated',
+        score: 0.55 + hit * 0.4,
+        reasonCode: 'curated_catalog',
+        rejected: false,
+      });
+    }
+  }
+
+  // 3) Official Meta provider — disabled; do not invent live trends
+  const meta = RESEARCH_PROVIDERS.find((p) => p.id === 'official_meta_hashtag');
+  if (!meta?.enabled) {
+    notes.push('Live Meta hashtag research is not enabled (no App Review / no unofficial APIs).');
+  }
+
+  // Deduplicate / finalize
+  const all = [...map.values()];
+  const seen = new Set<string>();
+  for (const c of all) {
+    if (seen.has(c.tag) && !c.rejected) {
+      c.rejected = true;
+      c.reasonCode = 'rejected_duplicate';
+      c.rejectReason = 'duplicate';
+    }
+    if (!c.rejected) seen.add(c.tag);
+  }
+
+  const recommended = all
+    .filter((c) => !c.rejected)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 12);
+  const rejected = all
+    .filter((c) => c.rejected)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 16);
+
+  if (recommended.length === 0) {
+    notes.push('No suitable hashtags after scoring — draft may omit hashtags.');
+  }
+
+  notes.push('Hashtags are thematic suggestions only — not claimed as currently trending.');
+
+  return {
+    recommended,
+    rejected,
+    providersUsed,
+    liveResearchActive: false,
+    mode: topics.length > 0 ? 'curated_plus_llm' : 'llm_only',
+    notes,
+  };
+}
+
+export function formatResearchPostingHint(result: HashtagResearchResult): string {
+  const parts = result.recommended.slice(0, 8).map((c) => {
+    const why =
+      c.reasonCode === 'curated_catalog'
+        ? 'kuratiert'
+        : c.reasonCode === 'theme_match'
+          ? 'thema'
+          : c.reasonCode === 'live_researched'
+            ? 'live'
+            : 'relevanz';
+    return `#${c.tag} (${why})`;
+  });
+  const live = result.liveResearchActive
+    ? 'Live-Recherche aktiv.'
+    : 'Keine Live-Trend-Recherche aktiv.';
+  if (parts.length === 0) return `Hashtag-Hinweise: keine sicheren Treffer. ${live}`;
+  return `Hashtag-Hinweise: ${parts.join('; ')}. ${live}`;
+}
+
+// ---- inline: _shared/content-research/index.ts ----
+
+
 // ============================================================
 // content-assistant — Phase 3: AI asset analysis + draft generation
 //
@@ -308,16 +692,37 @@ const SPAM_HASHTAGS = new Set([
   'l4l',
   'f4f',
   'spam',
+  'instagood',
+  'instalike',
+  'followme',
 ]);
 
 const ENGAGEMENT_BAIT =
-  /\b(like\s*and\s*share|like\s*for\s*like|comment\s*yes|tag\s*(3|three)\s*friends|double\s*tap|smash\s*that)\b/i;
+  /\b(like\s*and\s*share|like\s*for\s*like|comment\s*yes|tag\s*(3|three)\s*friends|double\s*tap|smash\s*that|follow\s*for\s*follow)\b/i;
 
 const MISLEADING_CLAIMS =
-  /\b(guaranteed\s*income|passive\s*income\s*guaranteed|get\s*rich|make\s*\$?\d+|earn\s*\$?\d+|miracle\s*cure|100\s*%\s*safe\s*from\s*shadowban|shadowban[\s-]*proof|instagram\s*guaranteed)\b/i;
+  /\b(guaranteed\s*income|passive\s*income\s*guaranteed|get\s*rich|make\s*\$?\d+|earn\s*\$?\d+k?|miracle\s*cure|100\s*%\s*safe\s*from\s*shadowban|shadowban[\s-]*proof|instagram\s*guaranteed|financial\s*freedom\s*guaranteed)\b/i;
+
+const RISKY_TERMS =
+  /\b(shadowban\s*hack|algorithm\s*hack|bot\s*growth|buy\s*followers|fake\s*engagement)\b/i;
+
+const CLEAN_CHECK_DISCLAIMER =
+  'Clean Check is a technical precaution only — not a guarantee of Instagram compliance or protection from reach loss.';
 
 function normalizeTag(tag: string): string {
   return tag.trim().replace(/^#/, '').toLowerCase();
+}
+
+function detectKeywordStuffing(caption: string, keywords: string[]): boolean {
+  if (!caption || keywords.length < 3) return false;
+  const lower = caption.toLowerCase();
+  let hits = 0;
+  for (const kw of keywords) {
+    const k = kw.trim().toLowerCase();
+    if (k.length < 3) continue;
+    if (lower.includes(k)) hits += 1;
+  }
+  return hits >= Math.min(keywords.length, 5) && hits / Math.max(keywords.length, 1) >= 0.7;
 }
 
 function runHeuristicCleanCheck(input: {
@@ -344,14 +749,31 @@ function runHeuristicCleanCheck(input: {
   if (MISLEADING_CLAIMS.test(blob)) {
     notes.push('Potentially misleading or absolute claim language detected.');
   }
+  if (RISKY_TERMS.test(blob)) {
+    notes.push('Potentially risky growth/manipulation language detected.');
+  }
+  const letters = input.caption.replace(/[^A-Za-zÄÖÜäöüß]/g, '');
+  if (letters.length >= 24) {
+    const caps = letters.replace(/[^A-ZÄÖÜ]/g, '').length;
+    if (caps / letters.length >= 0.45) notes.push('Caption uses excessive capitalization.');
+  }
+  if ((input.caption.match(/!/g) ?? []).length >= 4) {
+    notes.push('Caption uses many exclamation marks.');
+  }
+  if (detectKeywordStuffing(input.caption, input.keywords)) {
+    notes.push('Caption looks keyword-stuffed.');
+  }
   for (const flag of input.llmFlags) {
     const f = flag.trim();
     if (f) notes.push(f);
   }
-  notes.push(
-    'Clean Check is supportive only — not a guarantee of Instagram compliance or reach.'
-  );
+  notes.push(CLEAN_CHECK_DISCLAIMER);
   return { status: notes.length > 1 ? 'attention' : 'clean', notes };
+}
+
+function canPersistAssetAnalysis(asset: AssetRow, membership: MembershipRow): boolean {
+  if (asset.scope === 'personal') return asset.owner_membership_id === membership.id;
+  return membership.role === 'super_admin' || membership.role === 'developer';
 }
 
 function extractJsonObject(text: string): unknown {
@@ -426,8 +848,10 @@ function buildSystemPrompt(locale: string): string {
 Do NOT invent details you cannot see. If unsure, list the uncertainty in "uncertain" and keep related fields null or cautious.
 Never claim shadowban safety or Instagram guarantees.
 Never invent income, health, or miracle claims.
+Never claim hashtags are "trending", "viral right now", or "currently popular" — you have no live trend feed.
 Write captions that sound natural for the audience — not robotic, not keyword-stuffed, not spammy.
-Hashtags must match the actual content. Do NOT default to fyp/viral/explore/trending unless clearly justified by the media (prefer omitting them).
+Hashtags must match the actual content. Do NOT default to fyp/viral/explore/trending (omit them).
+If the media is unclear or nearly empty, say so in uncertain and keep hashtags sparse.
 No black-hat, scraping, bots, or fake-engagement advice.
 
 Respond with ONE JSON object only (no markdown) using this shape:
@@ -674,14 +1098,15 @@ Deno.serve(async (req) => {
       providerMeta = { provider: vision.provider, model: vision.model };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      // Best-effort mark analysis failed (may be denied by RLS on central assets for non-managers).
-      await db
-        .from('content_assets')
-        .update({
-          analysis_status: 'failed',
-          analysis_json: { error: msg, at: new Date().toISOString() },
-        })
-        .eq('id', assetRow.id);
+      if (canPersistAssetAnalysis(assetRow, active)) {
+        await db
+          .from('content_assets')
+          .update({
+            analysis_status: 'failed',
+            analysis_json: { error: msg, at: new Date().toISOString() },
+          })
+          .eq('id', assetRow.id);
+      }
       if (msg.includes('missing_openrouter_key') || msg.includes('OPENROUTER')) {
         return json({ error: 'ai_not_configured', detail: msg }, 503);
       }
@@ -692,17 +1117,19 @@ Deno.serve(async (req) => {
     try {
       parsed = parseGeneration(extractJsonObject(visionText), format);
     } catch (e) {
-      await db
-        .from('content_assets')
-        .update({
-          analysis_status: 'failed',
-          analysis_json: {
-            error: 'parse_failed',
-            rawPreview: visionText.slice(0, 800),
-            at: new Date().toISOString(),
-          },
-        })
-        .eq('id', assetRow.id);
+      if (canPersistAssetAnalysis(assetRow, active)) {
+        await db
+          .from('content_assets')
+          .update({
+            analysis_status: 'failed',
+            analysis_json: {
+              error: 'parse_failed',
+              rawPreview: visionText.slice(0, 800),
+              at: new Date().toISOString(),
+            },
+          })
+          .eq('id', assetRow.id);
+      }
       return json(
         {
           error: 'ai_parse_failed',
@@ -712,14 +1139,35 @@ Deno.serve(async (req) => {
       );
     }
 
+    const research: HashtagResearchResult = runHashtagResearch({
+      theme: parsed.theme,
+      contentCategory: parsed.content_category,
+      mood: parsed.mood,
+      visualSummary: parsed.visual_summary,
+      keywords: parsed.keywords,
+      llmHashtags: parsed.hashtags,
+      locale,
+    });
+    const finalHashtags = research.recommended.map((c) => c.tag);
+
     const clean = runHeuristicCleanCheck({
       hook: parsed.hook,
       caption: parsed.caption,
       cta: parsed.cta,
       keywords: parsed.keywords,
-      hashtags: parsed.hashtags,
+      hashtags: finalHashtags,
       llmFlags: parsed.llm_clean_flags,
     });
+
+    const researchPayload = {
+      mode: research.mode,
+      liveResearchActive: research.liveResearchActive,
+      providersUsed: research.providersUsed,
+      recommended: research.recommended,
+      rejected: research.rejected,
+      notes: research.notes,
+      hashtagApi: 'not_enabled',
+    };
 
     const analysisJson = {
       provider: providerMeta.provider,
@@ -733,31 +1181,37 @@ Deno.serve(async (req) => {
       product_hint: parsed.product_hint,
       uncertain: parsed.uncertain,
       generated_at: new Date().toISOString(),
-      // Architecture hook for later curated/official hashtag research (Phase 5+) — not used yet.
-      research: { mode: 'asset_derived_only', hashtagApi: 'not_enabled' },
+      research: researchPayload,
     };
 
-    // Best-effort asset analysis update (RLS may block non-managers on central assets).
-    const { data: usageRow } = await db
-      .from('content_assets')
-      .select('usage_count')
-      .eq('id', assetRow.id)
-      .maybeSingle();
-    await db
-      .from('content_assets')
-      .update({
-        analysis_status: 'ready',
-        detected_summary: parsed.visual_summary.slice(0, 2000),
-        theme: parsed.theme,
-        mood: parsed.mood,
-        product_hint: parsed.product_hint,
-        audience_hint: parsed.audience_hint,
-        keywords: parsed.keywords,
-        analysis_json: analysisJson,
-        last_used_at: new Date().toISOString(),
-        usage_count: Number(usageRow?.usage_count ?? 0) + 1,
-      })
-      .eq('id', assetRow.id);
+    const persistAsset = canPersistAssetAnalysis(assetRow, active);
+    let assetAnalysisPersisted = false;
+    if (persistAsset) {
+      const { data: usageRow } = await db
+        .from('content_assets')
+        .select('usage_count')
+        .eq('id', assetRow.id)
+        .maybeSingle();
+      const { error: assetUpdateError } = await db
+        .from('content_assets')
+        .update({
+          analysis_status: 'ready',
+          detected_summary: parsed.visual_summary.slice(0, 2000),
+          theme: parsed.theme,
+          mood: parsed.mood,
+          product_hint: parsed.product_hint,
+          audience_hint: parsed.audience_hint,
+          keywords: parsed.keywords,
+          analysis_json: analysisJson,
+          last_used_at: new Date().toISOString(),
+          usage_count: Number(usageRow?.usage_count ?? 0) + 1,
+        })
+        .eq('id', assetRow.id);
+      assetAnalysisPersisted = !assetUpdateError;
+    }
+
+    const researchHint = formatResearchPostingHint(research);
+    const postingHint = [parsed.posting_hint, researchHint].filter(Boolean).join(' · ');
 
     const draftInsert = {
       org_id: active.org_id,
@@ -768,11 +1222,11 @@ Deno.serve(async (req) => {
       caption: parsed.caption,
       cta: parsed.cta,
       keywords: parsed.keywords,
-      hashtags: parsed.hashtags.map((h) => h.replace(/^#/, '')),
+      hashtags: finalHashtags,
       clean_check_status: clean.status,
       clean_check_notes: clean.notes.join(' · '),
       target_audience: parsed.target_audience ?? parsed.audience_hint,
-      posting_hint: parsed.posting_hint,
+      posting_hint: postingHint,
       status: 'draft' as const,
     };
 
@@ -789,6 +1243,13 @@ Deno.serve(async (req) => {
       ok: true,
       draft,
       analysis: analysisJson,
+      research: researchPayload,
+      assetAnalysisPersisted,
+      assetAnalysisMode: persistAsset
+        ? assetAnalysisPersisted
+          ? 'persisted'
+          : 'persist_failed'
+        : 'draft_only_central_or_foreign',
       cleanCheck: {
         status: clean.status,
         notes: clean.notes,

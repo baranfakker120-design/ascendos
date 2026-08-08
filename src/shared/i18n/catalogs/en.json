@@ -1120,12 +1120,26 @@
     "cleanCheckClean": "Clear",
     "cleanCheckAttention": "Attention",
     "cleanCheckPending": "Pending",
-    "cleanCheckDisclaimer": "Supportive only — not a guarantee of Instagram compliance or reach.",
+    "cleanCheckDisclaimer": "Technical precaution only — not a guarantee of Instagram compliance or protection from reach loss.",
     "saveDraft": "Save",
     "saving": "Saving …",
     "draftSaved": "Draft saved.",
     "draftSaveFailed": "Could not save draft.",
     "prepareInstagram": "Prepare for Instagram",
-    "instagramPrepared": "Draft marked ready. OAuth/publish comes later — no auto-publish."
+    "instagramPrepared": "Draft marked ready. OAuth/publish comes later — no auto-publish.",
+    "hashtagResearchTitle": "Why these hashtags?",
+    "hashtagResearchLiveOn": "Using a live research source.",
+    "hashtagResearchLiveOff": "No live trend research active — thematic/curated from the asset.",
+    "hashtagResearchEmpty": "No confident hashtag recommendations for this asset.",
+    "hashtagReasonTheme": "Matches the theme",
+    "hashtagReasonRelevance": "High thematic relevance",
+    "hashtagReasonCurated": "From curated topic catalog",
+    "hashtagReasonLive": "Currently researched",
+    "hashtagReasonRejectedSpam": "Not recommended — spam/irrelevance risk",
+    "hashtagReasonRejectedIrrelevant": "Not recommended — weak theme link",
+    "hashtagReasonRejectedDuplicate": "Not recommended — duplicate",
+    "hashtagReasonLowContext": "Too little context for a recommendation",
+    "assetAnalysisDraftOnly": "Analysis saved in the draft only (central/foreign asset: metadata not overwritten).",
+    "assetAnalysisPersistFailed": "Draft saved; asset metadata could not be updated."
   }
 }
