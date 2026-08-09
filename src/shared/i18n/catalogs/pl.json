@@ -1223,6 +1223,7 @@
     "fbHint": "Osobna ścieżka połączenia dla muzyki Instagram. Nie zastępuje Instagram Login.",
     "fbConnect": "Połącz Facebook dla muzyki",
     "fbConnecting": "Łączenie z Facebookiem…",
+    "fbConnectingStuckHint": "Jeśli okno Facebooka zostało zamknięte, uruchom połączenie ponownie lub rozłącz.",
     "fbDisconnect": "Odłącz Facebook (muzyka)",
     "fbDisconnecting": "Odłączanie…",
     "fbLoading": "Ładowanie połączenia Facebook…",

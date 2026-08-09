@@ -53,12 +53,36 @@ describe('Facebook Login for Business Phase B', () => {
     expect(url).toContain('pages_read_engagement');
     expect(url).toContain('IG_API_ONBOARDING');
     expect(url).not.toContain('instagram.com/oauth/authorize');
+    expect(url).not.toContain('config_id=');
     expect(FB_MUSIC_CONNECT_SCOPES).toEqual([
       'instagram_basic',
       'instagram_content_publish',
       'pages_show_list',
       'pages_read_engagement',
     ]);
+  });
+
+  it('Facebook Login for Business authorize URL uses config_id when Configuration ID is set', () => {
+    const configId = '1338226758054489';
+    const url = buildFacebookBusinessAuthorizeUrl({
+      appId: '990602627938098',
+      redirectUri: 'https://shaydtihwicnocjjlnjm.supabase.co/functions/v1/facebook-business-oauth',
+      state: 'state.sig',
+      configId,
+    });
+    expect(url.startsWith('https://www.facebook.com/v25.0/dialog/oauth?')).toBe(true);
+    expect(url).toContain(`config_id=${configId}`);
+    expect(url).toContain('response_type=code');
+    expect(url).toContain('state=state.sig');
+    expect(url).toContain(
+      'redirect_uri=' +
+        encodeURIComponent(
+          'https://shaydtihwicnocjjlnjm.supabase.co/functions/v1/facebook-business-oauth'
+        )
+    );
+    // Meta recommends omitting scope when config_id drives the login configuration.
+    expect(url).not.toContain('scope=');
+    expect(url).toContain('IG_API_ONBOARDING');
   });
 
   it('missing Facebook connection → music capability false', () => {
