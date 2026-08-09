@@ -14,11 +14,11 @@ import {
   formatHashtagsForDisplay,
   type InstagramPublishGateReason,
 } from './lib/instagramPublish/publishGate';
+import { runClientConfirmedPublishAttempt } from './lib/instagramPublish/clientPublishAttempt';
 import { readVideoDurationFromUrl } from './lib/instagramPublish/readVideoDuration';
 import {
   IG_OFFICIAL_AUDIO_CAPABILITY,
   reelValidationI18nKey,
-  validateReelAssetForPublish,
 } from './lib/instagramPublish/reelVideoValidation';
 
 /**
@@ -152,35 +152,6 @@ export function InstagramPublishPreview({
       return;
     }
 
-    // Client-side Meta video checks (duration via signed URL) before Edge publish.
-    if (asset && (asset.media_kind === 'video' || draft.format === 'reel')) {
-      let durationSec: number | null = null;
-      if (mediaUrl && asset.media_kind === 'video') {
-        durationSec = await readVideoDurationFromUrl(mediaUrl);
-      }
-      const videoCheck = validateReelAssetForPublish({
-        mediaKind: asset.media_kind,
-        format: draft.format,
-        mimeType: asset.mime_type,
-        byteSize: asset.byte_size,
-        widthPx: asset.width_px,
-        heightPx: asset.height_px,
-        durationSec,
-        requireDuration: asset.media_kind === 'video',
-      });
-      if (videoCheck !== 'ok') {
-        setConfirming(false);
-        setFeedbackTone('error');
-        setFeedback(
-          t(
-            `contentAssistant.${reelValidationI18nKey(videoCheck)}` as 'contentAssistant.igPublishFailed'
-          )
-        );
-        return;
-      }
-    }
-
-    inFlightRef.current = true;
     setFeedbackTone('info');
     // Polling can take tens of seconds — never show a premature failure while waiting.
     setFeedback(
@@ -189,31 +160,73 @@ export function InstagramPublishPreview({
         : t('contentAssistant.igPublishPreparing')
     );
 
+    const needsVideoCheck = Boolean(
+      asset && (asset.media_kind === 'video' || draft.format === 'reel')
+    );
+
     try {
-      const result = await publishMutation.mutateAsync(draft.id);
-      if (result.ok && result.mediaId) {
-        setPublishedMediaId(result.mediaId);
-        setConfirming(false);
-        setFeedbackTone('ok');
-        setFeedback(
-          result.alreadyPublished
-            ? t('contentAssistant.igPublishAlreadyDone')
-            : t('contentAssistant.igPublishSuccess')
-        );
+      // Lock is acquired inside runClientConfirmedPublishAttempt BEFORE any await.
+      const outcome = await runClientConfirmedPublishAttempt({
+        inFlight: inFlightRef,
+        mutationPending: publishMutation.isPending,
+        needsVideoCheck,
+        readDuration:
+          needsVideoCheck && mediaUrl && asset?.media_kind === 'video'
+            ? () => readVideoDurationFromUrl(mediaUrl)
+            : undefined,
+        videoValidation:
+          needsVideoCheck && asset
+            ? {
+                mediaKind: asset.media_kind,
+                format: draft.format,
+                mimeType: asset.mime_type,
+                byteSize: asset.byte_size,
+                widthPx: asset.width_px,
+                heightPx: asset.height_px,
+              }
+            : undefined,
+        publish: async () => {
+          const result = await publishMutation.mutateAsync(draft.id);
+          if (result.ok && result.mediaId) {
+            setPublishedMediaId(result.mediaId);
+            setConfirming(false);
+            setFeedbackTone('ok');
+            setFeedback(
+              result.alreadyPublished
+                ? t('contentAssistant.igPublishAlreadyDone')
+                : t('contentAssistant.igPublishSuccess')
+            );
+            return { ok: true, alreadyPublished: result.alreadyPublished };
+          }
+          setConfirming(false);
+          setFeedbackTone('error');
+          const key = publishErrorI18nKey(result.error);
+          const translated = t(`contentAssistant.${key}` as 'contentAssistant.igPublishFailed');
+          setFeedback(result.message ? `${translated} (${result.message})` : translated);
+          return { ok: false, error: result.error };
+        },
+      });
+
+      if (outcome.status === 'already_in_progress') {
+        setFeedbackTone('info');
+        setFeedback(t('contentAssistant.igPublishInProgress'));
         return;
       }
 
-      setConfirming(false);
-      setFeedbackTone('error');
-      const key = publishErrorI18nKey(result.error);
-      const translated = t(`contentAssistant.${key}` as 'contentAssistant.igPublishFailed');
-      setFeedback(result.message ? `${translated} (${result.message})` : translated);
+      if (outcome.status === 'validation_failed') {
+        setConfirming(false);
+        setFeedbackTone('error');
+        setFeedback(
+          t(
+            `contentAssistant.${reelValidationI18nKey(outcome.code)}` as 'contentAssistant.igPublishFailed'
+          )
+        );
+      }
+      // published / publish_failed feedback already set inside publish callback
     } catch {
       setConfirming(false);
       setFeedbackTone('error');
       setFeedback(t('contentAssistant.igPublishFailed'));
-    } finally {
-      inFlightRef.current = false;
     }
   };
 
