@@ -3,9 +3,17 @@ import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { canManageCoachContent } from '@shared/auth/coachContentAuthority';
 import { berlinPrepDate } from './lib/dailyPrepare/berlinTime';
+import {
+  CONTENT_ASSET_FILE_ACCEPT,
+  extForContentAssetMime,
+  mediaKindForContentAssetMime,
+  resolveContentAssetUploadMime,
+} from './lib/contentAssets/uploadMime';
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
 export const DEFAULT_CONTENT_ASSET_LIMIT = 25;
+/** Re-export for the file input `accept` attribute. */
+export { CONTENT_ASSET_FILE_ACCEPT };
 
 export type ContentAssetScope = 'personal' | 'central';
 export type ContentMediaKind = 'image' | 'video';
@@ -65,18 +73,6 @@ export interface ContentDailyPreparation {
   } | null;
 }
 
-function extForMime(mime: string): string {
-  if (mime === 'image/png') return 'png';
-  if (mime === 'image/webp') return 'webp';
-  if (mime === 'video/webm') return 'webm';
-  if (mime === 'video/mp4') return 'mp4';
-  return 'jpg';
-}
-
-function mediaKindForMime(mime: string): ContentMediaKind {
-  return mime.startsWith('video/') ? 'video' : 'image';
-}
-
 function guessAspectRatio(width: number | null, height: number | null): string | null {
   if (!width || !height || width <= 0 || height <= 0) return null;
   const r = width / height;
@@ -97,7 +93,6 @@ function suggestedFormatsForAspect(aspect: string | null): ContentFormat[] {
 async function readImageDimensions(
   file: File
 ): Promise<{ width: number | null; height: number | null }> {
-  if (!file.type.startsWith('image/')) return { width: null, height: null };
   const url = URL.createObjectURL(file);
   try {
     const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -118,7 +113,6 @@ async function readImageDimensions(
 async function readVideoDimensions(
   file: File
 ): Promise<{ width: number | null; height: number | null }> {
-  if (!file.type.startsWith('video/')) return { width: null, height: null };
   const url = URL.createObjectURL(file);
   try {
     const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -187,8 +181,8 @@ export async function uploadContentAsset(params: {
   title?: string;
 }): Promise<ContentAsset> {
   const { file, orgId, membershipId, userId, scope, title } = params;
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
-  if (!allowed.includes(file.type)) {
+  const mime = resolveContentAssetUploadMime(file);
+  if (!mime) {
     throw new Error('unsupported_mime');
   }
   if (file.size <= 0 || file.size > 52_428_800) {
@@ -203,10 +197,10 @@ export async function uploadContentAsset(params: {
     );
 
   const assetId = crypto.randomUUID();
-  const ext = extForMime(file.type);
+  const ext = extForContentAssetMime(mime);
   const folder = scope === 'central' ? 'central' : userId;
   const storagePath = `${orgId}/${folder}/${assetId}/original.${ext}`;
-  const mediaKind = mediaKindForMime(file.type);
+  const mediaKind = mediaKindForContentAssetMime(mime);
   const dims =
     mediaKind === 'video' ? await readVideoDimensions(file) : await readImageDimensions(file);
   const aspect = guessAspectRatio(dims.width, dims.height);
@@ -215,7 +209,7 @@ export async function uploadContentAsset(params: {
     .from(CONTENT_ASSETS_BUCKET)
     .upload(storagePath, file, {
       upsert: false,
-      contentType: file.type,
+      contentType: mime,
       cacheControl: '3600',
     });
   if (upErr) throw upErr;
@@ -229,7 +223,7 @@ export async function uploadContentAsset(params: {
     media_kind: mediaKind,
     storage_path: storagePath,
     file_name: file.name,
-    mime_type: file.type,
+    mime_type: mime,
     byte_size: file.size,
     width_px: dims.width,
     height_px: dims.height,
