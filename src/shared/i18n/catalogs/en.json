@@ -1107,7 +1107,7 @@
     "todayManualGenerateHint": "You can still select an asset and analyze it with AI manually.",
     "noAutoPublish": "Publishing always requires your confirmation.",
     "formatReadyLater": "Prep coming later",
-    "instagramArchitectureHint": "Official Meta OAuth. No passwords, scraping, or bots. Publishing comes later after your confirmation.",
+    "instagramArchitectureHint": "Official Meta OAuth and Graph publishing. No passwords, scraping, or bots. Publish only after you confirm.",
     "instagramTodoCount": "Meta App Review / production: {count} open configuration items (documented).",
     "connectInstagram": "Connect Instagram",
     "generateTitle": "AI draft",
@@ -1184,7 +1184,19 @@
     "igPublishNeedPrepare": "Prepare for Instagram first.",
     "igPublishNeedMedia": "No image or video selected.",
     "igPublishNeedCaption": "Caption is missing — please add and save.",
-    "igPublishApiNotReady": "Confirmation received. Official Instagram publish API is not enabled yet — nothing was published.",
-    "igPublishQueued": "Publishing started."
+    "igPublishApiNotReady": "Instagram publish API is not enabled in this environment yet.",
+    "igPublishQueued": "Starting publish…",
+    "igPublishing": "Publishing to Instagram…",
+    "igPublishSuccess": "Published successfully.",
+    "igPublishSuccessShort": "Published",
+    "igPublishAlreadyDone": "Already published — no second post was created.",
+    "igPublishNeedPermission": "Meta permission “instagram_business_content_publish” is missing. Enable it in the Developer Dashboard and reconnect Instagram.",
+    "igPublishNeedConfirm": "Please explicitly confirm publishing.",
+    "igPublishInProgress": "Publishing already in progress — please wait.",
+    "igPublishContainerTimeout": "Instagram is taking too long to process the media. Try again later.",
+    "igPublishContainerFailed": "Instagram could not create the media container.",
+    "igPublishFailed": "Publishing failed. No second post was created.",
+    "igPublishNeedReconnect": "Instagram token invalid. Disconnect and reconnect.",
+    "igPublishMediaUrlFailed": "Could not create a media URL for Instagram."
   }
 }

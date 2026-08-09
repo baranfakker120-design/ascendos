@@ -1107,7 +1107,7 @@
     "todayManualGenerateHint": "Puoi comunque scegliere un asset e analizzarlo con l’IA manualmente.",
     "noAutoPublish": "La pubblicazione richiede sempre la tua conferma.",
     "formatReadyLater": "Prep in arrivo",
-    "instagramArchitectureHint": "OAuth Meta ufficiale. Niente password, scraping o bot. La pubblicazione arriverà dopo la tua conferma.",
+    "instagramArchitectureHint": "OAuth Meta e publishing Graph ufficiali. Niente password, scraping o bot. Pubblicazione solo dopo conferma.",
     "instagramTodoCount": "Meta App Review / produzione: {count} elementi di configurazione aperti (documentati).",
     "connectInstagram": "Collega Instagram",
     "generateTitle": "Bozza IA",
@@ -1184,7 +1184,19 @@
     "igPublishNeedPrepare": "Prepara prima per Instagram.",
     "igPublishNeedMedia": "Nessuna immagine o video selezionato.",
     "igPublishNeedCaption": "Manca la didascalia — aggiungi e salva.",
-    "igPublishApiNotReady": "Conferma ricevuta. L’API ufficiale di pubblicazione Instagram non è ancora attiva — non è stato pubblicato nulla.",
-    "igPublishQueued": "Pubblicazione avviata."
+    "igPublishApiNotReady": "L’API di pubblicazione Instagram non è ancora attiva.",
+    "igPublishQueued": "Avvio pubblicazione…",
+    "igPublishing": "Pubblicazione su Instagram…",
+    "igPublishSuccess": "Pubblicato con successo.",
+    "igPublishSuccessShort": "Pubblicato",
+    "igPublishAlreadyDone": "Già pubblicato — nessun secondo post creato.",
+    "igPublishNeedPermission": "Permesso Meta “instagram_business_content_publish” mancante. Abilitalo nel Developer Dashboard e riconnetti Instagram.",
+    "igPublishNeedConfirm": "Conferma esplicitamente la pubblicazione.",
+    "igPublishInProgress": "Pubblicazione già in corso — attendi.",
+    "igPublishContainerTimeout": "Instagram sta elaborando il media troppo a lungo. Riprova più tardi.",
+    "igPublishContainerFailed": "Instagram non ha potuto creare il container media.",
+    "igPublishFailed": "Pubblicazione non riuscita. Nessun secondo post creato.",
+    "igPublishNeedReconnect": "Token Instagram non valido. Disconnetti e riconnetti.",
+    "igPublishMediaUrlFailed": "Impossibile creare l’URL media per Instagram."
   }
 }

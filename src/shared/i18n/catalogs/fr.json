@@ -1107,7 +1107,7 @@
     "todayManualGenerateHint": "Tu peux toujours choisir un asset et l’analyser avec l’IA manuellement.",
     "noAutoPublish": "La publication exige toujours votre confirmation.",
     "formatReadyLater": "Préparation plus tard",
-    "instagramArchitectureHint": "OAuth Meta officiel. Pas de mot de passe, scraping ni bots. La publication viendra plus tard après confirmation.",
+    "instagramArchitectureHint": "OAuth Meta et publication Graph officiels. Pas de mots de passe, scraping ni bots. Publication uniquement après confirmation.",
     "instagramTodoCount": "Meta App Review / production : {count} points de configuration ouverts (documentés).",
     "connectInstagram": "Connecter Instagram",
     "generateTitle": "Brouillon IA",
@@ -1184,7 +1184,19 @@
     "igPublishNeedPrepare": "Prépare d’abord pour Instagram.",
     "igPublishNeedMedia": "Aucune image ou vidéo sélectionnée.",
     "igPublishNeedCaption": "Légende manquante — ajoute et enregistre.",
-    "igPublishApiNotReady": "Confirmation reçue. L’API de publication Instagram n’est pas encore activée — rien n’a été publié.",
-    "igPublishQueued": "Publication démarrée."
+    "igPublishApiNotReady": "L’API de publication Instagram n’est pas encore activée.",
+    "igPublishQueued": "Publication en cours de démarrage…",
+    "igPublishing": "Publication sur Instagram…",
+    "igPublishSuccess": "Publié avec succès.",
+    "igPublishSuccessShort": "Publié",
+    "igPublishAlreadyDone": "Déjà publié — aucun second post créé.",
+    "igPublishNeedPermission": "Permission Meta « instagram_business_content_publish » manquante. Active-la dans le Developer Dashboard et reconnecte Instagram.",
+    "igPublishNeedConfirm": "Confirme explicitement la publication.",
+    "igPublishInProgress": "Publication déjà en cours — patiente un instant.",
+    "igPublishContainerTimeout": "Instagram met trop de temps à traiter le média. Réessaie plus tard.",
+    "igPublishContainerFailed": "Instagram n’a pas pu créer le conteneur média.",
+    "igPublishFailed": "Échec de la publication. Aucun second post créé.",
+    "igPublishNeedReconnect": "Jeton Instagram invalide. Déconnecte puis reconnecte.",
+    "igPublishMediaUrlFailed": "Impossible de créer l’URL média pour Instagram."
   }
 }

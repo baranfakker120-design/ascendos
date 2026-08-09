@@ -6,6 +6,8 @@ import { isInstagramPublishingEnabled } from './architecture/instagramArchitectu
 import { createSignedAssetUrl, type ContentAsset } from './contentAssetsApi';
 import type { ContentDraft } from './contentDraftsApi';
 import { useInstagramConnection } from './instagramConnectionApi';
+import { useInstagramPublish } from './instagramPublishApi';
+import { publishErrorI18nKey } from './lib/instagramPublish/graphPublish';
 import {
   buildInstagramCaptionPreview,
   evaluateInstagramPublishGate,
@@ -14,10 +16,8 @@ import {
 } from './lib/instagramPublish/publishGate';
 
 /**
- * Phase 5B — Instagram post preview after „Instagram vorbereiten“.
- * Shows media + caption + hashtags + CTA + connected account.
- * Publish button requires an explicit click and never auto-publishes.
- * Official Graph publishing stays gated until the publish API is ready.
+ * Phase 5C — Instagram post preview + official Graph publish after confirm.
+ * Requires two explicit clicks. Never auto-publishes. No tokens in the UI.
  */
 export function InstagramPublishPreview({
   asset,
@@ -34,10 +34,14 @@ export function InstagramPublishPreview({
 }) {
   const { t } = useI18n();
   const { connectionQuery } = useInstagramConnection();
+  const { publishMutation } = useInstagramPublish();
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackTone, setFeedbackTone] = useState<'ok' | 'error' | 'info'>('info');
   const [confirming, setConfirming] = useState(false);
+  const [publishedMediaId, setPublishedMediaId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const inFlightRef = useRef(false);
 
   const connection = connectionQuery.data;
   const connected = connection?.status === 'connected';
@@ -75,7 +79,8 @@ export function InstagramPublishPreview({
     connected,
     draftReady: draft.status === 'ready',
     hasMedia: Boolean(asset),
-    hasCaption: Boolean(caption.trim()),
+    hasCaption: Boolean(caption.trim()) || draft.format === 'story',
+    scopes: connection?.scopes,
   });
 
   const feedbackForReason = (reason: InstagramPublishGateReason): string => {
@@ -88,34 +93,89 @@ export function InstagramPublishPreview({
         return t('contentAssistant.igPublishNeedMedia');
       case 'missing_caption':
         return t('contentAssistant.igPublishNeedCaption');
+      case 'missing_publish_permission':
+        return t('contentAssistant.igPublishNeedPermission');
       case 'publishing_api_unavailable':
         return t('contentAssistant.igPublishApiNotReady');
       case 'ok':
         return t('contentAssistant.igPublishQueued');
       default:
-        return t('contentAssistant.igPublishApiNotReady');
+        return t('contentAssistant.igPublishFailed');
     }
   };
 
-  const onPublishClick = () => {
+  const onPublishClick = async () => {
     setFeedback(null);
+    setFeedbackTone('info');
+
+    if (publishedMediaId) {
+      setFeedbackTone('ok');
+      setFeedback(t('contentAssistant.igPublishSuccess'));
+      return;
+    }
+
     if (!confirming) {
       setConfirming(true);
       setFeedback(t('contentAssistant.igPublishConfirmHint'));
       return;
     }
 
-    // Second click = explicit user confirmation. Still no Graph publish while gated.
     const reason = evaluateInstagramPublishGate({
       connected,
       draftReady: draft.status === 'ready',
       hasMedia: Boolean(asset),
-      hasCaption: Boolean(caption.trim()),
+      hasCaption: Boolean(caption.trim()) || draft.format === 'story',
+      scopes: connection?.scopes,
       publishingEnabled: isInstagramPublishingEnabled(),
     });
-    setConfirming(false);
-    setFeedback(feedbackForReason(reason));
+
+    if (reason !== 'ok') {
+      setConfirming(false);
+      setFeedbackTone('error');
+      setFeedback(feedbackForReason(reason));
+      return;
+    }
+
+    if (inFlightRef.current || publishMutation.isPending) {
+      setFeedbackTone('info');
+      setFeedback(t('contentAssistant.igPublishInProgress'));
+      return;
+    }
+
+    inFlightRef.current = true;
+    setFeedbackTone('info');
+    setFeedback(t('contentAssistant.igPublishing'));
+
+    try {
+      const result = await publishMutation.mutateAsync(draft.id);
+      if (result.ok && result.mediaId) {
+        setPublishedMediaId(result.mediaId);
+        setConfirming(false);
+        setFeedbackTone('ok');
+        setFeedback(
+          result.alreadyPublished
+            ? t('contentAssistant.igPublishAlreadyDone')
+            : t('contentAssistant.igPublishSuccess')
+        );
+        return;
+      }
+
+      setConfirming(false);
+      setFeedbackTone('error');
+      const key = publishErrorI18nKey(result.error);
+      const translated = t(`contentAssistant.${key}` as 'contentAssistant.igPublishFailed');
+      setFeedback(result.message ? `${translated} (${result.message})` : translated);
+    } catch {
+      setConfirming(false);
+      setFeedbackTone('error');
+      setFeedback(t('contentAssistant.igPublishFailed'));
+    } finally {
+      inFlightRef.current = false;
+    }
   };
+
+  const busy = publishMutation.isPending;
+  const done = Boolean(publishedMediaId);
 
   return (
     <div ref={rootRef}>
@@ -204,16 +264,32 @@ export function InstagramPublishPreview({
         <Button
           type="button"
           size="md"
-          disabled={gate === 'draft_not_ready'}
-          onClick={onPublishClick}
+          disabled={gate === 'draft_not_ready' || busy || done}
+          onClick={() => void onPublishClick()}
         >
-          {confirming
-            ? t('contentAssistant.igPublishConfirmCta')
-            : t('contentAssistant.igPublishNow')}
+          {busy
+            ? t('contentAssistant.igPublishing')
+            : done
+              ? t('contentAssistant.igPublishSuccessShort')
+              : confirming
+                ? t('contentAssistant.igPublishConfirmCta')
+                : t('contentAssistant.igPublishNow')}
         </Button>
 
         <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>
-        {feedback ? <p className="text-sm text-ink">{feedback}</p> : null}
+        {feedback ? (
+          <p
+            className={
+              feedbackTone === 'ok'
+                ? 'text-sm font-medium text-ink'
+                : feedbackTone === 'error'
+                  ? 'text-sm font-medium text-red-700'
+                  : 'text-sm text-ink'
+            }
+          >
+            {feedback}
+          </p>
+        ) : null}
       </Card>
     </div>
   );

@@ -1107,7 +1107,7 @@
     "todayManualGenerateHint": "Nadal możesz wybrać asset i przeanalizować go ręcznie z AI.",
     "noAutoPublish": "Publikacja zawsze wymaga Twojego potwierdzenia.",
     "formatReadyLater": "Przygotowanie później",
-    "instagramArchitectureHint": "Oficjalny OAuth Meta. Bez haseł, scrapingu i botów. Publikacja później, po Twoim potwierdzeniu.",
+    "instagramArchitectureHint": "Oficjalny Meta OAuth i Graph publishing. Bez haseł, scrapingu i botów. Publikacja tylko po potwierdzeniu.",
     "instagramTodoCount": "Meta App Review / produkcja: {count} otwartych punktów konfiguracji (udokumentowane).",
     "connectInstagram": "Połącz Instagram",
     "generateTitle": "Szkic AI",
@@ -1184,7 +1184,19 @@
     "igPublishNeedPrepare": "Najpierw przygotuj do Instagrama.",
     "igPublishNeedMedia": "Nie wybrano obrazu ani wideo.",
     "igPublishNeedCaption": "Brak podpisu — uzupełnij i zapisz.",
-    "igPublishApiNotReady": "Potwierdzenie otrzymane. Oficjalne API publikacji Instagram nie jest jeszcze włączone — nic nie opublikowano.",
-    "igPublishQueued": "Publikacja rozpoczęta."
+    "igPublishApiNotReady": "API publikacji Instagram nie jest jeszcze włączone.",
+    "igPublishQueued": "Uruchamianie publikacji…",
+    "igPublishing": "Publikowanie na Instagramie…",
+    "igPublishSuccess": "Opublikowano pomyślnie.",
+    "igPublishSuccessShort": "Opublikowano",
+    "igPublishAlreadyDone": "Już opublikowano — nie utworzono drugiego posta.",
+    "igPublishNeedPermission": "Brak uprawnienia Meta „instagram_business_content_publish”. Włącz w Developer Dashboard i połącz Instagram ponownie.",
+    "igPublishNeedConfirm": "Jawnie potwierdź publikację.",
+    "igPublishInProgress": "Publikacja już trwa — poczekaj chwilę.",
+    "igPublishContainerTimeout": "Instagram zbyt długo przetwarza media. Spróbuj później.",
+    "igPublishContainerFailed": "Instagram nie mógł utworzyć kontenera mediów.",
+    "igPublishFailed": "Publikacja nieudana. Nie utworzono drugiego posta.",
+    "igPublishNeedReconnect": "Nieprawidłowy token Instagram. Rozłącz i połącz ponownie.",
+    "igPublishMediaUrlFailed": "Nie udało się utworzyć URL mediów dla Instagrama."
   }
 }

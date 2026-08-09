@@ -1,0 +1,447 @@
+/**
+ * instagram-publish — Phase 5C official Instagram Graph Content Publishing.
+ *
+ * Official Meta path only (graph.instagram.com).
+ * Requires explicit user confirmation in the request body.
+ * Reuses encrypted token_ref from content_instagram_connections (decrypt server-side).
+ * Does not modify the oauth start/callback flow.
+ *
+ * POST { action: "publish", draftId, confirmed: true } + user JWT
+ */
+
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
+import { handleOptions, json } from '../_shared/cors.ts';
+import { decryptToken, sanitizeMetaError } from '../_shared/instagram-oauth/index.ts';
+import {
+  buildPublishCaption,
+  connectionHasPublishScope,
+  createMediaContainer,
+  IG_PUBLISH_SCOPE,
+  publishMediaContainer,
+  waitForContainerReady,
+  type ContentFormat,
+  type MediaKind,
+} from '../_shared/instagram-publish/index.ts';
+
+/** Same private bucket as content-generate (avoid bundling that group here). */
+const CONTENT_ASSETS_BUCKET = 'content-assets';
+
+interface MembershipRow {
+  id: string;
+  org_id: string;
+  role: string;
+  status: string;
+}
+
+interface DraftRow {
+  id: string;
+  org_id: string;
+  owner_membership_id: string;
+  asset_id: string;
+  format: ContentFormat;
+  caption: string | null;
+  cta: string | null;
+  hashtags: string[] | null;
+  status: string;
+}
+
+interface AssetRow {
+  id: string;
+  org_id: string;
+  storage_path: string;
+  media_kind: MediaKind;
+  mime_type: string;
+}
+
+interface ConnectionRow {
+  id: string;
+  org_id: string;
+  membership_id: string;
+  ig_user_id: string | null;
+  ig_username: string | null;
+  status: string;
+  scopes: string[] | null;
+  token_ref: string | null;
+}
+
+interface AttemptRow {
+  id: string;
+  status: string;
+  meta_container_id: string | null;
+  meta_media_id: string | null;
+  error_message: string | null;
+}
+
+function tokenSecret(): string {
+  return (
+    Deno.env.get('META_TOKEN_ENCRYPTION_KEY')?.trim() ||
+    Deno.env.get('META_APP_SECRET')?.trim() ||
+    ''
+  );
+}
+
+function userClient(req: Request): SupabaseClient {
+  const forwardHeaders: Record<string, string> = {
+    Authorization: req.headers.get('Authorization') ?? '',
+  };
+  const orgSelector = req.headers.get('x-ascendos-org');
+  if (orgSelector) forwardHeaders['x-ascendos-org'] = orgSelector;
+  return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: forwardHeaders },
+  });
+}
+
+function adminClient(): SupabaseClient {
+  return createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+}
+
+async function resolveMembership(
+  db: SupabaseClient,
+  req: Request
+): Promise<{ userId: string; membership: MembershipRow } | Response> {
+  const { data: userData, error: authError } = await db.auth.getUser();
+  if (authError || !userData.user) return json({ ok: false, error: 'not_authenticated' }, 401);
+
+  const { data: memberships, error: membershipError } = await db
+    .from('memberships')
+    .select('id, org_id, role, status')
+    .eq('identity_id', userData.user.id)
+    .eq('status', 'active');
+  if (membershipError) throw membershipError;
+
+  const orgHeader = req.headers.get('x-ascendos-org');
+  const list = (memberships as MembershipRow[] | null) ?? [];
+  const active =
+    list.find((m) => orgHeader && m.org_id === orgHeader) ?? (list.length === 1 ? list[0] : null);
+  if (!active) return json({ ok: false, error: 'no_active_membership' }, 403);
+  return { userId: userData.user.id, membership: active };
+}
+
+function safePublishResponse(payload: Record<string, unknown>, status = 200): Response {
+  const body = JSON.stringify(payload);
+  if (/"token_ref"\s*:/.test(body) || /"access_token"\s*:/.test(body) || /"accessToken"\s*:/.test(body)) {
+    console.error('instagram_publish_token_leak_blocked');
+    return json({ ok: false, error: 'internal_error' }, 500);
+  }
+  return json(payload, status);
+}
+
+async function markAttemptFailed(
+  admin: SupabaseClient,
+  attemptId: string,
+  message: string
+): Promise<void> {
+  const { error } = await admin
+    .from('content_publish_attempts')
+    .update({
+      status: 'failed',
+      error_message: sanitizeMetaError(message),
+    })
+    .eq('id', attemptId)
+    .in('status', ['queued', 'submitted']);
+  if (error) {
+    console.error('instagram_publish_mark_failed_error', error.message);
+  }
+}
+
+Deno.serve(async (req) => {
+  const opt = handleOptions(req);
+  if (opt) return opt;
+
+  if (req.method !== 'POST') {
+    return json({ ok: false, error: 'method_not_allowed' }, 405);
+  }
+
+  try {
+    const body = (await req.json().catch(() => ({}))) as {
+      action?: string;
+      draftId?: string;
+      confirmed?: boolean;
+    };
+
+    if (body.action !== 'publish') {
+      return json({ ok: false, error: 'unknown_action' }, 400);
+    }
+    if (body.confirmed !== true) {
+      return json({ ok: false, error: 'confirm_required' }, 400);
+    }
+    const draftId = typeof body.draftId === 'string' ? body.draftId.trim() : '';
+    if (!draftId) return json({ ok: false, error: 'draft_not_found' }, 400);
+
+    const db = userClient(req);
+    const resolved = await resolveMembership(db, req);
+    if (resolved instanceof Response) return resolved;
+    const { membership } = resolved;
+    const admin = adminClient();
+
+    const { data: draftRaw, error: draftErr } = await db
+      .from('content_drafts')
+      .select('id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status')
+      .eq('id', draftId)
+      .maybeSingle();
+    if (draftErr) throw draftErr;
+    const draft = draftRaw as DraftRow | null;
+    if (!draft || draft.org_id !== membership.org_id || draft.owner_membership_id !== membership.id) {
+      return json({ ok: false, error: 'draft_not_found' }, 404);
+    }
+    if (draft.status !== 'ready') {
+      return json({ ok: false, error: 'draft_not_ready' }, 400);
+    }
+
+    const { data: assetRaw, error: assetErr } = await db
+      .from('content_assets')
+      .select('id, org_id, storage_path, media_kind, mime_type')
+      .eq('id', draft.asset_id)
+      .maybeSingle();
+    if (assetErr) throw assetErr;
+    const asset = assetRaw as AssetRow | null;
+    if (!asset || asset.org_id !== membership.org_id || !asset.storage_path) {
+      return json({ ok: false, error: 'asset_not_found' }, 404);
+    }
+
+    const caption = buildPublishCaption({
+      caption: draft.caption,
+      hashtags: draft.hashtags,
+      cta: draft.cta,
+    });
+    if (!caption && draft.format !== 'story') {
+      return json({ ok: false, error: 'missing_caption' }, 400);
+    }
+
+    // token_ref only via service role — never selected with user client for responses.
+    const { data: connRaw, error: connErr } = await admin
+      .from('content_instagram_connections')
+      .select('id, org_id, membership_id, ig_user_id, ig_username, status, scopes, token_ref')
+      .eq('org_id', membership.org_id)
+      .eq('membership_id', membership.id)
+      .maybeSingle();
+    if (connErr) throw connErr;
+    const connection = connRaw as ConnectionRow | null;
+    if (!connection || connection.status !== 'connected' || !connection.ig_user_id) {
+      return json({ ok: false, error: 'not_connected' }, 400);
+    }
+    if (!connection.token_ref) {
+      return json({ ok: false, error: 'missing_token' }, 400);
+    }
+    if (!connectionHasPublishScope(connection.scopes)) {
+      console.error('instagram_publish_missing_scope', {
+        required: IG_PUBLISH_SCOPE,
+        have: connection.scopes ?? [],
+      });
+      return safePublishResponse(
+        {
+          ok: false,
+          error: 'missing_publish_permission',
+          message:
+            'Instagram-Berechtigung instagram_business_content_publish fehlt. Bitte im Meta Developer Dashboard freischalten und Instagram in AscendOS erneut verbinden.',
+          requiredScope: IG_PUBLISH_SCOPE,
+        },
+        403
+      );
+    }
+
+    // Idempotency: already published for this draft → return success, no second post.
+    const { data: publishedRows, error: pubLookupErr } = await admin
+      .from('content_publish_attempts')
+      .select('id, status, meta_container_id, meta_media_id, error_message')
+      .eq('draft_id', draft.id)
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (pubLookupErr) throw pubLookupErr;
+    const already = (publishedRows as AttemptRow[] | null)?.[0];
+    if (already?.meta_media_id) {
+      return safePublishResponse({
+        ok: true,
+        status: 'published',
+        alreadyPublished: true,
+        attemptId: already.id,
+        mediaId: already.meta_media_id,
+        igUsername: connection.ig_username,
+      });
+    }
+
+    const { data: activeRows, error: activeErr } = await admin
+      .from('content_publish_attempts')
+      .select('id, status, meta_container_id, meta_media_id, error_message')
+      .eq('draft_id', draft.id)
+      .in('status', ['queued', 'submitted'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (activeErr) throw activeErr;
+    let attempt = (activeRows as AttemptRow[] | null)?.[0] ?? null;
+
+    if (attempt?.status === 'submitted' && attempt.meta_container_id) {
+      // Resume in-flight container instead of creating a second one.
+      console.log('instagram_publish_resume', { attemptId: attempt.id });
+    } else if (attempt?.status === 'queued') {
+      // Another request is likely still creating the container.
+      return safePublishResponse(
+        {
+          ok: false,
+          error: 'already_in_progress',
+          attemptId: attempt.id,
+          message: 'Veröffentlichung läuft bereits — bitte kurz warten.',
+        },
+        409
+      );
+    } else {
+      const { data: inserted, error: insertErr } = await admin
+        .from('content_publish_attempts')
+        .insert({
+          org_id: membership.org_id,
+          membership_id: membership.id,
+          draft_id: draft.id,
+          connection_id: connection.id,
+          status: 'queued',
+          user_confirmed_at: new Date().toISOString(),
+        })
+        .select('id, status, meta_container_id, meta_media_id, error_message')
+        .single();
+
+      if (insertErr) {
+        // Unique active-draft index → concurrent double-click.
+        if (insertErr.code === '23505') {
+          return safePublishResponse(
+            {
+              ok: false,
+              error: 'already_in_progress',
+              message: 'Veröffentlichung läuft bereits — bitte kurz warten.',
+            },
+            409
+          );
+        }
+        throw insertErr;
+      }
+      attempt = inserted as AttemptRow;
+    }
+
+    if (!attempt) {
+      return json({ ok: false, error: 'internal_error' }, 500);
+    }
+
+    const secret = tokenSecret();
+    if (!secret) {
+      await markAttemptFailed(admin, attempt.id, 'missing_encryption_secret');
+      return json({ ok: false, error: 'missing_token' }, 500);
+    }
+
+    let accessToken: string;
+    try {
+      accessToken = await decryptToken(connection.token_ref, secret);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'decrypt_failed';
+      console.error('instagram_publish_decrypt_failed', sanitizeMetaError(msg));
+      await markAttemptFailed(admin, attempt.id, 'token_decrypt_failed');
+      return json({ ok: false, error: 'missing_token' }, 500);
+    }
+
+    let containerId = attempt.meta_container_id;
+
+    try {
+      if (!containerId) {
+        const { data: signed, error: signErr } = await admin.storage
+          .from(CONTENT_ASSETS_BUCKET)
+          .createSignedUrl(asset.storage_path, 7200);
+        if (signErr || !signed?.signedUrl) {
+          console.error('instagram_publish_signed_url_failed', signErr?.message);
+          await markAttemptFailed(admin, attempt.id, 'signed_url_failed');
+          return json({ ok: false, error: 'signed_url_failed' }, 500);
+        }
+
+        const created = await createMediaContainer({
+          igUserId: connection.ig_user_id,
+          accessToken,
+          mediaKind: asset.media_kind,
+          format: draft.format,
+          mediaUrl: signed.signedUrl,
+          caption,
+        });
+        containerId = created.containerId;
+
+        const { error: submitErr } = await admin
+          .from('content_publish_attempts')
+          .update({
+            status: 'submitted',
+            meta_container_id: containerId,
+            error_message: null,
+          })
+          .eq('id', attempt.id)
+          .eq('status', 'queued');
+        if (submitErr) throw submitErr;
+      }
+
+      // Videos/reels/stories need processing; feed images can publish immediately.
+      if (asset.media_kind === 'video' || draft.format === 'reel' || draft.format === 'story') {
+        await waitForContainerReady({
+          containerId,
+          accessToken,
+        });
+      }
+
+      const published = await publishMediaContainer({
+        igUserId: connection.ig_user_id,
+        accessToken,
+        containerId,
+      });
+
+      const { error: doneErr } = await admin
+        .from('content_publish_attempts')
+        .update({
+          status: 'published',
+          meta_container_id: containerId,
+          meta_media_id: published.mediaId,
+          error_message: null,
+        })
+        .eq('id', attempt.id)
+        .in('status', ['queued', 'submitted']);
+      if (doneErr) throw doneErr;
+
+      console.log('instagram_publish_ok', {
+        attemptId: attempt.id,
+        draftId: draft.id,
+        mediaKind: asset.media_kind,
+        format: draft.format,
+      });
+
+      return safePublishResponse({
+        ok: true,
+        status: 'published',
+        alreadyPublished: false,
+        attemptId: attempt.id,
+        mediaId: published.mediaId,
+        containerId,
+        igUsername: connection.ig_username,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'publish_failed';
+      const sanitized = sanitizeMetaError(msg);
+      console.error('instagram_publish_graph_error', sanitized);
+      await markAttemptFailed(admin, attempt.id, sanitized);
+
+      let error = 'publish_failed';
+      if (sanitized.includes('container_timeout')) error = 'container_timeout';
+      else if (sanitized.includes('container_error') || sanitized.includes('container_expired'))
+        error = 'container_error';
+      else if (sanitized.includes('container_')) error = 'container_failed';
+
+      return safePublishResponse(
+        {
+          ok: false,
+          error,
+          attemptId: attempt.id,
+          message: sanitized,
+        },
+        502
+      );
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'internal_error';
+    console.error('instagram_publish_internal', sanitizeMetaError(msg));
+    return json({ ok: false, error: 'internal_error' }, 500);
+  }
+});

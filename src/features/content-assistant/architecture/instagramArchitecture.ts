@@ -19,7 +19,9 @@ export const INSTAGRAM_ARCHITECTURE = {
   storePasswords: false,
   storeTokensInClient: false,
   edgeFunction: 'instagram-oauth',
+  publishEdgeFunction: 'instagram-publish',
   table: 'content_instagram_connections',
+  publishAttemptsTable: 'content_publish_attempts',
 } as const;
 
 /** Product workflow (target). Phase 5A implements only the first step. */
@@ -64,10 +66,9 @@ export function isInstagramConnectEnabled(): boolean {
 }
 
 /**
- * Phase 5B: Preview + explicit confirm UI is available.
- * Official Graph Content Publishing stays off until a dedicated publish
- * Edge Function + `instagram_business_content_publish` are ready.
+ * Phase 5C: Official Graph Content Publishing via `instagram-publish` Edge Function.
+ * Still requires explicit two-tap confirm in the UI; never auto-publishes.
  */
 export function isInstagramPublishingEnabled(): boolean {
-  return false;
+  return true;
 }

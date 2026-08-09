@@ -1,6 +1,10 @@
 /** Instagram OAuth (Phase 5A — connect only). Official Meta Business Login path. */
 
-export const IG_CONNECT_SCOPES = ['instagram_business_basic'] as const;
+/** Connect + publish scopes for Business Login for Instagram (Phase 5C). */
+export const IG_CONNECT_SCOPES = [
+  'instagram_business_basic',
+  'instagram_business_content_publish',
+] as const;
 
 /** DB CHECK values on content_instagram_connections.status */
 export type IgConnectionDbStatus = 'disconnected' | 'pending_review' | 'connected' | 'error';
