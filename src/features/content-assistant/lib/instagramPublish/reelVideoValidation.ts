@@ -6,6 +6,8 @@
  * Codec/FPS/bitrate require binary probing and are left to Meta’s container processing.
  */
 
+import { INSTAGRAM_MUSIC_CAPABILITY } from './instagramMusicFoundation';
+
 export type ReelValidationCode =
   | 'ok'
   | 'missing_media'
@@ -40,18 +42,21 @@ export const IG_REEL_VIDEO_SPECS = {
  * Instagram Audio API is documented for apps using Facebook Login, not
  * Business Login for Instagram (our Phase 5A/5C OAuth path).
  * Do not fake a music picker that cannot publish.
+ * Phase A: master flag is INSTAGRAM_MUSIC_CAPABILITY.instagram_music_available (default false).
  */
 export const IG_OFFICIAL_AUDIO_CAPABILITY = {
-  availableWithCurrentOAuth: false as const,
+  /** Phase A kill-switch — mirrors INSTAGRAM_MUSIC_CAPABILITY.instagram_music_available. */
+  instagram_music_available: INSTAGRAM_MUSIC_CAPABILITY.instagram_music_available,
+  availableWithCurrentOAuth: INSTAGRAM_MUSIC_CAPABILITY.instagram_music_available,
   currentLoginPath: 'instagram_business_login',
   requiredLoginPath: 'facebook_login_for_business',
   changelogNote:
     'Instagram Audio API (GET /ig_audio, GET /{ig_audio_id}) is for apps using Facebook Login.',
   graphHostForAudio: 'graph.facebook.com',
   currentGraphHost: 'graph.instagram.com',
-  canSearchMusic: false,
+  canSearchMusic: INSTAGRAM_MUSIC_CAPABILITY.audio_search_available,
   canSelectOriginalSounds: false,
-  canAttachLibraryAudioToReel: false,
+  canAttachLibraryAudioToReel: INSTAGRAM_MUSIC_CAPABILITY.audio_publish_available,
   /** `audio_name` on REELS only renames original audio — not Music library selection. */
   audioNameRenamesOriginalOnly: true,
 } as const;

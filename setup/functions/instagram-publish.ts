@@ -536,9 +536,10 @@ export function pollConfigForMedia(mediaKind: MediaKind): {
   return { ...CONTAINER_POLL_DEFAULTS };
 }
 
-function graphUrl(path: string): string {
+function graphUrl(path: string, graphHost?: string | null): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
-  return `${IG_GRAPH_HOST}/${IG_GRAPH_API_VERSION}${clean}`;
+  const host = (graphHost ?? IG_GRAPH_HOST).replace(/\/$/, '');
+  return `${host}/${IG_GRAPH_API_VERSION}${clean}`;
 }
 
 function readGraphError(json: Record<string, unknown>, fallback: string): string {
@@ -579,6 +580,51 @@ export function resolveMediaProduct(params: {
   return { mediaType: null, useImageUrl: true, useVideoUrl: false, shareToFeed: false };
 }
 
+function resolveGraphBase(graphHost?: string | null): string {
+  const host = (graphHost ?? IG_GRAPH_HOST).replace(/\/$/, '');
+  return `${host}/${IG_GRAPH_API_VERSION}`;
+}
+
+/**
+ * Build container form fields for unit tests / parity.
+ * When audioConfiguration is omitted, fields match the pre-Phase-D request exactly.
+ */
+export function buildMediaContainerBodyFields(params: {
+  mediaKind: MediaKind;
+  format: ContentFormat;
+  mediaUrl: string;
+  caption: string;
+  audioConfiguration?: {
+    audio_id: string;
+    audio_volume: number;
+    video_volume: number;
+  } | null;
+}): Record<string, string> {
+  const product = resolveMediaProduct({
+    mediaKind: params.mediaKind,
+    format: params.format,
+  });
+  const fields: Record<string, string> = {};
+  if (product.useImageUrl) fields.image_url = params.mediaUrl;
+  if (product.useVideoUrl) fields.video_url = params.mediaUrl;
+  if (product.mediaType) fields.media_type = product.mediaType;
+  if (product.mediaType === 'REELS') {
+    fields.share_to_feed = 'true';
+  }
+  if (params.caption && product.mediaType !== 'STORIES') {
+    fields.caption = params.caption;
+  }
+  // Official Meta Audio API: only on REELS containers (Facebook Login host).
+  if (params.audioConfiguration && product.mediaType === 'REELS') {
+    fields.audio_configuration = JSON.stringify({
+      audio_id: params.audioConfiguration.audio_id,
+      audio_volume: params.audioConfiguration.audio_volume,
+      video_volume: params.audioConfiguration.video_volume,
+    });
+  }
+  return fields;
+}
+
 export async function createMediaContainer(params: {
   igUserId: string;
   accessToken: string;
@@ -586,6 +632,14 @@ export async function createMediaContainer(params: {
   format: ContentFormat;
   mediaUrl: string;
   caption: string;
+  /** Phase D: official audio_configuration for REELS only (Facebook Login path). */
+  audioConfiguration?: {
+    audio_id: string;
+    audio_volume: number;
+    video_volume: number;
+  } | null;
+  /** Override Graph host — music attach uses graph.facebook.com. */
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
 }): Promise<{ containerId: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -600,22 +654,23 @@ export async function createMediaContainer(params: {
   if (product.useImageUrl && params.mediaKind !== 'image') {
     throw new Error('container_requires_image');
   }
+  if (params.audioConfiguration && product.mediaType !== 'REELS') {
+    throw new Error('MUSIC_NOT_SUPPORTED_FOR_FEED');
+  }
+
+  const fields = buildMediaContainerBodyFields({
+    mediaKind: params.mediaKind,
+    format: params.format,
+    mediaUrl: params.mediaUrl,
+    caption: params.caption,
+    audioConfiguration: params.audioConfiguration,
+  });
 
   const body = new URLSearchParams();
   body.set('access_token', params.accessToken);
-  if (product.useImageUrl) body.set('image_url', params.mediaUrl);
-  if (product.useVideoUrl) body.set('video_url', params.mediaUrl);
-  if (product.mediaType) body.set('media_type', product.mediaType);
-  // Official Reels param — also surfaces the Reel on the profile feed when supported.
-  if (product.mediaType === 'REELS') {
-    body.set('share_to_feed', 'true');
-  }
-  // Feed/Reels captions; Stories omit caption (not a feed caption field).
-  if (params.caption && product.mediaType !== 'STORIES') {
-    body.set('caption', params.caption);
-  }
+  for (const [k, v] of Object.entries(fields)) body.set(k, v);
 
-  const res = await fetchFn(graphUrl(`/${params.igUserId}/media`), {
+  const res = await fetchFn(`${resolveGraphBase(params.graphHost)}/${params.igUserId}/media`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -632,6 +687,7 @@ export async function createMediaContainer(params: {
 export async function getContainerStatus(params: {
   containerId: string;
   accessToken: string;
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
 }): Promise<{ statusCode: ContainerStatusCode; status?: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -639,7 +695,7 @@ export async function getContainerStatus(params: {
     fields: 'status_code,status',
     access_token: params.accessToken,
   });
-  const res = await fetchFn(graphUrl(`/${params.containerId}?${q.toString()}`));
+  const res = await fetchFn(graphUrl(`/${params.containerId}?${q.toString()}`, params.graphHost));
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     throw new Error(readGraphError(json, `container_status_${res.status}`));
@@ -657,6 +713,7 @@ export async function getContainerStatus(params: {
 export async function waitForContainerReady(params: {
   containerId: string;
   accessToken: string;
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
   mediaKind?: MediaKind;
   initialDelayMs?: number;
@@ -679,6 +736,7 @@ export async function waitForContainerReady(params: {
     const { statusCode } = await getContainerStatus({
       containerId: params.containerId,
       accessToken: params.accessToken,
+      graphHost: params.graphHost,
       fetchFn: params.fetchFn,
     });
     const readiness = classifyContainerStatus(statusCode);
@@ -703,6 +761,7 @@ export async function publishMediaContainer(params: {
   igUserId: string;
   accessToken: string;
   containerId: string;
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
 }): Promise<{ mediaId: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -710,7 +769,7 @@ export async function publishMediaContainer(params: {
     creation_id: params.containerId,
     access_token: params.accessToken,
   });
-  const res = await fetchFn(graphUrl(`/${params.igUserId}/media_publish`), {
+  const res = await fetchFn(graphUrl(`/${params.igUserId}/media_publish`, params.graphHost), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -849,6 +908,219 @@ export function reelValidationErrorMessage(code: ReelValidationCode): string {
   }
 }
 
+// ---- inline: _shared/instagram-publish/musicPublish.ts ----
+/**
+ * Phase D — Reel music attach via official Meta audio_configuration.
+ * Without a selection the existing Instagram Login publish path is unchanged.
+ */
+
+export type MusicPublishErrorCode =
+  | 'MUSIC_CONNECTION_REQUIRED'
+  | 'MUSIC_AUDIO_INVALID'
+  | 'MUSIC_NOT_SUPPORTED_FOR_FEED';
+
+/** Official audio_configuration fields (Meta Instagram Audio API). */
+export type AudioConfigurationPayload = {
+  audio_id: string;
+  audio_volume: number;
+  video_volume: number;
+};
+
+export type MusicPublishPlan =
+  | { mode: 'none' }
+  | {
+      mode: 'attach';
+      audioConfiguration: AudioConfigurationPayload;
+      /** Facebook Login publish host */
+      graphHost: 'https://graph.facebook.com';
+    }
+  | { mode: 'error'; error: MusicPublishErrorCode; message: string };
+
+function clampVolume(value: unknown, fallback: number): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
+/**
+ * Fix 1: music planning must not run when a prior publish already succeeded.
+ * Edge returns alreadyPublished before any MUSIC_* validation or FB lookup.
+ */
+export function shouldPlanMusicPublish(params: {
+  alreadyPublishedMediaId: string | null | undefined;
+}): boolean {
+  return !params.alreadyPublishedMediaId;
+}
+
+/**
+ * Fix 2: content_facebook_business_connections is loaded only when the draft
+ * has an audio selection. No-audio Feed/Reel publish must not depend on that table.
+ */
+export function shouldLoadFacebookConnectionForPublish(instagramAudioJson: unknown): boolean {
+  return draftHasAudioSelection(instagramAudioJson);
+}
+
+/** True when draft JSON indicates the user selected library audio (even if invalid). */
+export function draftHasAudioSelection(raw: unknown): boolean {
+  if (raw == null) return false;
+  let obj: unknown = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === 'null' || trimmed === '{}') return false;
+    try {
+      obj = JSON.parse(trimmed) as unknown;
+    } catch {
+      return true; // malformed selection present → treat as selected/invalid
+    }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+  const rec = obj as Record<string, unknown>;
+  if (typeof rec.audio_id === 'string' && rec.audio_id.trim()) return true;
+  if (rec.audio_type != null) return true;
+  return Object.keys(rec).length > 0;
+}
+
+export function parseAudioSelectionForPublish(raw: unknown): {
+  ok: true;
+  selection: {
+    audio_id: string;
+    audio_type: 'music' | 'original_sound';
+    audio_volume?: number | null;
+    video_volume?: number | null;
+    title?: string | null;
+    artist?: string | null;
+  };
+} | { ok: false; error: 'MUSIC_AUDIO_INVALID' } {
+  if (raw == null) return { ok: false, error: 'MUSIC_AUDIO_INVALID' };
+  let obj: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      obj = JSON.parse(raw) as unknown;
+    } catch {
+      return { ok: false, error: 'MUSIC_AUDIO_INVALID' };
+    }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { ok: false, error: 'MUSIC_AUDIO_INVALID' };
+  }
+  const rec = obj as Record<string, unknown>;
+  const audioId = typeof rec.audio_id === 'string' ? rec.audio_id.trim() : '';
+  if (!audioId || !/^\d+$/.test(audioId)) {
+    return { ok: false, error: 'MUSIC_AUDIO_INVALID' };
+  }
+  const audioType =
+    rec.audio_type === 'music' || rec.audio_type === 'original_sound' ? rec.audio_type : null;
+  if (!audioType) return { ok: false, error: 'MUSIC_AUDIO_INVALID' };
+  return {
+    ok: true,
+    selection: {
+      audio_id: audioId,
+      audio_type: audioType,
+      audio_volume: rec.audio_volume == null ? null : clampVolume(rec.audio_volume, 100),
+      video_volume: rec.video_volume == null ? null : clampVolume(rec.video_volume, 100),
+      title: typeof rec.title === 'string' || rec.title === null ? rec.title : null,
+      artist: typeof rec.artist === 'string' || rec.artist === null ? rec.artist : null,
+    },
+  };
+}
+
+export function buildAudioConfigurationPayload(selection: {
+  audio_id: string;
+  audio_volume?: number | null;
+  video_volume?: number | null;
+}): AudioConfigurationPayload {
+  return {
+    audio_id: selection.audio_id,
+    audio_volume: clampVolume(selection.audio_volume ?? 100, 100),
+    video_volume: clampVolume(selection.video_volume ?? 100, 100),
+  };
+}
+
+export function isReelPublishProduct(params: {
+  mediaKind: 'image' | 'video' | null | undefined;
+  format: string | null | undefined;
+}): boolean {
+  return params.mediaKind === 'video' || params.format === 'reel';
+}
+
+export function assertFacebookMusicPublishConnection(params: {
+  status: string | null | undefined;
+  igUserId: string | null | undefined;
+  scopes: string[] | null | undefined;
+  hasPageToken: boolean;
+}): { ok: true; igUserId: string } | { ok: false; error: 'MUSIC_CONNECTION_REQUIRED' } {
+  if (params.status !== 'connected') return { ok: false, error: 'MUSIC_CONNECTION_REQUIRED' };
+  if (!params.igUserId?.trim()) return { ok: false, error: 'MUSIC_CONNECTION_REQUIRED' };
+  if (!params.hasPageToken) return { ok: false, error: 'MUSIC_CONNECTION_REQUIRED' };
+  const set = new Set((params.scopes ?? []).map((s) => s.trim()).filter(Boolean));
+  if (!set.has('instagram_basic') || !set.has('instagram_content_publish')) {
+    return { ok: false, error: 'MUSIC_CONNECTION_REQUIRED' };
+  }
+  return { ok: true, igUserId: params.igUserId.trim() };
+}
+
+/**
+ * Decide how publish should treat draft audio.
+ * - No selection → mode none (existing Instagram Login request)
+ * - Selection on non-Reel → error
+ * - Invalid selection → MUSIC_AUDIO_INVALID
+ * - Valid selection without FB music connection → MUSIC_CONNECTION_REQUIRED
+ * - Valid selection + FB connection → attach on graph.facebook.com
+ */
+export function planMusicPublish(params: {
+  instagramAudioJson: unknown;
+  mediaKind: 'image' | 'video' | null | undefined;
+  format: string | null | undefined;
+  facebookConnection: {
+    status: string | null | undefined;
+    igUserId: string | null | undefined;
+    scopes: string[] | null | undefined;
+    hasPageToken: boolean;
+  } | null;
+}): MusicPublishPlan {
+  if (!draftHasAudioSelection(params.instagramAudioJson)) {
+    return { mode: 'none' };
+  }
+
+  if (!isReelPublishProduct({ mediaKind: params.mediaKind, format: params.format })) {
+    return {
+      mode: 'error',
+      error: 'MUSIC_NOT_SUPPORTED_FOR_FEED',
+      message: 'Instagram library audio can only be attached to Reels.',
+    };
+  }
+
+  const parsed = parseAudioSelectionForPublish(params.instagramAudioJson);
+  if (!parsed.ok) {
+    return {
+      mode: 'error',
+      error: 'MUSIC_AUDIO_INVALID',
+      message: 'Selected Instagram audio is missing or invalid.',
+    };
+  }
+
+  const fb = assertFacebookMusicPublishConnection({
+    status: params.facebookConnection?.status,
+    igUserId: params.facebookConnection?.igUserId,
+    scopes: params.facebookConnection?.scopes,
+    hasPageToken: Boolean(params.facebookConnection?.hasPageToken),
+  });
+  if (!fb.ok) {
+    return {
+      mode: 'error',
+      error: 'MUSIC_CONNECTION_REQUIRED',
+      message:
+        'Publishing with Instagram library audio requires a valid Facebook Login for Business connection.',
+    };
+  }
+
+  return {
+    mode: 'attach',
+    audioConfiguration: buildAudioConfigurationPayload(parsed.selection),
+    graphHost: 'https://graph.facebook.com',
+  };
+}
+
 // ---- inline: _shared/instagram-publish/index.ts ----
 
 
@@ -886,6 +1158,7 @@ interface DraftRow {
   cta: string | null;
   hashtags: string[] | null;
   status: string;
+  instagram_audio_json: unknown | null;
 }
 
 interface AssetRow {
@@ -969,7 +1242,14 @@ async function resolveMembership(
 
 function safePublishResponse(payload: Record<string, unknown>, status = 200): Response {
   const body = JSON.stringify(payload);
-  if (/"token_ref"\s*:/.test(body) || /"access_token"\s*:/.test(body) || /"accessToken"\s*:/.test(body)) {
+  if (
+    /"token_ref"\s*:/.test(body) ||
+    /"page_token_ref"\s*:/.test(body) ||
+    /"user_token_ref"\s*:/.test(body) ||
+    /"access_token"\s*:/.test(body) ||
+    /"accessToken"\s*:/.test(body) ||
+    /EAA[A-Za-z0-9]{20,}/.test(body)
+  ) {
     console.error('instagram_publish_token_leak_blocked');
     return json({ ok: false, error: 'internal_error' }, 500);
   }
@@ -1026,7 +1306,9 @@ Deno.serve(async (req) => {
 
     const { data: draftRaw, error: draftErr } = await db
       .from('content_drafts')
-      .select('id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status')
+      .select(
+        'id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status, instagram_audio_json'
+      )
       .eq('id', draftId)
       .maybeSingle();
     if (draftErr) throw draftErr;
@@ -1114,6 +1396,7 @@ Deno.serve(async (req) => {
     }
 
     // Idempotency: already published for this draft → return success, no second post.
+    // Must run BEFORE music validation / Facebook connection lookup (Phase D Fix 1).
     const { data: publishedRows, error: pubLookupErr } = await admin
       .from('content_publish_attempts')
       .select('id, status, meta_container_id, meta_media_id, error_message')
@@ -1132,6 +1415,53 @@ Deno.serve(async (req) => {
         mediaId: already.meta_media_id,
         igUsername: connection.ig_username,
       });
+    }
+
+    // Phase D: music attach only when not already published.
+    // Facebook table is queried ONLY with an audio selection (Fix 2) — normal IG
+    // publish must not depend on content_facebook_business_connections existing.
+    type FbConnRow = {
+      status: string;
+      ig_user_id: string | null;
+      scopes: string[] | null;
+      page_token_ref: string | null;
+    };
+    let fbConn: FbConnRow | null = null;
+    let musicPlan: MusicPublishPlan = { mode: 'none' };
+
+    if (draftHasAudioSelection(draft.instagram_audio_json)) {
+      const { data: fbConnRaw, error: fbConnErr } = await admin
+        .from('content_facebook_business_connections')
+        .select('status, ig_user_id, scopes, page_token_ref')
+        .eq('org_id', membership.org_id)
+        .eq('membership_id', membership.id)
+        .maybeSingle();
+      if (fbConnErr) throw fbConnErr;
+      fbConn = fbConnRaw as FbConnRow | null;
+
+      musicPlan = planMusicPublish({
+        instagramAudioJson: draft.instagram_audio_json,
+        mediaKind: asset.media_kind,
+        format: draft.format,
+        facebookConnection: fbConn
+          ? {
+              status: fbConn.status,
+              igUserId: fbConn.ig_user_id,
+              scopes: fbConn.scopes,
+              hasPageToken: Boolean(fbConn.page_token_ref),
+            }
+          : null,
+      });
+      if (musicPlan.mode === 'error') {
+        return safePublishResponse(
+          {
+            ok: false,
+            error: musicPlan.error,
+            message: musicPlan.message,
+          },
+          400
+        );
+      }
     }
 
     const { data: activeRows, error: activeErr } = await admin
@@ -1200,14 +1530,60 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'missing_token' }, 500);
     }
 
+    // Default: Instagram Login token + graph.instagram.com (unchanged without music).
     let accessToken: string;
-    try {
-      accessToken = await decryptToken(connection.token_ref, secret);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'decrypt_failed';
-      console.error('instagram_publish_decrypt_failed', sanitizeMetaError(msg));
-      await markAttemptFailed(admin, attempt.id, 'token_decrypt_failed');
-      return json({ ok: false, error: 'missing_token' }, 500);
+    let publishIgUserId = connection.ig_user_id;
+    let graphHost: string | null = null;
+    let audioConfiguration: {
+      audio_id: string;
+      audio_volume: number;
+      video_volume: number;
+    } | null = null;
+
+    if (musicPlan.mode === 'attach') {
+      if (!fbConn?.page_token_ref || !fbConn.ig_user_id) {
+        await markAttemptFailed(admin, attempt.id, 'MUSIC_CONNECTION_REQUIRED');
+        return safePublishResponse(
+          {
+            ok: false,
+            error: 'MUSIC_CONNECTION_REQUIRED',
+            message:
+              'Publishing with Instagram library audio requires a valid Facebook Login for Business connection.',
+            attemptId: attempt.id,
+          },
+          400
+        );
+      }
+      try {
+        // Same AES-GCM token_ref format as Instagram Login tokens.
+        accessToken = await decryptToken(fbConn.page_token_ref, secret);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'decrypt_failed';
+        console.error('instagram_publish_fb_decrypt_failed', sanitizeMetaError(msg));
+        await markAttemptFailed(admin, attempt.id, 'MUSIC_CONNECTION_REQUIRED');
+        return safePublishResponse(
+          {
+            ok: false,
+            error: 'MUSIC_CONNECTION_REQUIRED',
+            message:
+              'Publishing with Instagram library audio requires a valid Facebook Login for Business connection.',
+            attemptId: attempt.id,
+          },
+          400
+        );
+      }
+      publishIgUserId = fbConn.ig_user_id;
+      graphHost = musicPlan.graphHost;
+      audioConfiguration = musicPlan.audioConfiguration;
+    } else {
+      try {
+        accessToken = await decryptToken(connection.token_ref, secret);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'decrypt_failed';
+        console.error('instagram_publish_decrypt_failed', sanitizeMetaError(msg));
+        await markAttemptFailed(admin, attempt.id, 'token_decrypt_failed');
+        return json({ ok: false, error: 'missing_token' }, 500);
+      }
     }
 
     let containerId = attempt.meta_container_id;
@@ -1224,12 +1600,14 @@ Deno.serve(async (req) => {
         }
 
         const created = await createMediaContainer({
-          igUserId: connection.ig_user_id,
+          igUserId: publishIgUserId,
           accessToken,
           mediaKind: asset.media_kind,
           format: draft.format,
           mediaUrl: signed.signedUrl,
           caption,
+          audioConfiguration,
+          graphHost,
         });
         containerId = created.containerId;
 
@@ -1251,6 +1629,7 @@ Deno.serve(async (req) => {
         containerId,
         accessToken,
         mediaKind: asset.media_kind,
+        graphHost,
       });
 
       // Idempotency: re-check before media_publish (parallel click / race).
@@ -1274,9 +1653,10 @@ Deno.serve(async (req) => {
       }
 
       const published = await publishMediaContainer({
-        igUserId: connection.ig_user_id,
+        igUserId: publishIgUserId,
         accessToken,
         containerId,
+        graphHost,
       });
 
       const { data: doneRow, error: doneErr } = await admin
@@ -1325,6 +1705,12 @@ Deno.serve(async (req) => {
       else if (sanitized.includes('container_error') || sanitized.includes('container_expired'))
         error = 'container_error';
       else if (sanitized.includes('container_')) error = 'container_failed';
+      else if (
+        audioConfiguration &&
+        (sanitized.toLowerCase().includes('audio') || sanitized.toLowerCase().includes('music'))
+      ) {
+        error = 'MUSIC_META_REJECTED';
+      }
 
       return safePublishResponse(
         {

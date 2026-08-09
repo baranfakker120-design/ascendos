@@ -62,9 +62,10 @@ export function pollConfigForMedia(mediaKind: MediaKind): {
   return { ...CONTAINER_POLL_DEFAULTS };
 }
 
-function graphUrl(path: string): string {
+function graphUrl(path: string, graphHost?: string | null): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
-  return `${IG_GRAPH_HOST}/${IG_GRAPH_API_VERSION}${clean}`;
+  const host = (graphHost ?? IG_GRAPH_HOST).replace(/\/$/, '');
+  return `${host}/${IG_GRAPH_API_VERSION}${clean}`;
 }
 
 function readGraphError(json: Record<string, unknown>, fallback: string): string {
@@ -105,6 +106,51 @@ export function resolveMediaProduct(params: {
   return { mediaType: null, useImageUrl: true, useVideoUrl: false, shareToFeed: false };
 }
 
+function resolveGraphBase(graphHost?: string | null): string {
+  const host = (graphHost ?? IG_GRAPH_HOST).replace(/\/$/, '');
+  return `${host}/${IG_GRAPH_API_VERSION}`;
+}
+
+/**
+ * Build container form fields for unit tests / parity.
+ * When audioConfiguration is omitted, fields match the pre-Phase-D request exactly.
+ */
+export function buildMediaContainerBodyFields(params: {
+  mediaKind: MediaKind;
+  format: ContentFormat;
+  mediaUrl: string;
+  caption: string;
+  audioConfiguration?: {
+    audio_id: string;
+    audio_volume: number;
+    video_volume: number;
+  } | null;
+}): Record<string, string> {
+  const product = resolveMediaProduct({
+    mediaKind: params.mediaKind,
+    format: params.format,
+  });
+  const fields: Record<string, string> = {};
+  if (product.useImageUrl) fields.image_url = params.mediaUrl;
+  if (product.useVideoUrl) fields.video_url = params.mediaUrl;
+  if (product.mediaType) fields.media_type = product.mediaType;
+  if (product.mediaType === 'REELS') {
+    fields.share_to_feed = 'true';
+  }
+  if (params.caption && product.mediaType !== 'STORIES') {
+    fields.caption = params.caption;
+  }
+  // Official Meta Audio API: only on REELS containers (Facebook Login host).
+  if (params.audioConfiguration && product.mediaType === 'REELS') {
+    fields.audio_configuration = JSON.stringify({
+      audio_id: params.audioConfiguration.audio_id,
+      audio_volume: params.audioConfiguration.audio_volume,
+      video_volume: params.audioConfiguration.video_volume,
+    });
+  }
+  return fields;
+}
+
 export async function createMediaContainer(params: {
   igUserId: string;
   accessToken: string;
@@ -112,6 +158,14 @@ export async function createMediaContainer(params: {
   format: ContentFormat;
   mediaUrl: string;
   caption: string;
+  /** Phase D: official audio_configuration for REELS only (Facebook Login path). */
+  audioConfiguration?: {
+    audio_id: string;
+    audio_volume: number;
+    video_volume: number;
+  } | null;
+  /** Override Graph host — music attach uses graph.facebook.com. */
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
 }): Promise<{ containerId: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -126,22 +180,23 @@ export async function createMediaContainer(params: {
   if (product.useImageUrl && params.mediaKind !== 'image') {
     throw new Error('container_requires_image');
   }
+  if (params.audioConfiguration && product.mediaType !== 'REELS') {
+    throw new Error('MUSIC_NOT_SUPPORTED_FOR_FEED');
+  }
+
+  const fields = buildMediaContainerBodyFields({
+    mediaKind: params.mediaKind,
+    format: params.format,
+    mediaUrl: params.mediaUrl,
+    caption: params.caption,
+    audioConfiguration: params.audioConfiguration,
+  });
 
   const body = new URLSearchParams();
   body.set('access_token', params.accessToken);
-  if (product.useImageUrl) body.set('image_url', params.mediaUrl);
-  if (product.useVideoUrl) body.set('video_url', params.mediaUrl);
-  if (product.mediaType) body.set('media_type', product.mediaType);
-  // Official Reels param — also surfaces the Reel on the profile feed when supported.
-  if (product.mediaType === 'REELS') {
-    body.set('share_to_feed', 'true');
-  }
-  // Feed/Reels captions; Stories omit caption (not a feed caption field).
-  if (params.caption && product.mediaType !== 'STORIES') {
-    body.set('caption', params.caption);
-  }
+  for (const [k, v] of Object.entries(fields)) body.set(k, v);
 
-  const res = await fetchFn(graphUrl(`/${params.igUserId}/media`), {
+  const res = await fetchFn(`${resolveGraphBase(params.graphHost)}/${params.igUserId}/media`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -158,6 +213,7 @@ export async function createMediaContainer(params: {
 export async function getContainerStatus(params: {
   containerId: string;
   accessToken: string;
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
 }): Promise<{ statusCode: ContainerStatusCode; status?: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -165,7 +221,7 @@ export async function getContainerStatus(params: {
     fields: 'status_code,status',
     access_token: params.accessToken,
   });
-  const res = await fetchFn(graphUrl(`/${params.containerId}?${q.toString()}`));
+  const res = await fetchFn(graphUrl(`/${params.containerId}?${q.toString()}`, params.graphHost));
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     throw new Error(readGraphError(json, `container_status_${res.status}`));
@@ -183,6 +239,7 @@ export async function getContainerStatus(params: {
 export async function waitForContainerReady(params: {
   containerId: string;
   accessToken: string;
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
   mediaKind?: MediaKind;
   initialDelayMs?: number;
@@ -205,6 +262,7 @@ export async function waitForContainerReady(params: {
     const { statusCode } = await getContainerStatus({
       containerId: params.containerId,
       accessToken: params.accessToken,
+      graphHost: params.graphHost,
       fetchFn: params.fetchFn,
     });
     const readiness = classifyContainerStatus(statusCode);
@@ -229,6 +287,7 @@ export async function publishMediaContainer(params: {
   igUserId: string;
   accessToken: string;
   containerId: string;
+  graphHost?: string | null;
   fetchFn?: typeof fetch;
 }): Promise<{ mediaId: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -236,7 +295,7 @@ export async function publishMediaContainer(params: {
     creation_id: params.containerId,
     access_token: params.accessToken,
   });
-  const res = await fetchFn(graphUrl(`/${params.igUserId}/media_publish`), {
+  const res = await fetchFn(graphUrl(`/${params.igUserId}/media_publish`, params.graphHost), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
