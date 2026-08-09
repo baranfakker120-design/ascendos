@@ -2,7 +2,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { FirstLaunchGate } from '@features/first-launch';
 import { OrgSwitcher } from '@shared/auth/OrgSwitcher';
 import { SyncStatusIndicator } from '@shared/offline';
-import { SiteFooter } from '@shared/ui/SiteFooter';
 import { BottomNav } from './BottomNav';
 import { LanguageMenu } from './nav/LanguageMenu';
 import './nav/bottom-nav.css';
@@ -57,7 +56,6 @@ export function AppShell() {
         }
       >
         <Outlet />
-        {personCoach ? null : <SiteFooter className="mt-6 px-0" />}
       </main>
       {personCoach ? null : <BottomNav />}
       <FirstLaunchGate />
