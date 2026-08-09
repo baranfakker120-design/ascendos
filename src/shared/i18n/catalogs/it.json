@@ -1187,7 +1187,7 @@
     "igPublishApiNotReady": "L’API di pubblicazione Instagram non è ancora attiva.",
     "igPublishQueued": "Avvio pubblicazione…",
     "igPublishing": "Pubblicazione su Instagram…",
-    "igPublishSuccess": "Pubblicato con successo.",
+    "igPublishSuccess": "Pubblicato con successo su Instagram.",
     "igPublishSuccessShort": "Pubblicato",
     "igPublishAlreadyDone": "Già pubblicato — nessun secondo post creato.",
     "igPublishNeedPermission": "Permesso Meta “instagram_business_content_publish” mancante. Abilitalo nel Developer Dashboard e riconnetti Instagram.",
@@ -1197,6 +1197,7 @@
     "igPublishContainerFailed": "Instagram non ha potuto creare il container media.",
     "igPublishFailed": "Pubblicazione non riuscita. Nessun secondo post creato.",
     "igPublishNeedReconnect": "Token Instagram non valido. Disconnetti e riconnetti.",
-    "igPublishMediaUrlFailed": "Impossibile creare l’URL media per Instagram."
+    "igPublishMediaUrlFailed": "Impossibile creare l’URL media per Instagram.",
+    "igPublishPreparing": "Instagram sta preparando il tuo post…"
   }
 }

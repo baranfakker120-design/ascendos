@@ -1,4 +1,4 @@
-/** Client mirrors of Phase 5C Graph publish helpers (no secrets, no network). */
+/** Client mirrors of Phase 5C Graph publish helpers (no secrets). */
 
 export const IG_PUBLISH_SCOPE = 'instagram_business_content_publish';
 export const IG_GRAPH_API_VERSION = 'v25.0';
@@ -6,8 +6,120 @@ export const IG_GRAPH_API_VERSION = 'v25.0';
 export type ContentFormat = 'story' | 'feed' | 'reel';
 export type MediaKind = 'image' | 'video';
 
+/** Official Meta IG Container status_code values. */
+export type ContainerStatusCode =
+  'EXPIRED' | 'ERROR' | 'FINISHED' | 'IN_PROGRESS' | 'PUBLISHED' | string;
+
+export type ContainerReadiness = 'ready' | 'pending' | 'error' | 'expired';
+
+export const CONTAINER_POLL_DEFAULTS = {
+  initialDelayMs: 2000,
+  intervalMs: 2000,
+  maxAttempts: 30,
+} as const;
+
 export function connectionHasPublishScope(scopes: string[] | null | undefined): boolean {
   return (scopes ?? []).includes(IG_PUBLISH_SCOPE);
+}
+
+export function classifyContainerStatus(statusCode: string | null | undefined): ContainerReadiness {
+  const code = String(statusCode ?? '')
+    .trim()
+    .toUpperCase();
+  if (code === 'FINISHED' || code === 'PUBLISHED') return 'ready';
+  if (code === 'ERROR') return 'error';
+  if (code === 'EXPIRED') return 'expired';
+  return 'pending';
+}
+
+export function pollConfigForMedia(mediaKind: MediaKind): {
+  initialDelayMs: number;
+  intervalMs: number;
+  maxAttempts: number;
+} {
+  if (mediaKind === 'video') {
+    return { initialDelayMs: 3000, intervalMs: 3000, maxAttempts: 40 };
+  }
+  return { ...CONTAINER_POLL_DEFAULTS };
+}
+
+/**
+ * Testable poll loop — mirrors Edge `waitForContainerReady`.
+ * `getStatus` returns Meta `status_code` strings in sequence.
+ */
+export async function waitForContainerReady(params: {
+  getStatus: () => Promise<string>;
+  mediaKind?: MediaKind;
+  initialDelayMs?: number;
+  intervalMs?: number;
+  maxAttempts?: number;
+  sleepFn?: (ms: number) => Promise<void>;
+}): Promise<{ statusCode: string; attempts: number; published: boolean }> {
+  const defaults = pollConfigForMedia(params.mediaKind ?? 'image');
+  const initialDelayMs = params.initialDelayMs ?? defaults.initialDelayMs;
+  const intervalMs = params.intervalMs ?? defaults.intervalMs;
+  const maxAttempts = params.maxAttempts ?? defaults.maxAttempts;
+  const sleepFn = params.sleepFn ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+
+  if (initialDelayMs > 0) await sleepFn(initialDelayMs);
+
+  for (let i = 0; i < maxAttempts; i++) {
+    const statusCode = await params.getStatus();
+    const readiness = classifyContainerStatus(statusCode);
+    if (readiness === 'ready') {
+      return { statusCode, attempts: i + 1, published: false };
+    }
+    if (readiness === 'error') throw new Error('container_error');
+    if (readiness === 'expired') throw new Error('container_expired');
+    if (i < maxAttempts - 1) await sleepFn(intervalMs);
+  }
+  throw new Error('container_timeout');
+}
+
+/** Simulate publish pipeline decisions for unit tests (no network). */
+export async function runPublishPipeline(params: {
+  statusSequence: string[];
+  mediaKind?: MediaKind;
+  alreadyPublishedMediaId?: string | null;
+  sleepFn?: (ms: number) => Promise<void>;
+  initialDelayMs?: number;
+  intervalMs?: number;
+  maxAttempts?: number;
+}): Promise<{
+  published: boolean;
+  mediaId: string | null;
+  mediaPublishCalled: boolean;
+  error?: string;
+}> {
+  if (params.alreadyPublishedMediaId) {
+    return {
+      published: true,
+      mediaId: params.alreadyPublishedMediaId,
+      mediaPublishCalled: false,
+    };
+  }
+
+  let idx = 0;
+  let mediaPublishCalled = false;
+  try {
+    await waitForContainerReady({
+      mediaKind: params.mediaKind ?? 'image',
+      initialDelayMs: params.initialDelayMs ?? 0,
+      intervalMs: params.intervalMs ?? 0,
+      maxAttempts: params.maxAttempts ?? params.statusSequence.length + 2,
+      sleepFn: params.sleepFn ?? (async () => undefined),
+      getStatus: async () => {
+        const code = params.statusSequence[Math.min(idx, params.statusSequence.length - 1)]!;
+        idx += 1;
+        return code;
+      },
+    });
+    mediaPublishCalled = true;
+    return { published: true, mediaId: 'media-test-1', mediaPublishCalled };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'publish_failed';
+    return { published: false, mediaId: null, mediaPublishCalled, error };
+  }
 }
 
 export function resolveMediaProduct(params: { mediaKind: MediaKind; format: ContentFormat }): {
@@ -69,6 +181,7 @@ export function publishErrorI18nKey(error: string | undefined): string {
     case 'container_timeout':
       return 'igPublishContainerTimeout';
     case 'container_error':
+    case 'container_expired':
     case 'container_failed':
       return 'igPublishContainerFailed';
     case 'publish_failed':

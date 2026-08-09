@@ -8,8 +8,17 @@
 1. User prepares a draft (`status=ready`) and reviews the Instagram preview.
 2. Two taps on **Jetzt auf Instagram veröffentlichen** (confirm + publish).
 3. Client calls Edge `instagram-publish` with `{ action: "publish", draftId, confirmed: true }`.
-4. Edge decrypts `token_ref`, creates a signed asset URL, creates a Graph media container, waits if needed, then `media_publish`.
+4. Edge decrypts `token_ref`, creates a signed asset URL, creates a Graph media container, **always polls** `status_code` until `FINISHED`/`PUBLISHED` (including feed images), then `media_publish`.
 5. Result stored in `content_publish_attempts` (`meta_container_id`, `meta_media_id`).
+
+### Container polling
+
+Meta `status_code` values used: `FINISHED`, `PUBLISHED` (ready) · `IN_PROGRESS` / unknown (wait) · `ERROR` / `EXPIRED` (fail).
+
+| Media | Initial delay | Interval | Max checks | Approx. max wait |
+| ----- | ------------- | -------- | ---------- | ---------------- |
+| image | 2s            | 2s       | 30         | ~62s             |
+| video | 3s            | 3s       | 40         | ~123s            |
 
 ## Graph API (Instagram Login)
 

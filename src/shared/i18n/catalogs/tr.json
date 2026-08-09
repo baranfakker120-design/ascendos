@@ -1187,7 +1187,7 @@
     "igPublishApiNotReady": "Instagram yayın API’si henüz etkin değil.",
     "igPublishQueued": "Yayın başlatılıyor…",
     "igPublishing": "Instagram’da yayınlanıyor…",
-    "igPublishSuccess": "Başarıyla yayınlandı.",
+    "igPublishSuccess": "Instagram’da başarıyla yayınlandı.",
     "igPublishSuccessShort": "Yayınlandı",
     "igPublishAlreadyDone": "Zaten yayınlandı — ikinci gönderi oluşturulmadı.",
     "igPublishNeedPermission": "Meta izni “instagram_business_content_publish” eksik. Developer Dashboard’da etkinleştir ve Instagram’ı yeniden bağla.",
@@ -1197,6 +1197,7 @@
     "igPublishContainerFailed": "Instagram medya kapsayıcısını oluşturamadı.",
     "igPublishFailed": "Yayın başarısız. İkinci gönderi oluşturulmadı.",
     "igPublishNeedReconnect": "Instagram jetonu geçersiz. Bağlantıyı kesip yeniden bağlan.",
-    "igPublishMediaUrlFailed": "Instagram için medya URL’si oluşturulamadı."
+    "igPublishMediaUrlFailed": "Instagram için medya URL’si oluşturulamadı.",
+    "igPublishPreparing": "Instagram gönderini hazırlıyor…"
   }
 }
