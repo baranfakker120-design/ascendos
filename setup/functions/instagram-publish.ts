@@ -420,7 +420,7 @@ export type ContentFormat = 'story' | 'feed' | 'reel';
 
 export type MediaKind = 'image' | 'video';
 
-export interface PublishErrorCode =
+export type PublishErrorCode =
   | 'not_authenticated'
   | 'no_active_membership'
   | 'confirm_required'
