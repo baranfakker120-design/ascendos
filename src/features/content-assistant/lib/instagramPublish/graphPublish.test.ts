@@ -15,14 +15,16 @@ describe('resolveMediaProduct', () => {
       mediaType: null,
       useImageUrl: true,
       useVideoUrl: false,
+      shareToFeed: false,
     });
   });
 
-  it('maps reel/video to REELS + video_url', () => {
+  it('maps reel/video to REELS + video_url + share_to_feed', () => {
     expect(resolveMediaProduct({ mediaKind: 'video', format: 'reel' })).toEqual({
       mediaType: 'REELS',
       useImageUrl: false,
       useVideoUrl: true,
+      shareToFeed: true,
     });
   });
 });

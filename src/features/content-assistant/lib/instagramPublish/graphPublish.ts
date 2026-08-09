@@ -126,6 +126,7 @@ export function resolveMediaProduct(params: { mediaKind: MediaKind; format: Cont
   mediaType: 'IMAGE' | 'REELS' | 'STORIES' | null;
   useImageUrl: boolean;
   useVideoUrl: boolean;
+  shareToFeed: boolean;
 } {
   const { mediaKind, format } = params;
   if (format === 'story') {
@@ -133,12 +134,40 @@ export function resolveMediaProduct(params: { mediaKind: MediaKind; format: Cont
       mediaType: 'STORIES',
       useImageUrl: mediaKind === 'image',
       useVideoUrl: mediaKind === 'video',
+      shareToFeed: false,
     };
   }
   if (mediaKind === 'video' || format === 'reel') {
-    return { mediaType: 'REELS', useImageUrl: false, useVideoUrl: true };
+    return {
+      mediaType: 'REELS',
+      useImageUrl: false,
+      useVideoUrl: true,
+      shareToFeed: true,
+    };
   }
-  return { mediaType: null, useImageUrl: true, useVideoUrl: false };
+  return { mediaType: null, useImageUrl: true, useVideoUrl: false, shareToFeed: false };
+}
+
+/** Pure helper mirroring Edge container field assembly (no network / no tokens). */
+export function buildMediaContainerFields(params: {
+  mediaKind: MediaKind;
+  format: ContentFormat;
+  mediaUrl: string;
+  caption: string;
+}): Record<string, string> {
+  const product = resolveMediaProduct({
+    mediaKind: params.mediaKind,
+    format: params.format,
+  });
+  const fields: Record<string, string> = {};
+  if (product.useImageUrl) fields.image_url = params.mediaUrl;
+  if (product.useVideoUrl) fields.video_url = params.mediaUrl;
+  if (product.mediaType) fields.media_type = product.mediaType;
+  if (product.shareToFeed) fields.share_to_feed = 'true';
+  if (params.caption && product.mediaType !== 'STORIES') {
+    fields.caption = params.caption;
+  }
+  return fields;
 }
 
 export function buildPublishCaption(params: {
@@ -190,6 +219,22 @@ export function publishErrorI18nKey(error: string | undefined): string {
       return 'igPublishNeedReconnect';
     case 'signed_url_failed':
       return 'igPublishMediaUrlFailed';
+    case 'unsupported_video_format':
+      return 'igPublishVideoFormat';
+    case 'video_file_too_large':
+      return 'igPublishVideoTooLarge';
+    case 'video_too_short':
+      return 'igPublishVideoTooShort';
+    case 'video_too_long':
+      return 'igPublishVideoTooLong';
+    case 'video_resolution_invalid':
+      return 'igPublishVideoResolution';
+    case 'video_aspect_invalid':
+      return 'igPublishVideoAspect';
+    case 'video_not_ready':
+      return 'igPublishVideoNotReady';
+    case 'audio_unavailable':
+      return 'igAudioUnavailable';
     default:
       return 'igPublishFailed';
   }

@@ -14,10 +14,17 @@ import {
   formatHashtagsForDisplay,
   type InstagramPublishGateReason,
 } from './lib/instagramPublish/publishGate';
+import { readVideoDurationFromUrl } from './lib/instagramPublish/readVideoDuration';
+import {
+  IG_OFFICIAL_AUDIO_CAPABILITY,
+  reelValidationI18nKey,
+  validateReelAssetForPublish,
+} from './lib/instagramPublish/reelVideoValidation';
 
 /**
- * Phase 5C — Instagram post preview + official Graph publish after confirm.
+ * Phase 5C/5D — Instagram post/Reel preview + official Graph publish after confirm.
  * Requires two explicit clicks. Never auto-publishes. No tokens in the UI.
+ * Official Music/Audio library is unavailable with Instagram Login OAuth.
  */
 export function InstagramPublishPreview({
   asset,
@@ -74,6 +81,9 @@ export function InstagramPublishPreview({
     () => buildInstagramCaptionPreview(caption, hashtags),
     [caption, hashtags]
   );
+  const isReel =
+    draft.format === 'reel' || (draft.format !== 'story' && asset?.media_kind === 'video');
+  const showAudioNotice = isReel && !IG_OFFICIAL_AUDIO_CAPABILITY.availableWithCurrentOAuth;
 
   const gate = evaluateInstagramPublishGate({
     connected,
@@ -142,10 +152,42 @@ export function InstagramPublishPreview({
       return;
     }
 
+    // Client-side Meta video checks (duration via signed URL) before Edge publish.
+    if (asset && (asset.media_kind === 'video' || draft.format === 'reel')) {
+      let durationSec: number | null = null;
+      if (mediaUrl && asset.media_kind === 'video') {
+        durationSec = await readVideoDurationFromUrl(mediaUrl);
+      }
+      const videoCheck = validateReelAssetForPublish({
+        mediaKind: asset.media_kind,
+        format: draft.format,
+        mimeType: asset.mime_type,
+        byteSize: asset.byte_size,
+        widthPx: asset.width_px,
+        heightPx: asset.height_px,
+        durationSec,
+        requireDuration: asset.media_kind === 'video',
+      });
+      if (videoCheck !== 'ok') {
+        setConfirming(false);
+        setFeedbackTone('error');
+        setFeedback(
+          t(
+            `contentAssistant.${reelValidationI18nKey(videoCheck)}` as 'contentAssistant.igPublishFailed'
+          )
+        );
+        return;
+      }
+    }
+
     inFlightRef.current = true;
     setFeedbackTone('info');
     // Polling can take tens of seconds — never show a premature failure while waiting.
-    setFeedback(t('contentAssistant.igPublishPreparing'));
+    setFeedback(
+      isReel
+        ? t('contentAssistant.igPublishPreparingReel')
+        : t('contentAssistant.igPublishPreparing')
+    );
 
     try {
       const result = await publishMutation.mutateAsync(draft.id);
@@ -182,8 +224,14 @@ export function InstagramPublishPreview({
     <div ref={rootRef}>
       <Card className="space-y-3">
         <div className="space-y-1">
-          <p className="font-semibold text-ink">{t('contentAssistant.igPreviewTitle')}</p>
-          <p className="text-sm text-muted">{t('contentAssistant.igPreviewHint')}</p>
+          <p className="font-semibold text-ink">
+            {isReel
+              ? t('contentAssistant.igPreviewTitleReel')
+              : t('contentAssistant.igPreviewTitle')}
+          </p>
+          <p className="text-sm text-muted">
+            {isReel ? t('contentAssistant.igPreviewHintReel') : t('contentAssistant.igPreviewHint')}
+          </p>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-line bg-[rgb(var(--color-bg))]">
@@ -203,12 +251,18 @@ export function InstagramPublishPreview({
                   ? t('contentAssistant.igStatusConnected')
                   : t('contentAssistant.igStatusDisconnected')}
                 {' · '}
-                {draft.format}
+                {isReel ? t('contentAssistant.igFormatReel') : draft.format}
               </p>
             </div>
           </div>
 
-          <div className="relative aspect-square w-full bg-black/5">
+          <div
+            className={
+              isReel
+                ? 'relative mx-auto aspect-[9/16] w-full max-w-[280px] bg-black/5'
+                : 'relative aspect-square w-full bg-black/5'
+            }
+          >
             {!asset ? (
               <div className="flex h-full items-center justify-center text-sm text-muted">
                 {t('contentAssistant.igPublishNeedMedia')}
@@ -258,6 +312,17 @@ export function InstagramPublishPreview({
               </p>
             </div>
 
+            {showAudioNotice ? (
+              <div>
+                <p className="text-[0.68rem] font-semibold uppercase tracking-wide text-muted">
+                  {t('contentAssistant.igAudioLabel')}
+                </p>
+                <p className="mt-0.5 text-sm text-muted">
+                  {t('contentAssistant.igAudioUnavailable')}
+                </p>
+              </div>
+            ) : null}
+
             {captionPreview ? <p className="sr-only">{captionPreview}</p> : null}
           </div>
         </div>
@@ -269,12 +334,16 @@ export function InstagramPublishPreview({
           onClick={() => void onPublishClick()}
         >
           {busy
-            ? t('contentAssistant.igPublishPreparing')
+            ? isReel
+              ? t('contentAssistant.igPublishPreparingReel')
+              : t('contentAssistant.igPublishPreparing')
             : done
               ? t('contentAssistant.igPublishSuccessShort')
               : confirming
                 ? t('contentAssistant.igPublishConfirmCta')
-                : t('contentAssistant.igPublishNow')}
+                : isReel
+                  ? t('contentAssistant.igPublishNowReel')
+                  : t('contentAssistant.igPublishNow')}
         </Button>
 
         <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>

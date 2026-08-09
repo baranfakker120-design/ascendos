@@ -438,6 +438,14 @@ export type PublishErrorCode =
   | 'container_error'
   | 'publish_failed'
   | 'already_in_progress'
+  | 'unsupported_video_format'
+  | 'video_file_too_large'
+  | 'video_too_short'
+  | 'video_too_long'
+  | 'video_resolution_invalid'
+  | 'video_aspect_invalid'
+  | 'video_not_ready'
+  | 'audio_unavailable'
   | 'internal_error';
 
 // ---- inline: _shared/instagram-publish/caption.ts ----
@@ -548,6 +556,7 @@ export function resolveMediaProduct(params: {
   mediaType: 'IMAGE' | 'REELS' | 'STORIES' | null;
   useImageUrl: boolean;
   useVideoUrl: boolean;
+  shareToFeed: boolean;
 } {
   const { mediaKind, format } = params;
   if (format === 'story') {
@@ -555,13 +564,19 @@ export function resolveMediaProduct(params: {
       mediaType: 'STORIES',
       useImageUrl: mediaKind === 'image',
       useVideoUrl: mediaKind === 'video',
+      shareToFeed: false,
     };
   }
   if (mediaKind === 'video' || format === 'reel') {
-    return { mediaType: 'REELS', useImageUrl: false, useVideoUrl: true };
+    return {
+      mediaType: 'REELS',
+      useImageUrl: false,
+      useVideoUrl: true,
+      shareToFeed: true,
+    };
   }
   // Feed image — Meta accepts image_url without media_type.
-  return { mediaType: null, useImageUrl: true, useVideoUrl: false };
+  return { mediaType: null, useImageUrl: true, useVideoUrl: false, shareToFeed: false };
 }
 
 export async function createMediaContainer(params: {
@@ -591,6 +606,10 @@ export async function createMediaContainer(params: {
   if (product.useImageUrl) body.set('image_url', params.mediaUrl);
   if (product.useVideoUrl) body.set('video_url', params.mediaUrl);
   if (product.mediaType) body.set('media_type', product.mediaType);
+  // Official Reels param — also surfaces the Reel on the profile feed when supported.
+  if (product.mediaType === 'REELS') {
+    body.set('share_to_feed', 'true');
+  }
   // Feed/Reels captions; Stories omit caption (not a feed caption field).
   if (params.caption && product.mediaType !== 'STORIES') {
     body.set('caption', params.caption);
@@ -709,15 +728,138 @@ export function connectionHasPublishScope(scopes: string[] | null | undefined): 
   return (scopes ?? []).includes('instagram_business_content_publish');
 }
 
+// ---- inline: _shared/instagram-publish/reelVideo.ts ----
+/**
+ * Official Instagram Reels video requirements (IG User Media Reel Specifications).
+ * Used server-side before creating a Graph media container.
+ */
+
+export type ReelValidationCode =
+  | 'ok'
+  | 'missing_media'
+  | 'unsupported_video_format'
+  | 'video_file_too_large'
+  | 'video_too_short'
+  | 'video_too_long'
+  | 'video_resolution_invalid'
+  | 'video_aspect_invalid'
+  | 'video_not_ready';
+
+/** Meta Reel specs — Instagram Graph / IG User Media. */
+export const IG_REEL_VIDEO_SPECS = {
+  allowedMimeTypes: ['video/mp4', 'video/quicktime'] as const,
+  maxBytes: 300 * 1024 * 1024,
+  minDurationSec: 3,
+  maxDurationSec: 15 * 60,
+  maxWidthPx: 1920,
+  minAspectRatio: 0.01,
+  maxAspectRatio: 10,
+} as const;
+
+/**
+ * Instagram Audio API requires Facebook Login (Meta changelog).
+ * AscendOS uses Business Login for Instagram → not available without OAuth redesign.
+ */
+export const IG_OFFICIAL_AUDIO_CAPABILITY = {
+  availableWithCurrentOAuth: false as const,
+  currentLoginPath: 'instagram_business_login',
+  requiredLoginPath: 'facebook_login_for_business',
+  endpoints: ['GET /ig_audio', 'GET /{ig_audio_id}'] as const,
+} as const;
+
+export function isInstagramPublishableVideoMime(mime: string | null | undefined): boolean {
+  const m = (mime ?? '').trim().toLowerCase();
+  return (IG_REEL_VIDEO_SPECS.allowedMimeTypes as readonly string[]).includes(m);
+}
+
+export function validateReelAssetForPublish(input: {
+  mediaKind: 'image' | 'video' | null | undefined;
+  /** Draft format — Stories use a shorter Meta duration/size cap. */
+  format?: 'story' | 'feed' | 'reel' | null;
+  mimeType?: string | null;
+  byteSize?: number | null;
+  widthPx?: number | null;
+  heightPx?: number | null;
+  durationSec?: number | null;
+  requireDuration?: boolean;
+}): ReelValidationCode {
+  if (!input.mediaKind) return 'missing_media';
+  if (input.format === 'reel' && input.mediaKind !== 'video') return 'missing_media';
+  if (input.mediaKind !== 'video') return 'ok';
+
+  const mime = (input.mimeType ?? '').trim().toLowerCase();
+  if (!mime || !isInstagramPublishableVideoMime(mime)) return 'unsupported_video_format';
+
+  // Story video: 100 MB / 60 s (Meta Story Video Specifications).
+  // Reels / feed video as REELS: 300 MB / 15 min (Meta Reel Specifications).
+  const isStory = input.format === 'story';
+  const maxBytes = isStory ? 100 * 1024 * 1024 : IG_REEL_VIDEO_SPECS.maxBytes;
+  const maxDuration = isStory ? 60 : IG_REEL_VIDEO_SPECS.maxDurationSec;
+
+  const bytes = input.byteSize ?? null;
+  if (bytes != null && (bytes <= 0 || bytes > maxBytes)) {
+    return 'video_file_too_large';
+  }
+
+  const w = input.widthPx ?? null;
+  const h = input.heightPx ?? null;
+  if (w != null && h != null && w > 0 && h > 0) {
+    if (w > IG_REEL_VIDEO_SPECS.maxWidthPx) return 'video_resolution_invalid';
+    const ratio = w / h;
+    if (
+      ratio < IG_REEL_VIDEO_SPECS.minAspectRatio ||
+      ratio > IG_REEL_VIDEO_SPECS.maxAspectRatio
+    ) {
+      return 'video_aspect_invalid';
+    }
+  }
+
+  const duration = input.durationSec;
+  if (input.requireDuration && (duration == null || !Number.isFinite(duration))) {
+    return 'video_not_ready';
+  }
+  if (duration != null && Number.isFinite(duration)) {
+    if (duration < IG_REEL_VIDEO_SPECS.minDurationSec) return 'video_too_short';
+    if (duration > maxDuration) return 'video_too_long';
+  }
+
+  return 'ok';
+}
+
+export function reelValidationErrorMessage(code: ReelValidationCode): string {
+  switch (code) {
+    case 'unsupported_video_format':
+      return 'Videoformat nicht unterstützt. Instagram Reels benötigen MP4 (oder MOV).';
+    case 'video_file_too_large':
+      return 'Videodatei zu groß (max. 300 MB laut Meta).';
+    case 'video_too_short':
+      return 'Video zu kurz (mindestens 3 Sekunden laut Meta).';
+    case 'video_too_long':
+      return 'Video zu lang (maximal 15 Minuten laut Meta).';
+    case 'video_resolution_invalid':
+      return 'Videoauflösung nicht unterstützt (max. 1920 px Breite laut Meta).';
+    case 'video_aspect_invalid':
+      return 'Seitenverhältnis nicht unterstützt (zwischen 0,01:1 und 10:1 laut Meta).';
+    case 'video_not_ready':
+      return 'Video-Metadaten noch nicht bereit. Bitte kurz warten und erneut versuchen.';
+    case 'missing_media':
+      return 'Kein Medium ausgewählt.';
+    default:
+      return 'Video-Validierung fehlgeschlagen.';
+  }
+}
+
 // ---- inline: _shared/instagram-publish/index.ts ----
 
 
 /**
- * instagram-publish — Phase 5C official Instagram Graph Content Publishing.
+ * instagram-publish — Phase 5C/5D official Instagram Graph Content Publishing.
  *
  * Official Meta path only (graph.instagram.com).
  * Requires explicit user confirmation in the request body.
  * Reuses encrypted token_ref from content_instagram_connections (decrypt server-side).
+ * Phase 5D: Reels container (`media_type=REELS`) + server-side video validation.
+ * Official Instagram Audio/Music library is NOT available with Instagram Login OAuth.
  * Does not modify the oauth start/callback flow.
  *
  * POST { action: "publish", draftId, confirmed: true } + user JWT
@@ -752,6 +894,9 @@ interface AssetRow {
   storage_path: string;
   media_kind: MediaKind;
   mime_type: string;
+  byte_size: number | null;
+  width_px: number | null;
+  height_px: number | null;
 }
 
 interface ConnectionRow {
@@ -895,13 +1040,36 @@ Deno.serve(async (req) => {
 
     const { data: assetRaw, error: assetErr } = await db
       .from('content_assets')
-      .select('id, org_id, storage_path, media_kind, mime_type')
+      .select('id, org_id, storage_path, media_kind, mime_type, byte_size, width_px, height_px')
       .eq('id', draft.asset_id)
       .maybeSingle();
     if (assetErr) throw assetErr;
     const asset = assetRaw as AssetRow | null;
     if (!asset || asset.org_id !== membership.org_id || !asset.storage_path) {
       return json({ ok: false, error: 'asset_not_found' }, 404);
+    }
+
+    // Phase 5D: reject Meta-incompatible videos before any Graph container call.
+    if (asset.media_kind === 'video' || draft.format === 'reel') {
+      const videoCheck = validateReelAssetForPublish({
+        mediaKind: asset.media_kind,
+        format: draft.format,
+        mimeType: asset.mime_type,
+        byteSize: asset.byte_size,
+        widthPx: asset.width_px,
+        heightPx: asset.height_px,
+      });
+      if (videoCheck !== 'ok') {
+        const code = videoCheck as Exclude<ReelValidationCode, 'ok'>;
+        return safePublishResponse(
+          {
+            ok: false,
+            error: code,
+            message: reelValidationErrorMessage(code),
+          },
+          400
+        );
+      }
     }
 
     const caption = buildPublishCaption({
