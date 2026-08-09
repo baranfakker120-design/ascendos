@@ -136,17 +136,20 @@ describe('Instagram Audio Search Phase C', () => {
   });
 
   it('Meta API error is classified and sanitized (no token leak)', async () => {
+    // Artificial fixture (not a Meta token shape) — still exercises access_token= sanitization.
+    const fakeAccessTokenValue = 'TEST_FIXTURE_META_TOKEN_VALUE';
     const classified = classifyMetaAudioSearchError({
       httpStatus: 500,
       body: {
         error: {
-          message: 'Unexpected failure access_token=EAAsecret12345678901234567890',
+          message: `Unexpected failure access_token=${fakeAccessTokenValue}`,
           code: 1,
         },
       },
     });
     expect(classified.code).toBe('meta_api_error');
-    expect(classified.message).not.toContain('EAAsecret');
+    expect(classified.message).not.toContain(fakeAccessTokenValue);
+    expect(classified.message).toContain('access_token=[redacted]');
     expect(sanitizeAudioMetaError('token=EAAabcdefghijklmnopqr')).toContain('[redacted]');
 
     const fetchFn = vi.fn(
