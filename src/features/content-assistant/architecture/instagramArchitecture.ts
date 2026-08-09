@@ -66,8 +66,9 @@ export function isInstagramConnectEnabled(): boolean {
 }
 
 /**
- * Phase 5C: Official Graph Content Publishing via `instagram-publish` Edge Function.
- * Still requires explicit two-tap confirm in the UI; never auto-publishes.
+ * Phase 5C/5D: Official Graph Content Publishing via `instagram-publish` Edge Function
+ * (feed images + Reels video containers). Still requires explicit two-tap confirm;
+ * never auto-publishes. Official Music/Audio library is not available with Instagram Login.
  */
 export function isInstagramPublishingEnabled(): boolean {
   return true;

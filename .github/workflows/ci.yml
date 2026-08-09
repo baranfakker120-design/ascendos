@@ -33,9 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Pin a concrete CLI release. `version: latest` resolves via the GitHub
+      # Releases API and can fail CI with unauthenticated rate-limit errors
+      # before any migrations/pgTAP run.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.113.0
       # Startet den lokalen Stack, fährt alle Migrationen + Seed,
       # führt danach die pgTAP-Tests aus. Ein roter RLS-Test
       # blockiert den Merge (ADR-014).

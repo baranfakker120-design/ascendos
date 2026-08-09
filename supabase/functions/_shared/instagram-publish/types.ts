@@ -36,4 +36,12 @@ export type PublishErrorCode =
   | 'container_error'
   | 'publish_failed'
   | 'already_in_progress'
+  | 'unsupported_video_format'
+  | 'video_file_too_large'
+  | 'video_too_short'
+  | 'video_too_long'
+  | 'video_resolution_invalid'
+  | 'video_aspect_invalid'
+  | 'video_not_ready'
+  | 'audio_unavailable'
   | 'internal_error';

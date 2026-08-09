@@ -33,11 +33,11 @@ Version: `v25.0` (same as Phase 5A `/me`)
 
 ### Format mapping
 
-| Draft format | Media       | Graph                                        |
-| ------------ | ----------- | -------------------------------------------- |
-| feed         | image       | `image_url` + `caption`                      |
-| feed / reel  | video       | `media_type=REELS` + `video_url` + `caption` |
-| story        | image/video | `media_type=STORIES` + url (no feed caption) |
+| Draft format | Media       | Graph                                                                          |
+| ------------ | ----------- | ------------------------------------------------------------------------------ |
+| feed         | image       | `image_url` + `caption`                                                        |
+| feed / reel  | video       | `media_type=REELS` + `video_url` + `caption` + `share_to_feed=true` (Phase 5D) |
+| story        | image/video | `media_type=STORIES` + url (no feed caption)                                   |
 
 ## Permissions
 

@@ -1,9 +1,11 @@
 /**
- * instagram-publish — Phase 5C official Instagram Graph Content Publishing.
+ * instagram-publish — Phase 5C/5D official Instagram Graph Content Publishing.
  *
  * Official Meta path only (graph.instagram.com).
  * Requires explicit user confirmation in the request body.
  * Reuses encrypted token_ref from content_instagram_connections (decrypt server-side).
+ * Phase 5D: Reels container (`media_type=REELS`) + server-side video validation.
+ * Official Instagram Audio/Music library is NOT available with Instagram Login OAuth.
  * Does not modify the oauth start/callback flow.
  *
  * POST { action: "publish", draftId, confirmed: true } + user JWT
@@ -18,9 +20,12 @@ import {
   createMediaContainer,
   IG_PUBLISH_SCOPE,
   publishMediaContainer,
+  reelValidationErrorMessage,
+  validateReelAssetForPublish,
   waitForContainerReady,
   type ContentFormat,
   type MediaKind,
+  type ReelValidationCode,
 } from '../_shared/instagram-publish/index.ts';
 
 /** Same private bucket as content-generate (avoid bundling that group here). */
@@ -51,6 +56,9 @@ interface AssetRow {
   storage_path: string;
   media_kind: MediaKind;
   mime_type: string;
+  byte_size: number | null;
+  width_px: number | null;
+  height_px: number | null;
 }
 
 interface ConnectionRow {
@@ -194,13 +202,36 @@ Deno.serve(async (req) => {
 
     const { data: assetRaw, error: assetErr } = await db
       .from('content_assets')
-      .select('id, org_id, storage_path, media_kind, mime_type')
+      .select('id, org_id, storage_path, media_kind, mime_type, byte_size, width_px, height_px')
       .eq('id', draft.asset_id)
       .maybeSingle();
     if (assetErr) throw assetErr;
     const asset = assetRaw as AssetRow | null;
     if (!asset || asset.org_id !== membership.org_id || !asset.storage_path) {
       return json({ ok: false, error: 'asset_not_found' }, 404);
+    }
+
+    // Phase 5D: reject Meta-incompatible videos before any Graph container call.
+    if (asset.media_kind === 'video' || draft.format === 'reel') {
+      const videoCheck = validateReelAssetForPublish({
+        mediaKind: asset.media_kind,
+        format: draft.format,
+        mimeType: asset.mime_type,
+        byteSize: asset.byte_size,
+        widthPx: asset.width_px,
+        heightPx: asset.height_px,
+      });
+      if (videoCheck !== 'ok') {
+        const code = videoCheck as Exclude<ReelValidationCode, 'ok'>;
+        return safePublishResponse(
+          {
+            ok: false,
+            error: code,
+            message: reelValidationErrorMessage(code),
+          },
+          400
+        );
+      }
     }
 
     const caption = buildPublishCaption({

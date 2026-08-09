@@ -114,6 +114,33 @@ async function readImageDimensions(
   }
 }
 
+/** Best-effort video width/height for Instagram Reel pre-checks (no duration column yet). */
+async function readVideoDimensions(
+  file: File
+): Promise<{ width: number | null; height: number | null }> {
+  if (!file.type.startsWith('video/')) return { width: null, height: null };
+  const url = URL.createObjectURL(file);
+  try {
+    const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        resolve({ width: video.videoWidth || 0, height: video.videoHeight || 0 });
+      };
+      video.onerror = () => reject(new Error('video_load_failed'));
+      video.src = url;
+    });
+    return {
+      width: dims.width > 0 ? dims.width : null,
+      height: dims.height > 0 ? dims.height : null,
+    };
+  } catch {
+    return { width: null, height: null };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export async function fetchContentQuota(): Promise<ContentQuota> {
   const [usedRes, limitRes, personalOk] = await Promise.all([
     supabase.rpc('content_personal_asset_count'),
@@ -179,9 +206,10 @@ export async function uploadContentAsset(params: {
   const ext = extForMime(file.type);
   const folder = scope === 'central' ? 'central' : userId;
   const storagePath = `${orgId}/${folder}/${assetId}/original.${ext}`;
-  const dims = await readImageDimensions(file);
-  const aspect = guessAspectRatio(dims.width, dims.height);
   const mediaKind = mediaKindForMime(file.type);
+  const dims =
+    mediaKind === 'video' ? await readVideoDimensions(file) : await readImageDimensions(file);
+  const aspect = guessAspectRatio(dims.width, dims.height);
 
   const { error: upErr } = await supabase.storage
     .from(CONTENT_ASSETS_BUCKET)

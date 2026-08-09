@@ -82,6 +82,7 @@ export function resolveMediaProduct(params: {
   mediaType: 'IMAGE' | 'REELS' | 'STORIES' | null;
   useImageUrl: boolean;
   useVideoUrl: boolean;
+  shareToFeed: boolean;
 } {
   const { mediaKind, format } = params;
   if (format === 'story') {
@@ -89,13 +90,19 @@ export function resolveMediaProduct(params: {
       mediaType: 'STORIES',
       useImageUrl: mediaKind === 'image',
       useVideoUrl: mediaKind === 'video',
+      shareToFeed: false,
     };
   }
   if (mediaKind === 'video' || format === 'reel') {
-    return { mediaType: 'REELS', useImageUrl: false, useVideoUrl: true };
+    return {
+      mediaType: 'REELS',
+      useImageUrl: false,
+      useVideoUrl: true,
+      shareToFeed: true,
+    };
   }
   // Feed image — Meta accepts image_url without media_type.
-  return { mediaType: null, useImageUrl: true, useVideoUrl: false };
+  return { mediaType: null, useImageUrl: true, useVideoUrl: false, shareToFeed: false };
 }
 
 export async function createMediaContainer(params: {
@@ -125,6 +132,10 @@ export async function createMediaContainer(params: {
   if (product.useImageUrl) body.set('image_url', params.mediaUrl);
   if (product.useVideoUrl) body.set('video_url', params.mediaUrl);
   if (product.mediaType) body.set('media_type', product.mediaType);
+  // Official Reels param — also surfaces the Reel on the profile feed when supported.
+  if (product.mediaType === 'REELS') {
+    body.set('share_to_feed', 'true');
+  }
   // Feed/Reels captions; Stories omit caption (not a feed caption field).
   if (params.caption && product.mediaType !== 'STORIES') {
     body.set('caption', params.caption);
