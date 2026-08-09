@@ -18,16 +18,13 @@ import {
   buildPublishCaption,
   connectionHasPublishScope,
   createMediaContainer,
-  draftHasAudioSelection,
   IG_PUBLISH_SCOPE,
-  planMusicPublish,
   publishMediaContainer,
   reelValidationErrorMessage,
   validateReelAssetForPublish,
   waitForContainerReady,
   type ContentFormat,
   type MediaKind,
-  type MusicPublishPlan,
   type ReelValidationCode,
 } from '../_shared/instagram-publish/index.ts';
 
@@ -51,7 +48,6 @@ interface DraftRow {
   cta: string | null;
   hashtags: string[] | null;
   status: string;
-  instagram_audio_json: unknown | null;
 }
 
 interface AssetRow {
@@ -135,14 +131,7 @@ async function resolveMembership(
 
 function safePublishResponse(payload: Record<string, unknown>, status = 200): Response {
   const body = JSON.stringify(payload);
-  if (
-    /"token_ref"\s*:/.test(body) ||
-    /"page_token_ref"\s*:/.test(body) ||
-    /"user_token_ref"\s*:/.test(body) ||
-    /"access_token"\s*:/.test(body) ||
-    /"accessToken"\s*:/.test(body) ||
-    /EAA[A-Za-z0-9]{20,}/.test(body)
-  ) {
+  if (/"token_ref"\s*:/.test(body) || /"access_token"\s*:/.test(body) || /"accessToken"\s*:/.test(body)) {
     console.error('instagram_publish_token_leak_blocked');
     return json({ ok: false, error: 'internal_error' }, 500);
   }
@@ -199,9 +188,7 @@ Deno.serve(async (req) => {
 
     const { data: draftRaw, error: draftErr } = await db
       .from('content_drafts')
-      .select(
-        'id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status, instagram_audio_json'
-      )
+      .select('id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status')
       .eq('id', draftId)
       .maybeSingle();
     if (draftErr) throw draftErr;
@@ -289,7 +276,6 @@ Deno.serve(async (req) => {
     }
 
     // Idempotency: already published for this draft → return success, no second post.
-    // Must run BEFORE music validation / Facebook connection lookup (Phase D Fix 1).
     const { data: publishedRows, error: pubLookupErr } = await admin
       .from('content_publish_attempts')
       .select('id, status, meta_container_id, meta_media_id, error_message')
@@ -308,53 +294,6 @@ Deno.serve(async (req) => {
         mediaId: already.meta_media_id,
         igUsername: connection.ig_username,
       });
-    }
-
-    // Phase D: music attach only when not already published.
-    // Facebook table is queried ONLY with an audio selection (Fix 2) — normal IG
-    // publish must not depend on content_facebook_business_connections existing.
-    type FbConnRow = {
-      status: string;
-      ig_user_id: string | null;
-      scopes: string[] | null;
-      page_token_ref: string | null;
-    };
-    let fbConn: FbConnRow | null = null;
-    let musicPlan: MusicPublishPlan = { mode: 'none' };
-
-    if (draftHasAudioSelection(draft.instagram_audio_json)) {
-      const { data: fbConnRaw, error: fbConnErr } = await admin
-        .from('content_facebook_business_connections')
-        .select('status, ig_user_id, scopes, page_token_ref')
-        .eq('org_id', membership.org_id)
-        .eq('membership_id', membership.id)
-        .maybeSingle();
-      if (fbConnErr) throw fbConnErr;
-      fbConn = fbConnRaw as FbConnRow | null;
-
-      musicPlan = planMusicPublish({
-        instagramAudioJson: draft.instagram_audio_json,
-        mediaKind: asset.media_kind,
-        format: draft.format,
-        facebookConnection: fbConn
-          ? {
-              status: fbConn.status,
-              igUserId: fbConn.ig_user_id,
-              scopes: fbConn.scopes,
-              hasPageToken: Boolean(fbConn.page_token_ref),
-            }
-          : null,
-      });
-      if (musicPlan.mode === 'error') {
-        return safePublishResponse(
-          {
-            ok: false,
-            error: musicPlan.error,
-            message: musicPlan.message,
-          },
-          400
-        );
-      }
     }
 
     const { data: activeRows, error: activeErr } = await admin
@@ -423,60 +362,14 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'missing_token' }, 500);
     }
 
-    // Default: Instagram Login token + graph.instagram.com (unchanged without music).
     let accessToken: string;
-    let publishIgUserId = connection.ig_user_id;
-    let graphHost: string | null = null;
-    let audioConfiguration: {
-      audio_id: string;
-      audio_volume: number;
-      video_volume: number;
-    } | null = null;
-
-    if (musicPlan.mode === 'attach') {
-      if (!fbConn?.page_token_ref || !fbConn.ig_user_id) {
-        await markAttemptFailed(admin, attempt.id, 'MUSIC_CONNECTION_REQUIRED');
-        return safePublishResponse(
-          {
-            ok: false,
-            error: 'MUSIC_CONNECTION_REQUIRED',
-            message:
-              'Publishing with Instagram library audio requires a valid Facebook Login for Business connection.',
-            attemptId: attempt.id,
-          },
-          400
-        );
-      }
-      try {
-        // Same AES-GCM token_ref format as Instagram Login tokens.
-        accessToken = await decryptToken(fbConn.page_token_ref, secret);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'decrypt_failed';
-        console.error('instagram_publish_fb_decrypt_failed', sanitizeMetaError(msg));
-        await markAttemptFailed(admin, attempt.id, 'MUSIC_CONNECTION_REQUIRED');
-        return safePublishResponse(
-          {
-            ok: false,
-            error: 'MUSIC_CONNECTION_REQUIRED',
-            message:
-              'Publishing with Instagram library audio requires a valid Facebook Login for Business connection.',
-            attemptId: attempt.id,
-          },
-          400
-        );
-      }
-      publishIgUserId = fbConn.ig_user_id;
-      graphHost = musicPlan.graphHost;
-      audioConfiguration = musicPlan.audioConfiguration;
-    } else {
-      try {
-        accessToken = await decryptToken(connection.token_ref, secret);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'decrypt_failed';
-        console.error('instagram_publish_decrypt_failed', sanitizeMetaError(msg));
-        await markAttemptFailed(admin, attempt.id, 'token_decrypt_failed');
-        return json({ ok: false, error: 'missing_token' }, 500);
-      }
+    try {
+      accessToken = await decryptToken(connection.token_ref, secret);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'decrypt_failed';
+      console.error('instagram_publish_decrypt_failed', sanitizeMetaError(msg));
+      await markAttemptFailed(admin, attempt.id, 'token_decrypt_failed');
+      return json({ ok: false, error: 'missing_token' }, 500);
     }
 
     let containerId = attempt.meta_container_id;
@@ -493,14 +386,12 @@ Deno.serve(async (req) => {
         }
 
         const created = await createMediaContainer({
-          igUserId: publishIgUserId,
+          igUserId: connection.ig_user_id,
           accessToken,
           mediaKind: asset.media_kind,
           format: draft.format,
           mediaUrl: signed.signedUrl,
           caption,
-          audioConfiguration,
-          graphHost,
         });
         containerId = created.containerId;
 
@@ -522,7 +413,6 @@ Deno.serve(async (req) => {
         containerId,
         accessToken,
         mediaKind: asset.media_kind,
-        graphHost,
       });
 
       // Idempotency: re-check before media_publish (parallel click / race).
@@ -546,10 +436,9 @@ Deno.serve(async (req) => {
       }
 
       const published = await publishMediaContainer({
-        igUserId: publishIgUserId,
+        igUserId: connection.ig_user_id,
         accessToken,
         containerId,
-        graphHost,
       });
 
       const { data: doneRow, error: doneErr } = await admin
@@ -598,12 +487,6 @@ Deno.serve(async (req) => {
       else if (sanitized.includes('container_error') || sanitized.includes('container_expired'))
         error = 'container_error';
       else if (sanitized.includes('container_')) error = 'container_failed';
-      else if (
-        audioConfiguration &&
-        (sanitized.toLowerCase().includes('audio') || sanitized.toLowerCase().includes('music'))
-      ) {
-        error = 'MUSIC_META_REJECTED';
-      }
 
       return safePublishResponse(
         {

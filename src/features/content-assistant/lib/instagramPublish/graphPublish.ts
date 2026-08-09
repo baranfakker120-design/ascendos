@@ -154,11 +154,6 @@ export function buildMediaContainerFields(params: {
   format: ContentFormat;
   mediaUrl: string;
   caption: string;
-  audioConfiguration?: {
-    audio_id: string;
-    audio_volume: number;
-    video_volume: number;
-  } | null;
 }): Record<string, string> {
   const product = resolveMediaProduct({
     mediaKind: params.mediaKind,
@@ -171,13 +166,6 @@ export function buildMediaContainerFields(params: {
   if (product.shareToFeed) fields.share_to_feed = 'true';
   if (params.caption && product.mediaType !== 'STORIES') {
     fields.caption = params.caption;
-  }
-  if (params.audioConfiguration && product.mediaType === 'REELS') {
-    fields.audio_configuration = JSON.stringify({
-      audio_id: params.audioConfiguration.audio_id,
-      audio_volume: params.audioConfiguration.audio_volume,
-      video_volume: params.audioConfiguration.video_volume,
-    });
   }
   return fields;
 }
@@ -247,14 +235,6 @@ export function publishErrorI18nKey(error: string | undefined): string {
       return 'igPublishVideoNotReady';
     case 'audio_unavailable':
       return 'igAudioUnavailable';
-    case 'MUSIC_CONNECTION_REQUIRED':
-      return 'igMusicConnectionRequired';
-    case 'MUSIC_AUDIO_INVALID':
-      return 'igMusicAudioInvalid';
-    case 'MUSIC_NOT_SUPPORTED_FOR_FEED':
-      return 'igMusicFeedBlocked';
-    case 'MUSIC_META_REJECTED':
-      return 'igMusicMetaRejected';
     default:
       return 'igPublishFailed';
   }

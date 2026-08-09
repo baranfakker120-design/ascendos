@@ -29,8 +29,6 @@ const FUNCTIONS = [
   'content-assistant',
   'content-daily-prepare',
   'instagram-oauth',
-  'facebook-business-oauth',
-  'instagram-audio-search',
   'instagram-publish',
   'meta-data-deletion',
   'instagram-webhook',
@@ -98,8 +96,6 @@ const SHARED_GROUPS = [
   'content-generate',
   'content-daily',
   'instagram-oauth',
-  'facebook-business-oauth',
-  'instagram-audio',
   'instagram-publish',
   'meta',
 ];
