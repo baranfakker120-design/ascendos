@@ -149,6 +149,16 @@ export function AiContentAssistantPage() {
         setGenerateError(t('contentAssistant.generationQuotaFull'));
       else if (msg.includes('ai_not_configured'))
         setGenerateError(t('contentAssistant.aiNotConfigured'));
+      else if (msg.includes('VIDEO_TOO_LARGE'))
+        setGenerateError(t('contentAssistant.videoTooLarge'));
+      else if (msg.includes('VIDEO_UNSUPPORTED_MIME'))
+        setGenerateError(t('contentAssistant.videoUnsupportedMime'));
+      else if (msg.includes('VIDEO_FETCH_FAILED'))
+        setGenerateError(t('contentAssistant.videoFetchFailed'));
+      else if (msg.includes('AI_PROVIDER_TIMEOUT'))
+        setGenerateError(t('contentAssistant.aiProviderTimeout'));
+      else if (msg.includes('AI_PROVIDER_BAD_REQUEST'))
+        setGenerateError(t('contentAssistant.aiProviderBadRequest'));
       else setGenerateError(t('contentAssistant.generateFailed'));
     }
   };

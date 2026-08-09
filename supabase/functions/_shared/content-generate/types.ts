@@ -45,4 +45,25 @@ export const CONTENT_ASSETS_BUCKET = 'content-assets';
 export const DEFAULT_DAILY_GENERATION_LIMIT = 25;
 export const VISION_MODEL = 'google/gemini-2.5-flash';
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-export const VISION_TIMEOUT_MS = 60_000;
+/** OpenRouter call budget (after video bytes are already in memory). */
+export const VISION_TIMEOUT_MS = 45_000;
+/** Server-side download of the private storage object. */
+export const VISION_VIDEO_FETCH_TIMEOUT_MS = 25_000;
+/**
+ * Max video size for AI analysis (base64 expands ~4/3).
+ * Storage assets allow up to 50 MB; vision stays below that for edge memory.
+ * ~30 MB iPhone MOVs (current production sample) must fit.
+ */
+export const VISION_VIDEO_MAX_BYTES = 35 * 1024 * 1024;
+export const VISION_VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime'] as const;
+
+export type VisionVideoMime = (typeof VISION_VIDEO_MIMES)[number];
+
+export type VisionErrorCode =
+  | 'VIDEO_FETCH_FAILED'
+  | 'VIDEO_TOO_LARGE'
+  | 'VIDEO_UNSUPPORTED_MIME'
+  | 'AI_PROVIDER_BAD_REQUEST'
+  | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_ERROR'
+  | 'missing_openrouter_key';
