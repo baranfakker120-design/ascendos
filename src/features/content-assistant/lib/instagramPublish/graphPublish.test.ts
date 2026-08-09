@@ -133,5 +133,6 @@ describe('buildPublishCaption / scopes / errors', () => {
   it('maps known codes', () => {
     expect(publishErrorI18nKey('missing_publish_permission')).toBe('igPublishNeedPermission');
     expect(publishErrorI18nKey('container_timeout')).toBe('igPublishContainerTimeout');
+    expect(publishErrorI18nKey('image_aspect_invalid')).toBe('igPublishImageAspect');
   });
 });

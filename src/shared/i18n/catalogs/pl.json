@@ -1217,6 +1217,7 @@
     "igPublishVideoTooLong": "Wideo jest za długie (Meta: max 15 minut dla Reels, 60 sekund dla Stories).",
     "igPublishVideoResolution": "Nieobsługiwana rozdzielczość (Meta: max 1920 px szerokości).",
     "igPublishVideoAspect": "Nieobsługiwany współczynnik proporcji (Meta: między 0,01:1 a 10:1).",
+    "igPublishImageAspect": "Zdjęcia w feedzie wymagają proporcji między 4:5 a 1,91:1. Automatycznie dopasowujemy obraz przy publikacji.",
     "igPublishVideoNotReady": "Metadane wideo nie są jeszcze gotowe. Poczekaj chwilę i spróbuj ponownie."
   }
 }

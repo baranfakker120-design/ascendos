@@ -12,13 +12,19 @@
  */
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
+import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { handleOptions, json } from '../_shared/cors.ts';
 import { decryptToken, sanitizeMetaError } from '../_shared/instagram-oauth/index.ts';
 import {
   buildPublishCaption,
+  computeFeedImageCrop,
   connectionHasPublishScope,
   createMediaContainer,
+  FEED_IMAGE_ASPECT_ERROR_MESSAGE,
+  feedImageEncodeWidth,
   IG_PUBLISH_SCOPE,
+  isFeedImageAspectAllowed,
+  isMetaFeedImageAspectError,
   publishMediaContainer,
   reelValidationErrorMessage,
   validateReelAssetForPublish,
@@ -30,6 +36,65 @@ import {
 
 /** Same private bucket as content-generate (avoid bundling that group here). */
 const CONTENT_ASSETS_BUCKET = 'content-assets';
+
+/**
+ * Meta feed images: JPEG only, aspect 4:5…1.91:1, width ≤1440.
+ * Center-crop + re-encode so any library image can publish within Instagram rules.
+ */
+async function prepareFeedImageUrlForMeta(params: {
+  admin: SupabaseClient;
+  sourceSignedUrl: string;
+  orgId: string;
+  draftId: string;
+  mimeType: string | null | undefined;
+}): Promise<string> {
+  const res = await fetch(params.sourceSignedUrl);
+  if (!res.ok) throw new Error('feed_image_fetch_failed');
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const image = await Image.decode(bytes);
+  const crop = computeFeedImageCrop(image.width, image.height);
+  const needsCrop =
+    crop.x !== 0 ||
+    crop.y !== 0 ||
+    crop.width !== image.width ||
+    crop.height !== image.height;
+  const mime = (params.mimeType ?? '').toLowerCase();
+  const needsJpeg = mime !== 'image/jpeg' && mime !== 'image/jpg';
+  const targetW = feedImageEncodeWidth(crop.width);
+  const needsResize = targetW !== crop.width;
+
+  if (!needsCrop && !needsJpeg && !needsResize && isFeedImageAspectAllowed(image.width, image.height)) {
+    return params.sourceSignedUrl;
+  }
+
+  let fitted = image;
+  if (needsCrop) {
+    fitted = image.clone().crop(crop.x, crop.y, crop.width, crop.height);
+  }
+  const encodeW = feedImageEncodeWidth(fitted.width);
+  if (encodeW !== fitted.width) {
+    const encodeH = Math.max(1, Math.round((fitted.height * encodeW) / fitted.width));
+    fitted.resize(encodeW, encodeH);
+  }
+
+  const jpeg = await fitted.encodeJPEG(85);
+  const path = `${params.orgId}/publish-fit/${params.draftId}.jpg`;
+  const { error: upErr } = await params.admin.storage.from(CONTENT_ASSETS_BUCKET).upload(path, jpeg, {
+    contentType: 'image/jpeg',
+    upsert: true,
+  });
+  if (upErr) {
+    console.error('instagram_publish_feed_fit_upload_failed', upErr.message);
+    throw new Error('feed_image_fit_failed');
+  }
+  const { data: fittedSigned, error: fitSignErr } = await params.admin.storage
+    .from(CONTENT_ASSETS_BUCKET)
+    .createSignedUrl(path, 7200);
+  if (fitSignErr || !fittedSigned?.signedUrl) {
+    throw new Error('feed_image_fit_failed');
+  }
+  return fittedSigned.signedUrl;
+}
 
 interface MembershipRow {
   id: string;
@@ -385,12 +450,39 @@ Deno.serve(async (req) => {
           return json({ ok: false, error: 'signed_url_failed' }, 500);
         }
 
+        let mediaUrl = signed.signedUrl;
+        // Feed images: fit into Meta's official aspect/JPEG rules before Graph create.
+        if (asset.media_kind === 'image' && draft.format !== 'story' && draft.format !== 'reel') {
+          try {
+            mediaUrl = await prepareFeedImageUrlForMeta({
+              admin,
+              sourceSignedUrl: signed.signedUrl,
+              orgId: membership.org_id,
+              draftId: draft.id,
+              mimeType: asset.mime_type,
+            });
+          } catch (fitErr) {
+            const fitMsg = fitErr instanceof Error ? fitErr.message : 'feed_image_fit_failed';
+            console.error('instagram_publish_feed_fit_failed', sanitizeMetaError(fitMsg));
+            await markAttemptFailed(admin, attempt.id, 'feed_image_fit_failed');
+            return safePublishResponse(
+              {
+                ok: false,
+                error: 'image_aspect_invalid',
+                message: FEED_IMAGE_ASPECT_ERROR_MESSAGE,
+                attemptId: attempt.id,
+              },
+              400
+            );
+          }
+        }
+
         const created = await createMediaContainer({
           igUserId: connection.ig_user_id,
           accessToken,
           mediaKind: asset.media_kind,
           format: draft.format,
-          mediaUrl: signed.signedUrl,
+          mediaUrl,
           caption,
         });
         containerId = created.containerId;
@@ -483,17 +575,22 @@ Deno.serve(async (req) => {
       await markAttemptFailed(admin, attempt.id, sanitized);
 
       let error = 'publish_failed';
+      let message = sanitized;
       if (sanitized.includes('container_timeout')) error = 'container_timeout';
       else if (sanitized.includes('container_error') || sanitized.includes('container_expired'))
         error = 'container_error';
       else if (sanitized.includes('container_')) error = 'container_failed';
+      else if (isMetaFeedImageAspectError(sanitized)) {
+        error = 'image_aspect_invalid';
+        message = FEED_IMAGE_ASPECT_ERROR_MESSAGE;
+      }
 
       return safePublishResponse(
         {
           ok: false,
           error,
           attemptId: attempt.id,
-          message: sanitized,
+          message,
         },
         502
       );

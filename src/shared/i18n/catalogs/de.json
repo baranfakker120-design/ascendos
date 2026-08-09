@@ -1217,6 +1217,7 @@
     "igPublishVideoTooLong": "Video zu lang (Meta: max. 15 Minuten für Reels, 60 Sekunden für Stories).",
     "igPublishVideoResolution": "Videoauflösung nicht unterstützt (Meta: max. 1920 px Breite).",
     "igPublishVideoAspect": "Seitenverhältnis nicht unterstützt (Meta: zwischen 0,01:1 und 10:1).",
+    "igPublishImageAspect": "Feed-Bilder brauchen ein Seitenverhältnis zwischen 4:5 und 1,91:1. Wir passen das Bild beim Veröffentlichen automatisch an.",
     "igPublishVideoNotReady": "Video-Metadaten noch nicht bereit. Bitte kurz warten und erneut versuchen."
   }
 }
