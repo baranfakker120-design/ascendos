@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { isInstagramPublishingEnabled } from './architecture/instagramArchitecture';
 import { createSignedAssetUrl, type ContentAsset } from './contentAssetsApi';
-import type { ContentDraft } from './contentDraftsApi';
+import { updateContentDraft, type ContentDraft } from './contentDraftsApi';
 import { useInstagramConnection } from './instagramConnectionApi';
 import { useInstagramPublish } from './instagramPublishApi';
 import { publishErrorI18nKey } from './lib/instagramPublish/graphPublish';
@@ -16,15 +18,20 @@ import {
 } from './lib/instagramPublish/publishGate';
 import { runClientConfirmedPublishAttempt } from './lib/instagramPublish/clientPublishAttempt';
 import { readVideoDurationFromUrl } from './lib/instagramPublish/readVideoDuration';
+import { useFacebookBusinessConnection } from './facebookBusinessConnectionApi';
+import { useInstagramAudioSearch } from './instagramAudioSearchApi';
+import type { InstagramAudioSearchItem, InstagramAudioSearchType } from './lib/instagramAudio';
 import {
-  IG_OFFICIAL_AUDIO_CAPABILITY,
-  reelValidationI18nKey,
-} from './lib/instagramPublish/reelVideoValidation';
+  isInstagramMusicAvailable,
+  resolveInstagramMusicCapability,
+  type InstagramAudioSelection,
+} from './lib/instagramPublish/instagramMusicFoundation';
+import { reelValidationI18nKey } from './lib/instagramPublish/reelVideoValidation';
 
 /**
- * Phase 5C/5D — Instagram post/Reel preview + official Graph publish after confirm.
- * Requires two explicit clicks. Never auto-publishes. No tokens in the UI.
- * Official Music/Audio library is unavailable with Instagram Login OAuth.
+ * Instagram post/Reel preview + official Graph publish after confirm.
+ * Phase D: optional library audio selection stored on draft; publish attaches audio_configuration
+ * for Reels only when a valid Facebook Business connection exists.
  */
 export function InstagramPublishPreview({
   asset,
@@ -40,15 +47,33 @@ export function InstagramPublishPreview({
   hashtags: string[];
 }) {
   const { t } = useI18n();
+  const { membership } = useAuth();
+  const qc = useQueryClient();
   const { connectionQuery } = useInstagramConnection();
+  const { connectionQuery: facebookConnectionQuery } = useFacebookBusinessConnection();
   const { publishMutation } = useInstagramPublish();
+  const { searchMutation } = useInstagramAudioSearch();
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackTone, setFeedbackTone] = useState<'ok' | 'error' | 'info'>('info');
   const [confirming, setConfirming] = useState(false);
   const [publishedMediaId, setPublishedMediaId] = useState<string | null>(null);
+  const [audioType, setAudioType] = useState<InstagramAudioSearchType>('music');
+  const [audioQuery, setAudioQuery] = useState('');
+  const [audioResults, setAudioResults] = useState<InstagramAudioSearchItem[]>([]);
+  const [audioSearchError, setAudioSearchError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const inFlightRef = useRef(false);
+
+  const audioSaveMutation = useMutation({
+    mutationFn: (selection: InstagramAudioSelection | null) =>
+      updateContentDraft(draft.id, { instagram_audio_json: selection }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({
+        queryKey: ['content-drafts', membership?.org_id, membership?.id],
+      });
+    },
+  });
 
   const connection = connectionQuery.data;
   const connected = connection?.status === 'connected';
@@ -83,7 +108,46 @@ export function InstagramPublishPreview({
   );
   const isReel =
     draft.format === 'reel' || (draft.format !== 'story' && asset?.media_kind === 'video');
-  const showAudioNotice = isReel && !IG_OFFICIAL_AUDIO_CAPABILITY.availableWithCurrentOAuth;
+  /** Phase C: music UI + search when Facebook Login scopes allow Audio API. */
+  const showMusicSection = isReel;
+  const musicCapability = resolveInstagramMusicCapability(facebookConnectionQuery.data);
+  const musicAvailable = isInstagramMusicAvailable(musicCapability);
+  const audioSearchAvailable = musicCapability.audio_search_available === true;
+
+  const onAudioSearch = () => {
+    setAudioSearchError(null);
+    searchMutation.mutate(
+      { audioType, searchQuery: audioQuery.trim() || undefined },
+      {
+        onSuccess: (result) => {
+          setAudioResults(result.audio);
+        },
+        onError: (err) => {
+          setAudioResults([]);
+          const msg = err instanceof Error ? err.message : 'audio_search_failed';
+          setAudioSearchError(msg);
+        },
+      }
+    );
+  };
+
+  const onSelectAudio = (item: InstagramAudioSearchItem) => {
+    const selection: InstagramAudioSelection = {
+      audio_id: item.audio_id,
+      audio_type: item.audio_type,
+      title: item.title,
+      artist: item.artist,
+      audio_volume: 100,
+      video_volume: 100,
+    };
+    audioSaveMutation.mutate(selection);
+  };
+
+  const onClearAudio = () => {
+    audioSaveMutation.mutate(null);
+  };
+
+  const selectedAudio = draft.instagram_audio_json;
 
   const gate = evaluateInstagramPublishGate({
     connected,
@@ -325,14 +389,112 @@ export function InstagramPublishPreview({
               </p>
             </div>
 
-            {showAudioNotice ? (
-              <div>
+            {showMusicSection ? (
+              <div className="space-y-2">
                 <p className="text-[0.68rem] font-semibold uppercase tracking-wide text-muted">
                   {t('contentAssistant.igAudioLabel')}
                 </p>
-                <p className="mt-0.5 text-sm text-muted">
-                  {t('contentAssistant.igAudioUnavailable')}
-                </p>
+                {!musicAvailable ? (
+                  <p className="mt-0.5 text-sm text-muted">
+                    {t('contentAssistant.igAudioUnavailable')}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedAudio?.audio_id ? (
+                      <div className="space-y-1">
+                        <p className="text-sm text-ink">
+                          {[selectedAudio.title, selectedAudio.artist]
+                            .filter(Boolean)
+                            .join(' · ') || selectedAudio.audio_id}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {selectedAudio.audio_type === 'original_sound'
+                            ? t('contentAssistant.igAudioTypeOriginal')
+                            : t('contentAssistant.igAudioTypeMusic')}
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          fullWidth={false}
+                          disabled={audioSaveMutation.isPending}
+                          onClick={() => onClearAudio()}
+                        >
+                          {t('contentAssistant.igAudioRemove')}
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {audioSearchAvailable ? (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={audioType === 'music' ? 'primary' : 'secondary'}
+                            fullWidth={false}
+                            onClick={() => setAudioType('music')}
+                          >
+                            {t('contentAssistant.igAudioTypeMusic')}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={audioType === 'original_sound' ? 'primary' : 'secondary'}
+                            fullWidth={false}
+                            onClick={() => setAudioType('original_sound')}
+                          >
+                            {t('contentAssistant.igAudioTypeOriginal')}
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            type="search"
+                            value={audioQuery}
+                            onChange={(e) => setAudioQuery(e.target.value)}
+                            placeholder={t('contentAssistant.igAudioSearchPlaceholder')}
+                            className="min-w-0 flex-1 rounded-md border border-hairline bg-surface px-2 py-1.5 text-sm text-ink"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            fullWidth={false}
+                            disabled={searchMutation.isPending}
+                            onClick={() => onAudioSearch()}
+                          >
+                            {searchMutation.isPending
+                              ? t('contentAssistant.igAudioSearching')
+                              : t('contentAssistant.igAudioSearch')}
+                          </Button>
+                        </div>
+                        {audioSearchError ? (
+                          <p className="text-sm text-muted">{audioSearchError}</p>
+                        ) : null}
+                        {audioResults.length > 0 ? (
+                          <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-ink">
+                            {audioResults.map((item) => (
+                              <li key={item.audio_id}>
+                                <button
+                                  type="button"
+                                  className="text-left text-accent-deep underline-offset-2 hover:underline"
+                                  onClick={() => onSelectAudio(item)}
+                                >
+                                  {[item.title, item.artist || item.ig_username]
+                                    .filter(Boolean)
+                                    .join(' · ') || item.audio_id}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted">
+                        {t('contentAssistant.igAudioSearchNeedPermission')}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : null}
 

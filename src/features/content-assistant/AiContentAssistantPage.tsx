@@ -8,6 +8,7 @@ import {
   DAILY_CONTENT_COMPLIANCE,
 } from './architecture/dailyContentArchitecture';
 import { ContentAssetThumb } from './ContentAssetThumb';
+import { FacebookBusinessConnectionCard } from './FacebookBusinessConnectionCard';
 import { InstagramConnectionCard } from './InstagramConnectionCard';
 import { InstagramPublishPreview } from './InstagramPublishPreview';
 import {
@@ -630,6 +631,7 @@ export function AiContentAssistantPage() {
       </Card>
 
       <InstagramConnectionCard />
+      <FacebookBusinessConnectionCard />
 
       <Link
         to="/"
