@@ -2,6 +2,11 @@
 
 .nav-shell {
   isolation: isolate;
+  overflow: visible;
+}
+
+.nav-center-btn {
+  z-index: 2;
 }
 
 .nav-center-disc {
@@ -9,6 +14,85 @@
     transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 260ms cubic-bezier(0.22, 1.2, 0.36, 1);
   will-change: transform;
+}
+
+/* Center Ascend: O ↔ ==O== (AAA Vite · high class) — WhatsApp-smooth */
+.nav-ascend-orb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 3.6rem;
+  overflow: hidden;
+  border-radius: 999px;
+  transition:
+    max-width 420ms cubic-bezier(0.32, 1.35, 0.48, 1),
+    background-color 280ms ease,
+    box-shadow 320ms cubic-bezier(0.22, 1.2, 0.36, 1),
+    padding 420ms cubic-bezier(0.32, 1.35, 0.48, 1);
+  will-change: max-width;
+}
+
+.nav-ascend-orb--open {
+  z-index: 3;
+  max-width: min(92vw, 22rem);
+  padding-inline: 0.55rem;
+  background: linear-gradient(165deg, rgb(255 252 246 / 0.98), rgb(255 255 255 / 0.94));
+  border: 1px solid rgb(var(--color-line));
+  box-shadow:
+    0 10px 32px rgb(184 147 90 / 0.18),
+    0 2px 8px rgb(17 18 20 / 0.06);
+}
+
+.nav-ascend-orb--open.nav-ascend-orb--active {
+  border-color: rgb(184 147 90 / 0.4);
+}
+
+.nav-ascend-orb__wing {
+  display: block;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--color-accent-deep));
+  transform: translate3d(0, 2px, 0) scale(0.92);
+  transition:
+    max-width 420ms cubic-bezier(0.32, 1.35, 0.48, 1),
+    opacity 280ms ease,
+    transform 420ms cubic-bezier(0.32, 1.35, 0.48, 1),
+    margin 420ms cubic-bezier(0.32, 1.35, 0.48, 1);
+}
+
+.nav-ascend-orb__wing--left {
+  margin-right: 0;
+  text-align: right;
+}
+
+.nav-ascend-orb__wing--right {
+  margin-left: 0;
+  text-align: left;
+}
+
+.nav-ascend-orb--open .nav-ascend-orb__wing {
+  max-width: 7.5rem;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.nav-ascend-orb--open .nav-ascend-orb__wing--left {
+  margin-right: 0.45rem;
+}
+
+.nav-ascend-orb--open .nav-ascend-orb__wing--right {
+  margin-left: 0.45rem;
+}
+
+.nav-ascend-orb--open .nav-center-disc {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .nav-center-disc-active {
@@ -355,6 +439,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nav-center-disc,
+  .nav-ascend-orb,
+  .nav-ascend-orb__wing,
   .nav-ascend-pulse,
   .nav-ripple,
   .nav-contacts-left,

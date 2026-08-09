@@ -3,7 +3,8 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
-import { AscendLogo, ContactsIcon, TeamSeydaIcon, TodayIcon } from './nav/NavIcons';
+import { CoachCenterButton } from './nav/CoachCenterButton';
+import { ContactsIcon, TeamSeydaIcon } from './nav/NavIcons';
 import { ProfileStack } from './nav/ProfileStack';
 import { TodayHubMenu } from './nav/TodayHubMenu';
 
@@ -74,19 +75,11 @@ export function BottomNav() {
     }, 520);
   }, []);
 
-  const renderIcon = (id: Exclude<NavTabId, 'profil'>, active: boolean) => {
+  const renderIcon = (id: 'kontakte' | 'team', active: boolean) => {
     const burst = burstId === id;
     const key = `${id}-${burstKey}`;
-    switch (id) {
-      case 'heute':
-        return <TodayIcon key={key} active={active} burst={burst} />;
-      case 'kontakte':
-        return <ContactsIcon key={key} active={active} burst={burst} />;
-      case 'coach':
-        return <AscendLogo key={key} active={active} burst={burst} />;
-      case 'team':
-        return <TeamSeydaIcon key={key} active={active} burst={burst} />;
-    }
+    if (id === 'kontakte') return <ContactsIcon key={key} active={active} burst={burst} />;
+    return <TeamSeydaIcon key={key} active={active} burst={burst} />;
   };
 
   return (
@@ -98,9 +91,6 @@ export function BottomNav() {
         <div className="nav-shell relative grid grid-cols-5 items-end rounded-[1.75rem] border border-line bg-surface px-1.5 pb-2 pt-2 shadow-[0_10px_40px_rgb(17_18_20/0.08),0_1px_0_rgb(255_255_255/0.8)_inset]">
           {BOTTOM_NAV_TABS.map((tab) => {
             const active = isTabActive(tab, location.pathname);
-            const isCenter = tab.id === 'coach';
-            const label = t(tab.labelKey);
-            const ariaLabel = t(tab.ariaKey);
 
             if (tab.id === 'profil') {
               return (
@@ -136,50 +126,20 @@ export function BottomNav() {
               );
             }
 
-            if (isCenter) {
+            if (tab.id === 'coach') {
               return (
-                <div key={tab.id} className="relative flex justify-center">
-                  <LiquidChampagne>
-                    <NavLink
-                      to={tab.to}
-                      aria-label={ariaLabel}
-                      onClick={() => playBurst(tab.id)}
-                      className={({ isActive }) =>
-                        [
-                          'nav-center-btn group relative -mt-7 flex min-h-[44px] min-w-[44px] flex-col items-center justify-end gap-0.5 outline-none',
-                          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                          isActive ? 'text-accent-deep' : 'text-muted',
-                        ].join(' ')
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <span
-                            className={[
-                              'nav-center-disc flex h-[3.6rem] w-[3.6rem] items-center justify-center rounded-full border border-line bg-surface',
-                              'shadow-[0_8px_28px_rgb(184_147_90/0.22),0_2px_8px_rgb(17_18_20/0.06)]',
-                              isActive ? 'nav-center-disc-active' : '',
-                            ].join(' ')}
-                          >
-                            {renderIcon('coach', isActive)}
-                          </span>
-                          <span
-                            className={[
-                              'text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
-                              isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
-                            ].join(' ')}
-                          >
-                            {label}
-                          </span>
-                        </>
-                      )}
-                    </NavLink>
-                  </LiquidChampagne>
-                </div>
+                <CoachCenterButton
+                  key={tab.id}
+                  burst={burstId === 'coach'}
+                  burstKey={burstKey}
+                  onBurst={() => playBurst('coach')}
+                />
               );
             }
 
             const sideId = tab.id as 'kontakte' | 'team';
+            const label = t(tab.labelKey);
+            const ariaLabel = t(tab.ariaKey);
 
             return (
               <LiquidChampagne key={tab.id} className="w-full justify-center">
