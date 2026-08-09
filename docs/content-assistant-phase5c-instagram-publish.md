@@ -16,25 +16,25 @@
 Host: `https://graph.instagram.com`  
 Version: `v25.0` (same as Phase 5A `/me`)
 
-| Step | Endpoint |
-| ---- | -------- |
-| Create container | `POST /{ig-user-id}/media` (`image_url` / `video_url`, optional `media_type`, `caption`) |
-| Status (video/reel/story) | `GET /{container-id}?fields=status_code` until `FINISHED` |
-| Publish | `POST /{ig-user-id}/media_publish` (`creation_id`) |
+| Step                      | Endpoint                                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| Create container          | `POST /{ig-user-id}/media` (`image_url` / `video_url`, optional `media_type`, `caption`) |
+| Status (video/reel/story) | `GET /{container-id}?fields=status_code` until `FINISHED`                                |
+| Publish                   | `POST /{ig-user-id}/media_publish` (`creation_id`)                                       |
 
 ### Format mapping
 
-| Draft format | Media | Graph |
-| ------------ | ----- | ----- |
-| feed | image | `image_url` + `caption` |
-| feed / reel | video | `media_type=REELS` + `video_url` + `caption` |
-| story | image/video | `media_type=STORIES` + url (no feed caption) |
+| Draft format | Media       | Graph                                        |
+| ------------ | ----------- | -------------------------------------------- |
+| feed         | image       | `image_url` + `caption`                      |
+| feed / reel  | video       | `media_type=REELS` + `video_url` + `caption` |
+| story        | image/video | `media_type=STORIES` + url (no feed caption) |
 
 ## Permissions
 
-| Scope | Required |
-| ----- | -------- |
-| `instagram_business_basic` | yes (connect) |
+| Scope                                | Required          |
+| ------------------------------------ | ----------------- |
+| `instagram_business_basic`           | yes (connect)     |
 | `instagram_business_content_publish` | **yes (publish)** |
 
 OAuth authorize now requests both scopes. Existing connections created with only `basic` must **reconnect** after Meta grants publish.

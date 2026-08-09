@@ -45,10 +45,7 @@ describe('connectionHasPublishScope', () => {
   it('detects publish scope', () => {
     expect(connectionHasPublishScope(['instagram_business_basic'])).toBe(false);
     expect(
-      connectionHasPublishScope([
-        'instagram_business_basic',
-        'instagram_business_content_publish',
-      ])
+      connectionHasPublishScope(['instagram_business_basic', 'instagram_business_content_publish'])
     ).toBe(true);
   });
 });

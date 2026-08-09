@@ -10,10 +10,7 @@ export function connectionHasPublishScope(scopes: string[] | null | undefined): 
   return (scopes ?? []).includes(IG_PUBLISH_SCOPE);
 }
 
-export function resolveMediaProduct(params: {
-  mediaKind: MediaKind;
-  format: ContentFormat;
-}): {
+export function resolveMediaProduct(params: { mediaKind: MediaKind; format: ContentFormat }): {
   mediaType: 'IMAGE' | 'REELS' | 'STORIES' | null;
   useImageUrl: boolean;
   useVideoUrl: boolean;

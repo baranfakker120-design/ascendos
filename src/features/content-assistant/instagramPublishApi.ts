@@ -72,8 +72,7 @@ export function useInstagramPublish() {
   const qc = useQueryClient();
 
   const publishMutation = useMutation({
-    mutationFn: (draftId: string) =>
-      publishDraftToInstagram({ draftId, confirmed: true }),
+    mutationFn: (draftId: string) => publishDraftToInstagram({ draftId, confirmed: true }),
     onSuccess: async (result) => {
       if (result.ok) {
         await qc.invalidateQueries({ queryKey: ['content-drafts'] });
