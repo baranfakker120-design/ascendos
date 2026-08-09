@@ -9,6 +9,7 @@ import {
 } from './architecture/dailyContentArchitecture';
 import { ContentAssetThumb } from './ContentAssetThumb';
 import { InstagramConnectionCard } from './InstagramConnectionCard';
+import { InstagramPublishPreview } from './InstagramPublishPreview';
 import {
   useContentLibrary,
   type ContentAsset,
@@ -24,8 +25,8 @@ import {
 import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
- * AI Content Assistant — Phase 3 generation + Phase 4 daily prep + Phase 5A IG connect.
- * No Instagram publishing. Cron not activated from the client.
+ * AI Content Assistant — Phase 3–5B: generation, daily prep, IG connect, publish preview.
+ * Official Graph publishing stays gated. Cron not activated from the client.
  * Does not touch Coach domains.
  */
 export function AiContentAssistantPage() {
@@ -517,6 +518,19 @@ export function AiContentAssistantPage() {
           <p className="text-sm text-muted">{t('contentAssistant.noDraftYet')}</p>
         ) : null}
       </Card>
+
+      {activeDraft?.status === 'ready' && edit ? (
+        <InstagramPublishPreview
+          asset={selectedAsset}
+          draft={activeDraft}
+          caption={edit.caption}
+          cta={edit.cta}
+          hashtags={edit.hashtags
+            .split(/[\s,;]+/)
+            .map((s) => s.trim().replace(/^#/, ''))
+            .filter(Boolean)}
+        />
+      ) : null}
 
       <Card className="space-y-3">
         <div className="space-y-1">

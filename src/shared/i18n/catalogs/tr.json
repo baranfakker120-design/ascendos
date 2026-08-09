@@ -1136,7 +1136,7 @@
     "draftSaved": "Taslak kaydedildi.",
     "draftSaveFailed": "Kaydetme başarısız.",
     "prepareInstagram": "Instagram için hazırla",
-    "instagramPrepared": "Taslak hazır olarak işaretlendi. OAuth/yayın sonra — otomatik yayın yok.",
+    "instagramPrepared": "Taslak hazır. Instagram önizlemesini kontrol et — yalnızca sen tıkladıktan sonra yayınlanır.",
     "hashtagResearchTitle": "Bu hashtagler neden?",
     "hashtagResearchLiveOn": "Canlı araştırma kaynağı kullanılıyor.",
     "hashtagResearchLiveOff": "Canlı trend araştırması yok — varlık temalı/kürasyonlu.",
@@ -1169,6 +1169,22 @@
     "igErrorBanner": "Bağlantı başarısız. Lütfen daha sonra tekrar dene.",
     "igErrorGeneric": "Teknik bağlantı hatası. Token’lar asla gösterilmez.",
     "igNotConfigured": "Instagram OAuth sunucuda henüz yapılandırılmadı (Meta secret’ları).",
-    "igStartFailed": "Bağlantı başlatılamadı."
+    "igStartFailed": "Bağlantı başlatılamadı.",
+    "igPreviewTitle": "Instagram önizleme",
+    "igPreviewHint": "Yayınlamadan önce gönderin böyle görünecek. Otomatik paylaşım yok.",
+    "igPreviewAccountUnknown": "Bağlı hesap yok",
+    "igPreviewMediaLoading": "Medya yükleniyor…",
+    "igPreviewEmptyCaption": "Açıklama yok",
+    "igPreviewEmptyHashtags": "Hashtag yok",
+    "igPreviewEmptyCta": "CTA yok",
+    "igPublishNow": "Şimdi Instagram’da yayınla",
+    "igPublishConfirmCta": "Yayını şimdi onayla",
+    "igPublishConfirmHint": "Onaylamak için tekrar dokun. Bu tıklama olmadan hiçbir şey olmaz.",
+    "igPublishNeedConnect": "Önce Instagram’ı bağla.",
+    "igPublishNeedPrepare": "Önce Instagram için hazırla.",
+    "igPublishNeedMedia": "Görsel veya video seçilmedi.",
+    "igPublishNeedCaption": "Açıklama eksik — ekleyip kaydet.",
+    "igPublishApiNotReady": "Onay alındı. Resmi Instagram yayın API’si henüz açık değil — hiçbir şey yayınlanmadı.",
+    "igPublishQueued": "Yayın başlatıldı."
   }
 }

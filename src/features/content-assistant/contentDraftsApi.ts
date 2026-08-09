@@ -155,7 +155,7 @@ export async function updateContentDraft(
   return data as ContentDraft;
 }
 
-/** Marks draft ready for later Instagram flow — does NOT publish or OAuth. */
+/** Marks draft ready for Instagram preview / later publish — does NOT publish or OAuth. */
 export async function prepareDraftForInstagram(draftId: string): Promise<ContentDraft> {
   return updateContentDraft(draftId, { status: 'ready' });
 }

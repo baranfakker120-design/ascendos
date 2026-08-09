@@ -1136,7 +1136,7 @@
     "draftSaved": "Bozza salvata.",
     "draftSaveFailed": "Salvataggio non riuscito.",
     "prepareInstagram": "Prepara Instagram",
-    "instagramPrepared": "Bozza segnata come pronta. OAuth/publish dopo — niente auto-publish.",
+    "instagramPrepared": "Bozza pronta. Controlla l’anteprima Instagram — pubblicazione solo dopo il tuo clic.",
     "hashtagResearchTitle": "Perché questi hashtag?",
     "hashtagResearchLiveOn": "Fonte di ricerca live attiva.",
     "hashtagResearchLiveOff": "Nessuna ricerca trend live — tematico/curato dall’asset.",
@@ -1169,6 +1169,22 @@
     "igErrorBanner": "Connessione non riuscita. Riprova più tardi.",
     "igErrorGeneric": "Errore tecnico di connessione. I token non vengono mai mostrati.",
     "igNotConfigured": "OAuth Instagram non è ancora configurato sul server (secret Meta).",
-    "igStartFailed": "Impossibile avviare la connessione."
+    "igStartFailed": "Impossibile avviare la connessione.",
+    "igPreviewTitle": "Anteprima Instagram",
+    "igPreviewHint": "Ecco come apparirà il post prima della pubblicazione. Nulla viene pubblicato automaticamente.",
+    "igPreviewAccountUnknown": "Nessun account collegato",
+    "igPreviewMediaLoading": "Caricamento media…",
+    "igPreviewEmptyCaption": "Nessuna didascalia",
+    "igPreviewEmptyHashtags": "Nessun hashtag",
+    "igPreviewEmptyCta": "Nessun CTA",
+    "igPublishNow": "Pubblica ora su Instagram",
+    "igPublishConfirmCta": "Conferma pubblicazione ora",
+    "igPublishConfirmHint": "Tocca di nuovo per confermare. Senza questo clic non succede nulla.",
+    "igPublishNeedConnect": "Collega prima Instagram.",
+    "igPublishNeedPrepare": "Prepara prima per Instagram.",
+    "igPublishNeedMedia": "Nessuna immagine o video selezionato.",
+    "igPublishNeedCaption": "Manca la didascalia — aggiungi e salva.",
+    "igPublishApiNotReady": "Conferma ricevuta. L’API ufficiale di pubblicazione Instagram non è ancora attiva — non è stato pubblicato nulla.",
+    "igPublishQueued": "Pubblicazione avviata."
   }
 }

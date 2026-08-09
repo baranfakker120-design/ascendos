@@ -1136,7 +1136,7 @@
     "draftSaved": "Entwurf gespeichert.",
     "draftSaveFailed": "Speichern fehlgeschlagen.",
     "prepareInstagram": "Instagram vorbereiten",
-    "instagramPrepared": "Entwurf als bereit markiert. OAuth/Publish folgt später — kein Auto-Publish.",
+    "instagramPrepared": "Entwurf bereit. Prüfe die Instagram-Vorschau — Veröffentlichung nur nach deinem Klick.",
     "hashtagResearchTitle": "Warum diese Hashtags?",
     "hashtagResearchLiveOn": "Mit Live-Recherchequelle.",
     "hashtagResearchLiveOff": "Keine Live-Trend-Recherche aktiv — thematisch/kuratiert aus dem Asset.",
@@ -1169,6 +1169,22 @@
     "igErrorBanner": "Verbindung fehlgeschlagen. Bitte später erneut versuchen.",
     "igErrorGeneric": "Technischer Fehler bei der Verbindung. Tokens werden nicht angezeigt.",
     "igNotConfigured": "Instagram OAuth ist serverseitig noch nicht konfiguriert (Meta Secrets).",
-    "igStartFailed": "Verbindung konnte nicht gestartet werden."
+    "igStartFailed": "Verbindung konnte nicht gestartet werden.",
+    "igPreviewTitle": "Instagram-Vorschau",
+    "igPreviewHint": "So wirkt dein Beitrag vor dem Veröffentlichen. Nichts wird automatisch gepostet.",
+    "igPreviewAccountUnknown": "Kein Account verbunden",
+    "igPreviewMediaLoading": "Medien werden geladen …",
+    "igPreviewEmptyCaption": "Keine Caption",
+    "igPreviewEmptyHashtags": "Keine Hashtags",
+    "igPreviewEmptyCta": "Kein CTA",
+    "igPublishNow": "Jetzt auf Instagram veröffentlichen",
+    "igPublishConfirmCta": "Wirklich jetzt veröffentlichen",
+    "igPublishConfirmHint": "Noch einmal tippen zum Bestätigen. Ohne diesen Klick passiert nichts.",
+    "igPublishNeedConnect": "Bitte zuerst Instagram verbinden.",
+    "igPublishNeedPrepare": "Bitte zuerst „Instagram vorbereiten“.",
+    "igPublishNeedMedia": "Kein Bild oder Video ausgewählt.",
+    "igPublishNeedCaption": "Caption fehlt — bitte ergänzen und speichern.",
+    "igPublishApiNotReady": "Bestätigung erhalten. Die offizielle Instagram-Publish-API ist noch nicht freigeschaltet — es wurde nichts veröffentlicht.",
+    "igPublishQueued": "Veröffentlichung gestartet."
   }
 }

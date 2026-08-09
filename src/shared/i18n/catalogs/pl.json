@@ -1136,7 +1136,7 @@
     "draftSaved": "Szkic zapisany.",
     "draftSaveFailed": "Zapis nie powiódł się.",
     "prepareInstagram": "Przygotuj Instagram",
-    "instagramPrepared": "Szkic oznaczony jako gotowy. OAuth/publish później — bez auto-publish.",
+    "instagramPrepared": "Szkic gotowy. Sprawdź podgląd Instagram — publikacja tylko po Twoim kliknięciu.",
     "hashtagResearchTitle": "Dlaczego te hashtagi?",
     "hashtagResearchLiveOn": "Aktywne żywe źródło badań.",
     "hashtagResearchLiveOff": "Brak live research trendów — tematycznie/kuratorowane z assetu.",
@@ -1169,6 +1169,22 @@
     "igErrorBanner": "Połączenie nie powiodło się. Spróbuj ponownie później.",
     "igErrorGeneric": "Techniczny błąd połączenia. Tokeny nigdy nie są pokazywane.",
     "igNotConfigured": "OAuth Instagrama nie jest jeszcze skonfigurowany na serwerze (sekrety Meta).",
-    "igStartFailed": "Nie udało się rozpocząć połączenia."
+    "igStartFailed": "Nie udało się rozpocząć połączenia.",
+    "igPreviewTitle": "Podgląd Instagram",
+    "igPreviewHint": "Tak będzie wyglądał post przed publikacją. Nic nie jest publikowane automatycznie.",
+    "igPreviewAccountUnknown": "Brak połączonego konta",
+    "igPreviewMediaLoading": "Ładowanie mediów…",
+    "igPreviewEmptyCaption": "Brak podpisu",
+    "igPreviewEmptyHashtags": "Brak hashtagów",
+    "igPreviewEmptyCta": "Brak CTA",
+    "igPublishNow": "Opublikuj teraz na Instagramie",
+    "igPublishConfirmCta": "Potwierdź publikację teraz",
+    "igPublishConfirmHint": "Dotknij ponownie, aby potwierdzić. Bez tego kliknięcia nic się nie dzieje.",
+    "igPublishNeedConnect": "Najpierw połącz Instagram.",
+    "igPublishNeedPrepare": "Najpierw przygotuj do Instagrama.",
+    "igPublishNeedMedia": "Nie wybrano obrazu ani wideo.",
+    "igPublishNeedCaption": "Brak podpisu — uzupełnij i zapisz.",
+    "igPublishApiNotReady": "Potwierdzenie otrzymane. Oficjalne API publikacji Instagram nie jest jeszcze włączone — nic nie opublikowano.",
+    "igPublishQueued": "Publikacja rozpoczęta."
   }
 }

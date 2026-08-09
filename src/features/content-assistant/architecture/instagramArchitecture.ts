@@ -63,6 +63,11 @@ export function isInstagramConnectEnabled(): boolean {
   return true;
 }
 
+/**
+ * Phase 5B: Preview + explicit confirm UI is available.
+ * Official Graph Content Publishing stays off until a dedicated publish
+ * Edge Function + `instagram_business_content_publish` are ready.
+ */
 export function isInstagramPublishingEnabled(): boolean {
   return false;
 }
