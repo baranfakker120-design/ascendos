@@ -1132,7 +1132,6 @@ export type Database = {
           hashtags: string[];
           hook: string | null;
           id: string;
-          instagram_audio_json: Json | null;
           keywords: string[];
           org_id: string;
           owner_membership_id: string;
@@ -1153,7 +1152,6 @@ export type Database = {
           hashtags?: string[];
           hook?: string | null;
           id?: string;
-          instagram_audio_json?: Json | null;
           keywords?: string[];
           org_id: string;
           owner_membership_id: string;
@@ -1174,7 +1172,6 @@ export type Database = {
           hashtags?: string[];
           hook?: string | null;
           id?: string;
-          instagram_audio_json?: Json | null;
           keywords?: string[];
           org_id?: string;
           owner_membership_id?: string;
@@ -1203,84 +1200,6 @@ export type Database = {
             columns: ['owner_membership_id'];
             isOneToOne: false;
             referencedRelation: 'memberships';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      content_facebook_business_connections: {
-        Row: {
-          connected_at: string | null;
-          created_at: string;
-          disconnected_at: string | null;
-          fb_user_id: string | null;
-          id: string;
-          ig_user_id: string | null;
-          ig_username: string | null;
-          last_error: string | null;
-          membership_id: string;
-          org_id: string;
-          page_id: string | null;
-          page_name: string | null;
-          page_token_ref: string | null;
-          scopes: string[];
-          status: string;
-          token_expires_at: string | null;
-          updated_at: string;
-          user_token_ref: string | null;
-        };
-        Insert: {
-          connected_at?: string | null;
-          created_at?: string;
-          disconnected_at?: string | null;
-          fb_user_id?: string | null;
-          id?: string;
-          ig_user_id?: string | null;
-          ig_username?: string | null;
-          last_error?: string | null;
-          membership_id: string;
-          org_id: string;
-          page_id?: string | null;
-          page_name?: string | null;
-          page_token_ref?: string | null;
-          scopes?: string[];
-          status?: string;
-          token_expires_at?: string | null;
-          updated_at?: string;
-          user_token_ref?: string | null;
-        };
-        Update: {
-          connected_at?: string | null;
-          created_at?: string;
-          disconnected_at?: string | null;
-          fb_user_id?: string | null;
-          id?: string;
-          ig_user_id?: string | null;
-          ig_username?: string | null;
-          last_error?: string | null;
-          membership_id?: string;
-          org_id?: string;
-          page_id?: string | null;
-          page_name?: string | null;
-          page_token_ref?: string | null;
-          scopes?: string[];
-          status?: string;
-          token_expires_at?: string | null;
-          updated_at?: string;
-          user_token_ref?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'content_facebook_business_connections_membership_id_fkey';
-            columns: ['membership_id'];
-            isOneToOne: false;
-            referencedRelation: 'memberships';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'content_facebook_business_connections_org_id_fkey';
-            columns: ['org_id'];
-            isOneToOne: false;
-            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
         ];

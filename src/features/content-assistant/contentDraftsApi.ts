@@ -5,7 +5,6 @@ import { useI18n } from '@shared/i18n';
 import type { ContentFormat } from './contentAssetsApi';
 import { formatCleanCheckNotes, runCleanCheck, type CleanCheckStatus } from './lib/cleanCheck';
 import type { HashtagCandidate, HashtagResearchResult } from './lib/hashtagResearch';
-import type { InstagramAudioSelection } from './lib/instagramPublish/instagramMusicFoundation';
 
 export type ContentDraftStatus = 'draft' | 'ready' | 'archived';
 
@@ -26,8 +25,6 @@ export interface ContentDraft {
   posting_hint: string | null;
   content_score: number | null;
   status: ContentDraftStatus;
-  /** Phase A: selected Instagram library audio (null = none / original video audio). */
-  instagram_audio_json: InstagramAudioSelection | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,7 +56,7 @@ export interface ContentGenerateResult {
 export type { HashtagCandidate };
 
 const DRAFT_SELECT =
-  'id, org_id, asset_id, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, instagram_audio_json, created_at, updated_at';
+  'id, org_id, asset_id, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';
 
 export async function listContentDraftsForAsset(assetId: string): Promise<ContentDraft[]> {
   const { data, error } = await supabase
@@ -118,7 +115,6 @@ export async function updateContentDraft(
     status: ContentDraftStatus;
     target_audience: string | null;
     posting_hint: string | null;
-    instagram_audio_json: InstagramAudioSelection | null;
   }>
 ): Promise<ContentDraft> {
   const next = { ...patch };

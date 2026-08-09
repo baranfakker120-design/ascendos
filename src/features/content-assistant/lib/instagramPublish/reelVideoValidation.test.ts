@@ -224,7 +224,6 @@ describe('Phase 5D reel status polling / publish decisions', () => {
 
 describe('Phase 5D audio capability (official Meta constraint)', () => {
   it('does not claim Music API is available with Instagram Login', () => {
-    expect(IG_OFFICIAL_AUDIO_CAPABILITY.instagram_music_available).toBe(false);
     expect(IG_OFFICIAL_AUDIO_CAPABILITY.availableWithCurrentOAuth).toBe(false);
     expect(IG_OFFICIAL_AUDIO_CAPABILITY.canSearchMusic).toBe(false);
     expect(IG_OFFICIAL_AUDIO_CAPABILITY.canAttachLibraryAudioToReel).toBe(false);
