@@ -47,25 +47,36 @@ export function describeRedirectUri(uri: string): {
   };
 }
 
-/** Facebook Login for Business authorize URL (response_type=code — tokens stay server-side). */
+/**
+ * Facebook Login for Business authorize URL (response_type=code — tokens stay server-side).
+ * When `configId` is set (META_FACEBOOK_LOGIN_CONFIG_ID), Meta's Configuration ID drives
+ * permissions via `config_id` and `scope` is omitted (Meta-recommended).
+ * Without configId, falls back to the previous hardcoded scope list.
+ */
 export function buildFacebookBusinessAuthorizeUrl(params: {
   appId: string;
   redirectUri: string;
   state: string;
+  /** Facebook Login for Business Configuration ID (not a secret). */
+  configId?: string | null;
   scopes?: readonly string[];
 }): string {
-  const scope = (params.scopes ?? FB_MUSIC_CONNECT_SCOPES).join(',');
   const redirectUri = normalizeRedirectUri(params.redirectUri);
+  const configId = typeof params.configId === 'string' ? params.configId.trim() : '';
   const q = new URLSearchParams({
     client_id: params.appId,
     redirect_uri: redirectUri,
     state: params.state,
     response_type: 'code',
-    scope,
     display: 'page',
     // Official IG API onboarding channel for Facebook Login for Business.
     extras: JSON.stringify({ setup: { channel: 'IG_API_ONBOARDING' } }),
   });
+  if (configId) {
+    q.set('config_id', configId);
+  } else {
+    q.set('scope', (params.scopes ?? FB_MUSIC_CONNECT_SCOPES).join(','));
+  }
   return `${DIALOG_URL}?${q.toString()}`;
 }
 

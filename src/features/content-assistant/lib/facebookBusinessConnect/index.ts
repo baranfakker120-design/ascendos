@@ -123,23 +123,33 @@ export function normalizeRedirectUri(raw: string): string {
   return value;
 }
 
+/**
+ * Mirror of Edge authorize URL builder.
+ * With `configId` (META_FACEBOOK_LOGIN_CONFIG_ID) Meta Configuration drives permissions;
+ * `scope` is omitted. Without configId, falls back to FB_MUSIC_CONNECT_SCOPES.
+ */
 export function buildFacebookBusinessAuthorizeUrl(params: {
   appId: string;
   redirectUri: string;
   state: string;
+  configId?: string | null;
   scopes?: readonly string[];
 }): string {
-  const scope = (params.scopes ?? FB_MUSIC_CONNECT_SCOPES).join(',');
   const redirectUri = normalizeRedirectUri(params.redirectUri);
+  const configId = typeof params.configId === 'string' ? params.configId.trim() : '';
   const q = new URLSearchParams({
     client_id: params.appId,
     redirect_uri: redirectUri,
     state: params.state,
     response_type: 'code',
-    scope,
     display: 'page',
     extras: JSON.stringify({ setup: { channel: 'IG_API_ONBOARDING' } }),
   });
+  if (configId) {
+    q.set('config_id', configId);
+  } else {
+    q.set('scope', (params.scopes ?? FB_MUSIC_CONNECT_SCOPES).join(','));
+  }
   return `https://www.facebook.com/v25.0/dialog/oauth?${q.toString()}`;
 }
 

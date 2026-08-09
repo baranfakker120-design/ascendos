@@ -14,6 +14,9 @@
  * - META_FACEBOOK_REDIRECT_URI (Valid OAuth Redirect URI for Facebook Login product)
  * - APP_ORIGIN / PUBLIC_APP_ORIGIN
  * - META_TOKEN_ENCRYPTION_KEY (optional; falls back to META_APP_SECRET)
+ *
+ * Non-secret env (Configuration ID is public Meta config, not a credential):
+ * - META_FACEBOOK_LOGIN_CONFIG_ID (Facebook Login for Business → config_id on authorize URL)
  */
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
@@ -55,6 +58,8 @@ interface MetaEnv {
   redirectUri: string;
   appOrigin: string;
   tokenSecret: string;
+  /** Facebook Login for Business Configuration ID — not a secret. */
+  loginConfigId: string;
 }
 
 function readMetaEnv(): MetaEnv | null {
@@ -66,9 +71,11 @@ function readMetaEnv(): MetaEnv | null {
   const appOrigin = (Deno.env.get('APP_ORIGIN') ?? Deno.env.get('PUBLIC_APP_ORIGIN') ?? '')
     .trim()
     .replace(/\/$/, '');
-  if (!appId || !appSecret || !redirectUri || !appOrigin) return null;
+  // Configuration ID is public Meta config (not a credential); required for FB Login for Business.
+  const loginConfigId = Deno.env.get('META_FACEBOOK_LOGIN_CONFIG_ID')?.trim() ?? '';
+  if (!appId || !appSecret || !redirectUri || !appOrigin || !loginConfigId) return null;
   const tokenSecret = Deno.env.get('META_TOKEN_ENCRYPTION_KEY')?.trim() || appSecret;
-  return { appId, appSecret, redirectUri, appOrigin, tokenSecret };
+  return { appId, appSecret, redirectUri, appOrigin, tokenSecret, loginConfigId };
 }
 
 function oauthConfigured(): boolean {
@@ -425,6 +432,7 @@ Deno.serve(async (req) => {
         appId: meta.appId,
         redirectUri,
         state,
+        configId: meta.loginConfigId,
       });
 
       const diag = describeRedirectUri(redirectUri);
@@ -433,6 +441,7 @@ Deno.serve(async (req) => {
         len: diag.length,
         slash: diag.endsWithSlash,
         scheme: diag.scheme,
+        config_id: meta.loginConfigId,
       });
 
       return json({

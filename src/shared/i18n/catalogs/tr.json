@@ -1223,6 +1223,7 @@
     "fbHint": "Instagram müziği için ayrı bağlantı yolu. Instagram Login’in yerine geçmez.",
     "fbConnect": "Müzik için Facebook bağla",
     "fbConnecting": "Facebook bağlanıyor…",
+    "fbConnectingStuckHint": "Facebook penceresi kapatıldıysa bağlantıyı yeniden başlatın veya kesin.",
     "fbDisconnect": "Facebook müzik bağlantısını kes",
     "fbDisconnecting": "Bağlantı kesiliyor…",
     "fbLoading": "Facebook bağlantısı yükleniyor…",

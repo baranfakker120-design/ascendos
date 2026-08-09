@@ -83,7 +83,34 @@ export function FacebookBusinessConnectionCard() {
           </Button>
         </div>
       ) : status === 'connecting' ? (
-        <p className="text-sm text-muted">{t('contentAssistant.fbConnecting')}</p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted">{t('contentAssistant.fbConnecting')}</p>
+          <p className="text-xs text-muted">{t('contentAssistant.fbConnectingStuckHint')}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              fullWidth={false}
+              disabled={busy}
+              onClick={() => startMutation.mutate()}
+            >
+              {startMutation.isPending
+                ? t('contentAssistant.fbConnecting')
+                : t('contentAssistant.fbConnect')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              fullWidth={false}
+              disabled={busy}
+              onClick={() => disconnectMutation.mutate()}
+            >
+              {disconnectMutation.isPending
+                ? t('contentAssistant.fbDisconnecting')
+                : t('contentAssistant.fbDisconnect')}
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="space-y-2">
           {status === 'error' && connection?.lastError ? (
