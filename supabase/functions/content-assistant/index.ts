@@ -16,6 +16,7 @@ import {
   markAssetAnalysisFailed,
   normalizeFormat,
   resolveDailyGenerationLimit,
+  VisionFailureError,
   type AssetRow,
   type MembershipRow,
 } from '../_shared/content-generate/index.ts';
@@ -129,6 +130,7 @@ Deno.serve(async (req) => {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      const errorDetails = e instanceof VisionFailureError ? e.errorDetails : undefined;
       if (msg.startsWith('signed_url_failed')) {
         return json({ error: 'signed_url_failed', detail: 'signed_url_failed' }, 500);
       }
@@ -140,19 +142,33 @@ Deno.serve(async (req) => {
         msg === 'VIDEO_TOO_LARGE' ||
         msg === 'VIDEO_UNSUPPORTED_MIME' ||
         msg === 'AI_PROVIDER_BAD_REQUEST' ||
+        msg === 'AI_PROVIDER_AUTH_ERROR' ||
+        msg === 'AI_PROVIDER_RATE_LIMIT' ||
         msg === 'AI_PROVIDER_TIMEOUT' ||
         msg === 'AI_PROVIDER_ERROR'
       ) {
         if (canPersistAssetAnalysis(assetRow, active)) {
-          await markAssetAnalysisFailed(db, assetRow, active, { error: msg });
+          await markAssetAnalysisFailed(db, assetRow, active, {
+            error: msg,
+            ...(errorDetails ? { error_details: errorDetails } : {}),
+          });
         }
         const status =
           msg === 'VIDEO_TOO_LARGE' || msg === 'VIDEO_UNSUPPORTED_MIME'
             ? 422
             : msg === 'AI_PROVIDER_TIMEOUT'
               ? 504
-              : 502;
-        return json({ error: msg, detail: msg }, status);
+              : msg === 'AI_PROVIDER_RATE_LIMIT'
+                ? 429
+                : 502;
+        return json(
+          {
+            error: msg,
+            detail: msg,
+            ...(errorDetails ? { error_details: errorDetails } : {}),
+          },
+          status
+        );
       }
       if (
         msg.includes('invalid_ai_json') ||

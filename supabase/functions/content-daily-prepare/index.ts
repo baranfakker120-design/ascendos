@@ -29,6 +29,7 @@ import {
   generateDraftFromAsset,
   markAssetAnalysisFailed,
   resolveDailyGenerationLimit,
+  VisionFailureError,
   type AssetRow,
   type MembershipRow,
 } from '../_shared/content-generate/index.ts';
@@ -342,11 +343,16 @@ async function processMembership(
         };
       } catch (e) {
         lastError = e instanceof Error ? e.message : String(e);
+        const errorDetails = e instanceof VisionFailureError ? e.errorDetails : undefined;
         await markAssetAnalysisFailed(
           db,
           assetRow,
           membership,
-          { error: lastError, attempt },
+          {
+            error: lastError,
+            attempt,
+            ...(errorDetails ? { error_details: errorDetails } : {}),
+          },
           true
         );
       }

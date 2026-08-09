@@ -1,8 +1,4 @@
-import {
-  classifyHttpStatus,
-  fetchWithTimeout,
-  parseOpenAiResponse,
-} from '../ai-providers/openai-format.ts';
+import { fetchWithTimeout } from '../ai-providers/openai-format.ts';
 import { ProviderError } from '../ai-providers/types.ts';
 import {
   OPENROUTER_URL,
@@ -11,6 +7,7 @@ import {
   VISION_VIDEO_FETCH_TIMEOUT_MS,
   VISION_VIDEO_MAX_BYTES,
   VISION_VIDEO_MIMES,
+  type ProviderErrorDetails,
   type VisionErrorCode,
   type VisionVideoMime,
 } from './types.ts';
@@ -21,9 +18,24 @@ export {
   VISION_VIDEO_MIMES,
 } from './types.ts';
 
+export type { ProviderErrorDetails } from './types.ts';
+
 /** Stable error codes for edge + frontend (never API keys / secrets). */
 export function visionError(code: VisionErrorCode): Error {
   return new Error(code);
+}
+
+/** Carrier for sanitized OpenRouter diagnostics (message stays the stable code). */
+export class VisionFailureError extends Error {
+  readonly code: VisionErrorCode;
+  readonly errorDetails: ProviderErrorDetails | undefined;
+
+  constructor(code: VisionErrorCode, errorDetails?: ProviderErrorDetails) {
+    super(code);
+    this.name = 'VisionFailureError';
+    this.code = code;
+    this.errorDetails = errorDetails;
+  }
 }
 
 export function isVisionVideoMime(mime: string): mime is VisionVideoMime {
@@ -80,9 +92,99 @@ export function buildVisionMediaPart(params: {
   };
 }
 
+export function mapHttpStatusToVisionCode(status: number): VisionErrorCode {
+  if (status === 400) return 'AI_PROVIDER_BAD_REQUEST';
+  if (status === 401 || status === 403) return 'AI_PROVIDER_AUTH_ERROR';
+  if (status === 429) return 'AI_PROVIDER_RATE_LIMIT';
+  if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
+  return 'AI_PROVIDER_ERROR';
+}
+
+/** Strip secrets, signed URLs, data-URLs, and long base64 from diagnostic text. */
+export function sanitizeProviderText(value: unknown, maxLen: number): string | null {
+  if (value == null) return null;
+  let s = typeof value === 'string' ? value : String(value);
+  s = s.replace(/data:[^;\s]+;base64,[A-Za-z0-9+/=\s]+/gi, '[data_url_redacted]');
+  s = s.replace(/Bearer\s+\S+/gi, 'Bearer [redacted]');
+  s = s.replace(/sk-[A-Za-z0-9_-]{8,}/g, '[key_redacted]');
+  s = s.replace(
+    /https?:\/\/[^\s"'<>]+(?:token|sig|signature|apikey|api_key)=[^\s"'<>]+/gi,
+    '[signed_url_redacted]'
+  );
+  s = s.replace(/(?:token|sig|signature|apikey|api_key)=[^\s"'&<>]+/gi, '[token_redacted]');
+  // Only redact base64-looking blobs (padding or +/), not long plain words.
+  s = s.replace(/[A-Za-z0-9+/]{40,}={1,2}/g, '[base64_redacted]');
+  s = s.replace(/[A-Za-z0-9]{16,}[+/][A-Za-z0-9+/=]{40,}/g, '[base64_redacted]');
+  s = s.replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+  return s.length > maxLen ? s.slice(0, maxLen) : s;
+}
+
+function sanitizeErrorCode(value: unknown): string | number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') return sanitizeProviderText(value, 80);
+  return null;
+}
+
+/**
+ * Build persistable OpenRouter diagnostics from status + raw body.
+ * Never includes Authorization, keys, data URLs, or full media payloads.
+ */
+export function extractProviderErrorDetails(
+  status: number,
+  contentType: string | null | undefined,
+  bodyText: string
+): ProviderErrorDetails {
+  const details: ProviderErrorDetails = {
+    http_status: Number.isFinite(status) ? status : null,
+    content_type: sanitizeProviderText(contentType ?? null, 120),
+    body_length: bodyText.length,
+  };
+
+  const trimmed = bodyText.trim();
+  if (!trimmed) return details;
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const errRaw = parsed.error ?? parsed;
+    if (typeof errRaw === 'string') {
+      details.error_message = sanitizeProviderText(errRaw, 500);
+      return details;
+    }
+    if (errRaw && typeof errRaw === 'object') {
+      const err = errRaw as Record<string, unknown>;
+      details.error_message = sanitizeProviderText(err.message, 500);
+      details.error_code = sanitizeErrorCode(err.code);
+      details.error_type = sanitizeProviderText(err.type, 120);
+      const meta = err.metadata;
+      if (meta && typeof meta === 'object') {
+        const m = meta as Record<string, unknown>;
+        details.provider_name = sanitizeProviderText(
+          m.provider_name ?? m.provider ?? null,
+          120
+        );
+      }
+      return details;
+    }
+    details.error_message = sanitizeProviderText('unrecognized_json_error', 80);
+    return details;
+  } catch {
+    // Sanitize a wider window first, then hard-cap preview length.
+    const cleaned = sanitizeProviderText(trimmed.slice(0, 4000), 4000);
+    details.body_preview = cleaned ? cleaned.slice(0, 1000) : null;
+    return details;
+  }
+}
+
 export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
+  if (err instanceof VisionFailureError) return err.code;
   if (err instanceof ProviderError) {
     if (err.code === 'timeout') return 'AI_PROVIDER_TIMEOUT';
+    if (err.code === 'rate_limited') return 'AI_PROVIDER_RATE_LIMIT';
+    if (err.message.includes('401') || err.message.includes('403')) {
+      return 'AI_PROVIDER_AUTH_ERROR';
+    }
+    if (err.message.includes('429')) return 'AI_PROVIDER_RATE_LIMIT';
     if (err.message.includes('400') || err.message.includes('Bad Request')) {
       return 'AI_PROVIDER_BAD_REQUEST';
     }
@@ -95,6 +197,8 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
       msg === 'VIDEO_TOO_LARGE' ||
       msg === 'VIDEO_UNSUPPORTED_MIME' ||
       msg === 'AI_PROVIDER_BAD_REQUEST' ||
+      msg === 'AI_PROVIDER_AUTH_ERROR' ||
+      msg === 'AI_PROVIDER_RATE_LIMIT' ||
       msg === 'AI_PROVIDER_TIMEOUT' ||
       msg === 'AI_PROVIDER_ERROR' ||
       msg === 'missing_openrouter_key'
@@ -104,6 +208,8 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
     if (msg.includes('timeout') || msg.includes('Zeitüberschreitung')) {
       return 'AI_PROVIDER_TIMEOUT';
     }
+    if (msg.includes('401') || msg.includes('403')) return 'AI_PROVIDER_AUTH_ERROR';
+    if (msg.includes('429')) return 'AI_PROVIDER_RATE_LIMIT';
     if (msg.includes('400') || msg.includes('Bad Request')) {
       return 'AI_PROVIDER_BAD_REQUEST';
     }
@@ -172,6 +278,28 @@ export async function fetchVideoForVision(params: {
   };
 }
 
+function parseVisionSuccessText(
+  status: number,
+  contentType: string | null,
+  bodyText: string
+): string {
+  const details = extractProviderErrorDetails(status, contentType, bodyText);
+  let json: { choices?: Array<{ message?: { content?: string } }> };
+  try {
+    json = JSON.parse(bodyText) as typeof json;
+  } catch {
+    throw new VisionFailureError('AI_PROVIDER_ERROR', details);
+  }
+  const text = json.choices?.[0]?.message?.content?.trim();
+  if (!text) {
+    throw new VisionFailureError('AI_PROVIDER_ERROR', {
+      ...details,
+      error_message: details.error_message ?? 'empty_vision_content',
+    });
+  }
+  return text;
+}
+
 export async function callVisionModel(params: {
   system: string;
   userText: string;
@@ -233,25 +361,31 @@ export async function callVisionModel(params: {
       VISION_TIMEOUT_MS
     );
 
-    if (res.status === 400) {
-      // Drain body so the connection closes; do not forward provider text (may leak paths).
-      try {
-        await res.text();
-      } catch {
-        /* ignore */
-      }
-      throw visionError('AI_PROVIDER_BAD_REQUEST');
+    const contentType = res.headers.get('content-type');
+    let bodyText = '';
+    try {
+      bodyText = await res.text();
+    } catch {
+      bodyText = '';
     }
 
-    const httpError = classifyHttpStatus('openrouter', res.status, res.statusText);
-    if (httpError) throw httpError;
+    const errorDetails = extractProviderErrorDetails(res.status, contentType, bodyText);
 
-    const { text } = await parseOpenAiResponse('openrouter', res);
+    if (!res.ok) {
+      const code = mapHttpStatusToVisionCode(res.status);
+      // Sanitized only — never Authorization, data URLs, or media bytes.
+      console.error('openrouter_vision_upstream', { code, ...errorDetails });
+      throw new VisionFailureError(code, errorDetails);
+    }
+
+    const text = parseVisionSuccessText(res.status, contentType, bodyText);
     return { text, model: VISION_MODEL, provider: 'openrouter' };
   } catch (e) {
+    if (e instanceof VisionFailureError) throw e;
     if (e instanceof Error && e.message.startsWith('VIDEO_')) throw e;
     if (e instanceof Error && e.message.startsWith('AI_PROVIDER_')) throw e;
     if (e instanceof Error && e.message === 'missing_openrouter_key') throw e;
-    throw visionError(mapProviderFailureToVisionCode(e));
+    const code = mapProviderFailureToVisionCode(e);
+    throw new VisionFailureError(code);
   }
 }

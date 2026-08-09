@@ -1,6 +1,7 @@
 /**
  * Pure helpers mirroring supabase/functions/_shared/content-generate/vision.ts
- * (video path). Edge runtime owns fetch/OpenRouter; this module is the Vitest surface.
+ * (video path + OpenRouter error observability). Edge runtime owns fetch/OpenRouter;
+ * this module is the Vitest surface.
  */
 
 export const VISION_VIDEO_MAX_BYTES = 35 * 1024 * 1024;
@@ -14,12 +15,38 @@ export type VisionErrorCode =
   | 'VIDEO_TOO_LARGE'
   | 'VIDEO_UNSUPPORTED_MIME'
   | 'AI_PROVIDER_BAD_REQUEST'
+  | 'AI_PROVIDER_AUTH_ERROR'
+  | 'AI_PROVIDER_RATE_LIMIT'
   | 'AI_PROVIDER_TIMEOUT'
   | 'AI_PROVIDER_ERROR'
   | 'missing_openrouter_key';
 
+/** Sanitized OpenRouter/upstream diagnostic fields — never secrets, URLs, or media. */
+export type ProviderErrorDetails = {
+  http_status: number | null;
+  content_type: string | null;
+  body_length: number;
+  error_message?: string | null;
+  error_code?: string | number | null;
+  error_type?: string | null;
+  provider_name?: string | null;
+  body_preview?: string | null;
+};
+
 export function visionError(code: VisionErrorCode): Error {
   return new Error(code);
+}
+
+export class VisionFailureError extends Error {
+  readonly code: VisionErrorCode;
+  readonly errorDetails: ProviderErrorDetails | undefined;
+
+  constructor(code: VisionErrorCode, errorDetails?: ProviderErrorDetails) {
+    super(code);
+    this.name = 'VisionFailureError';
+    this.code = code;
+    this.errorDetails = errorDetails;
+  }
 }
 
 export function isVisionVideoMime(mime: string): mime is VisionVideoMime {
@@ -73,8 +100,83 @@ export function buildVisionMediaPart(params: {
 
 export function mapHttpStatusToVisionCode(status: number): VisionErrorCode {
   if (status === 400) return 'AI_PROVIDER_BAD_REQUEST';
+  if (status === 401 || status === 403) return 'AI_PROVIDER_AUTH_ERROR';
+  if (status === 429) return 'AI_PROVIDER_RATE_LIMIT';
   if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
   return 'AI_PROVIDER_ERROR';
+}
+
+/** Strip secrets, signed URLs, data-URLs, and long base64 from diagnostic text. */
+export function sanitizeProviderText(value: unknown, maxLen: number): string | null {
+  if (value == null) return null;
+  let s = typeof value === 'string' ? value : String(value);
+  s = s.replace(/data:[^;\s]+;base64,[A-Za-z0-9+/=\s]+/gi, '[data_url_redacted]');
+  s = s.replace(/Bearer\s+\S+/gi, 'Bearer [redacted]');
+  s = s.replace(/sk-[A-Za-z0-9_-]{8,}/g, '[key_redacted]');
+  s = s.replace(
+    /https?:\/\/[^\s"'<>]+(?:token|sig|signature|apikey|api_key)=[^\s"'<>]+/gi,
+    '[signed_url_redacted]'
+  );
+  s = s.replace(/(?:token|sig|signature|apikey|api_key)=[^\s"'&<>]+/gi, '[token_redacted]');
+  // Only redact base64-looking blobs (padding or +/), not long plain words.
+  s = s.replace(/[A-Za-z0-9+/]{40,}={1,2}/g, '[base64_redacted]');
+  s = s.replace(/[A-Za-z0-9]{16,}[+/][A-Za-z0-9+/=]{40,}/g, '[base64_redacted]');
+  s = s.replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+  return s.length > maxLen ? s.slice(0, maxLen) : s;
+}
+
+function sanitizeErrorCode(value: unknown): string | number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') return sanitizeProviderText(value, 80);
+  return null;
+}
+
+/**
+ * Build persistable OpenRouter diagnostics from status + raw body.
+ * Never includes Authorization, keys, data URLs, or full media payloads.
+ */
+export function extractProviderErrorDetails(
+  status: number,
+  contentType: string | null | undefined,
+  bodyText: string
+): ProviderErrorDetails {
+  const details: ProviderErrorDetails = {
+    http_status: Number.isFinite(status) ? status : null,
+    content_type: sanitizeProviderText(contentType ?? null, 120),
+    body_length: bodyText.length,
+  };
+
+  const trimmed = bodyText.trim();
+  if (!trimmed) return details;
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const errRaw = parsed.error ?? parsed;
+    if (typeof errRaw === 'string') {
+      details.error_message = sanitizeProviderText(errRaw, 500);
+      return details;
+    }
+    if (errRaw && typeof errRaw === 'object') {
+      const err = errRaw as Record<string, unknown>;
+      details.error_message = sanitizeProviderText(err.message, 500);
+      details.error_code = sanitizeErrorCode(err.code);
+      details.error_type = sanitizeProviderText(err.type, 120);
+      const meta = err.metadata;
+      if (meta && typeof meta === 'object') {
+        const m = meta as Record<string, unknown>;
+        details.provider_name = sanitizeProviderText(m.provider_name ?? m.provider ?? null, 120);
+      }
+      return details;
+    }
+    details.error_message = sanitizeProviderText('unrecognized_json_error', 80);
+    return details;
+  } catch {
+    // Sanitize a wider window first, then hard-cap preview length.
+    const cleaned = sanitizeProviderText(trimmed.slice(0, 4000), 4000);
+    details.body_preview = cleaned ? cleaned.slice(0, 1000) : null;
+    return details;
+  }
 }
 
 /** Ensures error payloads never echo secrets / bearer tokens / long signed URLs. */
@@ -84,6 +186,8 @@ export function sanitizeVisionErrorDetail(value: string): string {
     'VIDEO_TOO_LARGE',
     'VIDEO_UNSUPPORTED_MIME',
     'AI_PROVIDER_BAD_REQUEST',
+    'AI_PROVIDER_AUTH_ERROR',
+    'AI_PROVIDER_RATE_LIMIT',
     'AI_PROVIDER_TIMEOUT',
     'AI_PROVIDER_ERROR',
     'missing_openrouter_key',

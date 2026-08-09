@@ -64,6 +64,21 @@ export type VisionErrorCode =
   | 'VIDEO_TOO_LARGE'
   | 'VIDEO_UNSUPPORTED_MIME'
   | 'AI_PROVIDER_BAD_REQUEST'
+  | 'AI_PROVIDER_AUTH_ERROR'
+  | 'AI_PROVIDER_RATE_LIMIT'
   | 'AI_PROVIDER_TIMEOUT'
   | 'AI_PROVIDER_ERROR'
   | 'missing_openrouter_key';
+
+/** Sanitized OpenRouter/upstream diagnostic fields — never secrets, URLs, or media. */
+export type ProviderErrorDetails = {
+  http_status: number | null;
+  content_type: string | null;
+  body_length: number;
+  error_message?: string | null;
+  error_code?: string | number | null;
+  error_type?: string | null;
+  provider_name?: string | null;
+  /** Non-JSON bodies only; max 1000 chars, already sanitized. */
+  body_preview?: string | null;
+};

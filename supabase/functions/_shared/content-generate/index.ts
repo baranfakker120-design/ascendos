@@ -23,14 +23,16 @@ import {
   type ContentFormat,
   type GenerationPayload,
   type MembershipRow,
+  type ProviderErrorDetails,
 } from './types.ts';
-import { callVisionModel } from './vision.ts';
+import { callVisionModel, VisionFailureError } from './vision.ts';
 
 export type {
   AssetRow,
   ContentFormat,
   GenerationPayload,
   MembershipRow,
+  ProviderErrorDetails,
 } from './types.ts';
 export {
   CONTENT_ASSETS_BUCKET,
@@ -38,6 +40,7 @@ export {
 } from './types.ts';
 export { normalizeFormat } from './parse.ts';
 export { runHeuristicCleanCheck, CLEAN_CHECK_DISCLAIMER } from './cleanCheck.ts';
+export { VisionFailureError } from './vision.ts';
 
 export function canPersistAssetAnalysis(asset: AssetRow, membership: MembershipRow): boolean {
   if (asset.scope === 'personal') return asset.owner_membership_id === membership.id;
