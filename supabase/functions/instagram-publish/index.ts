@@ -276,7 +276,8 @@ Deno.serve(async (req) => {
     let attempt = (activeRows as AttemptRow[] | null)?.[0] ?? null;
 
     if (attempt?.status === 'submitted' && attempt.meta_container_id) {
-      // Resume in-flight container instead of creating a second one.
+      // Resume after crash/timeout — never create a second container for this draft.
+      // Parallel requests are guarded before media_publish (meta_media_id / status re-check).
       console.log('instagram_publish_resume', { attemptId: attempt.id });
     } else if (attempt?.status === 'queued') {
       // Another request is likely still creating the container.
@@ -363,6 +364,7 @@ Deno.serve(async (req) => {
         });
         containerId = created.containerId;
 
+        // Persist container id immediately — before polling / publish.
         const { error: submitErr } = await admin
           .from('content_publish_attempts')
           .update({
@@ -375,11 +377,30 @@ Deno.serve(async (req) => {
         if (submitErr) throw submitErr;
       }
 
-      // Videos/reels/stories need processing; feed images can publish immediately.
-      if (asset.media_kind === 'video' || draft.format === 'reel' || draft.format === 'story') {
-        await waitForContainerReady({
-          containerId,
-          accessToken,
+      // Always wait for Meta readiness — including feed images (avoids 9007/2207027).
+      await waitForContainerReady({
+        containerId,
+        accessToken,
+        mediaKind: asset.media_kind,
+      });
+
+      // Idempotency: re-check before media_publish (parallel click / race).
+      const { data: beforePublish, error: beforeErr } = await admin
+        .from('content_publish_attempts')
+        .select('id, status, meta_container_id, meta_media_id, error_message')
+        .eq('id', attempt.id)
+        .maybeSingle();
+      if (beforeErr) throw beforeErr;
+      const latest = beforePublish as AttemptRow | null;
+      if (latest?.meta_media_id || latest?.status === 'published') {
+        return safePublishResponse({
+          ok: true,
+          status: 'published',
+          alreadyPublished: true,
+          attemptId: attempt.id,
+          mediaId: latest.meta_media_id,
+          containerId: latest.meta_container_id ?? containerId,
+          igUsername: connection.ig_username,
         });
       }
 
@@ -389,7 +410,7 @@ Deno.serve(async (req) => {
         containerId,
       });
 
-      const { error: doneErr } = await admin
+      const { data: doneRow, error: doneErr } = await admin
         .from('content_publish_attempts')
         .update({
           status: 'published',
@@ -398,8 +419,15 @@ Deno.serve(async (req) => {
           error_message: null,
         })
         .eq('id', attempt.id)
-        .in('status', ['queued', 'submitted']);
+        .in('status', ['queued', 'submitted'])
+        .is('meta_media_id', null)
+        .select('id, meta_media_id')
+        .maybeSingle();
       if (doneErr) throw doneErr;
+      // If another worker won the race, still treat as success with our media id.
+      if (!doneRow) {
+        console.log('instagram_publish_race_already_published', { attemptId: attempt.id });
+      }
 
       console.log('instagram_publish_ok', {
         attemptId: attempt.id,

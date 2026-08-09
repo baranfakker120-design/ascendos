@@ -1187,7 +1187,7 @@
     "igPublishApiNotReady": "Die Instagram-Publish-API ist in dieser Umgebung noch nicht freigeschaltet.",
     "igPublishQueued": "Veröffentlichung wird gestartet …",
     "igPublishing": "Wird auf Instagram veröffentlicht …",
-    "igPublishSuccess": "Erfolgreich veröffentlicht.",
+    "igPublishSuccess": "Erfolgreich auf Instagram veröffentlicht.",
     "igPublishSuccessShort": "Veröffentlicht",
     "igPublishAlreadyDone": "Bereits veröffentlicht — kein zweiter Post erzeugt.",
     "igPublishNeedPermission": "Die Meta-Berechtigung „instagram_business_content_publish“ fehlt. Im Developer Dashboard freischalten und Instagram erneut verbinden.",
@@ -1197,6 +1197,7 @@
     "igPublishContainerFailed": "Instagram konnte den Medien-Container nicht erstellen.",
     "igPublishFailed": "Veröffentlichung fehlgeschlagen. Es wurde kein zweiter Post erzeugt.",
     "igPublishNeedReconnect": "Instagram-Token ungültig. Bitte Verbindung trennen und erneut verbinden.",
-    "igPublishMediaUrlFailed": "Medien-URL für Instagram konnte nicht erzeugt werden."
+    "igPublishMediaUrlFailed": "Medien-URL für Instagram konnte nicht erzeugt werden.",
+    "igPublishPreparing": "Instagram bereitet deinen Beitrag vor …"
   }
 }

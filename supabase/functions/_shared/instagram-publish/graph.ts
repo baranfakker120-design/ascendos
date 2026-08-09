@@ -11,6 +11,11 @@ import {
   type MediaKind,
 } from './types.ts';
 
+/**
+ * Meta IG Container `status_code` values (official docs):
+ * EXPIRED | ERROR | FINISHED | IN_PROGRESS | PUBLISHED
+ * Unknown non-terminal values are treated as pending (keep polling).
+ */
 export type ContainerStatusCode =
   | 'EXPIRED'
   | 'ERROR'
@@ -19,13 +24,53 @@ export type ContainerStatusCode =
   | 'PUBLISHED'
   | string;
 
+export type ContainerReadiness = 'ready' | 'pending' | 'error' | 'expired';
+
+/** Polling defaults — bounded, no infinite loop. */
+export const CONTAINER_POLL_DEFAULTS = {
+  /** Wait before first status check (lets Meta start processing / fetch image_url). */
+  initialDelayMs: 2000,
+  /** Delay between subsequent status checks. */
+  intervalMs: 2000,
+  /** Max status checks after the initial delay (~2s + 30×2s ≈ 62s). */
+  maxAttempts: 30,
+} as const;
+
+export function classifyContainerStatus(statusCode: string | null | undefined): ContainerReadiness {
+  const code = String(statusCode ?? '')
+    .trim()
+    .toUpperCase();
+  if (code === 'FINISHED' || code === 'PUBLISHED') return 'ready';
+  if (code === 'ERROR') return 'error';
+  if (code === 'EXPIRED') return 'expired';
+  // IN_PROGRESS, empty, or any other non-terminal → keep waiting
+  return 'pending';
+}
+
+export function pollConfigForMedia(mediaKind: MediaKind): {
+  initialDelayMs: number;
+  intervalMs: number;
+  maxAttempts: number;
+} {
+  if (mediaKind === 'video') {
+    return {
+      initialDelayMs: 3000,
+      intervalMs: 3000,
+      maxAttempts: 40, // ~3s + 40×3s ≈ 123s
+    };
+  }
+  return { ...CONTAINER_POLL_DEFAULTS };
+}
+
 function graphUrl(path: string): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
   return `${IG_GRAPH_HOST}/${IG_GRAPH_API_VERSION}${clean}`;
 }
 
 function readGraphError(json: Record<string, unknown>, fallback: string): string {
-  const err = json.error as { message?: string; error_user_msg?: string; code?: number } | undefined;
+  const err = json.error as
+    | { message?: string; error_user_msg?: string; code?: number; error_subcode?: number }
+    | undefined;
   const msg = err?.error_user_msg || err?.message || json.error_message || json.error || fallback;
   return sanitizeMetaError(String(msg));
 }
@@ -120,18 +165,30 @@ export async function getContainerStatus(params: {
   };
 }
 
+/**
+ * Poll Meta until the container is publishable.
+ * Always used — including feed images (Meta may still return 9007/2207027 if rushed).
+ */
 export async function waitForContainerReady(params: {
   containerId: string;
   accessToken: string;
   fetchFn?: typeof fetch;
+  mediaKind?: MediaKind;
+  initialDelayMs?: number;
+  intervalMs?: number;
   maxAttempts?: number;
-  delayMs?: number;
   sleepFn?: (ms: number) => Promise<void>;
-}): Promise<void> {
-  const maxAttempts = params.maxAttempts ?? 45;
-  const delayMs = params.delayMs ?? 2000;
+}): Promise<{ statusCode: ContainerStatusCode; attempts: number }> {
+  const defaults = pollConfigForMedia(params.mediaKind ?? 'image');
+  const initialDelayMs = params.initialDelayMs ?? defaults.initialDelayMs;
+  const intervalMs = params.intervalMs ?? defaults.intervalMs;
+  const maxAttempts = params.maxAttempts ?? defaults.maxAttempts;
   const sleepFn =
     params.sleepFn ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+
+  if (initialDelayMs > 0) {
+    await sleepFn(initialDelayMs);
+  }
 
   for (let i = 0; i < maxAttempts; i++) {
     const { statusCode } = await getContainerStatus({
@@ -139,11 +196,20 @@ export async function waitForContainerReady(params: {
       accessToken: params.accessToken,
       fetchFn: params.fetchFn,
     });
-    if (statusCode === 'FINISHED' || statusCode === 'PUBLISHED') return;
-    if (statusCode === 'ERROR' || statusCode === 'EXPIRED') {
-      throw new Error(`container_${statusCode.toLowerCase()}`);
+    const readiness = classifyContainerStatus(statusCode);
+    if (readiness === 'ready') {
+      return { statusCode, attempts: i + 1 };
     }
-    await sleepFn(delayMs);
+    if (readiness === 'error') {
+      throw new Error('container_error');
+    }
+    if (readiness === 'expired') {
+      throw new Error('container_expired');
+    }
+    // pending (IN_PROGRESS or unknown) — wait and retry
+    if (i < maxAttempts - 1) {
+      await sleepFn(intervalMs);
+    }
   }
   throw new Error('container_timeout');
 }

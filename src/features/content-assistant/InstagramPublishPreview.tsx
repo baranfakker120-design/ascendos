@@ -144,7 +144,8 @@ export function InstagramPublishPreview({
 
     inFlightRef.current = true;
     setFeedbackTone('info');
-    setFeedback(t('contentAssistant.igPublishing'));
+    // Polling can take tens of seconds — never show a premature failure while waiting.
+    setFeedback(t('contentAssistant.igPublishPreparing'));
 
     try {
       const result = await publishMutation.mutateAsync(draft.id);
@@ -268,7 +269,7 @@ export function InstagramPublishPreview({
           onClick={() => void onPublishClick()}
         >
           {busy
-            ? t('contentAssistant.igPublishing')
+            ? t('contentAssistant.igPublishPreparing')
             : done
               ? t('contentAssistant.igPublishSuccessShort')
               : confirming
