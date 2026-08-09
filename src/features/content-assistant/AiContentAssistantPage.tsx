@@ -11,6 +11,7 @@ import { ContentAssetThumb } from './ContentAssetThumb';
 import { InstagramConnectionCard } from './InstagramConnectionCard';
 import { InstagramPublishPreview } from './InstagramPublishPreview';
 import {
+  CONTENT_ASSET_FILE_ACCEPT,
   useContentLibrary,
   type ContentAsset,
   type ContentAssetScope,
@@ -263,7 +264,7 @@ export function AiContentAssistantPage() {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+            accept={CONTENT_ASSET_FILE_ACCEPT}
             className="hidden"
             onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
           />

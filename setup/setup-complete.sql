@@ -9248,6 +9248,22 @@ create unique index if not exists content_publish_attempts_active_draft_uidx
 comment on index public.content_publish_attempts_active_draft_uidx is
   'Prevents double-submit Graph publishes for the same draft while queued/submitted.';
 
+-- ############ 20260823000036_content_assets_allow_quicktime.sql ############
+-- Allow iPhone MOV / QuickTime uploads in the private content-assets bucket.
+-- Client already accepted video/mp4; video/quicktime was missing from Storage allowlist.
+-- Append-only: do not edit earlier foundation migrations.
+
+update storage.buckets
+set allowed_mime_types = array[
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime'
+]
+where id = 'content-assets';
+
 -- ============================================================
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================
