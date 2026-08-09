@@ -1136,7 +1136,7 @@
     "draftSaved": "Draft saved.",
     "draftSaveFailed": "Could not save draft.",
     "prepareInstagram": "Prepare for Instagram",
-    "instagramPrepared": "Draft marked ready. OAuth/publish comes later — no auto-publish.",
+    "instagramPrepared": "Draft ready. Review the Instagram preview — publish only after you tap.",
     "hashtagResearchTitle": "Why these hashtags?",
     "hashtagResearchLiveOn": "Using a live research source.",
     "hashtagResearchLiveOff": "No live trend research active — thematic/curated from the asset.",
@@ -1169,6 +1169,22 @@
     "igErrorBanner": "Connection failed. Please try again later.",
     "igErrorGeneric": "Technical connection error. Tokens are never shown.",
     "igNotConfigured": "Instagram OAuth is not configured on the server yet (Meta secrets).",
-    "igStartFailed": "Could not start connection."
+    "igStartFailed": "Could not start connection.",
+    "igPreviewTitle": "Instagram preview",
+    "igPreviewHint": "This is how your post will look before publishing. Nothing is posted automatically.",
+    "igPreviewAccountUnknown": "No account connected",
+    "igPreviewMediaLoading": "Loading media…",
+    "igPreviewEmptyCaption": "No caption",
+    "igPreviewEmptyHashtags": "No hashtags",
+    "igPreviewEmptyCta": "No CTA",
+    "igPublishNow": "Publish to Instagram now",
+    "igPublishConfirmCta": "Confirm publish now",
+    "igPublishConfirmHint": "Tap again to confirm. Nothing happens without this click.",
+    "igPublishNeedConnect": "Connect Instagram first.",
+    "igPublishNeedPrepare": "Prepare for Instagram first.",
+    "igPublishNeedMedia": "No image or video selected.",
+    "igPublishNeedCaption": "Caption is missing — please add and save.",
+    "igPublishApiNotReady": "Confirmation received. Official Instagram publish API is not enabled yet — nothing was published.",
+    "igPublishQueued": "Publishing started."
   }
 }

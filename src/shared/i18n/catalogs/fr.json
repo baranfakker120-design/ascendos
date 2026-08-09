@@ -1136,7 +1136,7 @@
     "draftSaved": "Brouillon enregistré.",
     "draftSaveFailed": "Échec de l’enregistrement.",
     "prepareInstagram": "Préparer Instagram",
-    "instagramPrepared": "Brouillon marqué prêt. OAuth/publication plus tard — pas d’auto-publish.",
+    "instagramPrepared": "Brouillon prêt. Vérifie l’aperçu Instagram — publication uniquement après ton clic.",
     "hashtagResearchTitle": "Pourquoi ces hashtags ?",
     "hashtagResearchLiveOn": "Source de recherche live active.",
     "hashtagResearchLiveOff": "Pas de recherche de tendances live — thématique/curaté depuis l’asset.",
@@ -1169,6 +1169,22 @@
     "igErrorBanner": "Échec de la connexion. Réessayez plus tard.",
     "igErrorGeneric": "Erreur technique de connexion. Les jetons ne sont jamais affichés.",
     "igNotConfigured": "OAuth Instagram n’est pas encore configuré côté serveur (secrets Meta).",
-    "igStartFailed": "Impossible de démarrer la connexion."
+    "igStartFailed": "Impossible de démarrer la connexion.",
+    "igPreviewTitle": "Aperçu Instagram",
+    "igPreviewHint": "Voici à quoi ressemble ton post avant publication. Rien n’est publié automatiquement.",
+    "igPreviewAccountUnknown": "Aucun compte connecté",
+    "igPreviewMediaLoading": "Chargement du média…",
+    "igPreviewEmptyCaption": "Pas de légende",
+    "igPreviewEmptyHashtags": "Pas de hashtags",
+    "igPreviewEmptyCta": "Pas de CTA",
+    "igPublishNow": "Publier maintenant sur Instagram",
+    "igPublishConfirmCta": "Confirmer la publication",
+    "igPublishConfirmHint": "Appuie encore pour confirmer. Rien ne se passe sans ce clic.",
+    "igPublishNeedConnect": "Connecte d’abord Instagram.",
+    "igPublishNeedPrepare": "Prépare d’abord pour Instagram.",
+    "igPublishNeedMedia": "Aucune image ou vidéo sélectionnée.",
+    "igPublishNeedCaption": "Légende manquante — ajoute et enregistre.",
+    "igPublishApiNotReady": "Confirmation reçue. L’API de publication Instagram n’est pas encore activée — rien n’a été publié.",
+    "igPublishQueued": "Publication démarrée."
   }
 }
