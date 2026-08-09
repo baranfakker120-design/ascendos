@@ -231,6 +231,8 @@ export function publishErrorI18nKey(error: string | undefined): string {
       return 'igPublishVideoResolution';
     case 'video_aspect_invalid':
       return 'igPublishVideoAspect';
+    case 'image_aspect_invalid':
+      return 'igPublishImageAspect';
     case 'video_not_ready':
       return 'igPublishVideoNotReady';
     case 'audio_unavailable':

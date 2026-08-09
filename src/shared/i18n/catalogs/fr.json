@@ -1217,6 +1217,7 @@
     "igPublishVideoTooLong": "Vidéo trop longue (Meta : max. 15 minutes pour les Reels, 60 secondes pour les Stories).",
     "igPublishVideoResolution": "Résolution vidéo non prise en charge (Meta : max. 1920 px de largeur).",
     "igPublishVideoAspect": "Ratio d’aspect non pris en charge (Meta : entre 0,01:1 et 10:1).",
+    "igPublishImageAspect": "Les images du fil doivent avoir un ratio entre 4:5 et 1,91:1. Nous adaptons l’image automatiquement à la publication.",
     "igPublishVideoNotReady": "Métadonnées vidéo pas encore prêtes. Patiente un instant et réessaie."
   }
 }

@@ -1217,6 +1217,7 @@
     "igPublishVideoTooLong": "Video çok uzun (Meta: Reels için en fazla 15 dakika, Stories için 60 saniye).",
     "igPublishVideoResolution": "Desteklenmeyen video çözünürlüğü (Meta: en fazla 1920 px genişlik).",
     "igPublishVideoAspect": "Desteklenmeyen en-boy oranı (Meta: 0,01:1 ile 10:1 arası).",
+    "igPublishImageAspect": "Akış görselleri 4:5 ile 1,91:1 arasında bir en-boy oranı gerektirir. Yayınlarken görseli otomatik uyarlarız.",
     "igPublishVideoNotReady": "Video meta verileri henüz hazır değil. Lütfen biraz bekleyip tekrar dene."
   }
 }

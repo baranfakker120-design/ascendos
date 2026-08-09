@@ -202,7 +202,12 @@ export function InstagramPublishPreview({
           setFeedbackTone('error');
           const key = publishErrorI18nKey(result.error);
           const translated = t(`contentAssistant.${key}` as 'contentAssistant.igPublishFailed');
-          setFeedback(result.message ? `${translated} (${result.message})` : translated);
+          // Only append raw Meta detail for generic failures — mapped keys already explain the issue.
+          setFeedback(
+            result.message && key === 'igPublishFailed'
+              ? `${translated} (${result.message})`
+              : translated
+          );
           return { ok: false, error: result.error };
         },
       });

@@ -1217,6 +1217,7 @@
     "igPublishVideoTooLong": "Video too long (Meta: max 15 minutes for Reels, 60 seconds for Stories).",
     "igPublishVideoResolution": "Unsupported video resolution (Meta: max 1920 px width).",
     "igPublishVideoAspect": "Unsupported aspect ratio (Meta: between 0.01:1 and 10:1).",
+    "igPublishImageAspect": "Feed images need an aspect ratio between 4:5 and 1.91:1. We automatically fit the image when publishing.",
     "igPublishVideoNotReady": "Video metadata not ready yet. Please wait a moment and try again."
   }
 }

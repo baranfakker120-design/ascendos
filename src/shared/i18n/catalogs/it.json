@@ -1217,6 +1217,7 @@
     "igPublishVideoTooLong": "Video troppo lungo (Meta: max 15 minuti per i Reels, 60 secondi per le Stories).",
     "igPublishVideoResolution": "Risoluzione video non supportata (Meta: max 1920 px di larghezza).",
     "igPublishVideoAspect": "Proporzioni non supportate (Meta: tra 0,01:1 e 10:1).",
+    "igPublishImageAspect": "Le immagini del feed richiedono un rapporto tra 4:5 e 1,91:1. Adattiamo automaticamente l’immagine in pubblicazione.",
     "igPublishVideoNotReady": "Metadati video non ancora pronti. Attendi un momento e riprova."
   }
 }
