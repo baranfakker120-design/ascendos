@@ -11,6 +11,7 @@ describe('evaluateInstagramPublishGate', () => {
     draftReady: true,
     hasMedia: true,
     hasCaption: true,
+    scopes: ['instagram_business_basic', 'instagram_business_content_publish'],
   };
 
   it('blocks when not connected', () => {
@@ -21,11 +22,23 @@ describe('evaluateInstagramPublishGate', () => {
     expect(evaluateInstagramPublishGate({ ...base, draftReady: false })).toBe('draft_not_ready');
   });
 
-  it('blocks when publishing API flag is off (default)', () => {
-    expect(evaluateInstagramPublishGate(base)).toBe('publishing_api_unavailable');
+  it('blocks when publishing API flag is off', () => {
+    expect(evaluateInstagramPublishGate({ ...base, publishingEnabled: false })).toBe(
+      'publishing_api_unavailable'
+    );
   });
 
-  it('allows only when publishing is explicitly enabled and inputs are valid', () => {
+  it('blocks when publish scope missing on connection', () => {
+    expect(
+      evaluateInstagramPublishGate({
+        ...base,
+        scopes: ['instagram_business_basic'],
+        publishingEnabled: true,
+      })
+    ).toBe('missing_publish_permission');
+  });
+
+  it('allows when publishing is enabled and inputs are valid', () => {
     expect(evaluateInstagramPublishGate({ ...base, publishingEnabled: true })).toBe('ok');
   });
 

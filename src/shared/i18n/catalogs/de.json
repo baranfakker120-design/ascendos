@@ -1107,7 +1107,7 @@
     "todayManualGenerateHint": "Du kannst weiterhin ein Asset wählen und manuell mit KI analysieren.",
     "noAutoPublish": "Veröffentlichung immer erst nach deiner Bestätigung.",
     "formatReadyLater": "Vorbereitung folgt",
-    "instagramArchitectureHint": "Offizieller Meta OAuth. Passwort, Scraping und Bots sind ausgeschlossen. Veröffentlichen folgt später nach Bestätigung.",
+    "instagramArchitectureHint": "Offizieller Meta OAuth und Graph Publishing. Passwort, Scraping und Bots sind ausgeschlossen. Veröffentlichen nur nach deiner Bestätigung.",
     "instagramTodoCount": "Meta App Review / Produktion: {count} offene Konfigurationspunkte (dokumentiert).",
     "connectInstagram": "Instagram verbinden",
     "generateTitle": "KI-Entwurf",
@@ -1184,7 +1184,19 @@
     "igPublishNeedPrepare": "Bitte zuerst „Instagram vorbereiten“.",
     "igPublishNeedMedia": "Kein Bild oder Video ausgewählt.",
     "igPublishNeedCaption": "Caption fehlt — bitte ergänzen und speichern.",
-    "igPublishApiNotReady": "Bestätigung erhalten. Die offizielle Instagram-Publish-API ist noch nicht freigeschaltet — es wurde nichts veröffentlicht.",
-    "igPublishQueued": "Veröffentlichung gestartet."
+    "igPublishApiNotReady": "Die Instagram-Publish-API ist in dieser Umgebung noch nicht freigeschaltet.",
+    "igPublishQueued": "Veröffentlichung wird gestartet …",
+    "igPublishing": "Wird auf Instagram veröffentlicht …",
+    "igPublishSuccess": "Erfolgreich veröffentlicht.",
+    "igPublishSuccessShort": "Veröffentlicht",
+    "igPublishAlreadyDone": "Bereits veröffentlicht — kein zweiter Post erzeugt.",
+    "igPublishNeedPermission": "Die Meta-Berechtigung „instagram_business_content_publish“ fehlt. Im Developer Dashboard freischalten und Instagram erneut verbinden.",
+    "igPublishNeedConfirm": "Bitte die Veröffentlichung ausdrücklich bestätigen.",
+    "igPublishInProgress": "Veröffentlichung läuft bereits — bitte kurz warten.",
+    "igPublishContainerTimeout": "Instagram verarbeitet das Medium noch zu lange. Bitte später erneut versuchen.",
+    "igPublishContainerFailed": "Instagram konnte den Medien-Container nicht erstellen.",
+    "igPublishFailed": "Veröffentlichung fehlgeschlagen. Es wurde kein zweiter Post erzeugt.",
+    "igPublishNeedReconnect": "Instagram-Token ungültig. Bitte Verbindung trennen und erneut verbinden.",
+    "igPublishMediaUrlFailed": "Medien-URL für Instagram konnte nicht erzeugt werden."
   }
 }

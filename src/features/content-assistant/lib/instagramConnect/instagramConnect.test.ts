@@ -78,9 +78,9 @@ describe('buildAuthorizeUrl', () => {
     expect(url.startsWith('https://www.instagram.com/oauth/authorize?')).toBe(true);
     expect(url).toContain('client_id=990602627938098');
     expect(url).toContain('response_type=code');
-    expect(url).toContain('scope=instagram_business_basic');
+    expect(url).toContain('instagram_business_basic');
+    expect(url).toContain('instagram_business_content_publish');
     expect(url).toContain('state=abc.def');
-    expect(url).not.toContain('instagram_business_content_publish');
   });
 
   it('preserves trailing slash and strips wrapping quotes on redirect_uri', () => {

@@ -14,8 +14,9 @@ import { useInstagramConnection } from './instagramConnectionApi';
 import { parseIgCallbackParam } from './lib/instagramConnect';
 
 /**
- * Phase 5A connection card — OAuth connect/disconnect only.
- * Never posts, never shows tokens, never auto-publishes.
+ * Instagram connection card — OAuth connect/disconnect.
+ * Publishing happens only via InstagramPublishPreview + instagram-publish.
+ * Never shows tokens, never auto-publishes.
  */
 export function InstagramConnectionCard() {
   const { t } = useI18n();

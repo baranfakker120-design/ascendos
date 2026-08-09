@@ -29,6 +29,7 @@ const FUNCTIONS = [
   'content-assistant',
   'content-daily-prepare',
   'instagram-oauth',
+  'instagram-publish',
   'meta-data-deletion',
   'instagram-webhook',
 ];
@@ -95,6 +96,7 @@ const SHARED_GROUPS = [
   'content-generate',
   'content-daily',
   'instagram-oauth',
+  'instagram-publish',
   'meta',
 ];
 

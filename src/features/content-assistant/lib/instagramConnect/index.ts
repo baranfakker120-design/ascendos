@@ -112,7 +112,9 @@ export function buildAuthorizeUrl(params: {
   state: string;
   scopes?: string[];
 }): string {
-  const scope = (params.scopes ?? ['instagram_business_basic']).join(',');
+  const scope = (
+    params.scopes ?? ['instagram_business_basic', 'instagram_business_content_publish']
+  ).join(',');
   const redirectUri = normalizeRedirectUri(params.redirectUri);
   const q = new URLSearchParams({
     client_id: params.appId,

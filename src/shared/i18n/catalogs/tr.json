@@ -1107,7 +1107,7 @@
     "todayManualGenerateHint": "Yine de bir varlık seçip elle yapay zekâ ile analiz edebilirsin.",
     "noAutoPublish": "Yayın her zaman senin onayını gerektirir.",
     "formatReadyLater": "Hazırlık sonra",
-    "instagramArchitectureHint": "Resmi Meta OAuth. Şifre, scraping ve bot yok. Yayınlama daha sonra, onayın ardından gelir.",
+    "instagramArchitectureHint": "Resmi Meta OAuth ve Graph yayınlama. Şifre, scraping veya bot yok. Yalnızca onayından sonra yayınlanır.",
     "instagramTodoCount": "Meta App Review / üretim: {count} açık yapılandırma maddesi (belgelendi).",
     "connectInstagram": "Instagram’ı bağla",
     "generateTitle": "YZ taslağı",
@@ -1184,7 +1184,19 @@
     "igPublishNeedPrepare": "Önce Instagram için hazırla.",
     "igPublishNeedMedia": "Görsel veya video seçilmedi.",
     "igPublishNeedCaption": "Açıklama eksik — ekleyip kaydet.",
-    "igPublishApiNotReady": "Onay alındı. Resmi Instagram yayın API’si henüz açık değil — hiçbir şey yayınlanmadı.",
-    "igPublishQueued": "Yayın başlatıldı."
+    "igPublishApiNotReady": "Instagram yayın API’si henüz etkin değil.",
+    "igPublishQueued": "Yayın başlatılıyor…",
+    "igPublishing": "Instagram’da yayınlanıyor…",
+    "igPublishSuccess": "Başarıyla yayınlandı.",
+    "igPublishSuccessShort": "Yayınlandı",
+    "igPublishAlreadyDone": "Zaten yayınlandı — ikinci gönderi oluşturulmadı.",
+    "igPublishNeedPermission": "Meta izni “instagram_business_content_publish” eksik. Developer Dashboard’da etkinleştir ve Instagram’ı yeniden bağla.",
+    "igPublishNeedConfirm": "Lütfen yayını açıkça onayla.",
+    "igPublishInProgress": "Yayın zaten sürüyor — lütfen bekle.",
+    "igPublishContainerTimeout": "Instagram medyayı çok uzun süre işliyor. Daha sonra tekrar dene.",
+    "igPublishContainerFailed": "Instagram medya kapsayıcısını oluşturamadı.",
+    "igPublishFailed": "Yayın başarısız. İkinci gönderi oluşturulmadı.",
+    "igPublishNeedReconnect": "Instagram jetonu geçersiz. Bağlantıyı kesip yeniden bağlan.",
+    "igPublishMediaUrlFailed": "Instagram için medya URL’si oluşturulamadı."
   }
 }
