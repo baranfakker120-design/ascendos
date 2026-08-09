@@ -130,10 +130,29 @@ Deno.serve(async (req) => {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.startsWith('signed_url_failed')) {
-        return json({ error: 'signed_url_failed', detail: msg }, 500);
+        return json({ error: 'signed_url_failed', detail: 'signed_url_failed' }, 500);
       }
       if (msg.includes('missing_openrouter_key') || msg.includes('OPENROUTER')) {
-        return json({ error: 'ai_not_configured', detail: msg }, 503);
+        return json({ error: 'ai_not_configured', detail: 'ai_not_configured' }, 503);
+      }
+      if (
+        msg === 'VIDEO_FETCH_FAILED' ||
+        msg === 'VIDEO_TOO_LARGE' ||
+        msg === 'VIDEO_UNSUPPORTED_MIME' ||
+        msg === 'AI_PROVIDER_BAD_REQUEST' ||
+        msg === 'AI_PROVIDER_TIMEOUT' ||
+        msg === 'AI_PROVIDER_ERROR'
+      ) {
+        if (canPersistAssetAnalysis(assetRow, active)) {
+          await markAssetAnalysisFailed(db, assetRow, active, { error: msg });
+        }
+        const status =
+          msg === 'VIDEO_TOO_LARGE' || msg === 'VIDEO_UNSUPPORTED_MIME'
+            ? 422
+            : msg === 'AI_PROVIDER_TIMEOUT'
+              ? 504
+              : 502;
+        return json({ error: msg, detail: msg }, status);
       }
       if (
         msg.includes('invalid_ai_json') ||
@@ -142,14 +161,14 @@ Deno.serve(async (req) => {
       ) {
         await markAssetAnalysisFailed(db, assetRow, active, {
           error: 'parse_failed',
-          detail: msg,
+          detail: 'parse_failed',
         });
-        return json({ error: 'ai_parse_failed', detail: msg }, 502);
+        return json({ error: 'ai_parse_failed', detail: 'parse_failed' }, 502);
       }
       if (canPersistAssetAnalysis(assetRow, active)) {
-        await markAssetAnalysisFailed(db, assetRow, active, { error: msg });
+        await markAssetAnalysisFailed(db, assetRow, active, { error: 'ai_analysis_failed' });
       }
-      return json({ error: 'ai_analysis_failed', detail: msg }, 502);
+      return json({ error: 'ai_analysis_failed', detail: 'ai_analysis_failed' }, 502);
     }
   } catch (e) {
     console.error('content-assistant error', e);
