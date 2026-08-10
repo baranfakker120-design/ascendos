@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -36,6 +37,7 @@ import {
   replaceInSelection,
   selectionCounter,
 } from './lib/carousel/selection';
+import { filterLibraryAssetsByScope } from './lib/contentAssets/scopeFilter';
 import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
@@ -44,6 +46,7 @@ import { hashtagReasonI18nKey } from './lib/hashtagResearch';
  */
 export function AiContentAssistantPage() {
   const { t } = useI18n();
+  const { membership } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const replaceIndexRef = useRef<number | null>(null);
@@ -94,6 +97,10 @@ export function AiContentAssistantPage() {
 
   const quota = quotaQuery.data;
   const assets = assetsQuery.data ?? [];
+  const libraryAssets = useMemo(
+    () => filterLibraryAssetsByScope(assets, scope, membership?.id ?? null),
+    [assets, scope, membership?.id]
+  );
   const today = todayQuery.data;
   const selectedAssets = useMemo(() => {
     const map = new Map(assets.map((a) => [a.id, a]));
@@ -417,11 +424,11 @@ export function AiContentAssistantPage() {
         ) : null}
         {assetsQuery.isLoading ? (
           <p className="text-sm text-muted">{t('contentAssistant.loading')}</p>
-        ) : assets.length === 0 ? (
+        ) : libraryAssets.length === 0 ? (
           <p className="text-sm text-muted">{t('contentAssistant.emptyLibrary')}</p>
         ) : (
           <ul className="space-y-2" aria-label={t('contentAssistant.libraryTitle')}>
-            {assets.map((asset) => {
+            {libraryAssets.map((asset) => {
               const selected = selectedAssetIds.includes(asset.id);
               const order = selected ? selectedAssetIds.indexOf(asset.id) + 1 : null;
               return (
