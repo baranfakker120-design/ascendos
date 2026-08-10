@@ -7,10 +7,9 @@
 }
 
 /*
- * Additive Ascend collapse — open state keeps original Tailwind shell chrome.
- * Collapsed: no shell bg/border/shadow/padding (classes stripped in JSX);
- * side tabs leave the layout; only the round Ascend disc remains.
- * nth-child: 1 Heute, 2 Kontakte, 3 Ascend, 4 Team, 5 Profil
+ * Collapsed chrome — Motion springs sides toward Ascend; shell loses pill chrome.
+ * Open pill classes stay on the element via JSX (exact original look).
+ * Side tabs stay mounted (no display:none) so springs are interruptible.
  */
 .nav-shell--coach-collapsed {
   display: flex;
@@ -24,13 +23,18 @@
   background: none;
   box-shadow: none;
   border-radius: 0;
+  gap: 0;
 }
 
 .nav-shell--coach-collapsed > *:nth-child(1),
 .nav-shell--coach-collapsed > *:nth-child(2),
 .nav-shell--coach-collapsed > *:nth-child(4),
 .nav-shell--coach-collapsed > *:nth-child(5) {
-  display: none;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* Round hit-target only — no square min box around the disc */
@@ -45,38 +49,6 @@
   border-radius: 999px;
   justify-content: center;
   align-items: center;
-}
-
-/* Soft white/gold bloom when sides tuck — then a quiet residual glow */
-.nav-center-disc--bloom {
-  animation: nav-ascend-bloom 720ms cubic-bezier(0.22, 1.15, 0.36, 1) both;
-  box-shadow:
-    0 0 14px rgb(255 250 240 / 0.4),
-    0 0 22px rgb(184 147 90 / 0.22),
-    0 6px 18px rgb(184 147 90 / 0.16);
-}
-
-@keyframes nav-ascend-bloom {
-  0% {
-    filter: brightness(1);
-    box-shadow:
-      0 8px 28px rgb(184 147 90 / 0.22),
-      0 2px 8px rgb(17 18 20 / 0.06);
-  }
-  40% {
-    filter: brightness(1.06);
-    box-shadow:
-      0 0 12px rgb(255 250 240 / 0.5),
-      0 0 20px rgb(184 147 90 / 0.28),
-      0 6px 16px rgb(184 147 90 / 0.16);
-  }
-  100% {
-    filter: brightness(1.02);
-    box-shadow:
-      0 0 10px rgb(255 250 240 / 0.32),
-      0 0 16px rgb(184 147 90 / 0.18),
-      0 6px 16px rgb(184 147 90 / 0.12);
-  }
 }
 
 .nav-center-disc {
@@ -430,7 +402,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nav-center-disc,
-  .nav-center-disc--bloom,
+  .nav-center-btn--collapsed,
   .nav-ascend-pulse,
   .nav-ripple,
   .nav-contacts-left,
