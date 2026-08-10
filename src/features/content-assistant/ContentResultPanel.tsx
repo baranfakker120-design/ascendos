@@ -48,7 +48,11 @@ export function ContentResultPanel({
           <dt className="text-xs font-semibold text-muted">
             {t('contentAssistant.analysisCoreMessage')}
           </dt>
-          <dd className="text-ink">{data.core_message || data.message || '—'}</dd>
+          <dd className="text-ink">
+            {data.core_message ||
+              (typeof data.message === 'string' ? data.message : null) ||
+              '—'}
+          </dd>
         </div>
         {data.content_intent ? (
           <div>
