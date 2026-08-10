@@ -108,12 +108,11 @@ export function BottomNav() {
     >
       <div className="pointer-events-auto relative mx-auto max-w-lg">
         <div
-          className={[
-            'nav-shell relative grid items-end border border-line bg-surface pb-2 pt-2 shadow-[0_10px_40px_rgb(17_18_20/0.08),0_1px_0_rgb(255_255_255/0.8)_inset]',
+          className={
             navigationExpanded
-              ? 'grid-cols-5 rounded-[1.75rem] px-1.5'
-              : 'nav-shell--coach-collapsed',
-          ].join(' ')}
+              ? 'nav-shell relative grid grid-cols-5 items-end rounded-[1.75rem] border border-line bg-surface px-1.5 pb-2 pt-2 shadow-[0_10px_40px_rgb(17_18_20/0.08),0_1px_0_rgb(255_255_255/0.8)_inset]'
+              : 'nav-shell nav-shell--coach-collapsed relative'
+          }
         >
           {BOTTOM_NAV_TABS.map((tab) => {
             const active = isTabActive(tab, location.pathname);
@@ -180,8 +179,11 @@ export function BottomNav() {
                       }}
                       className={({ isActive }) =>
                         [
-                          'nav-center-btn group relative -mt-7 flex min-h-[44px] min-w-[44px] flex-col items-center justify-end gap-0.5 outline-none',
+                          'nav-center-btn group relative flex flex-col items-center outline-none',
                           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                          navigationExpanded
+                            ? '-mt-7 min-h-[44px] min-w-[44px] justify-end gap-0.5'
+                            : 'nav-center-btn--collapsed',
                           isActive ? 'text-accent-deep' : 'text-muted',
                         ].join(' ')
                       }
@@ -200,17 +202,18 @@ export function BottomNav() {
                           >
                             {renderIcon('coach', isActive)}
                           </span>
-                          <span
-                            className={[
-                              'nav-center-label text-[10px] tracking-[0.14em] transition-[color,font-weight,opacity] duration-200',
-                              isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
-                              navigationExpanded ? '' : 'nav-center-label--hidden',
-                            ]
-                              .filter(Boolean)
-                              .join(' ')}
-                          >
-                            {label}
-                          </span>
+                          {navigationExpanded ? (
+                            <span
+                              className={[
+                                'nav-center-label text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
+                                isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
+                              ].join(' ')}
+                            >
+                              {label}
+                            </span>
+                          ) : (
+                            <span className="sr-only">{label}</span>
+                          )}
                         </>
                       )}
                     </NavLink>
