@@ -21,6 +21,24 @@ export interface AssetRow {
   suggested_formats: string[] | null;
 }
 
+export interface KeywordDetail {
+  keyword: string;
+  why: string;
+}
+
+export interface HashtagDetail {
+  tag: string;
+  why: string;
+}
+
+export interface SlideAnalysis {
+  index: number;
+  summary: string;
+  role: string;
+  issue: string | null;
+  fix: string | null;
+}
+
 export interface GenerationPayload {
   visual_summary: string;
   theme: string | null;
@@ -31,15 +49,32 @@ export interface GenerationPayload {
   product_hint: string | null;
   uncertain: string[];
   content_type: ContentFormat;
+  content_intent: string | null;
+  core_message: string | null;
+  problem: string | null;
+  emotion: string | null;
+  why_swipe: string | null;
+  why_save: string | null;
+  why_share: string | null;
   hook: string;
+  hook_strength: 'strong' | 'ok' | 'weak' | null;
+  hook_alternatives: string[];
   caption: string;
   keywords: string[];
+  keyword_details: KeywordDetail[];
   hashtags: string[];
+  hashtag_details: HashtagDetail[];
   cta: string;
   target_audience: string | null;
   posting_hint: string | null;
+  optimization: string | null;
+  slides: SlideAnalysis[];
   llm_clean_flags: string[];
 }
+
+/** Hard product rule: Instagram Content Assistant always returns exactly 5 hashtags. */
+export const REQUIRED_HASHTAG_COUNT = 5;
+export const CAROUSEL_MAX_ASSETS = 6;
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
 export const DEFAULT_DAILY_GENERATION_LIMIT = 25;

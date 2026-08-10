@@ -14,18 +14,30 @@ import {
 // deno-lint-ignore no-explicit-any
 type DbClient = any;
 import { runHeuristicCleanCheck } from './cleanCheck.ts';
-import { extractJsonObject, normalizeFormat, parseGeneration } from './parse.ts';
-import { buildSystemPrompt, buildUserPrompt } from './prompts.ts';
 import {
+  enforceExactHashtagCount,
+  extractJsonObject,
+  normalizeFormat,
+  parseGeneration,
+} from './parse.ts';
+import {
+  buildCarouselSystemPrompt,
+  buildCarouselUserPrompt,
+  buildSystemPrompt,
+  buildUserPrompt,
+} from './prompts.ts';
+import {
+  CAROUSEL_MAX_ASSETS,
   CONTENT_ASSETS_BUCKET,
   DEFAULT_DAILY_GENERATION_LIMIT,
+  REQUIRED_HASHTAG_COUNT,
   type AssetRow,
   type ContentFormat,
   type GenerationPayload,
   type MembershipRow,
   type ProviderErrorDetails,
 } from './types.ts';
-import { callVisionModel, VisionFailureError } from './vision.ts';
+import { callVisionModel, callVisionModelCarousel, VisionFailureError } from './vision.ts';
 
 export type {
   AssetRow,
@@ -35,12 +47,17 @@ export type {
   ProviderErrorDetails,
 } from './types.ts';
 export {
+  CAROUSEL_MAX_ASSETS,
   CONTENT_ASSETS_BUCKET,
   DEFAULT_DAILY_GENERATION_LIMIT,
+  REQUIRED_HASHTAG_COUNT,
 } from './types.ts';
-export { normalizeFormat } from './parse.ts';
+export { normalizeFormat, enforceExactHashtagCount } from './parse.ts';
 export { runHeuristicCleanCheck, CLEAN_CHECK_DISCLAIMER } from './cleanCheck.ts';
 export { VisionFailureError } from './vision.ts';
+
+const DRAFT_SELECT =
+  'id, org_id, asset_id, carousel_asset_ids, analysis_json, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';
 
 export function canPersistAssetAnalysis(asset: AssetRow, membership: MembershipRow): boolean {
   if (asset.scope === 'personal') return asset.owner_membership_id === membership.id;
@@ -85,6 +102,116 @@ export interface GenerateDraftResult {
   parsed: GenerationPayload;
 }
 
+function finalizeHashtags(
+  parsed: GenerationPayload,
+  research: HashtagResearchResult
+): { tags: string[]; details: GenerationPayload['hashtag_details'] } {
+  const researchTags = research.recommended.map((c) => c.tag);
+  const tags = enforceExactHashtagCount(parsed.hashtags, researchTags, REQUIRED_HASHTAG_COUNT);
+  const whyByTag = new Map<string, string>();
+  for (const d of parsed.hashtag_details) {
+    whyByTag.set(d.tag.toLowerCase(), d.why);
+  }
+  for (const c of research.recommended) {
+    if (!whyByTag.has(c.tag.toLowerCase())) {
+      whyByTag.set(
+        c.tag.toLowerCase(),
+        'Strategische Einschätzung auf Basis von Thema, Zielgruppe und Nischenrelevanz.'
+      );
+    }
+  }
+  const details = tags.map((tag) => ({
+    tag,
+    why:
+      whyByTag.get(tag.toLowerCase()) ??
+      'Strategische Einschätzung auf Basis von Thema, Zielgruppe und Nischenrelevanz.',
+  }));
+  return { tags, details };
+}
+
+function buildAnalysisJson(params: {
+  vision: { provider: string; model: string };
+  parsed: GenerationPayload;
+  researchPayload: Record<string, unknown>;
+  hashtagDetails: GenerationPayload['hashtag_details'];
+  carouselAssetIds: string[];
+}): Record<string, unknown> {
+  const { vision, parsed, researchPayload, hashtagDetails, carouselAssetIds } = params;
+  return {
+    provider: vision.provider,
+    model: vision.model,
+    visual_summary: parsed.visual_summary,
+    theme: parsed.theme,
+    audience_hint: parsed.audience_hint,
+    mood: parsed.mood,
+    content_category: parsed.content_category,
+    message: parsed.message,
+    core_message: parsed.core_message,
+    content_intent: parsed.content_intent,
+    problem: parsed.problem,
+    emotion: parsed.emotion,
+    why_swipe: parsed.why_swipe,
+    why_save: parsed.why_save,
+    why_share: parsed.why_share,
+    product_hint: parsed.product_hint,
+    uncertain: parsed.uncertain,
+    hook_strength: parsed.hook_strength,
+    hook_alternatives: parsed.hook_alternatives,
+    keyword_details: parsed.keyword_details,
+    hashtag_details: hashtagDetails,
+    slides: parsed.slides,
+    optimization: parsed.optimization,
+    carousel_asset_ids: carouselAssetIds,
+    generated_at: new Date().toISOString(),
+    research: researchPayload,
+  };
+}
+
+async function persistPrimaryAssetAnalysis(params: {
+  db: DbClient;
+  asset: AssetRow;
+  membership: MembershipRow;
+  parsed: GenerationPayload;
+  analysisJson: Record<string, unknown>;
+  forcePersistAsset?: boolean;
+}): Promise<{
+  assetAnalysisPersisted: boolean;
+  assetAnalysisMode: GenerateDraftResult['assetAnalysisMode'];
+}> {
+  const persistAsset =
+    params.forcePersistAsset || canPersistAssetAnalysis(params.asset, params.membership);
+  if (!persistAsset) {
+    return {
+      assetAnalysisPersisted: false,
+      assetAnalysisMode: 'draft_only_central_or_foreign',
+    };
+  }
+  const { data: usageRow } = await params.db
+    .from('content_assets')
+    .select('usage_count')
+    .eq('id', params.asset.id)
+    .maybeSingle();
+  const { error: assetUpdateError } = await params.db
+    .from('content_assets')
+    .update({
+      analysis_status: 'ready',
+      detected_summary: params.parsed.visual_summary.slice(0, 2000),
+      theme: params.parsed.theme,
+      mood: params.parsed.mood,
+      product_hint: params.parsed.product_hint,
+      audience_hint: params.parsed.audience_hint,
+      keywords: params.parsed.keywords,
+      analysis_json: params.analysisJson,
+      last_used_at: new Date().toISOString(),
+      usage_count: Number(usageRow?.usage_count ?? 0) + 1,
+    })
+    .eq('id', params.asset.id);
+  return {
+    assetAnalysisPersisted: !assetUpdateError,
+    assetAnalysisMode: assetUpdateError ? 'persist_failed' : 'persisted',
+  };
+}
+
 /**
  * Run Vision + research + clean check + draft insert.
  * Always inserts draft with status='draft'. Never publishes.
@@ -98,33 +225,91 @@ export async function generateDraftFromAsset(params: {
   /** When true (daily job), always attempt asset analysis persist via service role. */
   forcePersistAsset?: boolean;
 }): Promise<GenerateDraftResult> {
-  const { db, asset, membership, locale } = params;
-  const format: ContentFormat =
-    params.format || normalizeFormat(asset.suggested_formats?.[0], 'feed');
+  return generateDraftFromAssets({
+    db: params.db,
+    assets: [params.asset],
+    membership: params.membership,
+    format: params.format,
+    locale: params.locale,
+    forcePersistAsset: params.forcePersistAsset,
+  });
+}
 
-  const { data: signed, error: signError } = await db.storage
-    .from(CONTENT_ASSETS_BUCKET)
-    .createSignedUrl(asset.storage_path, 3600);
-  if (signError || !signed?.signedUrl) {
-    throw new Error(`signed_url_failed:${signError?.message ?? 'missing'}`);
+/**
+ * Single image OR carousel (2–6 images) generation.
+ * Videos remain single-asset only.
+ */
+export async function generateDraftFromAssets(params: {
+  db: DbClient;
+  assets: AssetRow[];
+  membership: MembershipRow;
+  format: ContentFormat;
+  locale: string;
+  forcePersistAsset?: boolean;
+}): Promise<GenerateDraftResult> {
+  const { db, membership, locale } = params;
+  const assets = params.assets.slice(0, CAROUSEL_MAX_ASSETS);
+  if (assets.length === 0) throw new Error('asset_id_required');
+
+  const primary = assets[0];
+  const isCarousel = assets.length >= 2;
+  if (isCarousel) {
+    if (assets.some((a) => a.media_kind !== 'image')) {
+      throw new Error('carousel_images_only');
+    }
   }
 
-  const vision = await callVisionModel({
-    system: buildSystemPrompt(locale),
-    userText: buildUserPrompt({
-      format,
-      fileName: asset.file_name,
-      title: asset.title,
-      mediaKind: asset.media_kind,
-      aspectRatio: asset.aspect_ratio,
-      locale,
-    }),
-    mediaKind: asset.media_kind,
-    mimeType: asset.mime_type,
-    signedUrl: signed.signedUrl,
-  });
+  const format: ContentFormat = isCarousel
+    ? 'feed'
+    : params.format || normalizeFormat(primary.suggested_formats?.[0], 'feed');
 
-  const parsed = parseGeneration(extractJsonObject(vision.text), format);
+  const signedUrls: string[] = [];
+  for (const asset of assets) {
+    const { data: signed, error: signError } = await db.storage
+      .from(CONTENT_ASSETS_BUCKET)
+      .createSignedUrl(asset.storage_path, 3600);
+    if (signError || !signed?.signedUrl) {
+      throw new Error(`signed_url_failed:${signError?.message ?? 'missing'}`);
+    }
+    signedUrls.push(signed.signedUrl);
+  }
+
+  const vision = isCarousel
+    ? await callVisionModelCarousel({
+        system: buildCarouselSystemPrompt(locale),
+        userText: buildCarouselUserPrompt({
+          format,
+          locale,
+          slides: assets.map((a, i) => ({
+            index: i + 1,
+            fileName: a.file_name,
+            title: a.title,
+            aspectRatio: a.aspect_ratio,
+          })),
+        }),
+        imageUrls: signedUrls,
+      })
+    : await callVisionModel({
+        system: buildSystemPrompt(locale),
+        userText: buildUserPrompt({
+          format,
+          fileName: primary.file_name,
+          title: primary.title,
+          mediaKind: primary.media_kind,
+          aspectRatio: primary.aspect_ratio,
+          locale,
+        }),
+        mediaKind: primary.media_kind,
+        mimeType: primary.mime_type,
+        signedUrl: signedUrls[0],
+      });
+
+  const parsed = parseGeneration(extractJsonObject(vision.text), format, {
+    slideCount: assets.length,
+  });
+  if (isCarousel) {
+    parsed.content_type = 'feed';
+  }
 
   const research: HashtagResearchResult = runHashtagResearch({
     theme: parsed.theme,
@@ -135,7 +320,7 @@ export async function generateDraftFromAsset(params: {
     llmHashtags: parsed.hashtags,
     locale,
   });
-  const finalHashtags = research.recommended.map((c) => c.tag);
+  const { tags: finalHashtags, details: hashtagDetails } = finalizeHashtags(parsed, research);
 
   const clean = runHeuristicCleanCheck({
     hook: parsed.hook,
@@ -150,61 +335,61 @@ export async function generateDraftFromAsset(params: {
     mode: research.mode,
     liveResearchActive: research.liveResearchActive,
     providersUsed: research.providersUsed,
-    recommended: research.recommended,
+    recommended: research.recommended.slice(0, REQUIRED_HASHTAG_COUNT).map((c, i) => ({
+      ...c,
+      tag: finalHashtags[i] ?? c.tag,
+      reasonText: hashtagDetails[i]?.why,
+    })),
     rejected: research.rejected,
-    notes: research.notes,
+    notes: [
+      ...research.notes,
+      `Exactly ${REQUIRED_HASHTAG_COUNT} hashtags selected for Instagram Content Assistant.`,
+    ],
     hashtagApi: 'not_enabled',
   };
 
-  const analysisJson = {
-    provider: vision.provider,
-    model: vision.model,
-    visual_summary: parsed.visual_summary,
-    theme: parsed.theme,
-    audience_hint: parsed.audience_hint,
-    mood: parsed.mood,
-    content_category: parsed.content_category,
-    message: parsed.message,
-    product_hint: parsed.product_hint,
-    uncertain: parsed.uncertain,
-    generated_at: new Date().toISOString(),
-    research: researchPayload,
-  };
+  const carouselAssetIds = isCarousel ? assets.map((a) => a.id) : [];
+  const analysisJson = buildAnalysisJson({
+    vision,
+    parsed,
+    researchPayload,
+    hashtagDetails,
+    carouselAssetIds,
+  });
 
-  const persistAsset = params.forcePersistAsset || canPersistAssetAnalysis(asset, membership);
-  let assetAnalysisPersisted = false;
-  if (persistAsset) {
-    const { data: usageRow } = await db
-      .from('content_assets')
-      .select('usage_count')
-      .eq('id', asset.id)
-      .maybeSingle();
-    const { error: assetUpdateError } = await db
-      .from('content_assets')
-      .update({
-        analysis_status: 'ready',
-        detected_summary: parsed.visual_summary.slice(0, 2000),
-        theme: parsed.theme,
-        mood: parsed.mood,
-        product_hint: parsed.product_hint,
-        audience_hint: parsed.audience_hint,
-        keywords: parsed.keywords,
-        analysis_json: analysisJson,
-        last_used_at: new Date().toISOString(),
-        usage_count: Number(usageRow?.usage_count ?? 0) + 1,
-      })
-      .eq('id', asset.id);
-    assetAnalysisPersisted = !assetUpdateError;
+  const persist = await persistPrimaryAssetAnalysis({
+    db,
+    asset: primary,
+    membership,
+    parsed,
+    analysisJson,
+    forcePersistAsset: params.forcePersistAsset,
+  });
+
+  // Touch usage for additional carousel slides (best-effort).
+  if (isCarousel) {
+    for (const asset of assets.slice(1)) {
+      if (!canPersistAssetAnalysis(asset, membership) && !params.forcePersistAsset) continue;
+      await db
+        .from('content_assets')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', asset.id);
+    }
   }
 
-  const researchHint = formatResearchPostingHint(research);
+  const researchHint = formatResearchPostingHint({
+    ...research,
+    recommended: research.recommended.slice(0, REQUIRED_HASHTAG_COUNT),
+  });
   const postingHint = [parsed.posting_hint, researchHint].filter(Boolean).join(' · ');
 
   const draftInsert = {
     org_id: membership.org_id,
-    asset_id: asset.id,
+    asset_id: primary.id,
+    carousel_asset_ids: carouselAssetIds,
+    analysis_json: analysisJson,
     owner_membership_id: membership.id,
-    format: parsed.content_type,
+    format: isCarousel ? 'feed' : parsed.content_type,
     hook: parsed.hook,
     caption: parsed.caption,
     cta: parsed.cta,
@@ -220,9 +405,7 @@ export async function generateDraftFromAsset(params: {
   const { data: draft, error: draftError } = await db
     .from('content_drafts')
     .insert(draftInsert)
-    .select(
-      'id, org_id, asset_id, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at'
-    )
+    .select(DRAFT_SELECT)
     .single();
   if (draftError) throw draftError;
 
@@ -235,13 +418,13 @@ export async function generateDraftFromAsset(params: {
       notes: clean.notes,
       isGuarantee: false,
     },
-    assetAnalysisPersisted,
-    assetAnalysisMode: persistAsset
-      ? assetAnalysisPersisted
-        ? 'persisted'
-        : 'persist_failed'
-      : 'draft_only_central_or_foreign',
-    parsed,
+    assetAnalysisPersisted: persist.assetAnalysisPersisted,
+    assetAnalysisMode: persist.assetAnalysisMode,
+    parsed: {
+      ...parsed,
+      hashtags: finalHashtags,
+      hashtag_details: hashtagDetails,
+    },
   };
 }
 

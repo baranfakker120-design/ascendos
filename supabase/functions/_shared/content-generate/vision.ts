@@ -300,41 +300,15 @@ function parseVisionSuccessText(
   return text;
 }
 
-export async function callVisionModel(params: {
+async function requestVisionCompletion(params: {
   system: string;
-  userText: string;
-  mediaKind: 'image' | 'video';
-  mimeType: string;
-  signedUrl: string;
-  /** Injectable for tests. */
-  fetchImpl?: typeof fetch;
+  content: Array<Record<string, unknown>>;
+  maxTokens?: number;
 }): Promise<{ text: string; model: string; provider: string }> {
   const apiKey = Deno.env.get('OPENROUTER_API_KEY');
   if (!apiKey) {
     throw visionError('missing_openrouter_key');
   }
-
-  let videoDataUrl: string | undefined;
-  if (params.mediaKind === 'video') {
-    if (!isVisionVideoMime(params.mimeType.split(';')[0]?.trim().toLowerCase() ?? '')) {
-      throw visionError('VIDEO_UNSUPPORTED_MIME');
-    }
-    const fetched = await fetchVideoForVision({
-      signedUrl: params.signedUrl,
-      assetMimeType: params.mimeType,
-      fetchImpl: params.fetchImpl,
-    });
-    videoDataUrl = fetched.dataUrl;
-  }
-
-  const mediaPart = buildVisionMediaPart({
-    mediaKind: params.mediaKind,
-    signedUrl: params.signedUrl,
-    videoDataUrl,
-  });
-
-  // Single attempt — no image_url fallback for MOV/mp4/webm (Gemini rejects that).
-  const content = [{ type: 'text', text: params.userText }, mediaPart];
 
   try {
     const res = await fetchWithTimeout(
@@ -351,10 +325,10 @@ export async function callVisionModel(params: {
         body: JSON.stringify({
           model: VISION_MODEL,
           temperature: 0.35,
-          max_tokens: 2200,
+          max_tokens: params.maxTokens ?? 2200,
           messages: [
             { role: 'system', content: params.system },
-            { role: 'user', content },
+            { role: 'user', content: params.content },
           ],
         }),
       },
@@ -388,4 +362,68 @@ export async function callVisionModel(params: {
     const code = mapProviderFailureToVisionCode(e);
     throw new VisionFailureError(code);
   }
+}
+
+export async function callVisionModel(params: {
+  system: string;
+  userText: string;
+  mediaKind: 'image' | 'video';
+  mimeType: string;
+  signedUrl: string;
+  /** Injectable for tests. */
+  fetchImpl?: typeof fetch;
+}): Promise<{ text: string; model: string; provider: string }> {
+  let videoDataUrl: string | undefined;
+  if (params.mediaKind === 'video') {
+    if (!isVisionVideoMime(params.mimeType.split(';')[0]?.trim().toLowerCase() ?? '')) {
+      throw visionError('VIDEO_UNSUPPORTED_MIME');
+    }
+    const fetched = await fetchVideoForVision({
+      signedUrl: params.signedUrl,
+      assetMimeType: params.mimeType,
+      fetchImpl: params.fetchImpl,
+    });
+    videoDataUrl = fetched.dataUrl;
+  }
+
+  const mediaPart = buildVisionMediaPart({
+    mediaKind: params.mediaKind,
+    signedUrl: params.signedUrl,
+    videoDataUrl,
+  });
+
+  // Single attempt — no image_url fallback for MOV/mp4/webm (Gemini rejects that).
+  const content = [{ type: 'text', text: params.userText }, mediaPart];
+  return requestVisionCompletion({ system: params.system, content });
+}
+
+/**
+ * Multi-image carousel analysis — all slides in one multimodal request.
+ * Images only (signed URLs). Order of imageUrls is publish order.
+ */
+export async function callVisionModelCarousel(params: {
+  system: string;
+  userText: string;
+  imageUrls: string[];
+}): Promise<{ text: string; model: string; provider: string }> {
+  if (params.imageUrls.length < 2) {
+    throw new Error('carousel_requires_multiple_images');
+  }
+  const content: Array<Record<string, unknown>> = [
+    { type: 'text', text: params.userText },
+  ];
+  for (let i = 0; i < params.imageUrls.length; i++) {
+    content.push({ type: 'text', text: `Slide ${i + 1}:` });
+    content.push(
+      buildVisionMediaPart({
+        mediaKind: 'image',
+        signedUrl: params.imageUrls[i],
+      })
+    );
+  }
+  return requestVisionCompletion({
+    system: params.system,
+    content,
+    maxTokens: 3200,
+  });
 }

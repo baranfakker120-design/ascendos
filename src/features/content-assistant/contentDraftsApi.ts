@@ -8,10 +8,52 @@ import type { HashtagCandidate, HashtagResearchResult } from './lib/hashtagResea
 
 export type ContentDraftStatus = 'draft' | 'ready' | 'archived';
 
+export interface ContentKeywordDetail {
+  keyword: string;
+  why: string;
+}
+
+export interface ContentHashtagDetail {
+  tag: string;
+  why: string;
+}
+
+export interface ContentSlideAnalysis {
+  index: number;
+  summary: string;
+  role: string;
+  issue: string | null;
+  fix: string | null;
+}
+
+export interface ContentAnalysisJson {
+  visual_summary?: string;
+  theme?: string | null;
+  core_message?: string | null;
+  content_intent?: string | null;
+  target_audience?: string | null;
+  audience_hint?: string | null;
+  problem?: string | null;
+  emotion?: string | null;
+  why_swipe?: string | null;
+  why_save?: string | null;
+  why_share?: string | null;
+  hook_strength?: 'strong' | 'ok' | 'weak' | null;
+  hook_alternatives?: string[];
+  keyword_details?: ContentKeywordDetail[];
+  hashtag_details?: ContentHashtagDetail[];
+  slides?: ContentSlideAnalysis[];
+  optimization?: string | null;
+  research?: ContentResearchPayload;
+  [key: string]: unknown;
+}
+
 export interface ContentDraft {
   id: string;
   org_id: string;
   asset_id: string;
+  carousel_asset_ids: string[];
+  analysis_json: ContentAnalysisJson;
   owner_membership_id: string;
   format: ContentFormat;
   hook: string | null;
@@ -36,12 +78,7 @@ export type ContentResearchPayload = Pick<
 
 export interface ContentGenerateResult {
   draft: ContentDraft;
-  analysis: {
-    visual_summary?: string;
-    theme?: string | null;
-    uncertain?: string[];
-    research?: ContentResearchPayload;
-  };
+  analysis: ContentAnalysisJson;
   research?: ContentResearchPayload;
   assetAnalysisPersisted?: boolean;
   assetAnalysisMode?: 'persisted' | 'persist_failed' | 'draft_only_central_or_foreign';
@@ -56,7 +93,20 @@ export interface ContentGenerateResult {
 export type { HashtagCandidate };
 
 const DRAFT_SELECT =
-  'id, org_id, asset_id, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';
+  'id, org_id, asset_id, carousel_asset_ids, analysis_json, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';
+
+function normalizeDraft(row: ContentDraft): ContentDraft {
+  return {
+    ...row,
+    carousel_asset_ids: Array.isArray(row.carousel_asset_ids) ? row.carousel_asset_ids : [],
+    analysis_json:
+      row.analysis_json && typeof row.analysis_json === 'object'
+        ? (row.analysis_json as ContentAnalysisJson)
+        : {},
+    keywords: row.keywords ?? [],
+    hashtags: row.hashtags ?? [],
+  };
+}
 
 export async function listContentDraftsForAsset(assetId: string): Promise<ContentDraft[]> {
   const { data, error } = await supabase
@@ -65,18 +115,20 @@ export async function listContentDraftsForAsset(assetId: string): Promise<Conten
     .eq('asset_id', assetId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ContentDraft[];
+  return ((data ?? []) as ContentDraft[]).map(normalizeDraft);
 }
 
 export async function generateContentDraft(params: {
-  assetId: string;
+  assetIds: string[];
   format: ContentFormat;
   locale: string;
 }): Promise<ContentGenerateResult> {
+  const assetIds = params.assetIds.filter(Boolean).slice(0, 6);
   const { data, error } = await supabase.functions.invoke('content-assistant', {
     body: {
       action: 'generate_draft',
-      assetId: params.assetId,
+      assetId: assetIds[0],
+      assetIds,
       format: params.format,
       locale: params.locale,
     },
@@ -100,7 +152,10 @@ export async function generateContentDraft(params: {
   if (!payload?.draft || payload.error) {
     throw new Error(payload?.error ?? 'generate_failed');
   }
-  return payload;
+  return {
+    ...payload,
+    draft: normalizeDraft(payload.draft),
+  };
 }
 
 export async function updateContentDraft(
@@ -152,7 +207,7 @@ export async function updateContentDraft(
     .select(DRAFT_SELECT)
     .single();
   if (error) throw error;
-  return data as ContentDraft;
+  return normalizeDraft(data as ContentDraft);
 }
 
 /** Marks draft ready for Instagram preview / later publish — does NOT publish or OAuth. */
@@ -160,23 +215,25 @@ export async function prepareDraftForInstagram(draftId: string): Promise<Content
   return updateContentDraft(draftId, { status: 'ready' });
 }
 
-export function useContentDrafts(assetId: string | null) {
+export function useContentDrafts(assetIds: string[] | null) {
   const { membership } = useAuth();
   const { locale } = useI18n();
   const qc = useQueryClient();
   const orgId = membership?.org_id ?? null;
   const membershipId = membership?.id ?? null;
+  const primaryAssetId = assetIds?.[0] ?? null;
+  const idsKey = (assetIds ?? []).join(',');
 
   const draftsQuery = useQuery({
-    queryKey: ['content-drafts', orgId, membershipId, assetId],
-    enabled: Boolean(orgId && membershipId && assetId),
-    queryFn: () => listContentDraftsForAsset(assetId!),
+    queryKey: ['content-drafts', orgId, membershipId, primaryAssetId, idsKey],
+    enabled: Boolean(orgId && membershipId && primaryAssetId),
+    queryFn: () => listContentDraftsForAsset(primaryAssetId!),
   });
 
   const generateMutation = useMutation({
     mutationFn: (params: { format: ContentFormat }) =>
       generateContentDraft({
-        assetId: assetId!,
+        assetIds: assetIds ?? [],
         format: params.format,
         locale,
       }),

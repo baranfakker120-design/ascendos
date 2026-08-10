@@ -11,8 +11,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import {
   canPersistAssetAnalysis,
+  CAROUSEL_MAX_ASSETS,
   countGenerationsToday,
-  generateDraftFromAsset,
+  generateDraftFromAssets,
   markAssetAnalysisFailed,
   normalizeFormat,
   resolveDailyGenerationLimit,
@@ -63,23 +64,41 @@ Deno.serve(async (req) => {
       return json({ error: 'unsupported_action', action }, 400);
     }
 
-    const assetId = String(body.assetId ?? '').trim();
-    if (!assetId) return json({ error: 'asset_id_required' }, 400);
+    const assetIdsRaw = Array.isArray(body.assetIds)
+      ? body.assetIds
+      : body.assetId
+        ? [body.assetId]
+        : [];
+    const assetIds = [
+      ...new Set(
+        assetIdsRaw
+          .map((id: unknown) => String(id ?? '').trim())
+          .filter((id: string) => Boolean(id))
+      ),
+    ].slice(0, CAROUSEL_MAX_ASSETS);
+    if (assetIds.length === 0) return json({ error: 'asset_id_required' }, 400);
 
     const requestedFormat = normalizeFormat(body.format, 'feed');
     const locale = String(body.locale ?? 'de').trim().slice(0, 8) || 'de';
 
-    const { data: asset, error: assetError } = await db
+    const { data: assetsRaw, error: assetError } = await db
       .from('content_assets')
       .select(
         'id, org_id, owner_membership_id, scope, media_kind, storage_path, file_name, mime_type, title, aspect_ratio, suggested_formats'
       )
-      .eq('id', assetId)
-      .maybeSingle();
+      .in('id', assetIds);
     if (assetError) throw assetError;
-    if (!asset) return json({ error: 'asset_not_found' }, 404);
-    const assetRow = asset as AssetRow;
-    if (assetRow.org_id !== active.org_id) return json({ error: 'asset_wrong_org' }, 403);
+    const byId = new Map(
+      ((assetsRaw as AssetRow[] | null) ?? []).map((a) => [a.id, a] as const)
+    );
+    const assetRows: AssetRow[] = [];
+    for (const id of assetIds) {
+      const row = byId.get(id);
+      if (!row) return json({ error: 'asset_not_found' }, 404);
+      if (row.org_id !== active.org_id) return json({ error: 'asset_wrong_org' }, 403);
+      assetRows.push(row);
+    }
+    const assetRow = assetRows[0];
 
     // Content-side daily generation quota (org settings). Never coach quota.
     const { data: orgRow } = await db
@@ -102,12 +121,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const format = requestedFormat || normalizeFormat(assetRow.suggested_formats?.[0], 'feed');
+    const format =
+      assetRows.length >= 2
+        ? 'feed'
+        : requestedFormat || normalizeFormat(assetRow.suggested_formats?.[0], 'feed');
 
     try {
-      const result = await generateDraftFromAsset({
+      const result = await generateDraftFromAssets({
         db,
-        asset: assetRow,
+        assets: assetRows,
         membership: active,
         format,
         locale,
@@ -133,6 +155,9 @@ Deno.serve(async (req) => {
       const errorDetails = e instanceof VisionFailureError ? e.errorDetails : undefined;
       if (msg.startsWith('signed_url_failed')) {
         return json({ error: 'signed_url_failed', detail: 'signed_url_failed' }, 500);
+      }
+      if (msg === 'carousel_images_only') {
+        return json({ error: 'carousel_images_only', detail: 'carousel_images_only' }, 422);
       }
       if (msg.includes('missing_openrouter_key') || msg.includes('OPENROUTER')) {
         return json({ error: 'ai_not_configured', detail: 'ai_not_configured' }, 503);
