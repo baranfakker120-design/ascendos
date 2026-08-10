@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion, type Transition } from 'motion/react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
@@ -54,21 +55,54 @@ function isTabActive(tab: NavTab, pathname: string): boolean {
   return pathname === tab.to || pathname.startsWith(`${tab.to}/`);
 }
 
+/** Toward-center X offsets (px) while collapsing — outer tabs travel farther. */
+function collapseX(id: NavTabId): number {
+  switch (id) {
+    case 'heute':
+      return 42;
+    case 'kontakte':
+      return 24;
+    case 'team':
+      return -24;
+    case 'profil':
+      return -42;
+    default:
+      return 0;
+  }
+}
+
+function sideStagger(id: NavTabId, expanding: boolean): number {
+  const orderOpen = ['heute', 'kontakte', 'team', 'profil'] as const;
+  const orderClose = ['profil', 'team', 'kontakte', 'heute'] as const;
+  const order = expanding ? orderOpen : orderClose;
+  const i = order.indexOf(id as (typeof order)[number]);
+  return i < 0 ? 0 : i * 0.028;
+}
+
 /**
  * AAA cinematic bottom navigation — floating shell, custom icons,
  * signature liquid champagne hold effect. Ascend logo unchanged.
  *
- * Additive Ascend control: 1st tap collapses side tabs (no route change);
- * 2nd tap (while collapsed) opens Coach. Original tab markup preserved.
+ * Ascend two-step + premium spring collapse/expand (Motion).
+ * Side hubs stay mounted; open layout chrome unchanged.
  */
 export function BottomNav() {
   const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const [burstId, setBurstId] = useState<NavTabId | null>(null);
   const [burstKey, setBurstKey] = useState(0);
-  /** true = full original bar; false = only Ascend center (sides visually tucked) */
+  /** true = full original bar; false = Ascend floating control */
   const [navigationExpanded, setNavigationExpanded] = useState(true);
+
+  const spring: Transition = useMemo(
+    () =>
+      reduceMotion
+        ? { type: 'tween', duration: 0.12, ease: 'easeOut' }
+        : { type: 'spring', stiffness: 420, damping: 34, mass: 0.82 },
+    [reduceMotion]
+  );
 
   const playBurst = useCallback((id: NavTabId) => {
     triggerNavHaptic(150);
@@ -100,20 +134,48 @@ export function BottomNav() {
   };
 
   const coachActive = location.pathname === '/coach' || location.pathname.startsWith('/coach/');
+  const expanded = navigationExpanded;
+
+  const sideMotion = (id: NavTabId) => {
+    const open = {
+      opacity: 1,
+      x: 0,
+      scale: 1,
+    };
+    const closed = {
+      opacity: 0,
+      x: reduceMotion ? 0 : collapseX(id),
+      scale: reduceMotion ? 0.98 : 0.9,
+    };
+    return {
+      initial: false as const,
+      animate: expanded ? open : closed,
+      transition: {
+        ...spring,
+        delay: reduceMotion ? 0 : sideStagger(id, expanded),
+      },
+      style: {
+        pointerEvents: expanded ? ('auto' as const) : ('none' as const),
+        overflow: expanded ? ('visible' as const) : ('hidden' as const),
+        minWidth: 0,
+      },
+    };
+  };
 
   return (
     <nav
       aria-label={t('nav.main')}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
-      <div className="pointer-events-auto relative mx-auto max-w-lg">
-        <div
-          className={[
-            'nav-shell relative grid items-end border border-line bg-surface pb-2 pt-2 shadow-[0_10px_40px_rgb(17_18_20/0.08),0_1px_0_rgb(255_255_255/0.8)_inset]',
-            navigationExpanded
-              ? 'grid-cols-5 rounded-[1.75rem] px-1.5'
-              : 'nav-shell--coach-collapsed',
-          ].join(' ')}
+      <div className="pointer-events-auto relative mx-auto flex max-w-lg justify-center">
+        <motion.div
+          layout
+          transition={spring}
+          className={
+            expanded
+              ? 'nav-shell relative grid w-full grid-cols-5 items-end rounded-[1.75rem] border border-line bg-surface px-1.5 pb-2 pt-2 shadow-[0_10px_40px_rgb(17_18_20/0.08),0_1px_0_rgb(255_255_255/0.8)_inset]'
+              : 'nav-shell nav-shell--coach-collapsed relative'
+          }
         >
           {BOTTOM_NAV_TABS.map((tab) => {
             const active = isTabActive(tab, location.pathname);
@@ -122,148 +184,187 @@ export function BottomNav() {
             const ariaLabel = t(tab.ariaKey);
 
             if (tab.id === 'profil') {
+              const m = sideMotion('profil');
               return (
-                <ProfileStack
-                  key={tab.id}
-                  burst={burstId === 'profil'}
-                  burstKey={burstKey}
-                  onBurst={() => {
-                    setBurstId('profil');
-                    setBurstKey((k) => k + 1);
-                    window.setTimeout(() => {
-                      setBurstId((current) => (current === 'profil' ? null : current));
-                    }, 520);
-                  }}
-                />
+                <motion.div key={tab.id} layout className="min-w-0" {...m}>
+                  <ProfileStack
+                    burst={burstId === 'profil'}
+                    burstKey={burstKey}
+                    onBurst={() => {
+                      setBurstId('profil');
+                      setBurstKey((k) => k + 1);
+                      window.setTimeout(() => {
+                        setBurstId((current) => (current === 'profil' ? null : current));
+                      }, 520);
+                    }}
+                  />
+                </motion.div>
               );
             }
 
             if (tab.id === 'heute') {
+              const m = sideMotion('heute');
               return (
-                <TodayHubMenu
-                  key={tab.id}
-                  burst={burstId === 'heute'}
-                  burstKey={burstKey}
-                  onBurst={() => {
-                    setBurstId('heute');
-                    setBurstKey((k) => k + 1);
-                    window.setTimeout(() => {
-                      setBurstId((current) => (current === 'heute' ? null : current));
-                    }, 520);
-                  }}
-                />
+                <motion.div key={tab.id} layout className="min-w-0" {...m}>
+                  <TodayHubMenu
+                    burst={burstId === 'heute'}
+                    burstKey={burstKey}
+                    onBurst={() => {
+                      setBurstId('heute');
+                      setBurstKey((k) => k + 1);
+                      window.setTimeout(() => {
+                        setBurstId((current) => (current === 'heute' ? null : current));
+                      }, 520);
+                    }}
+                  />
+                </motion.div>
               );
             }
 
             if (isCenter) {
               return (
-                <div key={tab.id} className="relative flex justify-center">
+                <motion.div
+                  key={tab.id}
+                  layout
+                  className="relative z-[2] flex justify-center"
+                  transition={spring}
+                >
                   <LiquidChampagne>
                     <NavLink
                       to={tab.to}
                       aria-label={ariaLabel}
-                      aria-expanded={navigationExpanded}
+                      aria-expanded={expanded}
                       onClick={(e) => {
                         playBurst(tab.id);
-                        if (navigationExpanded) {
-                          // 1st tap: tuck side tabs only — no navigation.
+                        if (expanded) {
                           e.preventDefault();
                           setNavigationExpanded(false);
                           return;
                         }
-                        // 2nd tap while collapsed: open Coach.
                         if (coachActive) {
                           e.preventDefault();
                           setNavigationExpanded(true);
                         }
-                        // else NavLink navigates to /coach; pathname effect expands.
                       }}
                       className={({ isActive }) =>
                         [
-                          'nav-center-btn group relative -mt-7 flex min-h-[44px] min-w-[44px] flex-col items-center justify-end gap-0.5 outline-none',
+                          'nav-center-btn group relative flex flex-col items-center outline-none',
                           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                          expanded
+                            ? '-mt-7 min-h-[44px] min-w-[44px] justify-end gap-0.5'
+                            : 'nav-center-btn--collapsed',
                           isActive ? 'text-accent-deep' : 'text-muted',
                         ].join(' ')
                       }
                     >
                       {({ isActive }) => (
                         <>
-                          <span
+                          <motion.span
                             className={[
                               'nav-center-disc flex h-[3.6rem] w-[3.6rem] items-center justify-center rounded-full border border-line bg-surface',
                               'shadow-[0_8px_28px_rgb(184_147_90/0.22),0_2px_8px_rgb(17_18_20/0.06)]',
                               isActive ? 'nav-center-disc-active' : '',
-                              navigationExpanded ? '' : 'nav-center-disc--bloom',
                             ]
                               .filter(Boolean)
                               .join(' ')}
+                            initial={false}
+                            animate={
+                              expanded
+                                ? { scale: 1 }
+                                : reduceMotion
+                                  ? { scale: 1 }
+                                  : { scale: [1, 1.025, 1] }
+                            }
+                            transition={
+                              expanded
+                                ? spring
+                                : reduceMotion
+                                  ? { duration: 0.12 }
+                                  : { duration: 0.42, times: [0, 0.4, 1], ease: 'easeOut' }
+                            }
+                            style={
+                              expanded
+                                ? undefined
+                                : {
+                                    boxShadow:
+                                      '0 0 12px rgb(255 250 240 / 0.38), 0 0 18px rgb(184 147 90 / 0.2), 0 6px 16px rgb(184 147 90 / 0.14)',
+                                  }
+                            }
                           >
                             {renderIcon('coach', isActive)}
-                          </span>
-                          <span
+                          </motion.span>
+                          <motion.span
+                            initial={false}
+                            animate={expanded ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
+                            transition={spring}
                             className={[
-                              'nav-center-label text-[10px] tracking-[0.14em] transition-[color,font-weight,opacity] duration-200',
+                              'nav-center-label text-[10px] tracking-[0.14em]',
+                              !expanded ? 'pointer-events-none h-0 overflow-hidden' : '',
                               isActive ? 'font-bold text-accent-deep' : 'font-medium text-muted',
-                              navigationExpanded ? '' : 'nav-center-label--hidden',
                             ]
                               .filter(Boolean)
                               .join(' ')}
+                            aria-hidden={!expanded}
                           >
                             {label}
-                          </span>
+                          </motion.span>
                         </>
                       )}
                     </NavLink>
                   </LiquidChampagne>
-                </div>
+                </motion.div>
               );
             }
 
             const sideId = tab.id as 'kontakte' | 'team';
+            const m = sideMotion(sideId);
 
             return (
-              <LiquidChampagne key={tab.id} className="w-full justify-center">
-                <NavLink
-                  to={tab.to}
-                  end={tab.end}
-                  aria-label={ariaLabel}
-                  onClick={(e) => {
-                    playBurst(tab.id);
-                    if (tab.externalInApp) {
-                      e.preventDefault();
-                      navigate(tab.to);
+              <motion.div key={tab.id} layout className="min-w-0 w-full" {...m}>
+                <LiquidChampagne className="w-full justify-center">
+                  <NavLink
+                    to={tab.to}
+                    end={tab.end}
+                    aria-label={ariaLabel}
+                    tabIndex={expanded ? undefined : -1}
+                    onClick={(e) => {
+                      playBurst(tab.id);
+                      if (tab.externalInApp) {
+                        e.preventDefault();
+                        navigate(tab.to);
+                      }
+                    }}
+                    className={({ isActive }) =>
+                      [
+                        'flex min-h-[44px] w-full flex-col items-center justify-end gap-1 px-1 py-1 outline-none',
+                        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                        isActive || active ? 'text-accent-deep' : 'text-muted',
+                      ].join(' ')
                     }
-                  }}
-                  className={({ isActive }) =>
-                    [
-                      'flex min-h-[44px] w-full flex-col items-center justify-end gap-1 px-1 py-1 outline-none',
-                      'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                      isActive || active ? 'text-accent-deep' : 'text-muted',
-                    ].join(' ')
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <span className={isActive || active ? 'nav-icon-active-glow' : undefined}>
-                        {renderIcon(sideId, isActive || active)}
-                      </span>
-                      <span
-                        className={[
-                          'text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
-                          isActive || active
-                            ? 'font-bold text-accent-deep'
-                            : 'font-medium text-muted',
-                        ].join(' ')}
-                      >
-                        {label}
-                      </span>
-                    </>
-                  )}
-                </NavLink>
-              </LiquidChampagne>
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <span className={isActive || active ? 'nav-icon-active-glow' : undefined}>
+                          {renderIcon(sideId, isActive || active)}
+                        </span>
+                        <span
+                          className={[
+                            'text-[10px] tracking-[0.14em] transition-[color,font-weight] duration-150',
+                            isActive || active
+                              ? 'font-bold text-accent-deep'
+                              : 'font-medium text-muted',
+                          ].join(' ')}
+                        >
+                          {label}
+                        </span>
+                      </>
+                    )}
+                  </NavLink>
+                </LiquidChampagne>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </nav>
   );
