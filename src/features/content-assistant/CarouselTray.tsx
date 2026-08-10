@@ -3,11 +3,7 @@ import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { ContentAssetThumb } from './ContentAssetThumb';
 import type { ContentAsset } from './contentAssetsApi';
-import {
-  CAROUSEL_MAX_SLIDES,
-  reorderSelection,
-  selectionCounter,
-} from './lib/carousel/selection';
+import { CAROUSEL_MAX_SLIDES, reorderSelection, selectionCounter } from './lib/carousel/selection';
 
 /**
  * Selected slides tray — drag reorder (mouse + touch), remove, replace.
@@ -33,11 +29,13 @@ export function CarouselTray({
 
   const applyReorder = (from: number, to: number) => {
     if (from === to) return;
-    onReorder(reorderSelection(
-      assets.map((a) => a.id),
-      from,
-      to
-    ));
+    onReorder(
+      reorderSelection(
+        assets.map((a) => a.id),
+        from,
+        to
+      )
+    );
   };
 
   return (
@@ -52,7 +50,10 @@ export function CarouselTray({
       </div>
       <p className="text-xs text-muted">{t('contentAssistant.carouselSelectionHint')}</p>
 
-      <ul className="flex gap-2 overflow-x-auto pb-1" aria-label={t('contentAssistant.carouselSelectionTitle')}>
+      <ul
+        className="flex gap-2 overflow-x-auto pb-1"
+        aria-label={t('contentAssistant.carouselSelectionTitle')}
+      >
         {assets.map((asset, index) => {
           const active = dragIndex === index;
           const over = overIndex === index && dragIndex !== null && dragIndex !== index;
@@ -79,10 +80,7 @@ export function CarouselTray({
                 const delta = y - touchStart.current.y;
                 if (Math.abs(delta) < 28) return;
                 const dir = delta > 0 ? 1 : -1;
-                const to = Math.min(
-                  assets.length - 1,
-                  Math.max(0, touchStart.current.index + dir)
-                );
+                const to = Math.min(assets.length - 1, Math.max(0, touchStart.current.index + dir));
                 if (to !== touchStart.current.index) {
                   applyReorder(touchStart.current.index, to);
                   touchStart.current = { index: to, y };

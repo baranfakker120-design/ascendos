@@ -33,7 +33,9 @@ export function ContentResultPanel({
 
       <dl className="space-y-2 text-sm">
         <div>
-          <dt className="text-xs font-semibold text-muted">{t('contentAssistant.analysisTheme')}</dt>
+          <dt className="text-xs font-semibold text-muted">
+            {t('contentAssistant.analysisTheme')}
+          </dt>
           <dd className="text-ink">{data.theme || draft.target_audience || '—'}</dd>
         </div>
         <div>
@@ -49,9 +51,7 @@ export function ContentResultPanel({
             {t('contentAssistant.analysisCoreMessage')}
           </dt>
           <dd className="text-ink">
-            {data.core_message ||
-              (typeof data.message === 'string' ? data.message : null) ||
-              '—'}
+            {data.core_message || (typeof data.message === 'string' ? data.message : null) || '—'}
           </dd>
         </div>
         {data.content_intent ? (
@@ -66,19 +66,25 @@ export function ContentResultPanel({
           <div className="space-y-1 text-xs text-muted">
             {data.why_swipe ? (
               <p>
-                <span className="font-semibold text-ink">{t('contentAssistant.analysisWhySwipe')}: </span>
+                <span className="font-semibold text-ink">
+                  {t('contentAssistant.analysisWhySwipe')}:{' '}
+                </span>
                 {data.why_swipe}
               </p>
             ) : null}
             {data.why_save ? (
               <p>
-                <span className="font-semibold text-ink">{t('contentAssistant.analysisWhySave')}: </span>
+                <span className="font-semibold text-ink">
+                  {t('contentAssistant.analysisWhySave')}:{' '}
+                </span>
                 {data.why_save}
               </p>
             ) : null}
             {data.why_share ? (
               <p>
-                <span className="font-semibold text-ink">{t('contentAssistant.analysisWhyShare')}: </span>
+                <span className="font-semibold text-ink">
+                  {t('contentAssistant.analysisWhyShare')}:{' '}
+                </span>
                 {data.why_share}
               </p>
             ) : null}
@@ -107,7 +113,10 @@ export function ContentResultPanel({
           {keywordDetails.slice(0, 8).map((k) => (
             <li key={k.keyword} className="text-xs text-ink">
               <span className="font-semibold">{k.keyword}</span>
-              <span className="text-muted"> — {t('contentAssistant.reasonPrefix')} {k.why}</span>
+              <span className="text-muted">
+                {' '}
+                — {t('contentAssistant.reasonPrefix')} {k.why}
+              </span>
             </li>
           ))}
         </ul>
@@ -121,7 +130,10 @@ export function ContentResultPanel({
           {hashtagDetails.slice(0, 5).map((h, i) => (
             <li key={`${h.tag}-${i}`} className="text-xs text-ink">
               <span className="font-semibold">#{h.tag.replace(/^#/, '')}</span>
-              <span className="text-muted"> — {t('contentAssistant.reasonPrefix')} {h.why}</span>
+              <span className="text-muted">
+                {' '}
+                — {t('contentAssistant.reasonPrefix')} {h.why}
+              </span>
             </li>
           ))}
         </ul>

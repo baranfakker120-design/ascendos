@@ -66,8 +66,9 @@ export function AiContentAssistantPage() {
 
   const { assetsQuery, quotaQuery, todayQuery, uploadMutation, deleteMutation, canCentral } =
     useContentLibrary();
-  const { draftsQuery, generateMutation, saveMutation, prepareMutation } =
-    useContentDrafts(selectedAssetIds.length ? selectedAssetIds : null);
+  const { draftsQuery, generateMutation, saveMutation, prepareMutation } = useContentDrafts(
+    selectedAssetIds.length ? selectedAssetIds : null
+  );
 
   const formats: {
     id: ContentFormat;
@@ -330,7 +331,9 @@ export function AiContentAssistantPage() {
               </p>
             ) : null}
             <p className="text-xs font-semibold tabular-nums text-ink">
-              {t('contentAssistant.carouselCounter', { count: selectionCounter(selectedAssetIds.length) })}
+              {t('contentAssistant.carouselCounter', {
+                count: selectionCounter(selectedAssetIds.length),
+              })}
             </p>
           </div>
         </div>
@@ -497,7 +500,9 @@ export function AiContentAssistantPage() {
             ))}
           </div>
         ) : (
-          <p className="text-xs font-medium text-muted">{t('contentAssistant.carouselFormatLocked')}</p>
+          <p className="text-xs font-medium text-muted">
+            {t('contentAssistant.carouselFormatLocked')}
+          </p>
         )}
 
         <Button

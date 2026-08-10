@@ -43,10 +43,7 @@ export function CarouselPreview({ assets }: { assets: ContentAsset[] }) {
     };
   }, [assets.map((a) => a.id).join(',')]);
 
-  const label = useMemo(
-    () => `${safeIndex + 1} / ${assets.length}`,
-    [safeIndex, assets.length]
-  );
+  const label = useMemo(() => `${safeIndex + 1} / ${assets.length}`, [safeIndex, assets.length]);
 
   if (assets.length < 2) return null;
 
