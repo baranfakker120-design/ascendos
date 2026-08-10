@@ -2,59 +2,88 @@
 
 .nav-shell {
   isolation: isolate;
+  /* Keep overflow visible so TodayHub / ProfileStack bubbles are never clipped. */
   overflow: visible;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr);
-  transition:
-    grid-template-columns 420ms cubic-bezier(0.32, 1.2, 0.48, 1),
-    padding 420ms cubic-bezier(0.32, 1.2, 0.48, 1),
-    max-width 420ms cubic-bezier(0.32, 1.2, 0.48, 1),
-    border-radius 420ms cubic-bezier(0.32, 1.2, 0.48, 1);
-  will-change: grid-template-columns;
 }
 
-.nav-shell--collapsed {
-  grid-template-columns: 0fr 0fr auto 0fr 0fr;
-  max-width: 5.5rem;
+/*
+ * Additive Ascend collapse — original grid-cols-5 markup stays.
+ * No wrappers, no overflow:hidden on hub/stack children.
+ * nth-child: 1 Heute, 2 Kontakte, 3 Ascend, 4 Team, 5 Profil
+ */
+.nav-shell--coach-collapsed {
+  width: fit-content;
+  max-width: 5.75rem;
   margin-inline: auto;
-  padding-inline: 0.35rem;
+  grid-template-columns: 0fr 0fr auto 0fr 0fr;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
   border-radius: 999px;
-}
-
-.nav-side-slot {
-  min-width: 0;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
   transition:
-    opacity 320ms cubic-bezier(0.32, 1.2, 0.48, 1),
-    transform 420ms cubic-bezier(0.32, 1.2, 0.48, 1);
-  will-change: opacity, transform;
+    max-width 420ms cubic-bezier(0.32, 1.2, 0.48, 1),
+    padding 420ms cubic-bezier(0.32, 1.2, 0.48, 1),
+    border-radius 420ms cubic-bezier(0.32, 1.2, 0.48, 1),
+    grid-template-columns 420ms cubic-bezier(0.32, 1.2, 0.48, 1);
 }
 
-.nav-shell--collapsed .nav-side-slot {
+.nav-shell--coach-collapsed > *:nth-child(1),
+.nav-shell--coach-collapsed > *:nth-child(2),
+.nav-shell--coach-collapsed > *:nth-child(4),
+.nav-shell--coach-collapsed > *:nth-child(5) {
   opacity: 0;
   pointer-events: none;
+  transition:
+    opacity 300ms cubic-bezier(0.32, 1.2, 0.48, 1),
+    transform 420ms cubic-bezier(0.32, 1.2, 0.48, 1);
 }
 
-.nav-shell--collapsed .nav-side-slot--left {
-  transform: translate3d(28px, 6px, 0) scale(0.72);
+.nav-shell--coach-collapsed > *:nth-child(1),
+.nav-shell--coach-collapsed > *:nth-child(2) {
+  transform: translate3d(22px, 4px, 0) scale(0.78);
 }
 
-.nav-shell--collapsed .nav-side-slot--right {
-  transform: translate3d(-28px, 6px, 0) scale(0.72);
+.nav-shell--coach-collapsed > *:nth-child(4),
+.nav-shell--coach-collapsed > *:nth-child(5) {
+  transform: translate3d(-22px, 4px, 0) scale(0.78);
 }
 
-.nav-center-slot {
-  z-index: 2;
-  display: flex;
-  justify-content: center;
+.nav-center-label--hidden {
+  opacity: 0;
 }
 
-.nav-center-btn {
-  z-index: 2;
+/* Soft white/gold bloom when sides tuck — then a quiet residual glow */
+.nav-center-disc--bloom {
+  animation: nav-ascend-bloom 720ms cubic-bezier(0.22, 1.15, 0.36, 1) both;
+  box-shadow:
+    0 0 0 1px rgb(255 252 246 / 0.55),
+    0 0 18px rgb(255 250 240 / 0.45),
+    0 0 28px rgb(184 147 90 / 0.28),
+    0 8px 28px rgb(184 147 90 / 0.2);
+}
+
+@keyframes nav-ascend-bloom {
+  0% {
+    filter: brightness(1);
+    box-shadow:
+      0 8px 28px rgb(184 147 90 / 0.22),
+      0 2px 8px rgb(17 18 20 / 0.06);
+  }
+  42% {
+    filter: brightness(1.12);
+    box-shadow:
+      0 0 0 1px rgb(255 252 246 / 0.7),
+      0 0 22px rgb(255 250 240 / 0.55),
+      0 0 36px rgb(184 147 90 / 0.38),
+      0 10px 30px rgb(184 147 90 / 0.22);
+  }
+  100% {
+    filter: brightness(1.03);
+    box-shadow:
+      0 0 0 1px rgb(255 252 246 / 0.45),
+      0 0 16px rgb(255 250 240 / 0.35),
+      0 0 24px rgb(184 147 90 / 0.22),
+      0 8px 28px rgb(184 147 90 / 0.18);
+  }
 }
 
 .nav-center-disc {
@@ -408,8 +437,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nav-center-disc,
-  .nav-shell,
-  .nav-side-slot,
+  .nav-center-disc--bloom,
+  .nav-shell--coach-collapsed,
+  .nav-shell--coach-collapsed > *:nth-child(1),
+  .nav-shell--coach-collapsed > *:nth-child(2),
+  .nav-shell--coach-collapsed > *:nth-child(4),
+  .nav-shell--coach-collapsed > *:nth-child(5),
   .nav-ascend-pulse,
   .nav-ripple,
   .nav-contacts-left,
