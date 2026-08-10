@@ -1121,8 +1121,10 @@ export type Database = {
       };
       content_drafts: {
         Row: {
+          analysis_json: Json;
           asset_id: string;
           caption: string | null;
+          carousel_asset_ids: string[];
           clean_check_notes: string | null;
           clean_check_status: string;
           content_score: number | null;
@@ -1142,8 +1144,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          analysis_json?: Json;
           asset_id: string;
           caption?: string | null;
+          carousel_asset_ids?: string[];
           clean_check_notes?: string | null;
           clean_check_status?: string;
           content_score?: number | null;
@@ -1163,8 +1167,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          analysis_json?: Json;
           asset_id?: string;
           caption?: string | null;
+          carousel_asset_ids?: string[];
           clean_check_notes?: string | null;
           clean_check_status?: string;
           content_score?: number | null;

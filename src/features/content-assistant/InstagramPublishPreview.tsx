@@ -28,12 +28,15 @@ import {
  */
 export function InstagramPublishPreview({
   asset,
+  assets,
   draft,
   caption,
   cta,
   hashtags,
 }: {
   asset: ContentAsset | null;
+  /** Ordered carousel slides (2–6). When set, publish uses draft.carousel_asset_ids server-side. */
+  assets?: ContentAsset[];
   draft: ContentDraft;
   caption: string;
   cta: string;
@@ -53,6 +56,13 @@ export function InstagramPublishPreview({
   const connection = connectionQuery.data;
   const connected = connection?.status === 'connected';
   const username = connection?.igUsername ?? null;
+  const carouselAssets =
+    assets && assets.length >= 2
+      ? assets
+      : (draft.carousel_asset_ids?.length ?? 0) >= 2 && asset
+        ? [asset]
+        : [];
+  const isCarousel = carouselAssets.length >= 2 || (draft.carousel_asset_ids?.length ?? 0) >= 2;
 
   useEffect(() => {
     rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -88,7 +98,7 @@ export function InstagramPublishPreview({
   const gate = evaluateInstagramPublishGate({
     connected,
     draftReady: draft.status === 'ready',
-    hasMedia: Boolean(asset),
+    hasMedia: Boolean(asset) || isCarousel,
     hasCaption: Boolean(caption.trim()) || draft.format === 'story',
     scopes: connection?.scopes,
   });
@@ -245,10 +255,16 @@ export function InstagramPublishPreview({
           <p className="font-semibold text-ink">
             {isReel
               ? t('contentAssistant.igPreviewTitleReel')
-              : t('contentAssistant.igPreviewTitle')}
+              : isCarousel
+                ? t('contentAssistant.igPreviewTitleCarousel')
+                : t('contentAssistant.igPreviewTitle')}
           </p>
           <p className="text-sm text-muted">
-            {isReel ? t('contentAssistant.igPreviewHintReel') : t('contentAssistant.igPreviewHint')}
+            {isReel
+              ? t('contentAssistant.igPreviewHintReel')
+              : isCarousel
+                ? t('contentAssistant.igPreviewHintCarousel')
+                : t('contentAssistant.igPreviewHint')}
           </p>
         </div>
 
@@ -269,7 +285,11 @@ export function InstagramPublishPreview({
                   ? t('contentAssistant.igStatusConnected')
                   : t('contentAssistant.igStatusDisconnected')}
                 {' · '}
-                {isReel ? t('contentAssistant.igFormatReel') : draft.format}
+                {isReel
+                  ? t('contentAssistant.igFormatReel')
+                  : isCarousel
+                    ? t('contentAssistant.carouselBadge')
+                    : draft.format}
               </p>
             </div>
           </div>
@@ -300,6 +320,11 @@ export function InstagramPublishPreview({
             ) : (
               <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
             )}
+            {isCarousel ? (
+              <span className="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[0.65rem] font-semibold text-white">
+                1 / {Math.max(carouselAssets.length, draft.carousel_asset_ids?.length ?? 2)}
+              </span>
+            ) : null}
           </div>
 
           <div className="space-y-2 px-3 py-3">
@@ -361,7 +386,9 @@ export function InstagramPublishPreview({
                 ? t('contentAssistant.igPublishConfirmCta')
                 : isReel
                   ? t('contentAssistant.igPublishNowReel')
-                  : t('contentAssistant.igPublishNow')}
+                  : isCarousel
+                    ? t('contentAssistant.igPublishNowCarousel')
+                    : t('contentAssistant.igPublishNow')}
         </Button>
 
         <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>

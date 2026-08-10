@@ -587,6 +587,8 @@ export async function createMediaContainer(params: {
   format: ContentFormat;
   mediaUrl: string;
   caption: string;
+  /** When true, creates a carousel child item (no caption on child). */
+  isCarouselItem?: boolean;
   fetchFn?: typeof fetch;
 }): Promise<{ containerId: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -606,13 +608,18 @@ export async function createMediaContainer(params: {
   body.set('access_token', params.accessToken);
   if (product.useImageUrl) body.set('image_url', params.mediaUrl);
   if (product.useVideoUrl) body.set('video_url', params.mediaUrl);
-  if (product.mediaType) body.set('media_type', product.mediaType);
+  if (params.isCarouselItem) {
+    body.set('is_carousel_item', 'true');
+  } else if (product.mediaType) {
+    body.set('media_type', product.mediaType);
+  }
   // Official Reels param — also surfaces the Reel on the profile feed when supported.
-  if (product.mediaType === 'REELS') {
+  if (!params.isCarouselItem && product.mediaType === 'REELS') {
     body.set('share_to_feed', 'true');
   }
   // Feed/Reels captions; Stories omit caption (not a feed caption field).
-  if (params.caption && product.mediaType !== 'STORIES') {
+  // Carousel children never carry the feed caption — parent does.
+  if (params.caption && !params.isCarouselItem && product.mediaType !== 'STORIES') {
     body.set('caption', params.caption);
   }
 
@@ -624,6 +631,38 @@ export async function createMediaContainer(params: {
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     throw new Error(readGraphError(json, `container_${res.status}`));
+  }
+  const containerId = String(json.id ?? '');
+  if (!containerId) throw new Error('container_missing_id');
+  return { containerId };
+}
+
+/** Parent carousel container — children must already be FINISHED. */
+export async function createCarouselContainer(params: {
+  igUserId: string;
+  accessToken: string;
+  childContainerIds: string[];
+  caption: string;
+  fetchFn?: typeof fetch;
+}): Promise<{ containerId: string }> {
+  const fetchFn = params.fetchFn ?? fetch;
+  if (params.childContainerIds.length < 2 || params.childContainerIds.length > 10) {
+    throw new Error('carousel_child_count_invalid');
+  }
+  const body = new URLSearchParams();
+  body.set('access_token', params.accessToken);
+  body.set('media_type', 'CAROUSEL');
+  body.set('children', params.childContainerIds.join(','));
+  if (params.caption) body.set('caption', params.caption);
+
+  const res = await fetchFn(graphUrl(`/${params.igUserId}/media`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    throw new Error(readGraphError(json, `carousel_container_${res.status}`));
   }
   const containerId = String(json.id ?? '');
   if (!containerId) throw new Error('container_missing_id');
@@ -1023,6 +1062,7 @@ interface DraftRow {
   org_id: string;
   owner_membership_id: string;
   asset_id: string;
+  carousel_asset_ids: string[] | null;
   format: ContentFormat;
   caption: string | null;
   cta: string | null;
@@ -1168,7 +1208,9 @@ Deno.serve(async (req) => {
 
     const { data: draftRaw, error: draftErr } = await db
       .from('content_drafts')
-      .select('id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status')
+      .select(
+        'id, org_id, owner_membership_id, asset_id, carousel_asset_ids, format, caption, cta, hashtags, status'
+      )
       .eq('id', draftId)
       .maybeSingle();
     if (draftErr) throw draftErr;
@@ -1180,15 +1222,38 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'draft_not_ready' }, 400);
     }
 
-    const { data: assetRaw, error: assetErr } = await db
+    const carouselIds = (draft.carousel_asset_ids ?? []).filter(Boolean);
+    const isCarousel = carouselIds.length >= 2;
+    const orderedAssetIds = isCarousel
+      ? carouselIds.slice(0, 6)
+      : [draft.asset_id];
+
+    const { data: assetsRaw, error: assetErr } = await db
       .from('content_assets')
       .select('id, org_id, storage_path, media_kind, mime_type, byte_size, width_px, height_px')
-      .eq('id', draft.asset_id)
-      .maybeSingle();
+      .in('id', orderedAssetIds);
     if (assetErr) throw assetErr;
-    const asset = assetRaw as AssetRow | null;
-    if (!asset || asset.org_id !== membership.org_id || !asset.storage_path) {
-      return json({ ok: false, error: 'asset_not_found' }, 404);
+    const assetById = new Map(
+      ((assetsRaw as AssetRow[] | null) ?? []).map((a) => [a.id, a] as const)
+    );
+    const assets: AssetRow[] = [];
+    for (const id of orderedAssetIds) {
+      const row = assetById.get(id);
+      if (!row || row.org_id !== membership.org_id || !row.storage_path) {
+        return json({ ok: false, error: 'asset_not_found' }, 404);
+      }
+      assets.push(row);
+    }
+    const asset = assets[0];
+    if (isCarousel && assets.some((a) => a.media_kind !== 'image')) {
+      return safePublishResponse(
+        {
+          ok: false,
+          error: 'carousel_images_only',
+          message: 'Carousel-Veröffentlichung unterstützt aktuell nur Bilder.',
+        },
+        400
+      );
     }
 
     // Phase 5D: reject Meta-incompatible videos before any Graph container call.
@@ -1356,51 +1421,114 @@ Deno.serve(async (req) => {
 
     try {
       if (!containerId) {
-        const { data: signed, error: signErr } = await admin.storage
-          .from(CONTENT_ASSETS_BUCKET)
-          .createSignedUrl(asset.storage_path, 7200);
-        if (signErr || !signed?.signedUrl) {
-          console.error('instagram_publish_signed_url_failed', signErr?.message);
-          await markAttemptFailed(admin, attempt.id, 'signed_url_failed');
-          return json({ ok: false, error: 'signed_url_failed' }, 500);
-        }
+        if (isCarousel) {
+          const childIds: string[] = [];
+          for (let i = 0; i < assets.length; i++) {
+            const slide = assets[i];
+            const { data: signed, error: signErr } = await admin.storage
+              .from(CONTENT_ASSETS_BUCKET)
+              .createSignedUrl(slide.storage_path, 7200);
+            if (signErr || !signed?.signedUrl) {
+              console.error('instagram_publish_signed_url_failed', signErr?.message);
+              await markAttemptFailed(admin, attempt.id, 'signed_url_failed');
+              return json({ ok: false, error: 'signed_url_failed' }, 500);
+            }
 
-        let mediaUrl = signed.signedUrl;
-        // Feed images: fit into Meta's official aspect/JPEG rules before Graph create.
-        if (asset.media_kind === 'image' && draft.format !== 'story' && draft.format !== 'reel') {
-          try {
-            mediaUrl = await prepareFeedImageUrlForMeta({
-              admin,
-              sourceSignedUrl: signed.signedUrl,
-              orgId: membership.org_id,
-              draftId: draft.id,
-              mimeType: asset.mime_type,
+            let mediaUrl = signed.signedUrl;
+            try {
+              mediaUrl = await prepareFeedImageUrlForMeta({
+                admin,
+                sourceSignedUrl: signed.signedUrl,
+                orgId: membership.org_id,
+                draftId: `${draft.id}-c${i}`,
+                mimeType: slide.mime_type,
+              });
+            } catch (fitErr) {
+              const fitMsg = fitErr instanceof Error ? fitErr.message : 'feed_image_fit_failed';
+              console.error('instagram_publish_feed_fit_failed', sanitizeMetaError(fitMsg));
+              await markAttemptFailed(admin, attempt.id, 'feed_image_fit_failed');
+              return safePublishResponse(
+                {
+                  ok: false,
+                  error: 'image_aspect_invalid',
+                  message: FEED_IMAGE_ASPECT_ERROR_MESSAGE,
+                  attemptId: attempt.id,
+                },
+                400
+              );
+            }
+
+            const child = await createMediaContainer({
+              igUserId: connection.ig_user_id,
+              accessToken,
+              mediaKind: 'image',
+              format: 'feed',
+              mediaUrl,
+              caption: '',
+              isCarouselItem: true,
             });
-          } catch (fitErr) {
-            const fitMsg = fitErr instanceof Error ? fitErr.message : 'feed_image_fit_failed';
-            console.error('instagram_publish_feed_fit_failed', sanitizeMetaError(fitMsg));
-            await markAttemptFailed(admin, attempt.id, 'feed_image_fit_failed');
-            return safePublishResponse(
-              {
-                ok: false,
-                error: 'image_aspect_invalid',
-                message: FEED_IMAGE_ASPECT_ERROR_MESSAGE,
-                attemptId: attempt.id,
-              },
-              400
-            );
+            await waitForContainerReady({
+              containerId: child.containerId,
+              accessToken,
+              mediaKind: 'image',
+            });
+            childIds.push(child.containerId);
           }
-        }
 
-        const created = await createMediaContainer({
-          igUserId: connection.ig_user_id,
-          accessToken,
-          mediaKind: asset.media_kind,
-          format: draft.format,
-          mediaUrl,
-          caption,
-        });
-        containerId = created.containerId;
+          const parent = await createCarouselContainer({
+            igUserId: connection.ig_user_id,
+            accessToken,
+            childContainerIds: childIds,
+            caption,
+          });
+          containerId = parent.containerId;
+        } else {
+          const { data: signed, error: signErr } = await admin.storage
+            .from(CONTENT_ASSETS_BUCKET)
+            .createSignedUrl(asset.storage_path, 7200);
+          if (signErr || !signed?.signedUrl) {
+            console.error('instagram_publish_signed_url_failed', signErr?.message);
+            await markAttemptFailed(admin, attempt.id, 'signed_url_failed');
+            return json({ ok: false, error: 'signed_url_failed' }, 500);
+          }
+
+          let mediaUrl = signed.signedUrl;
+          // Feed images: fit into Meta's official aspect/JPEG rules before Graph create.
+          if (asset.media_kind === 'image' && draft.format !== 'story' && draft.format !== 'reel') {
+            try {
+              mediaUrl = await prepareFeedImageUrlForMeta({
+                admin,
+                sourceSignedUrl: signed.signedUrl,
+                orgId: membership.org_id,
+                draftId: draft.id,
+                mimeType: asset.mime_type,
+              });
+            } catch (fitErr) {
+              const fitMsg = fitErr instanceof Error ? fitErr.message : 'feed_image_fit_failed';
+              console.error('instagram_publish_feed_fit_failed', sanitizeMetaError(fitMsg));
+              await markAttemptFailed(admin, attempt.id, 'feed_image_fit_failed');
+              return safePublishResponse(
+                {
+                  ok: false,
+                  error: 'image_aspect_invalid',
+                  message: FEED_IMAGE_ASPECT_ERROR_MESSAGE,
+                  attemptId: attempt.id,
+                },
+                400
+              );
+            }
+          }
+
+          const created = await createMediaContainer({
+            igUserId: connection.ig_user_id,
+            accessToken,
+            mediaKind: asset.media_kind,
+            format: draft.format,
+            mediaUrl,
+            caption,
+          });
+          containerId = created.containerId;
+        }
 
         // Persist container id immediately — before polling / publish.
         const { error: submitErr } = await admin
@@ -1419,7 +1547,7 @@ Deno.serve(async (req) => {
       await waitForContainerReady({
         containerId,
         accessToken,
-        mediaKind: asset.media_kind,
+        mediaKind: isCarousel ? 'image' : asset.media_kind,
       });
 
       // Idempotency: re-check before media_publish (parallel click / race).

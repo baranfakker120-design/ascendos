@@ -112,6 +112,8 @@ export async function createMediaContainer(params: {
   format: ContentFormat;
   mediaUrl: string;
   caption: string;
+  /** When true, creates a carousel child item (no caption on child). */
+  isCarouselItem?: boolean;
   fetchFn?: typeof fetch;
 }): Promise<{ containerId: string }> {
   const fetchFn = params.fetchFn ?? fetch;
@@ -131,13 +133,18 @@ export async function createMediaContainer(params: {
   body.set('access_token', params.accessToken);
   if (product.useImageUrl) body.set('image_url', params.mediaUrl);
   if (product.useVideoUrl) body.set('video_url', params.mediaUrl);
-  if (product.mediaType) body.set('media_type', product.mediaType);
+  if (params.isCarouselItem) {
+    body.set('is_carousel_item', 'true');
+  } else if (product.mediaType) {
+    body.set('media_type', product.mediaType);
+  }
   // Official Reels param — also surfaces the Reel on the profile feed when supported.
-  if (product.mediaType === 'REELS') {
+  if (!params.isCarouselItem && product.mediaType === 'REELS') {
     body.set('share_to_feed', 'true');
   }
   // Feed/Reels captions; Stories omit caption (not a feed caption field).
-  if (params.caption && product.mediaType !== 'STORIES') {
+  // Carousel children never carry the feed caption — parent does.
+  if (params.caption && !params.isCarouselItem && product.mediaType !== 'STORIES') {
     body.set('caption', params.caption);
   }
 
@@ -149,6 +156,38 @@ export async function createMediaContainer(params: {
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     throw new Error(readGraphError(json, `container_${res.status}`));
+  }
+  const containerId = String(json.id ?? '');
+  if (!containerId) throw new Error('container_missing_id');
+  return { containerId };
+}
+
+/** Parent carousel container — children must already be FINISHED. */
+export async function createCarouselContainer(params: {
+  igUserId: string;
+  accessToken: string;
+  childContainerIds: string[];
+  caption: string;
+  fetchFn?: typeof fetch;
+}): Promise<{ containerId: string }> {
+  const fetchFn = params.fetchFn ?? fetch;
+  if (params.childContainerIds.length < 2 || params.childContainerIds.length > 10) {
+    throw new Error('carousel_child_count_invalid');
+  }
+  const body = new URLSearchParams();
+  body.set('access_token', params.accessToken);
+  body.set('media_type', 'CAROUSEL');
+  body.set('children', params.childContainerIds.join(','));
+  if (params.caption) body.set('caption', params.caption);
+
+  const res = await fetchFn(graphUrl(`/${params.igUserId}/media`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    throw new Error(readGraphError(json, `carousel_container_${res.status}`));
   }
   const containerId = String(json.id ?? '');
   if (!containerId) throw new Error('container_missing_id');

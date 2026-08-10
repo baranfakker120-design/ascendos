@@ -154,6 +154,7 @@ export function buildMediaContainerFields(params: {
   format: ContentFormat;
   mediaUrl: string;
   caption: string;
+  isCarouselItem?: boolean;
 }): Record<string, string> {
   const product = resolveMediaProduct({
     mediaKind: params.mediaKind,
@@ -162,12 +163,36 @@ export function buildMediaContainerFields(params: {
   const fields: Record<string, string> = {};
   if (product.useImageUrl) fields.image_url = params.mediaUrl;
   if (product.useVideoUrl) fields.video_url = params.mediaUrl;
-  if (product.mediaType) fields.media_type = product.mediaType;
-  if (product.shareToFeed) fields.share_to_feed = 'true';
-  if (params.caption && product.mediaType !== 'STORIES') {
+  if (params.isCarouselItem) {
+    fields.is_carousel_item = 'true';
+  } else if (product.mediaType) {
+    fields.media_type = product.mediaType;
+  }
+  if (!params.isCarouselItem && product.shareToFeed) fields.share_to_feed = 'true';
+  if (params.caption && !params.isCarouselItem && product.mediaType !== 'STORIES') {
     fields.caption = params.caption;
   }
   return fields;
+}
+
+/** Pure helper for CAROUSEL parent container fields (2–10 children). */
+export function buildCarouselContainerFields(params: {
+  childContainerIds: string[];
+  caption: string;
+}): Record<string, string> {
+  if (params.childContainerIds.length < 2 || params.childContainerIds.length > 10) {
+    throw new Error('carousel_child_count_invalid');
+  }
+  const fields: Record<string, string> = {
+    media_type: 'CAROUSEL',
+    children: params.childContainerIds.join(','),
+  };
+  if (params.caption) fields.caption = params.caption;
+  return fields;
+}
+
+export function isCarouselDraft(carouselAssetIds: string[] | null | undefined): boolean {
+  return (carouselAssetIds?.length ?? 0) >= 2;
 }
 
 export function buildPublishCaption(params: {

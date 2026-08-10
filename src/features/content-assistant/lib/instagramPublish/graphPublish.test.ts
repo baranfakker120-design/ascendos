@@ -1,13 +1,52 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCarouselContainerFields,
+  buildMediaContainerFields,
   buildPublishCaption,
   classifyContainerStatus,
   connectionHasPublishScope,
+  isCarouselDraft,
   publishErrorI18nKey,
   resolveMediaProduct,
   runPublishPipeline,
   waitForContainerReady,
 } from './graphPublish';
+
+describe('carousel container fields', () => {
+  it('marks children with is_carousel_item and omits caption', () => {
+    expect(
+      buildMediaContainerFields({
+        mediaKind: 'image',
+        format: 'feed',
+        mediaUrl: 'https://example.com/a.jpg',
+        caption: 'should not appear',
+        isCarouselItem: true,
+      })
+    ).toEqual({
+      image_url: 'https://example.com/a.jpg',
+      is_carousel_item: 'true',
+    });
+  });
+
+  it('builds CAROUSEL parent with children + caption', () => {
+    expect(
+      buildCarouselContainerFields({
+        childContainerIds: ['1', '2', '3'],
+        caption: 'Hello',
+      })
+    ).toEqual({
+      media_type: 'CAROUSEL',
+      children: '1,2,3',
+      caption: 'Hello',
+    });
+  });
+
+  it('detects carousel drafts at 2+ assets', () => {
+    expect(isCarouselDraft([])).toBe(false);
+    expect(isCarouselDraft(['a'])).toBe(false);
+    expect(isCarouselDraft(['a', 'b'])).toBe(true);
+  });
+});
 
 describe('resolveMediaProduct', () => {
   it('maps feed image to image_url without media_type', () => {

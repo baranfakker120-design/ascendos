@@ -736,6 +736,24 @@ export interface AssetRow {
   suggested_formats: string[] | null;
 }
 
+export interface KeywordDetail {
+  keyword: string;
+  why: string;
+}
+
+export interface HashtagDetail {
+  tag: string;
+  why: string;
+}
+
+export interface SlideAnalysis {
+  index: number;
+  summary: string;
+  role: string;
+  issue: string | null;
+  fix: string | null;
+}
+
 export interface GenerationPayload {
   visual_summary: string;
   theme: string | null;
@@ -746,15 +764,32 @@ export interface GenerationPayload {
   product_hint: string | null;
   uncertain: string[];
   content_type: ContentFormat;
+  content_intent: string | null;
+  core_message: string | null;
+  problem: string | null;
+  emotion: string | null;
+  why_swipe: string | null;
+  why_save: string | null;
+  why_share: string | null;
   hook: string;
+  hook_strength: 'strong' | 'ok' | 'weak' | null;
+  hook_alternatives: string[];
   caption: string;
   keywords: string[];
+  keyword_details: KeywordDetail[];
   hashtags: string[];
+  hashtag_details: HashtagDetail[];
   cta: string;
   target_audience: string | null;
   posting_hint: string | null;
+  optimization: string | null;
+  slides: SlideAnalysis[];
   llm_clean_flags: string[];
 }
+
+/** Hard product rule: Instagram Content Assistant always returns exactly 5 hashtags. */
+export const REQUIRED_HASHTAG_COUNT = 5;
+export const CAROUSEL_MAX_ASSETS = 6;
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
 export const DEFAULT_DAILY_GENERATION_LIMIT = 25;
@@ -834,7 +869,131 @@ export function normalizeFormat(v: unknown, fallback: ContentFormat): ContentFor
   return fallback;
 }
 
-export function parseGeneration(raw: unknown, formatFallback: ContentFormat): GenerationPayload {
+function parseKeywordDetails(v: unknown, fallbackKeywords: string[]): KeywordDetail[] {
+  const out: KeywordDetail[] = [];
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      if (!item || typeof item !== 'object') continue;
+      const o = item as Record<string, unknown>;
+      const keyword = asNullableString(o.keyword ?? o.term ?? o.text, 120);
+      const why = asNullableString(o.why ?? o.reason ?? o.begründung ?? o.begruendung, 400);
+      if (!keyword || !why) continue;
+      out.push({ keyword, why });
+      if (out.length >= 12) break;
+    }
+  }
+  if (out.length > 0) return out;
+  return fallbackKeywords.slice(0, 8).map((keyword) => ({
+    keyword,
+    why: 'Abgeleitet aus Themen- und Zielgruppenkontext des Contents.',
+  }));
+}
+
+function parseHashtagDetails(v: unknown, tags: string[]): HashtagDetail[] {
+  const map = new Map<string, string>();
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      if (!item || typeof item !== 'object') continue;
+      const o = item as Record<string, unknown>;
+      const tag = asNullableString(o.tag ?? o.hashtag ?? o.text, 80)?.replace(/^#/, '');
+      const why = asNullableString(o.why ?? o.reason ?? o.begründung ?? o.begruendung, 400);
+      if (!tag || !why) continue;
+      map.set(tag.toLowerCase(), why);
+    }
+  }
+  return tags.map((tag) => ({
+    tag,
+    why:
+      map.get(tag.toLowerCase()) ??
+      'Strategische Einschätzung auf Basis von Thema, Zielgruppe und Nischenrelevanz.',
+  }));
+}
+
+function parseSlides(v: unknown, slideCount: number): SlideAnalysis[] {
+  const out: SlideAnalysis[] = [];
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      if (!item || typeof item !== 'object') continue;
+      const o = item as Record<string, unknown>;
+      const indexRaw = Number(o.index ?? o.slide ?? out.length + 1);
+      const index = Number.isFinite(indexRaw) ? Math.floor(indexRaw) : out.length + 1;
+      const summary = asNullableString(o.summary ?? o.what ?? o.text, 600) ?? '';
+      const role = asNullableString(o.role ?? o.purpose, 200) ?? '';
+      if (!summary && !role) continue;
+      out.push({
+        index,
+        summary,
+        role,
+        issue: asNullableString(o.issue ?? o.problem, 400),
+        fix: asNullableString(o.fix ?? o.improvement, 400),
+      });
+    }
+  }
+  if (slideCount <= 1) return out;
+  // Ensure one entry per slide index when possible.
+  const byIndex = new Map(out.map((s) => [s.index, s]));
+  const filled: SlideAnalysis[] = [];
+  for (let i = 1; i <= slideCount; i++) {
+    filled.push(
+      byIndex.get(i) ?? {
+        index: i,
+        summary: `Slide ${i}`,
+        role: i === 1 ? 'hook' : i === slideCount ? 'close' : 'support',
+        issue: null,
+        fix: null,
+      }
+    );
+  }
+  return filled;
+}
+
+function normalizeHookStrength(v: unknown): 'strong' | 'ok' | 'weak' | null {
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  if (s === 'strong' || s === 'ok' || s === 'weak') return s;
+  if (s === 'good' || s === 'solid') return 'ok';
+  if (s === 'poor' || s === 'bad') return 'weak';
+  return null;
+}
+
+/**
+ * Enforce exactly REQUIRED_HASHTAG_COUNT unique hashtags.
+ * Prefer LLM order, then research tags if provided later by caller.
+ */
+export function enforceExactHashtagCount(
+  tags: string[],
+  extras: string[] = [],
+  count = REQUIRED_HASHTAG_COUNT
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of [...tags, ...extras]) {
+    const tag = raw.trim().replace(/^#/, '').toLowerCase();
+    if (!tag || seen.has(tag)) continue;
+    // Keep original casing from first occurrence.
+    const original = raw.trim().replace(/^#/, '');
+    seen.add(tag);
+    out.push(original);
+    if (out.length >= count) break;
+  }
+  // Pad with generic niche-safe placeholders only if model under-delivered —
+  // caller should prefer research extras; still keep length exact for product rule.
+  let i = 1;
+  while (out.length < count) {
+    const pad = `ascendcontent${i}`;
+    if (!seen.has(pad)) {
+      seen.add(pad);
+      out.push(pad);
+    }
+    i += 1;
+  }
+  return out.slice(0, count);
+}
+
+export function parseGeneration(
+  raw: unknown,
+  formatFallback: ContentFormat,
+  options?: { slideCount?: number }
+): GenerationPayload {
   if (!raw || typeof raw !== 'object') throw new Error('invalid_ai_json');
   const o = raw as Record<string, unknown>;
   const visual = asNullableString(o.visual_summary, 4000);
@@ -844,6 +1003,11 @@ export function parseGeneration(raw: unknown, formatFallback: ContentFormat): Ge
   const caption = asNullableString(o.caption, 2200) ?? '';
   const cta = asNullableString(o.cta, 280) ?? '';
   if (!hook || !caption) throw new Error('missing_draft_fields');
+
+  const keywords = asStringArray(o.keywords, 16);
+  const hashtagsRaw = asStringArray(o.hashtags, 18);
+  const hashtags = enforceExactHashtagCount(hashtagsRaw);
+  const slideCount = options?.slideCount ?? 1;
 
   return {
     visual_summary: visual,
@@ -855,13 +1019,26 @@ export function parseGeneration(raw: unknown, formatFallback: ContentFormat): Ge
     product_hint: asNullableString(o.product_hint, 200),
     uncertain: asStringArray(o.uncertain, 12),
     content_type: normalizeFormat(o.content_type ?? o.format, formatFallback),
+    content_intent: asNullableString(o.content_intent ?? o.intent, 400),
+    core_message: asNullableString(o.core_message ?? o.message, 400),
+    problem: asNullableString(o.problem, 400),
+    emotion: asNullableString(o.emotion, 200),
+    why_swipe: asNullableString(o.why_swipe, 400),
+    why_save: asNullableString(o.why_save, 400),
+    why_share: asNullableString(o.why_share, 400),
     hook,
+    hook_strength: normalizeHookStrength(o.hook_strength),
+    hook_alternatives: asStringArray(o.hook_alternatives, 3),
     caption,
-    keywords: asStringArray(o.keywords, 16),
-    hashtags: asStringArray(o.hashtags, 18),
+    keywords,
+    keyword_details: parseKeywordDetails(o.keyword_details ?? o.keywords_detail, keywords),
+    hashtags,
+    hashtag_details: parseHashtagDetails(o.hashtag_details ?? o.hashtags_detail, hashtags),
     cta,
     target_audience: asNullableString(o.target_audience, 400),
     posting_hint: asNullableString(o.posting_hint, 400),
+    optimization: asNullableString(o.optimization ?? o.optimierung, 2000),
+    slides: parseSlides(o.slides ?? o.carousel_slides, slideCount),
     llm_clean_flags: asStringArray(o.llm_clean_flags ?? o.clean_check_flags, 12),
   };
 }
@@ -874,9 +1051,14 @@ Never claim shadowban safety or Instagram guarantees.
 Never invent income, health, or miracle claims.
 Never claim hashtags are "trending", "viral right now", or "currently popular" — you have no live trend feed.
 Write captions that sound natural for the audience — not robotic, not keyword-stuffed, not spammy.
-Hashtags must match the actual content. Do NOT default to fyp/viral/explore/trending (omit them).
+Hashtags must match the actual content. Do NOT default to fyp/viral/explore/trending (omit them unless you can give a concrete strategic reason for THIS content).
 If the media is unclear or nearly empty, say so in uncertain and keep hashtags sparse.
 No black-hat, scraping, bots, or fake-engagement advice.
+
+Always follow this internal order before writing the final JSON:
+1) Content analysis 2) Audience 3) Theme/core message 4) Content intent
+5) Hook potential 6) Structure 7) Keywords 8) Candidate hashtags
+9) Score hashtags 10) Select EXACTLY 5 best hashtags 11) Hook 12) Caption 13) CTA 14) Optimization notes
 
 Respond with ONE JSON object only (no markdown) using this shape:
 {
@@ -889,17 +1071,38 @@ Respond with ONE JSON object only (no markdown) using this shape:
   "product_hint": string|null,
   "uncertain": string[],
   "content_type": "story"|"feed"|"reel",
+  "content_intent": string|null,
+  "core_message": string|null,
+  "problem": string|null,
+  "emotion": string|null,
+  "why_swipe": string|null,
+  "why_save": string|null,
+  "why_share": string|null,
   "hook": string,
+  "hook_strength": "strong"|"ok"|"weak"|null,
+  "hook_alternatives": string[],
   "caption": string,
   "keywords": string[],
+  "keyword_details": [{"keyword": string, "why": string}],
   "hashtags": string[],
+  "hashtag_details": [{"tag": string, "why": string}],
   "cta": string,
   "target_audience": string|null,
   "posting_hint": string|null,
+  "optimization": string|null,
+  "slides": [{"index": number, "summary": string, "role": string, "issue": string|null, "fix": string|null}],
   "llm_clean_flags": string[]
 }
 
-Language for hook/caption/cta/keywords/hashtags text: ${locale}.
+Rules for hashtags:
+- Return EXACTLY 5 hashtags in "hashtags" (no # prefix) and EXACTLY 5 objects in "hashtag_details".
+- Each hashtag_details.why must explain why THIS tag fits THIS content (theme, audience, niche).
+- Prefer specific niche tags over generic vanity tags.
+- If you cannot justify live popularity, say so as strategic estimate from theme/audience — never invent metrics.
+
+Caption style: sound like a real creator. Avoid clichés like "Tauche ein…", "Entdecke die Welt…", "In der heutigen schnelllebigen Welt…", "Du wirst es nicht glauben…".
+
+Language for hook/caption/cta/keywords/hashtags/why text: ${locale}.
 llm_clean_flags: short notes about spam risk, misleading claims, or engagement bait you still see in YOUR draft (empty if none).`;
 }
 
@@ -919,6 +1122,45 @@ export function buildUserPrompt(params: {
     `File name (may be wrong — trust the media first): ${params.fileName}`,
     `Output language: ${params.locale}`,
     'Analyze the attached media and produce the JSON draft.',
+    'Return EXACTLY 5 hashtags with reasons.',
+  ].join('\n');
+}
+
+export function buildCarouselSystemPrompt(locale: string): string {
+  return `${buildSystemPrompt(locale)}
+
+CAROUSEL MODE (critical):
+You receive MULTIPLE slides as ONE Instagram carousel content piece.
+Do NOT analyze slides as independent posts.
+Analyze each slide AND the relationship, order, story arc, emotional path, redundancy, weak slides, missing info, save/share potential, and CTA fit across the whole set.
+Slide 1 must be evaluated as the hook slide.
+Fill "slides" for EVERY attached slide (1-based index matching attachment order).
+content_type must be "feed" for carousels.`;
+}
+
+export function buildCarouselUserPrompt(params: {
+  format: ContentFormat;
+  locale: string;
+  slides: Array<{
+    index: number;
+    fileName: string;
+    title: string | null;
+    aspectRatio: string | null;
+  }>;
+}): string {
+  const slideLines = params.slides.map(
+    (s) =>
+      `Slide ${s.index}: file=${s.fileName}; title=${s.title ?? ''}; aspect=${s.aspectRatio ?? 'unknown'}`
+  );
+  return [
+    `Requested content format: ${params.format} (Instagram carousel)`,
+    `Slide count: ${params.slides.length}`,
+    `Output language: ${params.locale}`,
+    'Slides in FINAL publish order:',
+    ...slideLines,
+    'Analyze ALL attached images together as one carousel.',
+    'Return EXACTLY 5 hashtags with reasons.',
+    'Fill optimization with concrete order/story/CTA improvements when needed (no fake numeric scores).',
   ].join('\n');
 }
 
@@ -1203,41 +1445,15 @@ function parseVisionSuccessText(
   return text;
 }
 
-export async function callVisionModel(params: {
+async function requestVisionCompletion(params: {
   system: string;
-  userText: string;
-  mediaKind: 'image' | 'video';
-  mimeType: string;
-  signedUrl: string;
-  /** Injectable for tests. */
-  fetchImpl?: typeof fetch;
+  content: Array<Record<string, unknown>>;
+  maxTokens?: number;
 }): Promise<{ text: string; model: string; provider: string }> {
   const apiKey = Deno.env.get('OPENROUTER_API_KEY');
   if (!apiKey) {
     throw visionError('missing_openrouter_key');
   }
-
-  let videoDataUrl: string | undefined;
-  if (params.mediaKind === 'video') {
-    if (!isVisionVideoMime(params.mimeType.split(';')[0]?.trim().toLowerCase() ?? '')) {
-      throw visionError('VIDEO_UNSUPPORTED_MIME');
-    }
-    const fetched = await fetchVideoForVision({
-      signedUrl: params.signedUrl,
-      assetMimeType: params.mimeType,
-      fetchImpl: params.fetchImpl,
-    });
-    videoDataUrl = fetched.dataUrl;
-  }
-
-  const mediaPart = buildVisionMediaPart({
-    mediaKind: params.mediaKind,
-    signedUrl: params.signedUrl,
-    videoDataUrl,
-  });
-
-  // Single attempt — no image_url fallback for MOV/mp4/webm (Gemini rejects that).
-  const content = [{ type: 'text', text: params.userText }, mediaPart];
 
   try {
     const res = await fetchWithTimeout(
@@ -1254,10 +1470,10 @@ export async function callVisionModel(params: {
         body: JSON.stringify({
           model: VISION_MODEL,
           temperature: 0.35,
-          max_tokens: 2200,
+          max_tokens: params.maxTokens ?? 2200,
           messages: [
             { role: 'system', content: params.system },
-            { role: 'user', content },
+            { role: 'user', content: params.content },
           ],
         }),
       },
@@ -1293,6 +1509,70 @@ export async function callVisionModel(params: {
   }
 }
 
+export async function callVisionModel(params: {
+  system: string;
+  userText: string;
+  mediaKind: 'image' | 'video';
+  mimeType: string;
+  signedUrl: string;
+  /** Injectable for tests. */
+  fetchImpl?: typeof fetch;
+}): Promise<{ text: string; model: string; provider: string }> {
+  let videoDataUrl: string | undefined;
+  if (params.mediaKind === 'video') {
+    if (!isVisionVideoMime(params.mimeType.split(';')[0]?.trim().toLowerCase() ?? '')) {
+      throw visionError('VIDEO_UNSUPPORTED_MIME');
+    }
+    const fetched = await fetchVideoForVision({
+      signedUrl: params.signedUrl,
+      assetMimeType: params.mimeType,
+      fetchImpl: params.fetchImpl,
+    });
+    videoDataUrl = fetched.dataUrl;
+  }
+
+  const mediaPart = buildVisionMediaPart({
+    mediaKind: params.mediaKind,
+    signedUrl: params.signedUrl,
+    videoDataUrl,
+  });
+
+  // Single attempt — no image_url fallback for MOV/mp4/webm (Gemini rejects that).
+  const content = [{ type: 'text', text: params.userText }, mediaPart];
+  return requestVisionCompletion({ system: params.system, content });
+}
+
+/**
+ * Multi-image carousel analysis — all slides in one multimodal request.
+ * Images only (signed URLs). Order of imageUrls is publish order.
+ */
+export async function callVisionModelCarousel(params: {
+  system: string;
+  userText: string;
+  imageUrls: string[];
+}): Promise<{ text: string; model: string; provider: string }> {
+  if (params.imageUrls.length < 2) {
+    throw new Error('carousel_requires_multiple_images');
+  }
+  const content: Array<Record<string, unknown>> = [
+    { type: 'text', text: params.userText },
+  ];
+  for (let i = 0; i < params.imageUrls.length; i++) {
+    content.push({ type: 'text', text: `Slide ${i + 1}:` });
+    content.push(
+      buildVisionMediaPart({
+        mediaKind: 'image',
+        signedUrl: params.imageUrls[i],
+      })
+    );
+  }
+  return requestVisionCompletion({
+    system: params.system,
+    content,
+    maxTokens: 3200,
+  });
+}
+
 // ---- inline: _shared/content-generate/index.ts ----
 /**
  * Shared content generation core (Vision → Research → Clean Check → Draft).
@@ -1305,6 +1585,9 @@ export async function callVisionModel(params: {
 // deno-lint-ignore no-explicit-any
 type DbClient = any;
 
+
+const DRAFT_SELECT =
+  'id, org_id, asset_id, carousel_asset_ids, analysis_json, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';
 
 export function canPersistAssetAnalysis(asset: AssetRow, membership: MembershipRow): boolean {
   if (asset.scope === 'personal') return asset.owner_membership_id === membership.id;
@@ -1349,6 +1632,116 @@ export interface GenerateDraftResult {
   parsed: GenerationPayload;
 }
 
+function finalizeHashtags(
+  parsed: GenerationPayload,
+  research: HashtagResearchResult
+): { tags: string[]; details: GenerationPayload['hashtag_details'] } {
+  const researchTags = research.recommended.map((c) => c.tag);
+  const tags = enforceExactHashtagCount(parsed.hashtags, researchTags, REQUIRED_HASHTAG_COUNT);
+  const whyByTag = new Map<string, string>();
+  for (const d of parsed.hashtag_details) {
+    whyByTag.set(d.tag.toLowerCase(), d.why);
+  }
+  for (const c of research.recommended) {
+    if (!whyByTag.has(c.tag.toLowerCase())) {
+      whyByTag.set(
+        c.tag.toLowerCase(),
+        'Strategische Einschätzung auf Basis von Thema, Zielgruppe und Nischenrelevanz.'
+      );
+    }
+  }
+  const details = tags.map((tag) => ({
+    tag,
+    why:
+      whyByTag.get(tag.toLowerCase()) ??
+      'Strategische Einschätzung auf Basis von Thema, Zielgruppe und Nischenrelevanz.',
+  }));
+  return { tags, details };
+}
+
+function buildAnalysisJson(params: {
+  vision: { provider: string; model: string };
+  parsed: GenerationPayload;
+  researchPayload: Record<string, unknown>;
+  hashtagDetails: GenerationPayload['hashtag_details'];
+  carouselAssetIds: string[];
+}): Record<string, unknown> {
+  const { vision, parsed, researchPayload, hashtagDetails, carouselAssetIds } = params;
+  return {
+    provider: vision.provider,
+    model: vision.model,
+    visual_summary: parsed.visual_summary,
+    theme: parsed.theme,
+    audience_hint: parsed.audience_hint,
+    mood: parsed.mood,
+    content_category: parsed.content_category,
+    message: parsed.message,
+    core_message: parsed.core_message,
+    content_intent: parsed.content_intent,
+    problem: parsed.problem,
+    emotion: parsed.emotion,
+    why_swipe: parsed.why_swipe,
+    why_save: parsed.why_save,
+    why_share: parsed.why_share,
+    product_hint: parsed.product_hint,
+    uncertain: parsed.uncertain,
+    hook_strength: parsed.hook_strength,
+    hook_alternatives: parsed.hook_alternatives,
+    keyword_details: parsed.keyword_details,
+    hashtag_details: hashtagDetails,
+    slides: parsed.slides,
+    optimization: parsed.optimization,
+    carousel_asset_ids: carouselAssetIds,
+    generated_at: new Date().toISOString(),
+    research: researchPayload,
+  };
+}
+
+async function persistPrimaryAssetAnalysis(params: {
+  db: DbClient;
+  asset: AssetRow;
+  membership: MembershipRow;
+  parsed: GenerationPayload;
+  analysisJson: Record<string, unknown>;
+  forcePersistAsset?: boolean;
+}): Promise<{
+  assetAnalysisPersisted: boolean;
+  assetAnalysisMode: GenerateDraftResult['assetAnalysisMode'];
+}> {
+  const persistAsset =
+    params.forcePersistAsset || canPersistAssetAnalysis(params.asset, params.membership);
+  if (!persistAsset) {
+    return {
+      assetAnalysisPersisted: false,
+      assetAnalysisMode: 'draft_only_central_or_foreign',
+    };
+  }
+  const { data: usageRow } = await params.db
+    .from('content_assets')
+    .select('usage_count')
+    .eq('id', params.asset.id)
+    .maybeSingle();
+  const { error: assetUpdateError } = await params.db
+    .from('content_assets')
+    .update({
+      analysis_status: 'ready',
+      detected_summary: params.parsed.visual_summary.slice(0, 2000),
+      theme: params.parsed.theme,
+      mood: params.parsed.mood,
+      product_hint: params.parsed.product_hint,
+      audience_hint: params.parsed.audience_hint,
+      keywords: params.parsed.keywords,
+      analysis_json: params.analysisJson,
+      last_used_at: new Date().toISOString(),
+      usage_count: Number(usageRow?.usage_count ?? 0) + 1,
+    })
+    .eq('id', params.asset.id);
+  return {
+    assetAnalysisPersisted: !assetUpdateError,
+    assetAnalysisMode: assetUpdateError ? 'persist_failed' : 'persisted',
+  };
+}
+
 /**
  * Run Vision + research + clean check + draft insert.
  * Always inserts draft with status='draft'. Never publishes.
@@ -1362,33 +1755,91 @@ export async function generateDraftFromAsset(params: {
   /** When true (daily job), always attempt asset analysis persist via service role. */
   forcePersistAsset?: boolean;
 }): Promise<GenerateDraftResult> {
-  const { db, asset, membership, locale } = params;
-  const format: ContentFormat =
-    params.format || normalizeFormat(asset.suggested_formats?.[0], 'feed');
+  return generateDraftFromAssets({
+    db: params.db,
+    assets: [params.asset],
+    membership: params.membership,
+    format: params.format,
+    locale: params.locale,
+    forcePersistAsset: params.forcePersistAsset,
+  });
+}
 
-  const { data: signed, error: signError } = await db.storage
-    .from(CONTENT_ASSETS_BUCKET)
-    .createSignedUrl(asset.storage_path, 3600);
-  if (signError || !signed?.signedUrl) {
-    throw new Error(`signed_url_failed:${signError?.message ?? 'missing'}`);
+/**
+ * Single image OR carousel (2–6 images) generation.
+ * Videos remain single-asset only.
+ */
+export async function generateDraftFromAssets(params: {
+  db: DbClient;
+  assets: AssetRow[];
+  membership: MembershipRow;
+  format: ContentFormat;
+  locale: string;
+  forcePersistAsset?: boolean;
+}): Promise<GenerateDraftResult> {
+  const { db, membership, locale } = params;
+  const assets = params.assets.slice(0, CAROUSEL_MAX_ASSETS);
+  if (assets.length === 0) throw new Error('asset_id_required');
+
+  const primary = assets[0];
+  const isCarousel = assets.length >= 2;
+  if (isCarousel) {
+    if (assets.some((a) => a.media_kind !== 'image')) {
+      throw new Error('carousel_images_only');
+    }
   }
 
-  const vision = await callVisionModel({
-    system: buildSystemPrompt(locale),
-    userText: buildUserPrompt({
-      format,
-      fileName: asset.file_name,
-      title: asset.title,
-      mediaKind: asset.media_kind,
-      aspectRatio: asset.aspect_ratio,
-      locale,
-    }),
-    mediaKind: asset.media_kind,
-    mimeType: asset.mime_type,
-    signedUrl: signed.signedUrl,
-  });
+  const format: ContentFormat = isCarousel
+    ? 'feed'
+    : params.format || normalizeFormat(primary.suggested_formats?.[0], 'feed');
 
-  const parsed = parseGeneration(extractJsonObject(vision.text), format);
+  const signedUrls: string[] = [];
+  for (const asset of assets) {
+    const { data: signed, error: signError } = await db.storage
+      .from(CONTENT_ASSETS_BUCKET)
+      .createSignedUrl(asset.storage_path, 3600);
+    if (signError || !signed?.signedUrl) {
+      throw new Error(`signed_url_failed:${signError?.message ?? 'missing'}`);
+    }
+    signedUrls.push(signed.signedUrl);
+  }
+
+  const vision = isCarousel
+    ? await callVisionModelCarousel({
+        system: buildCarouselSystemPrompt(locale),
+        userText: buildCarouselUserPrompt({
+          format,
+          locale,
+          slides: assets.map((a, i) => ({
+            index: i + 1,
+            fileName: a.file_name,
+            title: a.title,
+            aspectRatio: a.aspect_ratio,
+          })),
+        }),
+        imageUrls: signedUrls,
+      })
+    : await callVisionModel({
+        system: buildSystemPrompt(locale),
+        userText: buildUserPrompt({
+          format,
+          fileName: primary.file_name,
+          title: primary.title,
+          mediaKind: primary.media_kind,
+          aspectRatio: primary.aspect_ratio,
+          locale,
+        }),
+        mediaKind: primary.media_kind,
+        mimeType: primary.mime_type,
+        signedUrl: signedUrls[0],
+      });
+
+  const parsed = parseGeneration(extractJsonObject(vision.text), format, {
+    slideCount: assets.length,
+  });
+  if (isCarousel) {
+    parsed.content_type = 'feed';
+  }
 
   const research: HashtagResearchResult = runHashtagResearch({
     theme: parsed.theme,
@@ -1399,7 +1850,7 @@ export async function generateDraftFromAsset(params: {
     llmHashtags: parsed.hashtags,
     locale,
   });
-  const finalHashtags = research.recommended.map((c) => c.tag);
+  const { tags: finalHashtags, details: hashtagDetails } = finalizeHashtags(parsed, research);
 
   const clean = runHeuristicCleanCheck({
     hook: parsed.hook,
@@ -1414,61 +1865,61 @@ export async function generateDraftFromAsset(params: {
     mode: research.mode,
     liveResearchActive: research.liveResearchActive,
     providersUsed: research.providersUsed,
-    recommended: research.recommended,
+    recommended: research.recommended.slice(0, REQUIRED_HASHTAG_COUNT).map((c, i) => ({
+      ...c,
+      tag: finalHashtags[i] ?? c.tag,
+      reasonText: hashtagDetails[i]?.why,
+    })),
     rejected: research.rejected,
-    notes: research.notes,
+    notes: [
+      ...research.notes,
+      `Exactly ${REQUIRED_HASHTAG_COUNT} hashtags selected for Instagram Content Assistant.`,
+    ],
     hashtagApi: 'not_enabled',
   };
 
-  const analysisJson = {
-    provider: vision.provider,
-    model: vision.model,
-    visual_summary: parsed.visual_summary,
-    theme: parsed.theme,
-    audience_hint: parsed.audience_hint,
-    mood: parsed.mood,
-    content_category: parsed.content_category,
-    message: parsed.message,
-    product_hint: parsed.product_hint,
-    uncertain: parsed.uncertain,
-    generated_at: new Date().toISOString(),
-    research: researchPayload,
-  };
+  const carouselAssetIds = isCarousel ? assets.map((a) => a.id) : [];
+  const analysisJson = buildAnalysisJson({
+    vision,
+    parsed,
+    researchPayload,
+    hashtagDetails,
+    carouselAssetIds,
+  });
 
-  const persistAsset = params.forcePersistAsset || canPersistAssetAnalysis(asset, membership);
-  let assetAnalysisPersisted = false;
-  if (persistAsset) {
-    const { data: usageRow } = await db
-      .from('content_assets')
-      .select('usage_count')
-      .eq('id', asset.id)
-      .maybeSingle();
-    const { error: assetUpdateError } = await db
-      .from('content_assets')
-      .update({
-        analysis_status: 'ready',
-        detected_summary: parsed.visual_summary.slice(0, 2000),
-        theme: parsed.theme,
-        mood: parsed.mood,
-        product_hint: parsed.product_hint,
-        audience_hint: parsed.audience_hint,
-        keywords: parsed.keywords,
-        analysis_json: analysisJson,
-        last_used_at: new Date().toISOString(),
-        usage_count: Number(usageRow?.usage_count ?? 0) + 1,
-      })
-      .eq('id', asset.id);
-    assetAnalysisPersisted = !assetUpdateError;
+  const persist = await persistPrimaryAssetAnalysis({
+    db,
+    asset: primary,
+    membership,
+    parsed,
+    analysisJson,
+    forcePersistAsset: params.forcePersistAsset,
+  });
+
+  // Touch usage for additional carousel slides (best-effort).
+  if (isCarousel) {
+    for (const asset of assets.slice(1)) {
+      if (!canPersistAssetAnalysis(asset, membership) && !params.forcePersistAsset) continue;
+      await db
+        .from('content_assets')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', asset.id);
+    }
   }
 
-  const researchHint = formatResearchPostingHint(research);
+  const researchHint = formatResearchPostingHint({
+    ...research,
+    recommended: research.recommended.slice(0, REQUIRED_HASHTAG_COUNT),
+  });
   const postingHint = [parsed.posting_hint, researchHint].filter(Boolean).join(' · ');
 
   const draftInsert = {
     org_id: membership.org_id,
-    asset_id: asset.id,
+    asset_id: primary.id,
+    carousel_asset_ids: carouselAssetIds,
+    analysis_json: analysisJson,
     owner_membership_id: membership.id,
-    format: parsed.content_type,
+    format: isCarousel ? 'feed' : parsed.content_type,
     hook: parsed.hook,
     caption: parsed.caption,
     cta: parsed.cta,
@@ -1484,9 +1935,7 @@ export async function generateDraftFromAsset(params: {
   const { data: draft, error: draftError } = await db
     .from('content_drafts')
     .insert(draftInsert)
-    .select(
-      'id, org_id, asset_id, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at'
-    )
+    .select(DRAFT_SELECT)
     .single();
   if (draftError) throw draftError;
 
@@ -1499,13 +1948,13 @@ export async function generateDraftFromAsset(params: {
       notes: clean.notes,
       isGuarantee: false,
     },
-    assetAnalysisPersisted,
-    assetAnalysisMode: persistAsset
-      ? assetAnalysisPersisted
-        ? 'persisted'
-        : 'persist_failed'
-      : 'draft_only_central_or_foreign',
-    parsed,
+    assetAnalysisPersisted: persist.assetAnalysisPersisted,
+    assetAnalysisMode: persist.assetAnalysisMode,
+    parsed: {
+      ...parsed,
+      hashtags: finalHashtags,
+      hashtag_details: hashtagDetails,
+    },
   };
 }
 
@@ -1578,23 +2027,41 @@ Deno.serve(async (req) => {
       return json({ error: 'unsupported_action', action }, 400);
     }
 
-    const assetId = String(body.assetId ?? '').trim();
-    if (!assetId) return json({ error: 'asset_id_required' }, 400);
+    const assetIdsRaw = Array.isArray(body.assetIds)
+      ? body.assetIds
+      : body.assetId
+        ? [body.assetId]
+        : [];
+    const assetIds = [
+      ...new Set(
+        assetIdsRaw
+          .map((id: unknown) => String(id ?? '').trim())
+          .filter((id: string) => Boolean(id))
+      ),
+    ].slice(0, CAROUSEL_MAX_ASSETS);
+    if (assetIds.length === 0) return json({ error: 'asset_id_required' }, 400);
 
     const requestedFormat = normalizeFormat(body.format, 'feed');
     const locale = String(body.locale ?? 'de').trim().slice(0, 8) || 'de';
 
-    const { data: asset, error: assetError } = await db
+    const { data: assetsRaw, error: assetError } = await db
       .from('content_assets')
       .select(
         'id, org_id, owner_membership_id, scope, media_kind, storage_path, file_name, mime_type, title, aspect_ratio, suggested_formats'
       )
-      .eq('id', assetId)
-      .maybeSingle();
+      .in('id', assetIds);
     if (assetError) throw assetError;
-    if (!asset) return json({ error: 'asset_not_found' }, 404);
-    const assetRow = asset as AssetRow;
-    if (assetRow.org_id !== active.org_id) return json({ error: 'asset_wrong_org' }, 403);
+    const byId = new Map(
+      ((assetsRaw as AssetRow[] | null) ?? []).map((a) => [a.id, a] as const)
+    );
+    const assetRows: AssetRow[] = [];
+    for (const id of assetIds) {
+      const row = byId.get(id);
+      if (!row) return json({ error: 'asset_not_found' }, 404);
+      if (row.org_id !== active.org_id) return json({ error: 'asset_wrong_org' }, 403);
+      assetRows.push(row);
+    }
+    const assetRow = assetRows[0];
 
     // Content-side daily generation quota (org settings). Never coach quota.
     const { data: orgRow } = await db
@@ -1617,12 +2084,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const format = requestedFormat || normalizeFormat(assetRow.suggested_formats?.[0], 'feed');
+    const format =
+      assetRows.length >= 2
+        ? 'feed'
+        : requestedFormat || normalizeFormat(assetRow.suggested_formats?.[0], 'feed');
 
     try {
-      const result = await generateDraftFromAsset({
+      const result = await generateDraftFromAssets({
         db,
-        asset: assetRow,
+        assets: assetRows,
         membership: active,
         format,
         locale,
@@ -1648,6 +2118,9 @@ Deno.serve(async (req) => {
       const errorDetails = e instanceof VisionFailureError ? e.errorDetails : undefined;
       if (msg.startsWith('signed_url_failed')) {
         return json({ error: 'signed_url_failed', detail: 'signed_url_failed' }, 500);
+      }
+      if (msg === 'carousel_images_only') {
+        return json({ error: 'carousel_images_only', detail: 'carousel_images_only' }, 422);
       }
       if (msg.includes('missing_openrouter_key') || msg.includes('OPENROUTER')) {
         return json({ error: 'ai_not_configured', detail: 'ai_not_configured' }, 503);

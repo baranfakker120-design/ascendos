@@ -7,7 +7,10 @@ import {
   DAILY_CONTENT_JOB,
   DAILY_CONTENT_COMPLIANCE,
 } from './architecture/dailyContentArchitecture';
+import { CarouselPreview } from './CarouselPreview';
+import { CarouselTray } from './CarouselTray';
 import { ContentAssetThumb } from './ContentAssetThumb';
+import { ContentResultPanel } from './ContentResultPanel';
 import { InstagramConnectionCard } from './InstagramConnectionCard';
 import { InstagramPublishPreview } from './InstagramPublishPreview';
 import {
@@ -19,27 +22,39 @@ import {
 } from './contentAssetsApi';
 import {
   useContentDrafts,
+  type ContentAnalysisJson,
   type ContentDraft,
   type ContentGenerateResult,
   type ContentResearchPayload,
 } from './contentDraftsApi';
+import {
+  addToSelection,
+  canAddToSelection,
+  CAROUSEL_MAX_SLIDES,
+  isCarouselMode,
+  removeFromSelection,
+  replaceInSelection,
+  selectionCounter,
+} from './lib/carousel/selection';
 import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
- * AI Content Assistant — Phase 3–5B: generation, daily prep, IG connect, publish preview.
- * Official Graph publishing stays gated. Cron not activated from the client.
- * Does not touch Coach domains.
+ * AI Content Assistant — single image + Instagram carousel (2–6 images).
+ * Official Graph publishing stays gated. Does not touch Coach domains.
  */
 export function AiContentAssistantPage() {
   const { t } = useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const replaceIndexRef = useRef<number | null>(null);
   const [scope, setScope] = useState<ContentAssetScope>('personal');
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [format, setFormat] = useState<ContentFormat>('feed');
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [research, setResearch] = useState<ContentResearchPayload | null>(null);
+  const [analysis, setAnalysis] = useState<ContentAnalysisJson | null>(null);
   const [assetPersistNote, setAssetPersistNote] = useState<string | null>(null);
   const [edit, setEdit] = useState<{
     hook: string;
@@ -51,8 +66,9 @@ export function AiContentAssistantPage() {
 
   const { assetsQuery, quotaQuery, todayQuery, uploadMutation, deleteMutation, canCentral } =
     useContentLibrary();
-  const { draftsQuery, generateMutation, saveMutation, prepareMutation } =
-    useContentDrafts(selectedAssetId);
+  const { draftsQuery, generateMutation, saveMutation, prepareMutation } = useContentDrafts(
+    selectedAssetIds.length ? selectedAssetIds : null
+  );
 
   const formats: {
     id: ContentFormat;
@@ -79,10 +95,12 @@ export function AiContentAssistantPage() {
   const quota = quotaQuery.data;
   const assets = assetsQuery.data ?? [];
   const today = todayQuery.data;
-  const selectedAsset = useMemo(
-    () => assets.find((a) => a.id === selectedAssetId) ?? null,
-    [assets, selectedAssetId]
-  );
+  const selectedAssets = useMemo(() => {
+    const map = new Map(assets.map((a) => [a.id, a]));
+    return selectedAssetIds.map((id) => map.get(id)).filter((a): a is ContentAsset => Boolean(a));
+  }, [assets, selectedAssetIds]);
+  const selectedAsset = selectedAssets[0] ?? null;
+  const carouselMode = isCarouselMode(selectedAssets.length);
   const activeDraft: ContentDraft | null = draftsQuery.data?.[0] ?? null;
 
   useEffect(() => {
@@ -99,22 +117,55 @@ export function AiContentAssistantPage() {
         .map((h) => (h.startsWith('#') ? h : `#${h}`))
         .join(' '),
     });
+    if (activeDraft.analysis_json && Object.keys(activeDraft.analysis_json).length > 0) {
+      setAnalysis(activeDraft.analysis_json);
+    }
+    // Restore carousel order from draft only when selection is empty/single cover.
+    if (activeDraft.carousel_asset_ids?.length >= 2) {
+      setSelectedAssetIds((curr) =>
+        curr.length <= 1 || (curr.length === 1 && curr[0] === activeDraft.asset_id)
+          ? activeDraft.carousel_asset_ids
+          : curr
+      );
+    }
   }, [activeDraft?.id, activeDraft?.updated_at]);
 
   useEffect(() => {
+    if (carouselMode) {
+      setFormat('feed');
+      return;
+    }
     if (!selectedAsset) return;
     const suggested = selectedAsset.suggested_formats?.[0] as ContentFormat | undefined;
     if (suggested === 'story' || suggested === 'feed' || suggested === 'reel') {
       setFormat(suggested);
     }
-  }, [selectedAsset?.id]);
+  }, [selectedAsset?.id, carouselMode]);
 
   const onPickFile = async (file: File | null) => {
     if (!file) return;
     setUploadError(null);
     try {
+      if (selectedAssetIds.length >= CAROUSEL_MAX_SLIDES) {
+        setUploadError(t('contentAssistant.carouselMaxReached'));
+        return;
+      }
       const uploaded = await uploadMutation.mutateAsync({ file, scope });
-      setSelectedAssetId(uploaded.id);
+      const kinds = selectedAssets.map((a) => a.media_kind);
+      const gate = canAddToSelection({
+        currentIds: selectedAssetIds,
+        nextId: uploaded.id,
+        nextKind: uploaded.media_kind,
+        existingKinds: kinds,
+      });
+      if (!gate.ok) {
+        if (gate.reason === 'max') setUploadError(t('contentAssistant.carouselMaxReached'));
+        else if (gate.reason === 'video_mix' || gate.reason === 'video_limit')
+          setUploadError(t('contentAssistant.carouselVideoMix'));
+        else setSelectedAssetIds([uploaded.id]);
+        return;
+      }
+      setSelectedAssetIds((ids) => addToSelection(ids, uploaded.id));
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'upload_failed';
       if (msg.includes('content_asset_limit_reached'))
@@ -128,14 +179,38 @@ export function AiContentAssistantPage() {
     }
   };
 
+  const onReplaceFile = async (file: File | null) => {
+    const index = replaceIndexRef.current;
+    replaceIndexRef.current = null;
+    if (!file || index == null) return;
+    setUploadError(null);
+    try {
+      const uploaded = await uploadMutation.mutateAsync({ file, scope: 'personal' });
+      if (uploaded.media_kind !== 'image') {
+        setUploadError(t('contentAssistant.carouselImagesOnly'));
+        return;
+      }
+      setSelectedAssetIds((ids) => replaceInSelection(ids, index, uploaded.id));
+      setResearch(null);
+      setAnalysis(null);
+    } catch {
+      setUploadError(t('contentAssistant.uploadFailed'));
+    } finally {
+      if (replaceRef.current) replaceRef.current.value = '';
+    }
+  };
+
   const onGenerate = async () => {
-    if (!selectedAssetId) return;
+    if (!selectedAssetIds.length) return;
     setGenerateError(null);
     setSaveMessage(null);
     setAssetPersistNote(null);
     try {
-      const result: ContentGenerateResult = await generateMutation.mutateAsync({ format });
+      const result: ContentGenerateResult = await generateMutation.mutateAsync({
+        format: carouselMode ? 'feed' : format,
+      });
       setResearch(result.research ?? result.analysis?.research ?? null);
+      setAnalysis(result.analysis ?? null);
       if (result.assetAnalysisMode === 'draft_only_central_or_foreign') {
         setAssetPersistNote(t('contentAssistant.assetAnalysisDraftOnly'));
       } else if (result.assetAnalysisMode === 'persist_failed') {
@@ -149,6 +224,8 @@ export function AiContentAssistantPage() {
         setGenerateError(t('contentAssistant.generationQuotaFull'));
       else if (msg.includes('ai_not_configured'))
         setGenerateError(t('contentAssistant.aiNotConfigured'));
+      else if (msg.includes('carousel_images_only'))
+        setGenerateError(t('contentAssistant.carouselImagesOnly'));
       else if (msg.includes('VIDEO_TOO_LARGE'))
         setGenerateError(t('contentAssistant.videoTooLarge'));
       else if (msg.includes('VIDEO_UNSUPPORTED_MIME'))
@@ -181,8 +258,9 @@ export function AiContentAssistantPage() {
           hashtags: edit.hashtags
             .split(/[\s,;]+/)
             .map((s) => s.trim().replace(/^#/, ''))
-            .filter(Boolean),
-          format,
+            .filter(Boolean)
+            .slice(0, 5),
+          format: carouselMode ? 'feed' : format,
         },
       });
       setSaveMessage(t('contentAssistant.draftSaved'));
@@ -202,12 +280,32 @@ export function AiContentAssistantPage() {
     }
   };
 
-  const selectAsset = (asset: ContentAsset) => {
-    setSelectedAssetId(asset.id);
+  const toggleAsset = (asset: ContentAsset) => {
     setGenerateError(null);
     setSaveMessage(null);
     setResearch(null);
+    setAnalysis(null);
     setAssetPersistNote(null);
+    setSelectedAssetIds((ids) => {
+      if (ids.includes(asset.id)) return removeFromSelection(ids, asset.id);
+      const existing = ids
+        .map((id) => assets.find((a) => a.id === id))
+        .filter((a): a is ContentAsset => Boolean(a));
+      const gate = canAddToSelection({
+        currentIds: ids,
+        nextId: asset.id,
+        nextKind: asset.media_kind,
+        existingKinds: existing.map((a) => a.media_kind),
+      });
+      if (!gate.ok) {
+        if (gate.reason === 'max') setUploadError(t('contentAssistant.carouselMaxReached'));
+        else if (gate.reason === 'video_mix' || gate.reason === 'video_limit')
+          setUploadError(t('contentAssistant.carouselVideoMix'));
+        return ids;
+      }
+      setUploadError(null);
+      return addToSelection(ids, asset.id);
+    });
   };
 
   return (
@@ -223,16 +321,23 @@ export function AiContentAssistantPage() {
       <Card className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-ink">{t('contentAssistant.libraryTitle')}</p>
-          {quota ? (
-            <p className="text-xs font-semibold text-muted">
-              {t('contentAssistant.quotaLabel', {
-                used: String(quota.used),
-                limit: String(quota.limit),
+          <div className="text-right">
+            {quota ? (
+              <p className="text-xs font-semibold text-muted">
+                {t('contentAssistant.quotaLabel', {
+                  used: String(quota.used),
+                  limit: String(quota.limit),
+                })}
+              </p>
+            ) : null}
+            <p className="text-xs font-semibold tabular-nums text-ink">
+              {t('contentAssistant.carouselCounter', {
+                count: selectionCounter(selectedAssetIds.length),
               })}
             </p>
-          ) : null}
+          </div>
         </div>
-        <p className="text-sm text-muted">{t('contentAssistant.libraryHint')}</p>
+        <p className="text-sm text-muted">{t('contentAssistant.libraryHintCarousel')}</p>
 
         <div className="flex flex-wrap items-center gap-2">
           {canCentral ? (
@@ -263,6 +368,7 @@ export function AiContentAssistantPage() {
             fullWidth={false}
             disabled={
               uploadMutation.isPending ||
+              selectedAssetIds.length >= CAROUSEL_MAX_SLIDES ||
               (scope === 'personal' ? quota?.canUploadPersonal === false : !canCentral)
             }
             onClick={() => fileRef.current?.click()}
@@ -278,8 +384,34 @@ export function AiContentAssistantPage() {
             className="hidden"
             onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
           />
+          <input
+            ref={replaceRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => void onReplaceFile(e.target.files?.[0] ?? null)}
+          />
         </div>
         {uploadError ? <p className="text-sm font-medium text-red-700">{uploadError}</p> : null}
+
+        {selectedAssets.length > 0 ? (
+          <CarouselTray
+            assets={selectedAssets}
+            onReorder={setSelectedAssetIds}
+            onRemove={(id) => {
+              setSelectedAssetIds((ids) => removeFromSelection(ids, id));
+              setResearch(null);
+              setAnalysis(null);
+            }}
+            onReplace={(index) => {
+              replaceIndexRef.current = index;
+              replaceRef.current?.click();
+            }}
+          />
+        ) : null}
+
+        {carouselMode ? <CarouselPreview assets={selectedAssets} /> : null}
+
         {assetsQuery.isError ? (
           <p className="text-sm text-muted">{t('contentAssistant.loadError')}</p>
         ) : null}
@@ -290,7 +422,8 @@ export function AiContentAssistantPage() {
         ) : (
           <ul className="space-y-2" aria-label={t('contentAssistant.libraryTitle')}>
             {assets.map((asset) => {
-              const selected = asset.id === selectedAssetId;
+              const selected = selectedAssetIds.includes(asset.id);
+              const order = selected ? selectedAssetIds.indexOf(asset.id) + 1 : null;
               return (
                 <li
                   key={asset.id}
@@ -303,11 +436,12 @@ export function AiContentAssistantPage() {
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                    onClick={() => selectAsset(asset)}
+                    onClick={() => toggleAsset(asset)}
                   >
                     <ContentAssetThumb asset={asset} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">
+                        {order ? `${order}. ` : ''}
                         {asset.title || asset.file_name}
                       </p>
                       <p className="truncate text-xs text-muted">
@@ -323,7 +457,7 @@ export function AiContentAssistantPage() {
                     fullWidth={false}
                     disabled={deleteMutation.isPending}
                     onClick={() => {
-                      if (selectedAssetId === asset.id) setSelectedAssetId(null);
+                      setSelectedAssetIds((ids) => removeFromSelection(ids, asset.id));
                       void deleteMutation.mutateAsync(asset);
                     }}
                   >
@@ -339,54 +473,71 @@ export function AiContentAssistantPage() {
       <Card className="space-y-3">
         <div>
           <p className="font-semibold text-ink">{t('contentAssistant.generateTitle')}</p>
-          <p className="text-sm text-muted">{t('contentAssistant.generateHint')}</p>
+          <p className="text-sm text-muted">
+            {carouselMode
+              ? t('contentAssistant.generateHintCarousel')
+              : t('contentAssistant.generateHint')}
+          </p>
         </div>
 
-        <div
-          className="flex flex-wrap gap-1"
-          role="group"
-          aria-label={t('todayHub.contentFormatsAria')}
-        >
-          {formats.map((fmt) => (
-            <Button
-              key={fmt.id}
-              type="button"
-              size="chip"
-              variant={format === fmt.id ? 'secondary' : 'ghost'}
-              fullWidth={false}
-              onClick={() => setFormat(fmt.id)}
-            >
-              {t(fmt.titleKey)}
-            </Button>
-          ))}
-        </div>
+        {!carouselMode ? (
+          <div
+            className="flex flex-wrap gap-1"
+            role="group"
+            aria-label={t('todayHub.contentFormatsAria')}
+          >
+            {formats.map((fmt) => (
+              <Button
+                key={fmt.id}
+                type="button"
+                size="chip"
+                variant={format === fmt.id ? 'secondary' : 'ghost'}
+                fullWidth={false}
+                onClick={() => setFormat(fmt.id)}
+              >
+                {t(fmt.titleKey)}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs font-medium text-muted">
+            {t('contentAssistant.carouselFormatLocked')}
+          </p>
+        )}
 
         <Button
           type="button"
           size="sm"
           fullWidth={false}
-          disabled={!selectedAssetId || generateMutation.isPending}
+          disabled={!selectedAssetIds.length || generateMutation.isPending}
           onClick={() => void onGenerate()}
         >
           {generateMutation.isPending
             ? t('contentAssistant.generating')
-            : t('contentAssistant.generateCta')}
+            : carouselMode
+              ? t('contentAssistant.generateCarouselCta')
+              : t('contentAssistant.generateCta')}
         </Button>
-        {!selectedAssetId ? (
+        {!selectedAssetIds.length ? (
           <p className="text-xs text-muted">{t('contentAssistant.selectAssetFirst')}</p>
         ) : null}
         {generateError ? <p className="text-sm font-medium text-red-700">{generateError}</p> : null}
         {saveMessage ? <p className="text-sm font-medium text-ink">{saveMessage}</p> : null}
 
-        {draftsQuery.isLoading && selectedAssetId ? (
+        {draftsQuery.isLoading && selectedAssetIds.length ? (
           <p className="text-sm text-muted">{t('contentAssistant.draftLoading')}</p>
         ) : null}
 
         {activeDraft && edit ? (
           <div className="space-y-3 border-t border-line pt-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-              {t('contentAssistant.draftTitle')} · {activeDraft.format}
+              {t('contentAssistant.draftTitle')} ·{' '}
+              {carouselMode || (activeDraft.carousel_asset_ids?.length ?? 0) >= 2
+                ? t('contentAssistant.carouselBadge')
+                : activeDraft.format}
             </p>
+
+            <ContentResultPanel draft={activeDraft} analysis={analysis} />
 
             <label className="block space-y-1">
               <span className="text-xs font-semibold text-muted">
@@ -434,7 +585,7 @@ export function AiContentAssistantPage() {
 
             <label className="block space-y-1">
               <span className="text-xs font-semibold text-muted">
-                {t('contentAssistant.fieldHashtags')}
+                {t('contentAssistant.fieldHashtags')} ({t('contentAssistant.hashtagsExactHint')})
               </span>
               <input
                 className="w-full rounded-xl border border-line bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-ink"
@@ -455,7 +606,7 @@ export function AiContentAssistantPage() {
                 </p>
                 {research.recommended.length > 0 ? (
                   <ul className="space-y-1">
-                    {research.recommended.slice(0, 10).map((c) => (
+                    {research.recommended.slice(0, 5).map((c) => (
                       <li key={`ok-${c.tag}`} className="text-xs text-ink">
                         #{c.tag}{' '}
                         <span className="text-muted">
@@ -467,11 +618,6 @@ export function AiContentAssistantPage() {
                 ) : (
                   <p className="text-xs text-muted">{t('contentAssistant.hashtagResearchEmpty')}</p>
                 )}
-                {research.rejected.slice(0, 4).map((c) => (
-                  <p key={`no-${c.tag}`} className="text-[0.68rem] text-muted">
-                    #{c.tag} — {t(hashtagReasonI18nKey(c.reasonCode))}
-                  </p>
-                ))}
               </div>
             ) : activeDraft.posting_hint ? (
               <p className="text-xs text-muted">{activeDraft.posting_hint}</p>
@@ -525,7 +671,7 @@ export function AiContentAssistantPage() {
             </div>
             <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>
           </div>
-        ) : selectedAssetId ? (
+        ) : selectedAssetIds.length ? (
           <p className="text-sm text-muted">{t('contentAssistant.noDraftYet')}</p>
         ) : null}
       </Card>
@@ -533,13 +679,21 @@ export function AiContentAssistantPage() {
       {activeDraft?.status === 'ready' && edit ? (
         <InstagramPublishPreview
           asset={selectedAsset}
+          assets={
+            (activeDraft.carousel_asset_ids?.length ?? 0) >= 2
+              ? activeDraft.carousel_asset_ids
+                  .map((id) => assets.find((a) => a.id === id))
+                  .filter((a): a is ContentAsset => Boolean(a))
+              : selectedAssets
+          }
           draft={activeDraft}
           caption={edit.caption}
           cta={edit.cta}
           hashtags={edit.hashtags
             .split(/[\s,;]+/)
             .map((s) => s.trim().replace(/^#/, ''))
-            .filter(Boolean)}
+            .filter(Boolean)
+            .slice(0, 5)}
         />
       ) : null}
 
@@ -585,7 +739,7 @@ export function AiContentAssistantPage() {
               size="sm"
               fullWidth={false}
               onClick={() => {
-                if (today.asset_id) setSelectedAssetId(today.asset_id);
+                if (today.asset_id) setSelectedAssetIds([today.asset_id]);
                 setSaveMessage(null);
                 setGenerateError(null);
               }}
