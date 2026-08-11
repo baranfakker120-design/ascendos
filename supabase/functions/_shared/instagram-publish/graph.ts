@@ -7,7 +7,7 @@ import { sanitizeMetaError } from '../instagram-oauth/meta.ts';
 import {
   IG_GRAPH_API_VERSION,
   IG_GRAPH_HOST,
-  type ContentFormat,
+  type PublishContentFormat,
   type MediaKind,
 } from './types.ts';
 
@@ -77,7 +77,7 @@ function readGraphError(json: Record<string, unknown>, fallback: string): string
 
 export function resolveMediaProduct(params: {
   mediaKind: MediaKind;
-  format: ContentFormat;
+  format: PublishContentFormat;
 }): {
   mediaType: 'IMAGE' | 'REELS' | 'STORIES' | null;
   useImageUrl: boolean;
@@ -109,7 +109,7 @@ export async function createMediaContainer(params: {
   igUserId: string;
   accessToken: string;
   mediaKind: MediaKind;
-  format: ContentFormat;
+  format: PublishContentFormat;
   mediaUrl: string;
   caption: string;
   /** When true, creates a carousel child item (no caption on child). */

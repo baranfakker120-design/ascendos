@@ -22,7 +22,7 @@ import {
   isMetaFeedImageAspectError,
   publishMediaContainer,
   waitForContainerReady,
-  type ContentFormat,
+  type PublishContentFormat,
   type MediaKind,
 } from '../_shared/instagram-publish/index.ts';
 import {
@@ -38,7 +38,8 @@ import {
   type AutopilotHistoryItem,
 } from '../_shared/content-autopilot/index.ts';
 
-const CONTENT_ASSETS_BUCKET = 'content-assets';
+/** Local name — must not collide with content-generate CONTENT_ASSETS_BUCKET in setup bundles. */
+const AUTOPILOT_RUN_ASSETS_BUCKET = 'content-assets';
 /** Slots stuck in `publishing` longer than this are released back to ready. */
 const STALE_PUBLISHING_MS = 20 * 60 * 1000;
 
@@ -76,7 +77,7 @@ type SlotRow = {
   draft_id: string;
   asset_id: string | null;
   carousel_asset_ids: string[] | null;
-  content_format: ContentFormat;
+  content_format: PublishContentFormat;
   slot_kind: string;
   planned_for: string;
   retry_count: number;
@@ -138,13 +139,13 @@ async function prepareFeedImageUrlForMeta(params: {
   }
   const jpeg = await fitted.encodeJPEG(85);
   const path = `${params.orgId}/publish-fit/autopilot-${params.slotId}.jpg`;
-  const { error: upErr } = await params.admin.storage.from(CONTENT_ASSETS_BUCKET).upload(path, jpeg, {
+  const { error: upErr } = await params.admin.storage.from(AUTOPILOT_RUN_ASSETS_BUCKET).upload(path, jpeg, {
     contentType: 'image/jpeg',
     upsert: true,
   });
   if (upErr) throw new Error('feed_image_fit_failed');
   const { data: fittedSigned, error: fitSignErr } = await params.admin.storage
-    .from(CONTENT_ASSETS_BUCKET)
+    .from(AUTOPILOT_RUN_ASSETS_BUCKET)
     .createSignedUrl(path, 7200);
   if (fitSignErr || !fittedSigned?.signedUrl) throw new Error('feed_image_fit_failed');
   return fittedSigned.signedUrl;
@@ -327,7 +328,7 @@ async function publishOneSlot(
       for (let i = 0; i < orderedAssets.length; i += 1) {
         const slide = orderedAssets[i];
         const { data: signed, error: signErr } = await admin.storage
-          .from(CONTENT_ASSETS_BUCKET)
+          .from(AUTOPILOT_RUN_ASSETS_BUCKET)
           .createSignedUrl(slide.storage_path, 7200);
         if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
         const mediaUrl = await prepareFeedImageUrlForMeta({
@@ -368,7 +369,7 @@ async function publishOneSlot(
         throw new Error('video_not_allowed_on_feed');
       }
       const { data: signed, error: signErr } = await admin.storage
-        .from(CONTENT_ASSETS_BUCKET)
+        .from(AUTOPILOT_RUN_ASSETS_BUCKET)
         .createSignedUrl(asset.storage_path, 7200);
       if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
 

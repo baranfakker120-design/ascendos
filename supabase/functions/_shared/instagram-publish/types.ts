@@ -14,7 +14,8 @@ export type PublishAttemptStatus =
   | 'failed'
   | 'cancelled';
 
-export type ContentFormat = 'story' | 'feed' | 'reel';
+/** Named distinctly from content-generate ContentFormat — setup bundles share one scope. */
+export type PublishContentFormat = 'story' | 'feed' | 'reel';
 
 export type MediaKind = 'image' | 'video';
 

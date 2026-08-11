@@ -19,7 +19,8 @@ import {
   type AutopilotHistoryItem,
 } from '../_shared/content-autopilot/index.ts';
 
-interface MembershipRow {
+/** Local auth membership shape — must not collide with content-generate MembershipRow in setup bundles. */
+interface AutopilotMembershipRow {
   id: string;
   org_id: string;
   role: string;
@@ -40,7 +41,7 @@ function userClient(req: Request): SupabaseClient {
 async function resolveMembership(
   db: SupabaseClient,
   req: Request
-): Promise<{ membership: MembershipRow } | Response> {
+): Promise<{ membership: AutopilotMembershipRow } | Response> {
   const { data: userData, error: authError } = await db.auth.getUser();
   if (authError || !userData.user) return json({ ok: false, error: 'not_authenticated' }, 401);
 
@@ -51,7 +52,7 @@ async function resolveMembership(
     .eq('status', 'active');
   if (error) throw error;
   const orgHeader = req.headers.get('x-ascendos-org');
-  const list = (memberships as MembershipRow[] | null) ?? [];
+  const list = (memberships as AutopilotMembershipRow[] | null) ?? [];
   const active =
     list.find((m) => orgHeader && m.org_id === orgHeader) ?? (list.length === 1 ? list[0] : null);
   if (!active) return json({ ok: false, error: 'no_active_membership' }, 403);
@@ -120,7 +121,7 @@ function defaultPeriod(): { start: string; end: string } {
 
 async function ensureSettings(
   db: SupabaseClient,
-  membership: MembershipRow
+  membership: AutopilotMembershipRow
 ): Promise<Record<string, unknown>> {
   const { data: existing } = await db
     .from('content_autopilot_settings')
@@ -143,7 +144,7 @@ async function ensureSettings(
   return data as Record<string, unknown>;
 }
 
-async function igConnected(db: SupabaseClient, membership: MembershipRow): Promise<boolean> {
+async function igConnected(db: SupabaseClient, membership: AutopilotMembershipRow): Promise<boolean> {
   const { data } = await db
     .from('content_instagram_connections')
     .select('status, ig_user_id, token_ref, scopes')

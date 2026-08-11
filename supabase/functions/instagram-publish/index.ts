@@ -30,7 +30,7 @@ import {
   reelValidationErrorMessage,
   validateReelAssetForPublish,
   waitForContainerReady,
-  type ContentFormat,
+  type PublishContentFormat,
   type MediaKind,
   type ReelValidationCode,
 } from '../_shared/instagram-publish/index.ts';
@@ -110,7 +110,7 @@ interface DraftRow {
   owner_membership_id: string;
   asset_id: string;
   carousel_asset_ids: string[] | null;
-  format: ContentFormat;
+  format: PublishContentFormat;
   caption: string | null;
   cta: string | null;
   hashtags: string[] | null;
