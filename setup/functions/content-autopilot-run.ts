@@ -2125,6 +2125,7 @@ export function buildAutopilotWeekPlan(params: {
     for (const { kind, hm } of daySlots) {
       const { hour } = parseHm(hm);
       const plannedFor = wallTimeToIso({ dateYmd, hm, utcOffsetHours: offset });
+      // Skip past slots when activating mid-week
       if (new Date(plannedFor).getTime() < new Date(nowIso).getTime() - 60_000) {
         continue;
       }
@@ -2788,6 +2789,8 @@ export function isPermanentAutopilotPublishError(error: string): boolean {
     'token_decrypt_failed',
     'video_not_allowed_on_feed',
     'reel_not_allowed_in_autopilot',
+    // Legacy #99 / image-only error code — keep permanent so old failed slots do not infinite-retry
+    'video_not_allowed_in_autopilot',
   ].includes(error);
 }
 
@@ -3937,6 +3940,7 @@ async function publishOneSlot(
         'autopilot_optimize_failed',
         optErr instanceof Error ? optErr.message : optErr
       );
+      // Continue with existing draft — do not block publish on optimize soft failure
     }
   }
 

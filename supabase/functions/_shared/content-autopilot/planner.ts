@@ -82,6 +82,7 @@ export function buildAutopilotWeekPlan(params: {
     for (const { kind, hm } of daySlots) {
       const { hour } = parseHm(hm);
       const plannedFor = wallTimeToIso({ dateYmd, hm, utcOffsetHours: offset });
+      // Skip past slots when activating mid-week
       if (new Date(plannedFor).getTime() < new Date(nowIso).getTime() - 60_000) {
         continue;
       }

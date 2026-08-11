@@ -224,6 +224,7 @@ async function publishOneSlot(
         'autopilot_optimize_failed',
         optErr instanceof Error ? optErr.message : optErr
       );
+      // Continue with existing draft — do not block publish on optimize soft failure
     }
   }
 

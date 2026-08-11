@@ -54,5 +54,7 @@ export function isPermanentAutopilotPublishError(error: string): boolean {
     'token_decrypt_failed',
     'video_not_allowed_on_feed',
     'reel_not_allowed_in_autopilot',
+    // Legacy #99 / image-only error code — keep permanent so old failed slots do not infinite-retry
+    'video_not_allowed_in_autopilot',
   ].includes(error);
 }
