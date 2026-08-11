@@ -236,7 +236,7 @@ export async function generateDraftFromAsset(params: {
 }
 
 /**
- * Single image OR carousel (2–6 images) generation.
+ * Single image OR carousel (2–10 images) generation.
  * Videos remain single-asset only.
  */
 export async function generateDraftFromAssets(params: {

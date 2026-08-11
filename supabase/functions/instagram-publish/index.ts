@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
     const carouselIds = (draft.carousel_asset_ids ?? []).filter(Boolean);
     const isCarousel = carouselIds.length >= 2;
     const orderedAssetIds = isCarousel
-      ? carouselIds.slice(0, 6)
+      ? carouselIds.slice(0, 10)
       : [draft.asset_id];
 
     const { data: assetsRaw, error: assetErr } = await db

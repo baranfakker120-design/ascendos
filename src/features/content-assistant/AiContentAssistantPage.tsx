@@ -41,7 +41,7 @@ import { filterLibraryAssetsByScope } from './lib/contentAssets/scopeFilter';
 import { hashtagReasonI18nKey } from './lib/hashtagResearch';
 
 /**
- * AI Content Assistant — single image + Instagram carousel (2–6 images).
+ * AI Content Assistant — single image + Instagram carousel (2–10 images).
  * Official Graph publishing stays gated. Does not touch Coach domains.
  */
 export function AiContentAssistantPage() {
