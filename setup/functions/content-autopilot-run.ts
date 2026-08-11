@@ -27,6 +27,772 @@ export function json(body: unknown, status = 200): Response {
   });
 }
 
+// ---- inline: _shared/content-autopilot/types.ts ----
+/** Instagram Content Autopilot V1 — shared contracts (no Facebook). */
+
+export const AUTOPILOT_MIN_ELIGIBLE_ASSETS = 10;
+export const AUTOPILOT_MAX_FEED_PER_DAY = 3;
+export const AUTOPILOT_MAX_STORIES_PER_DAY = 3;
+export const AUTOPILOT_DEFAULT_MAX_RETRIES = 3;
+export const AUTOPILOT_ASSET_COOLDOWN_DAYS = 3;
+
+export type AutopilotSlotKind = 'feed' | 'story';
+export type AutopilotContentFormat = 'story' | 'feed' | 'reel';
+export type AutopilotSlotStatus =
+  | 'planned'
+  | 'ready'
+  | 'publishing'
+  | 'published'
+  | 'failed'
+  | 'skipped'
+  | 'cancelled';
+
+export type AutopilotPlanStatus = 'active' | 'completed' | 'cancelled';
+
+export interface AutopilotEligibleAsset {
+  id: string;
+  scope: 'personal' | 'central' | string;
+  media_kind: 'image' | 'video' | string;
+  mime_type: string | null;
+  storage_path: string | null;
+  theme: string | null;
+  keywords: string[] | null;
+  suggested_formats: string[] | null;
+  analysis_status: string | null;
+  last_used_at: string | null;
+  usage_count: number;
+  created_at: string;
+}
+
+export interface AutopilotHistoryItem {
+  assetId: string | null;
+  category: string | null;
+  theme: string | null;
+  publishedAt: string;
+  slotKind: AutopilotSlotKind | string;
+}
+
+export interface ScoredCandidate {
+  asset: AutopilotEligibleAsset;
+  score: number;
+  category: string;
+  reasons: string[];
+}
+
+// ---- inline: _shared/content-autopilot/eligibility.ts ----
+/** Asset is publishable + countable toward the 10-asset gate. */
+export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean {
+  if (!asset?.id) return false;
+  if (!asset.storage_path || !String(asset.storage_path).trim()) return false;
+  if (asset.media_kind !== 'image' && asset.media_kind !== 'video') return false;
+  const mime = (asset.mime_type ?? '').toLowerCase();
+  if (mime && mime.startsWith('image/') === false && mime.startsWith('video/') === false) {
+    return false;
+  }
+  if (asset.analysis_status === 'failed') return false;
+  return true;
+}
+
+export function countEligibleAssets(assets: readonly AutopilotEligibleAsset[]): number {
+  return assets.filter(isEligibleAutopilotAsset).length;
+}
+
+export function canActivateAutopilot(
+  assets: readonly AutopilotEligibleAsset[],
+  minRequired = AUTOPILOT_MIN_ELIGIBLE_ASSETS
+): { ok: true; count: number } | { ok: false; count: number; reason: 'below_min_assets' } {
+  const count = countEligibleAssets(assets);
+  if (count < minRequired) return { ok: false, count, reason: 'below_min_assets' };
+  return { ok: true, count };
+}
+
+/** Meine + Zentrale together — both scopes count when eligible. */
+export function countByScope(assets: readonly AutopilotEligibleAsset[]): {
+  personal: number;
+  central: number;
+  total: number;
+} {
+  let personal = 0;
+  let central = 0;
+  for (const a of assets) {
+    if (!isEligibleAutopilotAsset(a)) continue;
+    if (a.scope === 'central') central += 1;
+    else personal += 1;
+  }
+  return { personal, central, total: personal + central };
+}
+
+// ---- inline: _shared/content-autopilot/signals.ts ----
+/** Weekday / daypart signals — soft preferences, never hard requirements. */
+
+export type WeekdayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6; // Sun=0 … Sat=6 (JS Date)
+
+export type Daypart = 'morning' | 'midday' | 'afternoon' | 'evening';
+
+const WEEKDAY_CATEGORIES: Record<WeekdayIndex, string[]> = {
+  1: ['motivation', 'business', 'goals', 'recruiting', 'weekstart'],
+  2: ['education', 'tips', 'product', 'value'],
+  3: ['team', 'community', 'storytelling', 'education'],
+  4: ['business', 'recruiting', 'product', 'socialproof'],
+  5: ['lifestyle', 'personality', 'team', 'community'],
+  6: ['lifestyle', 'everyday', 'personality', 'community'],
+  0: ['reflection', 'motivation', 'planning', 'personalstory'],
+};
+
+const DAYPART_CATEGORIES: Record<Daypart, string[]> = {
+  morning: ['motivation', 'daystart', 'personality', 'story'],
+  midday: ['education', 'value', 'carousel', 'product'],
+  afternoon: ['community', 'lifestyle', 'interaction'],
+  evening: ['recruiting', 'storytelling', 'business', 'reel', 'cta'],
+};
+
+export function daypartFromHour(hour: number): Daypart {
+  if (hour < 11) return 'morning';
+  if (hour < 15) return 'midday';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
+}
+
+export function preferredCategoriesForSlot(params: {
+  weekday: WeekdayIndex;
+  hour: number;
+}): string[] {
+  const day = WEEKDAY_CATEGORIES[params.weekday] ?? [];
+  const part = DAYPART_CATEGORIES[daypartFromHour(params.hour)] ?? [];
+  return [...new Set([...day, ...part])];
+}
+
+export function inferCategoryFromAsset(params: {
+  theme: string | null | undefined;
+  keywords: string[] | null | undefined;
+  suggestedFormats: string[] | null | undefined;
+}): string {
+  const blob = [
+    params.theme ?? '',
+    ...(params.keywords ?? []),
+    ...(params.suggestedFormats ?? []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  const rules: Array<[string, RegExp]> = [
+    ['recruiting', /recruit|team.?aufbau|bewerb|nebenverdienst|network.?market/],
+    ['product', /produkt|parfum|duft|fragrance|packaging|product/],
+    ['education', /tipp|learn|wissen|howto|erklä|educat|mehrwert/],
+    ['lifestyle', /lifestyle|alltag|everyday|leben|mood/],
+    ['storytelling', /story|erzähl|journey|weg/],
+    ['team', /team|community|zusammen|wir/],
+    ['business', /business|umsatz|ziele|fokus|mindset/],
+    ['motivation', /motivation|inspiration|start|montag/],
+    ['socialproof', /erfolg|proof|testimon|ergebnis|kunden/],
+  ];
+  for (const [cat, re] of rules) {
+    if (re.test(blob)) return cat;
+  }
+  return 'general';
+}
+
+// ---- inline: _shared/content-autopilot/timing.ts ----
+/**
+ * Default local time windows (Europe/Berlin wall clock as HH:mm).
+ * Soft defaults when account insights are unavailable — never invent metrics.
+ */
+
+export const DEFAULT_FEED_TIMES = ['09:30', '13:00', '19:00'] as const;
+export const DEFAULT_STORY_TIMES = ['08:15', '12:30', '17:45'] as const;
+
+export function parseHm(hm: string): { hour: number; minute: number } {
+  const [h, m] = hm.split(':').map((x) => Number(x));
+  return {
+    hour: Number.isFinite(h) ? h : 12,
+    minute: Number.isFinite(m) ? m : 0,
+  };
+}
+
+/** Build ISO timestamptz for a calendar date + HH:mm in a fixed offset approximation.
+ * Autopilot stores timestamptz; planning uses Europe/Berlin civil dates from the client/edge.
+ * For V1 we encode as UTC+1/+2 via explicit offset passed by planner (cetOffsetHours).
+ */
+export function wallTimeToIso(params: {
+  dateYmd: string; // YYYY-MM-DD
+  hm: string;
+  /** CET=1, CEST=2 */
+  utcOffsetHours: number;
+}): string {
+  const { hour, minute } = parseHm(params.hm);
+  const [y, mo, d] = params.dateYmd.split('-').map(Number);
+  const utcMs = Date.UTC(y, mo - 1, d, hour - params.utcOffsetHours, minute, 0);
+  return new Date(utcMs).toISOString();
+}
+
+/** Rough Berlin offset for a Y-M-D (CEST last Sunday March→October). Good enough for V1 slots. */
+export function berlinUtcOffsetHours(dateYmd: string): number {
+  const [y, mo, d] = dateYmd.split('-').map(Number);
+  const utc = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
+  // Approximate EU DST: last Sunday of March to last Sunday of October
+  const marchLastSun = lastSundayUtc(y, 2);
+  const octLastSun = lastSundayUtc(y, 9);
+  if (utc >= marchLastSun && utc < octLastSun) return 2;
+  return 1;
+}
+
+function lastSundayUtc(year: number, monthIndex: number): Date {
+  const last = new Date(Date.UTC(year, monthIndex + 1, 0, 1, 0, 0));
+  const day = last.getUTCDay();
+  last.setUTCDate(last.getUTCDate() - day);
+  return last;
+}
+
+export function enumerateDatesInclusive(startYmd: string, endYmd: string): string[] {
+  const out: string[] = [];
+  const cur = new Date(`${startYmd}T12:00:00.000Z`);
+  const end = new Date(`${endYmd}T12:00:00.000Z`);
+  while (cur <= end) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return out;
+}
+
+export function weekdayIndexFromYmd(dateYmd: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
+  const d = new Date(`${dateYmd}T12:00:00.000Z`);
+  return d.getUTCDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+// ---- inline: _shared/content-autopilot/selection.ts ----
+function daysBetween(isoA: string, isoB: string): number {
+  const a = new Date(isoA).getTime();
+  const b = new Date(isoB).getTime();
+  return Math.abs(a - b) / (24 * 60 * 60 * 1000);
+}
+
+export function scoreAutopilotCandidate(params: {
+  asset: AutopilotEligibleAsset;
+  slotKind: AutopilotSlotKind;
+  weekday: WeekdayIndex;
+  hour: number;
+  nowIso: string;
+  reservedAssetIds: ReadonlySet<string>;
+  history: readonly AutopilotHistoryItem[];
+}): ScoredCandidate | null {
+  const { asset, slotKind, weekday, hour, nowIso, reservedAssetIds, history } = params;
+  if (!isEligibleAutopilotAsset(asset)) return null;
+  if (reservedAssetIds.has(asset.id)) return null;
+
+  const category = inferCategoryFromAsset({
+    theme: asset.theme,
+    keywords: asset.keywords,
+    suggestedFormats: asset.suggested_formats,
+  });
+  const preferred = preferredCategoriesForSlot({ weekday, hour });
+  const reasons: string[] = [];
+  let score = 50;
+
+  if (preferred.includes(category)) {
+    score += 18;
+    reasons.push(`Passt zu Wochentag/Uhrzeit (${category}).`);
+  } else if (category === 'general') {
+    score += 2;
+  } else {
+    score += 6;
+  }
+
+  // Stories: prefer images; video stories allowed but slightly lower.
+  if (slotKind === 'story' && asset.media_kind === 'video') {
+    score -= 6;
+    reasons.push('Video-Story — Bild-Story bevorzugt.');
+  }
+
+  const usage = Number(asset.usage_count ?? 0);
+  if (usage === 0) {
+    score += 20;
+    reasons.push('Noch nicht verwendet.');
+  } else if (usage <= 2) {
+    score += 10;
+    reasons.push('Wenige Verwendungen.');
+  } else {
+    score -= Math.min(15, usage);
+  }
+
+  if (asset.last_used_at) {
+    const ago = daysBetween(asset.last_used_at, nowIso);
+    if (ago < 1) {
+      score -= 40;
+      reasons.push('Heute bereits verwendet — stark abgewertet.');
+    } else if (ago < AUTOPILOT_ASSET_COOLDOWN_DAYS) {
+      score -= 25;
+      reasons.push('Kürzlich verwendet.');
+    } else if (ago > 14) {
+      score += 8;
+      reasons.push('Lange nicht verwendet.');
+    }
+  }
+
+  const recentCategories = history
+    .filter((h) => daysBetween(h.publishedAt, nowIso) <= 2)
+    .map((h) => h.category)
+    .filter(Boolean) as string[];
+  if (recentCategories.includes(category)) {
+    score -= 12;
+    reasons.push('Ähnliche Kategorie kürzlich gepostet.');
+  }
+
+  const sameAssetRecent = history.some(
+    (h) =>
+      h.assetId === asset.id && daysBetween(h.publishedAt, nowIso) < AUTOPILOT_ASSET_COOLDOWN_DAYS
+  );
+  if (sameAssetRecent) {
+    score -= 30;
+    reasons.push('Asset in Cooldown.');
+  }
+
+  // Prefer matching suggested formats
+  const formats = asset.suggested_formats ?? [];
+  if (slotKind === 'story' && formats.includes('story')) score += 8;
+  if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('reel'))) score += 8;
+
+  if (asset.scope === 'personal') score += 2;
+
+  return { asset, score, category, reasons };
+}
+
+/**
+ * Pick best candidate; returns null when nothing is good enough
+ * (avoids forced low-quality / blind recycling).
+ */
+export function selectBestAutopilotAsset(params: {
+  assets: readonly AutopilotEligibleAsset[];
+  slotKind: AutopilotSlotKind;
+  weekday: WeekdayIndex;
+  hour: number;
+  nowIso: string;
+  reservedAssetIds: ReadonlySet<string>;
+  history: readonly AutopilotHistoryItem[];
+  /** Minimum score to accept — below → skip slot. */
+  minScore?: number;
+}): ScoredCandidate | null {
+  const minScore = params.minScore ?? 35;
+  const scored: ScoredCandidate[] = [];
+  for (const asset of params.assets) {
+    const s = scoreAutopilotCandidate({
+      asset,
+      slotKind: params.slotKind,
+      weekday: params.weekday,
+      hour: params.hour,
+      nowIso: params.nowIso,
+      reservedAssetIds: params.reservedAssetIds,
+      history: params.history,
+    });
+    if (s) scored.push(s);
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0] ?? null;
+  if (!best || best.score < minScore) return null;
+  return best;
+}
+
+// ---- inline: _shared/content-autopilot/planner.ts ----
+export interface PlannedSlotDraft {
+  plannedFor: string;
+  slotKind: AutopilotSlotKind;
+  contentFormat: AutopilotContentFormat;
+  assetId: string;
+  theme: string | null;
+  category: string;
+  selectionReason: string;
+  status: 'planned' | 'skipped';
+  skipReason?: string;
+}
+
+function resolveFormat(
+  slotKind: AutopilotSlotKind,
+  asset: AutopilotEligibleAsset
+): AutopilotContentFormat {
+  if (slotKind === 'story') return 'story';
+  if (asset.media_kind === 'video') return 'reel';
+  return 'feed';
+}
+
+/**
+ * Build a week of slots (max 3 feed + 3 stories / day).
+ * Skips slots when no suitable unused asset remains.
+ */
+export function buildAutopilotWeekPlan(params: {
+  periodStart: string;
+  periodEnd: string;
+  assets: readonly AutopilotEligibleAsset[];
+  history: readonly AutopilotHistoryItem[];
+  nowIso?: string;
+  maxFeedPerDay?: number;
+  maxStoriesPerDay?: number;
+}): PlannedSlotDraft[] {
+  const nowIso = params.nowIso ?? new Date().toISOString();
+  const maxFeed = Math.min(
+    AUTOPILOT_MAX_FEED_PER_DAY,
+    params.maxFeedPerDay ?? AUTOPILOT_MAX_FEED_PER_DAY
+  );
+  const maxStories = Math.min(
+    AUTOPILOT_MAX_STORIES_PER_DAY,
+    params.maxStoriesPerDay ?? AUTOPILOT_MAX_STORIES_PER_DAY
+  );
+  const reserved = new Set<string>();
+  const history = [...params.history];
+  const slots: PlannedSlotDraft[] = [];
+
+  for (const dateYmd of enumerateDatesInclusive(params.periodStart, params.periodEnd)) {
+    const offset = berlinUtcOffsetHours(dateYmd);
+    const weekday = weekdayIndexFromYmd(dateYmd);
+
+    const feedTimes = DEFAULT_FEED_TIMES.slice(0, maxFeed);
+    const storyTimes = DEFAULT_STORY_TIMES.slice(0, maxStories);
+
+    const daySlots: Array<{ kind: AutopilotSlotKind; hm: string }> = [
+      ...storyTimes.map((hm) => ({ kind: 'story' as const, hm })),
+      ...feedTimes.map((hm) => ({ kind: 'feed' as const, hm })),
+    ];
+
+    for (const { kind, hm } of daySlots) {
+      const { hour } = parseHm(hm);
+      const plannedFor = wallTimeToIso({ dateYmd, hm, utcOffsetHours: offset });
+      // Skip past slots when activating mid-week
+      if (new Date(plannedFor).getTime() < new Date(nowIso).getTime() - 60_000) {
+        continue;
+      }
+
+      const best = selectBestAutopilotAsset({
+        assets: params.assets,
+        slotKind: kind,
+        weekday,
+        hour,
+        nowIso: plannedFor,
+        reservedAssetIds: reserved,
+        history,
+      });
+
+      if (!best) {
+        slots.push({
+          plannedFor,
+          slotKind: kind,
+          contentFormat: kind === 'story' ? 'story' : 'feed',
+          assetId: '',
+          theme: null,
+          category: 'none',
+          selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
+          status: 'skipped',
+          skipReason: 'no_suitable_asset',
+        });
+        continue;
+      }
+
+      reserved.add(best.asset.id);
+      history.push({
+        assetId: best.asset.id,
+        category: best.category,
+        theme: best.asset.theme,
+        publishedAt: plannedFor,
+        slotKind: kind,
+      });
+
+      slots.push({
+        plannedFor,
+        slotKind: kind,
+        contentFormat: resolveFormat(kind, best.asset),
+        assetId: best.asset.id,
+        theme: best.asset.theme,
+        category: best.category,
+        selectionReason: best.reasons.slice(0, 3).join(' ') || 'Beste Passung für diesen Slot.',
+        status: 'planned',
+      });
+    }
+  }
+
+  return slots;
+}
+
+// ---- inline: _shared/content-autopilot/continuation.ts ----
+/** Pure helpers: when to auto-continue Autopilot without user confirmation. */
+
+export const AUTOPILOT_OPEN_SLOT_STATUSES = [
+  'planned',
+  'ready',
+  'publishing',
+] as const;
+
+export const AUTOPILOT_TERMINAL_SLOT_STATUSES = [
+  'published',
+  'skipped',
+  'failed',
+  'cancelled',
+] as const;
+
+export type AutopilotOpenSlotStatus = (typeof AUTOPILOT_OPEN_SLOT_STATUSES)[number];
+
+/**
+ * A plan is exhausted when nothing remains to publish/claim.
+ * Used by cron to start the next period without daily user confirmation.
+ */
+export function isAutopilotPlanExhausted(params: {
+  periodEnd: string; // YYYY-MM-DD
+  todayYmd: string;
+  slots: ReadonlyArray<{ status: string }>;
+}): boolean {
+  const hasOpen = params.slots.some((s) =>
+    (AUTOPILOT_OPEN_SLOT_STATUSES as readonly string[]).includes(s.status)
+  );
+  if (hasOpen) return false;
+  if (params.slots.length === 0) {
+    // Empty active plan past end → continue; empty future plan → wait
+    return params.periodEnd < params.todayYmd;
+  }
+  return true;
+}
+
+/** Next 7-day window starting at `fromYmd` (inclusive). */
+export function nextAutopilotPeriod(fromYmd: string): { start: string; end: string } {
+  const start = fromYmd.slice(0, 10);
+  const endDate = new Date(`${start}T12:00:00.000Z`);
+  endDate.setUTCDate(endDate.getUTCDate() + 6);
+  return { start, end: endDate.toISOString().slice(0, 10) };
+}
+
+/** Permanent publish errors — do not infinite-retry; release claim to failed. */
+export function isPermanentAutopilotPublishError(error: string): boolean {
+  return [
+    'draft_not_ready',
+    'asset_not_found',
+    'missing_caption',
+    'missing_publish_permission',
+    'missing_token',
+    'token_decrypt_failed',
+  ].includes(error);
+}
+
+// ---- inline: _shared/content-autopilot/persistPlan.ts ----
+/**
+ * Persist an Autopilot week plan (shared by user activate/replan + cron auto-continue).
+ * Instagram-only. No Facebook.
+ */
+
+
+/** Minimal DB surface — avoids importing jsr types into the shared group. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AutopilotDb = any;
+
+export interface AutopilotMembershipRef {
+  id: string;
+  org_id: string;
+}
+
+export async function createAutopilotDraftForSlot(
+  db: AutopilotDb,
+  membership: AutopilotMembershipRef,
+  assetId: string,
+  format: 'story' | 'feed' | 'reel',
+  category: string
+): Promise<string | null> {
+  const { data: existing } = await db
+    .from('content_drafts')
+    .select('id, status, format')
+    .eq('asset_id', assetId)
+    .eq('owner_membership_id', membership.id)
+    .eq('format', format)
+    .in('status', ['draft', 'ready'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) {
+    if (existing.status !== 'ready') {
+      await db.from('content_drafts').update({ status: 'ready' }).eq('id', existing.id);
+    }
+    return existing.id as string;
+  }
+
+  const { data: asset } = await db
+    .from('content_assets')
+    .select(
+      'id, title, theme, keywords, detected_summary, audience_hint, analysis_json, mime_type, media_kind'
+    )
+    .eq('id', assetId)
+    .maybeSingle();
+  if (!asset) return null;
+
+  const analysis = (asset.analysis_json ?? {}) as Record<string, unknown>;
+  const hook =
+    (typeof analysis.hook === 'string' && analysis.hook) ||
+    (asset.theme ? String(asset.theme).slice(0, 120) : null) ||
+    (asset.title ? String(asset.title).slice(0, 120) : 'AscendOS Update');
+  const caption =
+    (typeof analysis.caption === 'string' && analysis.caption) ||
+    (asset.detected_summary ? String(asset.detected_summary).slice(0, 1800) : null) ||
+    `${hook}`;
+  const cta =
+    (typeof analysis.cta === 'string' && analysis.cta) ||
+    (format === 'story' ? '' : 'Speichere diesen Beitrag für später.');
+  const keywords = Array.isArray(asset.keywords) ? asset.keywords.slice(0, 12) : [];
+  let hashtags: string[] = [];
+  if (Array.isArray(analysis.hashtags)) {
+    hashtags = analysis.hashtags.map(String).map((h) => h.replace(/^#/, '')).slice(0, 5);
+  }
+  while (hashtags.length < 5) {
+    const pad = ['ascendos', 'content', category || 'business', 'team', 'fokus'][hashtags.length];
+    if (!hashtags.includes(pad)) hashtags.push(pad);
+    else hashtags.push(`tag${hashtags.length + 1}`);
+  }
+  hashtags = hashtags.slice(0, 5);
+
+  const { data: draft, error } = await db
+    .from('content_drafts')
+    .insert({
+      org_id: membership.org_id,
+      asset_id: assetId,
+      owner_membership_id: membership.id,
+      format,
+      hook,
+      caption: format === 'story' ? caption.slice(0, 400) : caption,
+      cta,
+      keywords,
+      hashtags,
+      clean_check_status: 'clean',
+      clean_check_notes: 'Autopilot draft from existing asset analysis / metadata.',
+      target_audience: asset.audience_hint,
+      posting_hint: `Autopilot · ${category}`,
+      status: 'ready',
+      carousel_asset_ids: [],
+      analysis_json: {
+        source: 'autopilot_v1',
+        category,
+        reused_analysis: Boolean(analysis && Object.keys(analysis).length),
+      },
+    })
+    .select('id')
+    .single();
+  if (error) {
+    console.error('autopilot_draft_insert_failed', error.message);
+    return null;
+  }
+  return draft.id as string;
+}
+
+export async function buildAndInsertAutopilotPlan(
+  db: AutopilotDb,
+  membership: AutopilotMembershipRef,
+  periodStart: string,
+  periodEnd: string,
+  assets: readonly AutopilotEligibleAsset[],
+  history: readonly AutopilotHistoryItem[]
+): Promise<{ planId: string; slotCount: number; skipped: number }> {
+  const planned = buildAutopilotWeekPlan({
+    periodStart,
+    periodEnd,
+    assets,
+    history,
+    maxFeedPerDay: AUTOPILOT_MAX_FEED_PER_DAY,
+    maxStoriesPerDay: AUTOPILOT_MAX_STORIES_PER_DAY,
+  });
+
+  const { data: activePlans } = await db
+    .from('content_autopilot_plans')
+    .select('id')
+    .eq('membership_id', membership.id)
+    .eq('status', 'active');
+  for (const p of activePlans ?? []) {
+    await db
+      .from('content_autopilot_slots')
+      .update({ status: 'cancelled' })
+      .eq('plan_id', p.id)
+      .in('status', ['planned', 'ready', 'failed']);
+    await db.from('content_autopilot_plans').update({ status: 'cancelled' }).eq('id', p.id);
+  }
+
+  const { data: plan, error: planErr } = await db
+    .from('content_autopilot_plans')
+    .insert({
+      org_id: membership.org_id,
+      membership_id: membership.id,
+      period_start: periodStart,
+      period_end: periodEnd,
+      status: 'active',
+      summary: `Autopilot ${periodStart} → ${periodEnd}`,
+    })
+    .select('id')
+    .single();
+  if (planErr) throw planErr;
+
+  let slotCount = 0;
+  let skipped = 0;
+  for (const s of planned) {
+    if (s.status === 'skipped' || !s.assetId) {
+      skipped += 1;
+      await db.from('content_autopilot_slots').insert({
+        org_id: membership.org_id,
+        membership_id: membership.id,
+        plan_id: plan.id,
+        asset_id: null,
+        planned_for: s.plannedFor,
+        slot_kind: s.slotKind,
+        content_format: s.contentFormat,
+        theme: s.theme,
+        category: s.category,
+        selection_reason: s.selectionReason,
+        status: 'skipped',
+        error_message: s.skipReason ?? 'no_suitable_asset',
+      });
+      continue;
+    }
+
+    const draftId = await createAutopilotDraftForSlot(
+      db,
+      membership,
+      s.assetId,
+      s.contentFormat,
+      s.category
+    );
+    if (!draftId) {
+      skipped += 1;
+      await db.from('content_autopilot_slots').insert({
+        org_id: membership.org_id,
+        membership_id: membership.id,
+        plan_id: plan.id,
+        asset_id: s.assetId,
+        planned_for: s.plannedFor,
+        slot_kind: s.slotKind,
+        content_format: s.contentFormat,
+        theme: s.theme,
+        category: s.category,
+        selection_reason: s.selectionReason,
+        status: 'skipped',
+        error_message: 'draft_create_failed',
+      });
+      continue;
+    }
+
+    const { error: slotErr } = await db.from('content_autopilot_slots').insert({
+      org_id: membership.org_id,
+      membership_id: membership.id,
+      plan_id: plan.id,
+      draft_id: draftId,
+      asset_id: s.assetId,
+      planned_for: s.plannedFor,
+      slot_kind: s.slotKind,
+      content_format: s.contentFormat,
+      theme: s.theme,
+      category: s.category,
+      selection_reason: s.selectionReason,
+      status: 'ready',
+    });
+    if (slotErr) {
+      skipped += 1;
+      continue;
+    }
+    slotCount += 1;
+  }
+
+  return { planId: plan.id as string, slotCount, skipped };
+}
+
+// ---- inline: _shared/content-autopilot/index.ts ----
+
+
 // ---- inline: _shared/instagram-oauth/types.ts ----
 /** Instagram OAuth (Phase 5A — connect only). Official Meta Business Login path. */
 
@@ -976,13 +1742,16 @@ export const FEED_IMAGE_ASPECT_ERROR_MESSAGE =
 
 /**
  * content-autopilot-run — CRON_SECRET + service role.
- * Publishes due Instagram Autopilot slots. No Facebook. No browser timers.
+ * Publishes due Instagram Autopilot slots + auto-continues exhausted plans.
+ * No Facebook. No browser timers. No daily user confirmation.
  *
  * Auth: x-cron-secret / Bearer CRON_SECRET (same pattern as content-daily-prepare).
  */
 
 
 const CONTENT_ASSETS_BUCKET = 'content-assets';
+/** Slots stuck in `publishing` longer than this are released back to ready. */
+const STALE_PUBLISHING_MS = 20 * 60 * 1000;
 
 function authorizeCron(req: Request): Response | null {
   const expected = Deno.env.get('CRON_SECRET');
@@ -1011,6 +1780,37 @@ function tokenSecret(): string {
   );
 }
 
+type SlotRow = {
+  id: string;
+  org_id: string;
+  membership_id: string;
+  draft_id: string;
+  asset_id: string | null;
+  content_format: ContentFormat;
+  retry_count: number;
+  max_retries: number;
+};
+
+async function releaseSlotAfterError(
+  admin: SupabaseClient,
+  slot: SlotRow,
+  error: string,
+  permanent?: boolean
+): Promise<{ ok: false; status: string; error: string }> {
+  const forceFail = permanent ?? isPermanentAutopilotPublishError(error);
+  const retries = slot.retry_count + 1;
+  const giveUp = forceFail || retries >= slot.max_retries;
+  await admin
+    .from('content_autopilot_slots')
+    .update({
+      status: giveUp ? 'failed' : 'ready',
+      retry_count: retries,
+      error_message: error,
+    })
+    .eq('id', slot.id);
+  return { ok: false, status: giveUp ? 'failed' : 'retry', error };
+}
+
 async function prepareFeedImageUrlForMeta(params: {
   admin: SupabaseClient;
   sourceSignedUrl: string;
@@ -1029,7 +1829,12 @@ async function prepareFeedImageUrlForMeta(params: {
   const needsJpeg = mime !== 'image/jpeg' && mime !== 'image/jpg';
   const targetW = feedImageEncodeWidth(crop.width);
   const needsResize = targetW !== crop.width;
-  if (!needsCrop && !needsJpeg && !needsResize && isFeedImageAspectAllowed(image.width, image.height)) {
+  if (
+    !needsCrop &&
+    !needsJpeg &&
+    !needsResize &&
+    isFeedImageAspectAllowed(image.width, image.height)
+  ) {
     return params.sourceSignedUrl;
   }
   let fitted = image;
@@ -1055,16 +1860,7 @@ async function prepareFeedImageUrlForMeta(params: {
 
 async function publishOneSlot(
   admin: SupabaseClient,
-  slot: {
-    id: string;
-    org_id: string;
-    membership_id: string;
-    draft_id: string;
-    asset_id: string | null;
-    content_format: ContentFormat;
-    retry_count: number;
-    max_retries: number;
-  }
+  slot: SlotRow
 ): Promise<{ ok: boolean; status: string; error?: string; mediaId?: string }> {
   // Duplicate protection: already published attempt for this draft
   const { data: publishedRows } = await admin
@@ -1092,7 +1888,7 @@ async function publishOneSlot(
     .eq('id', slot.draft_id)
     .maybeSingle();
   if (!draft || draft.status !== 'ready') {
-    return { ok: false, status: 'failed', error: 'draft_not_ready' };
+    return releaseSlotAfterError(admin, slot, 'draft_not_ready', true);
   }
 
   const assetId = slot.asset_id ?? draft.asset_id;
@@ -1101,7 +1897,9 @@ async function publishOneSlot(
     .select('id, org_id, storage_path, media_kind, mime_type, byte_size, width_px, height_px')
     .eq('id', assetId)
     .maybeSingle();
-  if (!asset?.storage_path) return { ok: false, status: 'failed', error: 'asset_not_found' };
+  if (!asset?.storage_path) {
+    return releaseSlotAfterError(admin, slot, 'asset_not_found', true);
+  }
 
   if (asset.media_kind === 'video' || draft.format === 'reel') {
     const videoCheck = validateReelAssetForPublish({
@@ -1113,7 +1911,7 @@ async function publishOneSlot(
       heightPx: asset.height_px,
     });
     if (videoCheck !== 'ok') {
-      return { ok: false, status: 'failed', error: String(videoCheck) };
+      return releaseSlotAfterError(admin, slot, String(videoCheck), true);
     }
   }
 
@@ -1123,7 +1921,7 @@ async function publishOneSlot(
     cta: draft.cta,
   });
   if (!caption && draft.format !== 'story') {
-    return { ok: false, status: 'failed', error: 'missing_caption' };
+    return releaseSlotAfterError(admin, slot, 'missing_caption', true);
   }
 
   const { data: connection } = await admin
@@ -1132,20 +1930,25 @@ async function publishOneSlot(
     .eq('org_id', slot.org_id)
     .eq('membership_id', slot.membership_id)
     .maybeSingle();
-  if (!connection || connection.status !== 'connected' || !connection.ig_user_id || !connection.token_ref) {
-    return { ok: false, status: 'failed', error: 'not_connected' };
+  if (
+    !connection ||
+    connection.status !== 'connected' ||
+    !connection.ig_user_id ||
+    !connection.token_ref
+  ) {
+    return releaseSlotAfterError(admin, slot, 'not_connected', false);
   }
   if (!connectionHasPublishScope(connection.scopes)) {
-    return { ok: false, status: 'failed', error: 'missing_publish_permission' };
+    return releaseSlotAfterError(admin, slot, 'missing_publish_permission', true);
   }
 
   const secret = tokenSecret();
-  if (!secret) return { ok: false, status: 'failed', error: 'missing_token' };
+  if (!secret) return releaseSlotAfterError(admin, slot, 'missing_token', true);
   let accessToken: string;
   try {
     accessToken = await decryptToken(connection.token_ref, secret);
   } catch {
-    return { ok: false, status: 'failed', error: 'token_decrypt_failed' };
+    return releaseSlotAfterError(admin, slot, 'token_decrypt_failed', true);
   }
 
   const { data: attempt, error: attemptErr } = await admin
@@ -1156,13 +1959,14 @@ async function publishOneSlot(
       draft_id: draft.id,
       connection_id: connection.id,
       status: 'queued',
+      // Standing consent was recorded at Autopilot activate (consent_confirmed_at).
       user_confirmed_at: new Date().toISOString(),
     })
     .select('id')
     .single();
   if (attemptErr) {
     if (attemptErr.code === '23505') {
-      return { ok: false, status: 'failed', error: 'already_in_progress' };
+      return releaseSlotAfterError(admin, slot, 'already_in_progress', false);
     }
     throw attemptErr;
   }
@@ -1231,12 +2035,11 @@ async function publishOneSlot(
           meta_media_id: published.mediaId,
           captured_at: new Date().toISOString(),
           metrics: {},
-          note: 'Snapshot stored at publish time. Insights filled only when Instagram Graph returns real metrics — never invented.',
         },
       })
       .eq('id', slot.id);
 
-    // Best-effort Instagram Graph insights (Instagram-only; no Facebook APIs).
+    // Best-effort Instagram Graph insights only — never invent metrics.
     try {
       const metrics = ['reach', 'likes', 'comments', 'saved', 'shares'];
       const insightUrl = new URL(`https://graph.instagram.com/v21.0/${published.mediaId}/insights`);
@@ -1267,10 +2070,9 @@ async function publishOneSlot(
         }
       }
     } catch {
-      /* insights optional — never invent */
+      /* insights optional */
     }
 
-    // Usage bump on successful publish
     if (asset.id) {
       const { data: usageRow } = await admin
         .from('content_assets')
@@ -1289,26 +2091,183 @@ async function publishOneSlot(
     return { ok: true, status: 'published', mediaId: published.mediaId };
   } catch (e) {
     const msg = sanitizeMetaError(e instanceof Error ? e.message : 'publish_failed');
-    const retries = slot.retry_count + 1;
-    const giveUp = retries >= slot.max_retries;
     await admin
       .from('content_publish_attempts')
       .update({ status: 'failed', error_message: msg })
       .eq('id', attempt.id)
       .in('status', ['queued', 'submitted']);
-    await admin
-      .from('content_autopilot_slots')
-      .update({
-        status: giveUp ? 'failed' : 'ready',
-        retry_count: retries,
-        error_message: msg,
-      })
-      .eq('id', slot.id);
+    const released = await releaseSlotAfterError(admin, slot, msg, false);
     if (isMetaFeedImageAspectError(msg)) {
       return { ok: false, status: 'failed', error: FEED_IMAGE_ASPECT_ERROR_MESSAGE };
     }
-    return { ok: false, status: giveUp ? 'failed' : 'retry', error: msg };
+    return released;
   }
+}
+
+async function recoverStalePublishing(admin: SupabaseClient): Promise<number> {
+  const cutoff = new Date(Date.now() - STALE_PUBLISHING_MS).toISOString();
+  const { data, error } = await admin
+    .from('content_autopilot_slots')
+    .update({
+      status: 'ready',
+      error_message: 'stale_publishing_recovered',
+    })
+    .eq('status', 'publishing')
+    .lt('updated_at', cutoff)
+    .select('id');
+  if (error) {
+    console.error('stale_publishing_recover_failed', error.message);
+    return 0;
+  }
+  return data?.length ?? 0;
+}
+
+async function loadEligibleAssets(
+  admin: SupabaseClient,
+  orgId: string,
+  membershipId: string
+): Promise<AutopilotEligibleAsset[]> {
+  const { data, error } = await admin
+    .from('content_assets')
+    .select(
+      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
+    )
+    .eq('org_id', orgId)
+    .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);
+  if (error) throw error;
+  return (data ?? []) as AutopilotEligibleAsset[];
+}
+
+async function loadHistory(
+  admin: SupabaseClient,
+  membershipId: string
+): Promise<AutopilotHistoryItem[]> {
+  const since = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await admin
+    .from('content_autopilot_slots')
+    .select('asset_id, category, theme, published_at, planned_for, slot_kind, status')
+    .eq('membership_id', membershipId)
+    .in('status', ['published', 'ready', 'planned', 'publishing'])
+    .gte('planned_for', since)
+    .order('planned_for', { ascending: false })
+    .limit(80);
+  if (error) throw error;
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    assetId: (row.asset_id as string) ?? null,
+    category: (row.category as string) ?? null,
+    theme: (row.theme as string) ?? null,
+    publishedAt: String(row.published_at ?? row.planned_for),
+    slotKind: String(row.slot_kind ?? 'feed'),
+  }));
+}
+
+async function igConnectedForMember(
+  admin: SupabaseClient,
+  orgId: string,
+  membershipId: string
+): Promise<boolean> {
+  const { data } = await admin
+    .from('content_instagram_connections')
+    .select('status, ig_user_id, token_ref, scopes')
+    .eq('org_id', orgId)
+    .eq('membership_id', membershipId)
+    .maybeSingle();
+  if (!data || data.status !== 'connected' || !data.ig_user_id || !data.token_ref) return false;
+  const scopes = (data.scopes as string[] | null) ?? [];
+  return scopes.includes('instagram_business_content_publish');
+}
+
+/**
+ * When Autopilot stays enabled and the current plan has nothing left to do,
+ * automatically create the next 7-day plan — no daily user confirmation.
+ */
+async function continueExhaustedPlans(
+  admin: SupabaseClient,
+  membershipFilter?: string
+): Promise<unknown[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  let settingsQuery = admin
+    .from('content_autopilot_settings')
+    .select('org_id, membership_id, enabled, paused, min_eligible_assets')
+    .eq('enabled', true)
+    .eq('paused', false);
+  if (membershipFilter) settingsQuery = settingsQuery.eq('membership_id', membershipFilter);
+
+  const { data: settingsRows, error } = await settingsQuery.limit(50);
+  if (error) throw error;
+
+  const outcomes: unknown[] = [];
+  for (const settings of settingsRows ?? []) {
+    const membershipId = settings.membership_id as string;
+    const orgId = settings.org_id as string;
+
+    const { data: plan } = await admin
+      .from('content_autopilot_plans')
+      .select('id, period_start, period_end, status')
+      .eq('membership_id', membershipId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (plan?.id) {
+      const { data: slots } = await admin
+        .from('content_autopilot_slots')
+        .select('status')
+        .eq('plan_id', plan.id);
+      const exhausted = isAutopilotPlanExhausted({
+        periodEnd: String(plan.period_end),
+        todayYmd: today,
+        slots: slots ?? [],
+      });
+      if (!exhausted) {
+        outcomes.push({ membershipId, status: 'plan_still_active' });
+        continue;
+      }
+      await admin
+        .from('content_autopilot_plans')
+        .update({ status: 'completed' })
+        .eq('id', plan.id);
+    }
+
+    if (!(await igConnectedForMember(admin, orgId, membershipId))) {
+      outcomes.push({ membershipId, status: 'skipped', reason: 'instagram_not_connected' });
+      continue;
+    }
+
+    const assets = await loadEligibleAssets(admin, orgId, membershipId);
+    const minRequired = Number(settings.min_eligible_assets ?? AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+    const gate = canActivateAutopilot(assets, minRequired);
+    if (!gate.ok) {
+      outcomes.push({
+        membershipId,
+        status: 'skipped',
+        reason: 'below_min_assets',
+        count: gate.count,
+      });
+      continue;
+    }
+
+    const period = nextAutopilotPeriod(today);
+    const history = await loadHistory(admin, membershipId);
+    const built = await buildAndInsertAutopilotPlan(
+      admin,
+      { id: membershipId, org_id: orgId },
+      period.start,
+      period.end,
+      assets,
+      history
+    );
+    outcomes.push({
+      membershipId,
+      status: 'continued',
+      planId: built.planId,
+      slotCount: built.slotCount,
+      skipped: built.skipped,
+      period,
+    });
+  }
+  return outcomes;
 }
 
 Deno.serve(async (req) => {
@@ -1324,12 +2283,14 @@ Deno.serve(async (req) => {
       limit?: number;
       membershipId?: string;
       force?: boolean;
+      skipContinue?: boolean;
     };
     const limit = Math.min(20, Math.max(1, Number(body.limit) || 5));
     const admin = adminClient();
     const now = new Date().toISOString();
 
-    // Settings must be enabled + not paused
+    const staleRecovered = await recoverStalePublishing(admin);
+
     let dueQuery = admin
       .from('content_autopilot_slots')
       .select(
@@ -1350,16 +2311,7 @@ Deno.serve(async (req) => {
 
     const results: unknown[] = [];
     for (const raw of dueSlots ?? []) {
-      const slot = raw as {
-        id: string;
-        org_id: string;
-        membership_id: string;
-        draft_id: string;
-        asset_id: string | null;
-        content_format: ContentFormat;
-        retry_count: number;
-        max_retries: number;
-      };
+      const slot = raw as SlotRow;
 
       const { data: settings } = await admin
         .from('content_autopilot_settings')
@@ -1371,7 +2323,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Claim publishing
+      // Atomic claim — parallel cron loses if status already moved
       const { data: claimed } = await admin
         .from('content_autopilot_slots')
         .update({ status: 'publishing' })
@@ -1388,11 +2340,17 @@ Deno.serve(async (req) => {
       results.push({ slotId: slot.id, ...outcome });
     }
 
+    const continued = body.skipContinue
+      ? []
+      : await continueExhaustedPlans(admin, body.membershipId);
+
     return json({
       ok: true,
       job: 'content-autopilot-run',
       processed: results.length,
       results,
+      staleRecovered,
+      continued,
       facebook: 'not_used',
     });
   } catch (e) {

@@ -1,6 +1,16 @@
-import { AUTOPILOT_ASSET_COOLDOWN_DAYS, type AutopilotEligibleAsset, type AutopilotHistoryItem, type AutopilotSlotKind, type ScoredCandidate } from './types.ts';
+import {
+  AUTOPILOT_ASSET_COOLDOWN_DAYS,
+  type AutopilotEligibleAsset,
+  type AutopilotHistoryItem,
+  type AutopilotSlotKind,
+  type ScoredCandidate,
+} from './types.ts';
 import { isEligibleAutopilotAsset } from './eligibility.ts';
-import { inferCategoryFromAsset, preferredCategoriesForSlot, type WeekdayIndex } from './signals.ts';
+import {
+  inferCategoryFromAsset,
+  preferredCategoriesForSlot,
+  type WeekdayIndex,
+} from './signals.ts';
 
 function daysBetween(isoA: string, isoB: string): number {
   const a = new Date(isoA).getTime();
@@ -21,11 +31,6 @@ export function scoreAutopilotCandidate(params: {
   if (!isEligibleAutopilotAsset(asset)) return null;
   if (reservedAssetIds.has(asset.id)) return null;
 
-  // Stories: prefer images; feed can be image or video (reel).
-  if (slotKind === 'story' && asset.media_kind === 'video') {
-    // Allow video stories but slightly lower — Meta supports them.
-  }
-
   const category = inferCategoryFromAsset({
     theme: asset.theme,
     keywords: asset.keywords,
@@ -42,6 +47,12 @@ export function scoreAutopilotCandidate(params: {
     score += 2;
   } else {
     score += 6;
+  }
+
+  // Stories: prefer images; video stories allowed but slightly lower.
+  if (slotKind === 'story' && asset.media_kind === 'video') {
+    score -= 6;
+    reasons.push('Video-Story — Bild-Story bevorzugt.');
   }
 
   const usage = Number(asset.usage_count ?? 0);
@@ -79,7 +90,8 @@ export function scoreAutopilotCandidate(params: {
   }
 
   const sameAssetRecent = history.some(
-    (h) => h.assetId === asset.id && daysBetween(h.publishedAt, nowIso) < AUTOPILOT_ASSET_COOLDOWN_DAYS
+    (h) =>
+      h.assetId === asset.id && daysBetween(h.publishedAt, nowIso) < AUTOPILOT_ASSET_COOLDOWN_DAYS
   );
   if (sameAssetRecent) {
     score -= 30;

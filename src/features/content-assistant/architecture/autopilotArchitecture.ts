@@ -25,6 +25,7 @@ export const AUTOPILOT_COMPLIANCE = {
 export const AUTOPILOT_SCHEDULER_NOTES = {
   activatedInRepo: false,
   authHeader: 'x-cron-secret',
+  autoContinueNextPeriod: true,
   envSecrets: [
     'CRON_SECRET',
     'SUPABASE_SERVICE_ROLE_KEY',

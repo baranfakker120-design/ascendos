@@ -278,11 +278,6 @@ export function scoreAutopilotCandidate(params: {
   if (!isEligibleAutopilotAsset(asset)) return null;
   if (reservedAssetIds.has(asset.id)) return null;
 
-  // Stories: prefer images; feed can be image or video (reel).
-  if (slotKind === 'story' && asset.media_kind === 'video') {
-    // Allow video stories but slightly lower — Meta supports them.
-  }
-
   const category = inferCategoryFromAsset({
     theme: asset.theme,
     keywords: asset.keywords,
@@ -299,6 +294,12 @@ export function scoreAutopilotCandidate(params: {
     score += 2;
   } else {
     score += 6;
+  }
+
+  // Stories: prefer images; video stories allowed but slightly lower.
+  if (slotKind === 'story' && asset.media_kind === 'video') {
+    score -= 6;
+    reasons.push('Video-Story — Bild-Story bevorzugt.');
   }
 
   const usage = Number(asset.usage_count ?? 0);
@@ -336,7 +337,8 @@ export function scoreAutopilotCandidate(params: {
   }
 
   const sameAssetRecent = history.some(
-    (h) => h.assetId === asset.id && daysBetween(h.publishedAt, nowIso) < AUTOPILOT_ASSET_COOLDOWN_DAYS
+    (h) =>
+      h.assetId === asset.id && daysBetween(h.publishedAt, nowIso) < AUTOPILOT_ASSET_COOLDOWN_DAYS
   );
   if (sameAssetRecent) {
     score -= 30;
@@ -506,6 +508,287 @@ export function buildAutopilotWeekPlan(params: {
   return slots;
 }
 
+// ---- inline: _shared/content-autopilot/continuation.ts ----
+/** Pure helpers: when to auto-continue Autopilot without user confirmation. */
+
+export const AUTOPILOT_OPEN_SLOT_STATUSES = [
+  'planned',
+  'ready',
+  'publishing',
+] as const;
+
+export const AUTOPILOT_TERMINAL_SLOT_STATUSES = [
+  'published',
+  'skipped',
+  'failed',
+  'cancelled',
+] as const;
+
+export type AutopilotOpenSlotStatus = (typeof AUTOPILOT_OPEN_SLOT_STATUSES)[number];
+
+/**
+ * A plan is exhausted when nothing remains to publish/claim.
+ * Used by cron to start the next period without daily user confirmation.
+ */
+export function isAutopilotPlanExhausted(params: {
+  periodEnd: string; // YYYY-MM-DD
+  todayYmd: string;
+  slots: ReadonlyArray<{ status: string }>;
+}): boolean {
+  const hasOpen = params.slots.some((s) =>
+    (AUTOPILOT_OPEN_SLOT_STATUSES as readonly string[]).includes(s.status)
+  );
+  if (hasOpen) return false;
+  if (params.slots.length === 0) {
+    // Empty active plan past end → continue; empty future plan → wait
+    return params.periodEnd < params.todayYmd;
+  }
+  return true;
+}
+
+/** Next 7-day window starting at `fromYmd` (inclusive). */
+export function nextAutopilotPeriod(fromYmd: string): { start: string; end: string } {
+  const start = fromYmd.slice(0, 10);
+  const endDate = new Date(`${start}T12:00:00.000Z`);
+  endDate.setUTCDate(endDate.getUTCDate() + 6);
+  return { start, end: endDate.toISOString().slice(0, 10) };
+}
+
+/** Permanent publish errors — do not infinite-retry; release claim to failed. */
+export function isPermanentAutopilotPublishError(error: string): boolean {
+  return [
+    'draft_not_ready',
+    'asset_not_found',
+    'missing_caption',
+    'missing_publish_permission',
+    'missing_token',
+    'token_decrypt_failed',
+  ].includes(error);
+}
+
+// ---- inline: _shared/content-autopilot/persistPlan.ts ----
+/**
+ * Persist an Autopilot week plan (shared by user activate/replan + cron auto-continue).
+ * Instagram-only. No Facebook.
+ */
+
+
+/** Minimal DB surface — avoids importing jsr types into the shared group. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AutopilotDb = any;
+
+export interface AutopilotMembershipRef {
+  id: string;
+  org_id: string;
+}
+
+export async function createAutopilotDraftForSlot(
+  db: AutopilotDb,
+  membership: AutopilotMembershipRef,
+  assetId: string,
+  format: 'story' | 'feed' | 'reel',
+  category: string
+): Promise<string | null> {
+  const { data: existing } = await db
+    .from('content_drafts')
+    .select('id, status, format')
+    .eq('asset_id', assetId)
+    .eq('owner_membership_id', membership.id)
+    .eq('format', format)
+    .in('status', ['draft', 'ready'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) {
+    if (existing.status !== 'ready') {
+      await db.from('content_drafts').update({ status: 'ready' }).eq('id', existing.id);
+    }
+    return existing.id as string;
+  }
+
+  const { data: asset } = await db
+    .from('content_assets')
+    .select(
+      'id, title, theme, keywords, detected_summary, audience_hint, analysis_json, mime_type, media_kind'
+    )
+    .eq('id', assetId)
+    .maybeSingle();
+  if (!asset) return null;
+
+  const analysis = (asset.analysis_json ?? {}) as Record<string, unknown>;
+  const hook =
+    (typeof analysis.hook === 'string' && analysis.hook) ||
+    (asset.theme ? String(asset.theme).slice(0, 120) : null) ||
+    (asset.title ? String(asset.title).slice(0, 120) : 'AscendOS Update');
+  const caption =
+    (typeof analysis.caption === 'string' && analysis.caption) ||
+    (asset.detected_summary ? String(asset.detected_summary).slice(0, 1800) : null) ||
+    `${hook}`;
+  const cta =
+    (typeof analysis.cta === 'string' && analysis.cta) ||
+    (format === 'story' ? '' : 'Speichere diesen Beitrag für später.');
+  const keywords = Array.isArray(asset.keywords) ? asset.keywords.slice(0, 12) : [];
+  let hashtags: string[] = [];
+  if (Array.isArray(analysis.hashtags)) {
+    hashtags = analysis.hashtags.map(String).map((h) => h.replace(/^#/, '')).slice(0, 5);
+  }
+  while (hashtags.length < 5) {
+    const pad = ['ascendos', 'content', category || 'business', 'team', 'fokus'][hashtags.length];
+    if (!hashtags.includes(pad)) hashtags.push(pad);
+    else hashtags.push(`tag${hashtags.length + 1}`);
+  }
+  hashtags = hashtags.slice(0, 5);
+
+  const { data: draft, error } = await db
+    .from('content_drafts')
+    .insert({
+      org_id: membership.org_id,
+      asset_id: assetId,
+      owner_membership_id: membership.id,
+      format,
+      hook,
+      caption: format === 'story' ? caption.slice(0, 400) : caption,
+      cta,
+      keywords,
+      hashtags,
+      clean_check_status: 'clean',
+      clean_check_notes: 'Autopilot draft from existing asset analysis / metadata.',
+      target_audience: asset.audience_hint,
+      posting_hint: `Autopilot · ${category}`,
+      status: 'ready',
+      carousel_asset_ids: [],
+      analysis_json: {
+        source: 'autopilot_v1',
+        category,
+        reused_analysis: Boolean(analysis && Object.keys(analysis).length),
+      },
+    })
+    .select('id')
+    .single();
+  if (error) {
+    console.error('autopilot_draft_insert_failed', error.message);
+    return null;
+  }
+  return draft.id as string;
+}
+
+export async function buildAndInsertAutopilotPlan(
+  db: AutopilotDb,
+  membership: AutopilotMembershipRef,
+  periodStart: string,
+  periodEnd: string,
+  assets: readonly AutopilotEligibleAsset[],
+  history: readonly AutopilotHistoryItem[]
+): Promise<{ planId: string; slotCount: number; skipped: number }> {
+  const planned = buildAutopilotWeekPlan({
+    periodStart,
+    periodEnd,
+    assets,
+    history,
+    maxFeedPerDay: AUTOPILOT_MAX_FEED_PER_DAY,
+    maxStoriesPerDay: AUTOPILOT_MAX_STORIES_PER_DAY,
+  });
+
+  const { data: activePlans } = await db
+    .from('content_autopilot_plans')
+    .select('id')
+    .eq('membership_id', membership.id)
+    .eq('status', 'active');
+  for (const p of activePlans ?? []) {
+    await db
+      .from('content_autopilot_slots')
+      .update({ status: 'cancelled' })
+      .eq('plan_id', p.id)
+      .in('status', ['planned', 'ready', 'failed']);
+    await db.from('content_autopilot_plans').update({ status: 'cancelled' }).eq('id', p.id);
+  }
+
+  const { data: plan, error: planErr } = await db
+    .from('content_autopilot_plans')
+    .insert({
+      org_id: membership.org_id,
+      membership_id: membership.id,
+      period_start: periodStart,
+      period_end: periodEnd,
+      status: 'active',
+      summary: `Autopilot ${periodStart} → ${periodEnd}`,
+    })
+    .select('id')
+    .single();
+  if (planErr) throw planErr;
+
+  let slotCount = 0;
+  let skipped = 0;
+  for (const s of planned) {
+    if (s.status === 'skipped' || !s.assetId) {
+      skipped += 1;
+      await db.from('content_autopilot_slots').insert({
+        org_id: membership.org_id,
+        membership_id: membership.id,
+        plan_id: plan.id,
+        asset_id: null,
+        planned_for: s.plannedFor,
+        slot_kind: s.slotKind,
+        content_format: s.contentFormat,
+        theme: s.theme,
+        category: s.category,
+        selection_reason: s.selectionReason,
+        status: 'skipped',
+        error_message: s.skipReason ?? 'no_suitable_asset',
+      });
+      continue;
+    }
+
+    const draftId = await createAutopilotDraftForSlot(
+      db,
+      membership,
+      s.assetId,
+      s.contentFormat,
+      s.category
+    );
+    if (!draftId) {
+      skipped += 1;
+      await db.from('content_autopilot_slots').insert({
+        org_id: membership.org_id,
+        membership_id: membership.id,
+        plan_id: plan.id,
+        asset_id: s.assetId,
+        planned_for: s.plannedFor,
+        slot_kind: s.slotKind,
+        content_format: s.contentFormat,
+        theme: s.theme,
+        category: s.category,
+        selection_reason: s.selectionReason,
+        status: 'skipped',
+        error_message: 'draft_create_failed',
+      });
+      continue;
+    }
+
+    const { error: slotErr } = await db.from('content_autopilot_slots').insert({
+      org_id: membership.org_id,
+      membership_id: membership.id,
+      plan_id: plan.id,
+      draft_id: draftId,
+      asset_id: s.assetId,
+      planned_for: s.plannedFor,
+      slot_kind: s.slotKind,
+      content_format: s.contentFormat,
+      theme: s.theme,
+      category: s.category,
+      selection_reason: s.selectionReason,
+      status: 'ready',
+    });
+    if (slotErr) {
+      skipped += 1;
+      continue;
+    }
+    slotCount += 1;
+  }
+
+  return { planId: plan.id as string, slotCount, skipped };
+}
+
 // ---- inline: _shared/content-autopilot/index.ts ----
 
 
@@ -597,7 +880,6 @@ async function loadHistory(
 
 function defaultPeriod(): { start: string; end: string } {
   const now = new Date();
-  // Start = today (UTC date for planning seed; slots use Berlin offset)
   const start = now.toISOString().slice(0, 10);
   const endDate = new Date(now);
   endDate.setUTCDate(endDate.getUTCDate() + 6);
@@ -640,216 +922,6 @@ async function igConnected(db: SupabaseClient, membership: MembershipRow): Promi
   if (!data || data.status !== 'connected' || !data.ig_user_id || !data.token_ref) return false;
   const scopes = (data.scopes as string[] | null) ?? [];
   return scopes.includes('instagram_business_content_publish');
-}
-
-async function createDraftForSlot(
-  db: SupabaseClient,
-  membership: MembershipRow,
-  assetId: string,
-  format: 'story' | 'feed' | 'reel',
-  category: string
-): Promise<string | null> {
-  // Reuse newest ready/draft for same asset+format if present.
-  const { data: existing } = await db
-    .from('content_drafts')
-    .select('id, status, format')
-    .eq('asset_id', assetId)
-    .eq('owner_membership_id', membership.id)
-    .eq('format', format)
-    .in('status', ['draft', 'ready'])
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (existing?.id) {
-    if (existing.status !== 'ready') {
-      await db.from('content_drafts').update({ status: 'ready' }).eq('id', existing.id);
-    }
-    return existing.id as string;
-  }
-
-  const { data: asset } = await db
-    .from('content_assets')
-    .select(
-      'id, title, theme, keywords, detected_summary, audience_hint, analysis_json, mime_type, media_kind'
-    )
-    .eq('id', assetId)
-    .maybeSingle();
-  if (!asset) return null;
-
-  const analysis = (asset.analysis_json ?? {}) as Record<string, unknown>;
-  const hook =
-    (typeof analysis.hook === 'string' && analysis.hook) ||
-    (asset.theme ? String(asset.theme).slice(0, 120) : null) ||
-    (asset.title ? String(asset.title).slice(0, 120) : 'AscendOS Update');
-  const caption =
-    (typeof analysis.caption === 'string' && analysis.caption) ||
-    (asset.detected_summary ? String(asset.detected_summary).slice(0, 1800) : null) ||
-    `${hook}`;
-  const cta =
-    (typeof analysis.cta === 'string' && analysis.cta) ||
-    (format === 'story' ? '' : 'Speichere diesen Beitrag für später.');
-  const keywords = Array.isArray(asset.keywords) ? asset.keywords.slice(0, 12) : [];
-  let hashtags: string[] = [];
-  if (Array.isArray(analysis.hashtags)) {
-    hashtags = analysis.hashtags.map(String).map((h) => h.replace(/^#/, '')).slice(0, 5);
-  }
-  while (hashtags.length < 5) {
-    const pad = ['ascendos', 'content', category || 'business', 'team', 'fokus'][hashtags.length];
-    if (!hashtags.includes(pad)) hashtags.push(pad);
-    else hashtags.push(`tag${hashtags.length + 1}`);
-  }
-  hashtags = hashtags.slice(0, 5);
-
-  const { data: draft, error } = await db
-    .from('content_drafts')
-    .insert({
-      org_id: membership.org_id,
-      asset_id: assetId,
-      owner_membership_id: membership.id,
-      format,
-      hook,
-      caption: format === 'story' ? caption.slice(0, 400) : caption,
-      cta,
-      keywords,
-      hashtags,
-      clean_check_status: 'clean',
-      clean_check_notes: 'Autopilot draft from existing asset analysis / metadata.',
-      target_audience: asset.audience_hint,
-      posting_hint: `Autopilot · ${category}`,
-      status: 'ready',
-      carousel_asset_ids: [],
-      analysis_json: {
-        source: 'autopilot_v1',
-        category,
-        reused_analysis: Boolean(analysis && Object.keys(analysis).length),
-      },
-    })
-    .select('id')
-    .single();
-  if (error) {
-    console.error('autopilot_draft_insert_failed', error.message);
-    return null;
-  }
-  return draft.id as string;
-}
-
-async function buildAndInsertPlan(
-  db: SupabaseClient,
-  membership: MembershipRow,
-  periodStart: string,
-  periodEnd: string
-): Promise<{ planId: string; slotCount: number; skipped: number }> {
-  const assets = await loadEligibleAssets(db, membership.org_id, membership.id);
-  const history = await loadHistory(db, membership.id);
-  const planned = buildAutopilotWeekPlan({
-    periodStart,
-    periodEnd,
-    assets,
-    history,
-    maxFeedPerDay: AUTOPILOT_MAX_FEED_PER_DAY,
-    maxStoriesPerDay: AUTOPILOT_MAX_STORIES_PER_DAY,
-  });
-
-  // Cancel previous active plans' future slots
-  const { data: activePlans } = await db
-    .from('content_autopilot_plans')
-    .select('id')
-    .eq('membership_id', membership.id)
-    .eq('status', 'active');
-  for (const p of activePlans ?? []) {
-    await db
-      .from('content_autopilot_slots')
-      .update({ status: 'cancelled' })
-      .eq('plan_id', p.id)
-      .in('status', ['planned', 'ready', 'failed']);
-    await db.from('content_autopilot_plans').update({ status: 'cancelled' }).eq('id', p.id);
-  }
-
-  const { data: plan, error: planErr } = await db
-    .from('content_autopilot_plans')
-    .insert({
-      org_id: membership.org_id,
-      membership_id: membership.id,
-      period_start: periodStart,
-      period_end: periodEnd,
-      status: 'active',
-      summary: `Autopilot ${periodStart} → ${periodEnd}`,
-    })
-    .select('id')
-    .single();
-  if (planErr) throw planErr;
-
-  let slotCount = 0;
-  let skipped = 0;
-  for (const s of planned) {
-    if (s.status === 'skipped' || !s.assetId) {
-      skipped += 1;
-      await db.from('content_autopilot_slots').insert({
-        org_id: membership.org_id,
-        membership_id: membership.id,
-        plan_id: plan.id,
-        asset_id: null,
-        planned_for: s.plannedFor,
-        slot_kind: s.slotKind,
-        content_format: s.contentFormat,
-        theme: s.theme,
-        category: s.category,
-        selection_reason: s.selectionReason,
-        status: 'skipped',
-        error_message: s.skipReason ?? 'no_suitable_asset',
-      });
-      continue;
-    }
-
-    const draftId = await createDraftForSlot(
-      db,
-      membership,
-      s.assetId,
-      s.contentFormat,
-      s.category
-    );
-    if (!draftId) {
-      skipped += 1;
-      await db.from('content_autopilot_slots').insert({
-        org_id: membership.org_id,
-        membership_id: membership.id,
-        plan_id: plan.id,
-        asset_id: s.assetId,
-        planned_for: s.plannedFor,
-        slot_kind: s.slotKind,
-        content_format: s.contentFormat,
-        theme: s.theme,
-        category: s.category,
-        selection_reason: s.selectionReason,
-        status: 'skipped',
-        error_message: 'draft_create_failed',
-      });
-      continue;
-    }
-
-    const { error: slotErr } = await db.from('content_autopilot_slots').insert({
-      org_id: membership.org_id,
-      membership_id: membership.id,
-      plan_id: plan.id,
-      draft_id: draftId,
-      asset_id: s.assetId,
-      planned_for: s.plannedFor,
-      slot_kind: s.slotKind,
-      content_format: s.contentFormat,
-      theme: s.theme,
-      category: s.category,
-      selection_reason: s.selectionReason,
-      status: 'ready',
-    });
-    if (slotErr) {
-      // Reservation conflict — skip
-      skipped += 1;
-      continue;
-    }
-    slotCount += 1;
-  }
-
-  return { planId: plan.id as string, slotCount, skipped };
 }
 
 Deno.serve(async (req) => {
@@ -975,8 +1047,15 @@ Deno.serve(async (req) => {
       const period = defaultPeriod();
       const periodStart = String(body.periodStart ?? period.start).slice(0, 10);
       const periodEnd = String(body.periodEnd ?? period.end).slice(0, 10);
-
-      const built = await buildAndInsertPlan(db, membership, periodStart, periodEnd);
+      const history = await loadHistory(db, membership.id);
+      const built = await buildAndInsertAutopilotPlan(
+        db,
+        membership,
+        periodStart,
+        periodEnd,
+        assets,
+        history
+      );
       const { data: updatedSettings, error: setErr } = await db
         .from('content_autopilot_settings')
         .update({
@@ -1054,8 +1133,21 @@ Deno.serve(async (req) => {
       const period = defaultPeriod();
       const periodStart = String(body.periodStart ?? period.start).slice(0, 10);
       const periodEnd = String(body.periodEnd ?? period.end).slice(0, 10);
-      const built = await buildAndInsertPlan(db, membership, periodStart, periodEnd);
-      return json({ ok: true, planId: built.planId, slotCount: built.slotCount, skipped: built.skipped });
+      const history = await loadHistory(db, membership.id);
+      const built = await buildAndInsertAutopilotPlan(
+        db,
+        membership,
+        periodStart,
+        periodEnd,
+        assets,
+        history
+      );
+      return json({
+        ok: true,
+        planId: built.planId,
+        slotCount: built.slotCount,
+        skipped: built.skipped,
+      });
     }
 
     return json({ ok: false, error: 'unknown_action' }, 400);

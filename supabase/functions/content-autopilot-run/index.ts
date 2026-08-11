@@ -1,6 +1,7 @@
 /**
  * content-autopilot-run — CRON_SECRET + service role.
- * Publishes due Instagram Autopilot slots. No Facebook. No browser timers.
+ * Publishes due Instagram Autopilot slots + auto-continues exhausted plans.
+ * No Facebook. No browser timers. No daily user confirmation.
  *
  * Auth: x-cron-secret / Bearer CRON_SECRET (same pattern as content-daily-prepare).
  */
@@ -24,8 +25,20 @@ import {
   type ContentFormat,
   type MediaKind,
 } from '../_shared/instagram-publish/index.ts';
+import {
+  AUTOPILOT_MIN_ELIGIBLE_ASSETS,
+  buildAndInsertAutopilotPlan,
+  canActivateAutopilot,
+  isAutopilotPlanExhausted,
+  isPermanentAutopilotPublishError,
+  nextAutopilotPeriod,
+  type AutopilotEligibleAsset,
+  type AutopilotHistoryItem,
+} from '../_shared/content-autopilot/index.ts';
 
 const CONTENT_ASSETS_BUCKET = 'content-assets';
+/** Slots stuck in `publishing` longer than this are released back to ready. */
+const STALE_PUBLISHING_MS = 20 * 60 * 1000;
 
 function authorizeCron(req: Request): Response | null {
   const expected = Deno.env.get('CRON_SECRET');
@@ -54,6 +67,37 @@ function tokenSecret(): string {
   );
 }
 
+type SlotRow = {
+  id: string;
+  org_id: string;
+  membership_id: string;
+  draft_id: string;
+  asset_id: string | null;
+  content_format: ContentFormat;
+  retry_count: number;
+  max_retries: number;
+};
+
+async function releaseSlotAfterError(
+  admin: SupabaseClient,
+  slot: SlotRow,
+  error: string,
+  permanent?: boolean
+): Promise<{ ok: false; status: string; error: string }> {
+  const forceFail = permanent ?? isPermanentAutopilotPublishError(error);
+  const retries = slot.retry_count + 1;
+  const giveUp = forceFail || retries >= slot.max_retries;
+  await admin
+    .from('content_autopilot_slots')
+    .update({
+      status: giveUp ? 'failed' : 'ready',
+      retry_count: retries,
+      error_message: error,
+    })
+    .eq('id', slot.id);
+  return { ok: false, status: giveUp ? 'failed' : 'retry', error };
+}
+
 async function prepareFeedImageUrlForMeta(params: {
   admin: SupabaseClient;
   sourceSignedUrl: string;
@@ -72,7 +116,12 @@ async function prepareFeedImageUrlForMeta(params: {
   const needsJpeg = mime !== 'image/jpeg' && mime !== 'image/jpg';
   const targetW = feedImageEncodeWidth(crop.width);
   const needsResize = targetW !== crop.width;
-  if (!needsCrop && !needsJpeg && !needsResize && isFeedImageAspectAllowed(image.width, image.height)) {
+  if (
+    !needsCrop &&
+    !needsJpeg &&
+    !needsResize &&
+    isFeedImageAspectAllowed(image.width, image.height)
+  ) {
     return params.sourceSignedUrl;
   }
   let fitted = image;
@@ -98,16 +147,7 @@ async function prepareFeedImageUrlForMeta(params: {
 
 async function publishOneSlot(
   admin: SupabaseClient,
-  slot: {
-    id: string;
-    org_id: string;
-    membership_id: string;
-    draft_id: string;
-    asset_id: string | null;
-    content_format: ContentFormat;
-    retry_count: number;
-    max_retries: number;
-  }
+  slot: SlotRow
 ): Promise<{ ok: boolean; status: string; error?: string; mediaId?: string }> {
   // Duplicate protection: already published attempt for this draft
   const { data: publishedRows } = await admin
@@ -135,7 +175,7 @@ async function publishOneSlot(
     .eq('id', slot.draft_id)
     .maybeSingle();
   if (!draft || draft.status !== 'ready') {
-    return { ok: false, status: 'failed', error: 'draft_not_ready' };
+    return releaseSlotAfterError(admin, slot, 'draft_not_ready', true);
   }
 
   const assetId = slot.asset_id ?? draft.asset_id;
@@ -144,7 +184,9 @@ async function publishOneSlot(
     .select('id, org_id, storage_path, media_kind, mime_type, byte_size, width_px, height_px')
     .eq('id', assetId)
     .maybeSingle();
-  if (!asset?.storage_path) return { ok: false, status: 'failed', error: 'asset_not_found' };
+  if (!asset?.storage_path) {
+    return releaseSlotAfterError(admin, slot, 'asset_not_found', true);
+  }
 
   if (asset.media_kind === 'video' || draft.format === 'reel') {
     const videoCheck = validateReelAssetForPublish({
@@ -156,7 +198,7 @@ async function publishOneSlot(
       heightPx: asset.height_px,
     });
     if (videoCheck !== 'ok') {
-      return { ok: false, status: 'failed', error: String(videoCheck) };
+      return releaseSlotAfterError(admin, slot, String(videoCheck), true);
     }
   }
 
@@ -166,7 +208,7 @@ async function publishOneSlot(
     cta: draft.cta,
   });
   if (!caption && draft.format !== 'story') {
-    return { ok: false, status: 'failed', error: 'missing_caption' };
+    return releaseSlotAfterError(admin, slot, 'missing_caption', true);
   }
 
   const { data: connection } = await admin
@@ -175,20 +217,25 @@ async function publishOneSlot(
     .eq('org_id', slot.org_id)
     .eq('membership_id', slot.membership_id)
     .maybeSingle();
-  if (!connection || connection.status !== 'connected' || !connection.ig_user_id || !connection.token_ref) {
-    return { ok: false, status: 'failed', error: 'not_connected' };
+  if (
+    !connection ||
+    connection.status !== 'connected' ||
+    !connection.ig_user_id ||
+    !connection.token_ref
+  ) {
+    return releaseSlotAfterError(admin, slot, 'not_connected', false);
   }
   if (!connectionHasPublishScope(connection.scopes)) {
-    return { ok: false, status: 'failed', error: 'missing_publish_permission' };
+    return releaseSlotAfterError(admin, slot, 'missing_publish_permission', true);
   }
 
   const secret = tokenSecret();
-  if (!secret) return { ok: false, status: 'failed', error: 'missing_token' };
+  if (!secret) return releaseSlotAfterError(admin, slot, 'missing_token', true);
   let accessToken: string;
   try {
     accessToken = await decryptToken(connection.token_ref, secret);
   } catch {
-    return { ok: false, status: 'failed', error: 'token_decrypt_failed' };
+    return releaseSlotAfterError(admin, slot, 'token_decrypt_failed', true);
   }
 
   const { data: attempt, error: attemptErr } = await admin
@@ -199,13 +246,14 @@ async function publishOneSlot(
       draft_id: draft.id,
       connection_id: connection.id,
       status: 'queued',
+      // Standing consent was recorded at Autopilot activate (consent_confirmed_at).
       user_confirmed_at: new Date().toISOString(),
     })
     .select('id')
     .single();
   if (attemptErr) {
     if (attemptErr.code === '23505') {
-      return { ok: false, status: 'failed', error: 'already_in_progress' };
+      return releaseSlotAfterError(admin, slot, 'already_in_progress', false);
     }
     throw attemptErr;
   }
@@ -274,12 +322,11 @@ async function publishOneSlot(
           meta_media_id: published.mediaId,
           captured_at: new Date().toISOString(),
           metrics: {},
-          note: 'Snapshot stored at publish time. Insights filled only when Instagram Graph returns real metrics — never invented.',
         },
       })
       .eq('id', slot.id);
 
-    // Best-effort Instagram Graph insights (Instagram-only; no Facebook APIs).
+    // Best-effort Instagram Graph insights only — never invent metrics.
     try {
       const metrics = ['reach', 'likes', 'comments', 'saved', 'shares'];
       const insightUrl = new URL(`https://graph.instagram.com/v21.0/${published.mediaId}/insights`);
@@ -310,10 +357,9 @@ async function publishOneSlot(
         }
       }
     } catch {
-      /* insights optional — never invent */
+      /* insights optional */
     }
 
-    // Usage bump on successful publish
     if (asset.id) {
       const { data: usageRow } = await admin
         .from('content_assets')
@@ -332,26 +378,183 @@ async function publishOneSlot(
     return { ok: true, status: 'published', mediaId: published.mediaId };
   } catch (e) {
     const msg = sanitizeMetaError(e instanceof Error ? e.message : 'publish_failed');
-    const retries = slot.retry_count + 1;
-    const giveUp = retries >= slot.max_retries;
     await admin
       .from('content_publish_attempts')
       .update({ status: 'failed', error_message: msg })
       .eq('id', attempt.id)
       .in('status', ['queued', 'submitted']);
-    await admin
-      .from('content_autopilot_slots')
-      .update({
-        status: giveUp ? 'failed' : 'ready',
-        retry_count: retries,
-        error_message: msg,
-      })
-      .eq('id', slot.id);
+    const released = await releaseSlotAfterError(admin, slot, msg, false);
     if (isMetaFeedImageAspectError(msg)) {
       return { ok: false, status: 'failed', error: FEED_IMAGE_ASPECT_ERROR_MESSAGE };
     }
-    return { ok: false, status: giveUp ? 'failed' : 'retry', error: msg };
+    return released;
   }
+}
+
+async function recoverStalePublishing(admin: SupabaseClient): Promise<number> {
+  const cutoff = new Date(Date.now() - STALE_PUBLISHING_MS).toISOString();
+  const { data, error } = await admin
+    .from('content_autopilot_slots')
+    .update({
+      status: 'ready',
+      error_message: 'stale_publishing_recovered',
+    })
+    .eq('status', 'publishing')
+    .lt('updated_at', cutoff)
+    .select('id');
+  if (error) {
+    console.error('stale_publishing_recover_failed', error.message);
+    return 0;
+  }
+  return data?.length ?? 0;
+}
+
+async function loadEligibleAssets(
+  admin: SupabaseClient,
+  orgId: string,
+  membershipId: string
+): Promise<AutopilotEligibleAsset[]> {
+  const { data, error } = await admin
+    .from('content_assets')
+    .select(
+      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
+    )
+    .eq('org_id', orgId)
+    .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);
+  if (error) throw error;
+  return (data ?? []) as AutopilotEligibleAsset[];
+}
+
+async function loadHistory(
+  admin: SupabaseClient,
+  membershipId: string
+): Promise<AutopilotHistoryItem[]> {
+  const since = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await admin
+    .from('content_autopilot_slots')
+    .select('asset_id, category, theme, published_at, planned_for, slot_kind, status')
+    .eq('membership_id', membershipId)
+    .in('status', ['published', 'ready', 'planned', 'publishing'])
+    .gte('planned_for', since)
+    .order('planned_for', { ascending: false })
+    .limit(80);
+  if (error) throw error;
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    assetId: (row.asset_id as string) ?? null,
+    category: (row.category as string) ?? null,
+    theme: (row.theme as string) ?? null,
+    publishedAt: String(row.published_at ?? row.planned_for),
+    slotKind: String(row.slot_kind ?? 'feed'),
+  }));
+}
+
+async function igConnectedForMember(
+  admin: SupabaseClient,
+  orgId: string,
+  membershipId: string
+): Promise<boolean> {
+  const { data } = await admin
+    .from('content_instagram_connections')
+    .select('status, ig_user_id, token_ref, scopes')
+    .eq('org_id', orgId)
+    .eq('membership_id', membershipId)
+    .maybeSingle();
+  if (!data || data.status !== 'connected' || !data.ig_user_id || !data.token_ref) return false;
+  const scopes = (data.scopes as string[] | null) ?? [];
+  return scopes.includes('instagram_business_content_publish');
+}
+
+/**
+ * When Autopilot stays enabled and the current plan has nothing left to do,
+ * automatically create the next 7-day plan — no daily user confirmation.
+ */
+async function continueExhaustedPlans(
+  admin: SupabaseClient,
+  membershipFilter?: string
+): Promise<unknown[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  let settingsQuery = admin
+    .from('content_autopilot_settings')
+    .select('org_id, membership_id, enabled, paused, min_eligible_assets')
+    .eq('enabled', true)
+    .eq('paused', false);
+  if (membershipFilter) settingsQuery = settingsQuery.eq('membership_id', membershipFilter);
+
+  const { data: settingsRows, error } = await settingsQuery.limit(50);
+  if (error) throw error;
+
+  const outcomes: unknown[] = [];
+  for (const settings of settingsRows ?? []) {
+    const membershipId = settings.membership_id as string;
+    const orgId = settings.org_id as string;
+
+    const { data: plan } = await admin
+      .from('content_autopilot_plans')
+      .select('id, period_start, period_end, status')
+      .eq('membership_id', membershipId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (plan?.id) {
+      const { data: slots } = await admin
+        .from('content_autopilot_slots')
+        .select('status')
+        .eq('plan_id', plan.id);
+      const exhausted = isAutopilotPlanExhausted({
+        periodEnd: String(plan.period_end),
+        todayYmd: today,
+        slots: slots ?? [],
+      });
+      if (!exhausted) {
+        outcomes.push({ membershipId, status: 'plan_still_active' });
+        continue;
+      }
+      await admin
+        .from('content_autopilot_plans')
+        .update({ status: 'completed' })
+        .eq('id', plan.id);
+    }
+
+    if (!(await igConnectedForMember(admin, orgId, membershipId))) {
+      outcomes.push({ membershipId, status: 'skipped', reason: 'instagram_not_connected' });
+      continue;
+    }
+
+    const assets = await loadEligibleAssets(admin, orgId, membershipId);
+    const minRequired = Number(settings.min_eligible_assets ?? AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+    const gate = canActivateAutopilot(assets, minRequired);
+    if (!gate.ok) {
+      outcomes.push({
+        membershipId,
+        status: 'skipped',
+        reason: 'below_min_assets',
+        count: gate.count,
+      });
+      continue;
+    }
+
+    const period = nextAutopilotPeriod(today);
+    const history = await loadHistory(admin, membershipId);
+    const built = await buildAndInsertAutopilotPlan(
+      admin,
+      { id: membershipId, org_id: orgId },
+      period.start,
+      period.end,
+      assets,
+      history
+    );
+    outcomes.push({
+      membershipId,
+      status: 'continued',
+      planId: built.planId,
+      slotCount: built.slotCount,
+      skipped: built.skipped,
+      period,
+    });
+  }
+  return outcomes;
 }
 
 Deno.serve(async (req) => {
@@ -367,12 +570,14 @@ Deno.serve(async (req) => {
       limit?: number;
       membershipId?: string;
       force?: boolean;
+      skipContinue?: boolean;
     };
     const limit = Math.min(20, Math.max(1, Number(body.limit) || 5));
     const admin = adminClient();
     const now = new Date().toISOString();
 
-    // Settings must be enabled + not paused
+    const staleRecovered = await recoverStalePublishing(admin);
+
     let dueQuery = admin
       .from('content_autopilot_slots')
       .select(
@@ -393,16 +598,7 @@ Deno.serve(async (req) => {
 
     const results: unknown[] = [];
     for (const raw of dueSlots ?? []) {
-      const slot = raw as {
-        id: string;
-        org_id: string;
-        membership_id: string;
-        draft_id: string;
-        asset_id: string | null;
-        content_format: ContentFormat;
-        retry_count: number;
-        max_retries: number;
-      };
+      const slot = raw as SlotRow;
 
       const { data: settings } = await admin
         .from('content_autopilot_settings')
@@ -414,7 +610,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Claim publishing
+      // Atomic claim — parallel cron loses if status already moved
       const { data: claimed } = await admin
         .from('content_autopilot_slots')
         .update({ status: 'publishing' })
@@ -431,11 +627,17 @@ Deno.serve(async (req) => {
       results.push({ slotId: slot.id, ...outcome });
     }
 
+    const continued = body.skipContinue
+      ? []
+      : await continueExhaustedPlans(admin, body.membershipId);
+
     return json({
       ok: true,
       job: 'content-autopilot-run',
       processed: results.length,
       results,
+      staleRecovered,
+      continued,
       facebook: 'not_used',
     });
   } catch (e) {
