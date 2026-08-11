@@ -4,13 +4,7 @@
  */
 
 export type ReconcileSlotStatus =
-  | 'planned'
-  | 'ready'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'skipped'
-  | 'cancelled';
+  'planned' | 'ready' | 'publishing' | 'published' | 'failed' | 'skipped' | 'cancelled';
 
 export interface ReconcileSlotInput {
   id: string;

@@ -47,12 +47,12 @@ describe('autopilot eligibility V2 — gate vs feed vs story pools', () => {
   });
 
   it('allows pools above the gate (15 / 25)', () => {
-    expect(canActivateAutopilot(Array.from({ length: 15 }, (_, i) => asset({ id: `i${i}` })))).toEqual(
-      { ok: true, count: 15 }
-    );
-    expect(canActivateAutopilot(Array.from({ length: 25 }, (_, i) => asset({ id: `i${i}` })))).toEqual(
-      { ok: true, count: 25 }
-    );
+    expect(
+      canActivateAutopilot(Array.from({ length: 15 }, (_, i) => asset({ id: `i${i}` })))
+    ).toEqual({ ok: true, count: 15 });
+    expect(
+      canActivateAutopilot(Array.from({ length: 25 }, (_, i) => asset({ id: `i${i}` })))
+    ).toEqual({ ok: true, count: 25 });
   });
 
   it('feed pool is image-only; story pool allows video', () => {

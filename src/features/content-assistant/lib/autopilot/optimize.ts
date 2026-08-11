@@ -117,7 +117,11 @@ export function aggregatePerformanceContext(
   }
   const averages: Record<string, number> = {};
   for (const k of Object.keys(sum)) averages[k] = Math.round(sum[k] / counts[k]);
-  return { sampleSize: samples.length, averages, hint: 'Use varied hooks; avoid repeating recent caption patterns.' };
+  return {
+    sampleSize: samples.length,
+    averages,
+    hint: 'Use varied hooks; avoid repeating recent caption patterns.',
+  };
 }
 
 /** Exact-5 selection with evergreen pads — no tagN / trend claims. */

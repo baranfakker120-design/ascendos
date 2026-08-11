@@ -36,10 +36,7 @@ export function resolveFeedBundleFormat(assetIds: readonly string[]): {
   };
 }
 
-export function targetCarouselSize(params: {
-  hour: number;
-  availableEligible: number;
-}): number {
+export function targetCarouselSize(params: { hour: number; availableEligible: number }): number {
   let target = 1;
   if (params.hour >= 11 && params.hour < 15) target = 5;
   else if (params.hour >= 15 && params.hour < 18) target = 3;
