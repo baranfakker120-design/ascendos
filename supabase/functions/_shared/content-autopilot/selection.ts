@@ -5,7 +5,7 @@ import {
   type AutopilotSlotKind,
   type ScoredCandidate,
 } from './types.ts';
-import { isEligibleAutopilotAsset } from './eligibility.ts';
+import { isEligibleForSlotKind } from './eligibility.ts';
 import {
   inferCategoryFromAsset,
   preferredCategoriesForSlot,
@@ -28,7 +28,8 @@ export function scoreAutopilotCandidate(params: {
   history: readonly AutopilotHistoryItem[];
 }): ScoredCandidate | null {
   const { asset, slotKind, weekday, hour, nowIso, reservedAssetIds, history } = params;
-  if (!isEligibleAutopilotAsset(asset)) return null;
+  // Feed = image only; Story = image|video. Videos never score for feed/carousel.
+  if (!isEligibleForSlotKind(asset, slotKind)) return null;
   if (reservedAssetIds.has(asset.id)) return null;
 
   const category = inferCategoryFromAsset({
@@ -49,7 +50,11 @@ export function scoreAutopilotCandidate(params: {
     score += 6;
   }
 
-  // Image-only Autopilot: videos are filtered in eligibility (not scored here).
+  // Stories: prefer images; video stories allowed but slightly lower.
+  if (slotKind === 'story' && asset.media_kind === 'video') {
+    score -= 6;
+    reasons.push('Video-Story — Bild-Story bevorzugt.');
+  }
 
   const usage = Number(asset.usage_count ?? 0);
   if (usage === 0) {
@@ -94,7 +99,7 @@ export function scoreAutopilotCandidate(params: {
     reasons.push('Asset in Cooldown.');
   }
 
-  // Prefer matching suggested formats (image feed/story; reel suggestions ignored for auto-publish)
+  // Prefer matching suggested formats (never auto-promote reel/feed-video)
   const formats = asset.suggested_formats ?? [];
   if (slotKind === 'story' && formats.includes('story')) score += 8;
   if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('carousel'))) score += 8;

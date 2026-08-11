@@ -6,6 +6,8 @@ export * from './selection.ts';
 export * from './carouselBundle.ts';
 export * from './optimize.ts';
 export * from './optimizeBeforePublish.ts';
+export * from './reconcile.ts';
+export * from './reconcilePlan.ts';
 export * from './planner.ts';
 export * from './continuation.ts';
 export * from './persistPlan.ts';

@@ -4,7 +4,7 @@
  */
 
 import { CAROUSEL_MAX_ASSETS } from '../content-generate/types.ts';
-import { isEligibleAutopilotAsset } from './eligibility.ts';
+import { isEligibleAutopilotFeedAsset } from './eligibility.ts';
 import { selectBestAutopilotAsset, scoreAutopilotCandidate } from './selection.ts';
 import { daypartFromHour, type WeekdayIndex } from './signals.ts';
 import type { AutopilotEligibleAsset, AutopilotHistoryItem } from './types.ts';
@@ -48,7 +48,7 @@ export function selectAutopilotFeedBundle(params: {
   minScore?: number;
 }): AutopilotFeedBundle | null {
   const eligiblePool = params.assets.filter(
-    (a) => isEligibleAutopilotAsset(a) && !params.reservedAssetIds.has(a.id)
+    (a) => isEligibleAutopilotFeedAsset(a) && !params.reservedAssetIds.has(a.id)
   );
   const best = selectBestAutopilotAsset({
     assets: params.assets,

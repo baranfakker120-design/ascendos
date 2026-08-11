@@ -1,24 +1,51 @@
 import {
   AUTOPILOT_MIN_ELIGIBLE_ASSETS,
   type AutopilotEligibleAsset,
+  type AutopilotSlotKind,
 } from './types.ts';
 
 /**
- * Autopilot V1 optimization: image-only automatic publishing.
- * Videos/Reels stay in the library and manual workflow — not deleted.
+ * Gate eligibility (10-asset gate): images AND videos count.
+ * Videos remain in the library and may be used as Video Stories only.
  */
 export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean {
   if (!asset?.id) return false;
   if (!asset.storage_path || !String(asset.storage_path).trim()) return false;
-  if (asset.media_kind !== 'image') return false;
+  if (asset.media_kind !== 'image' && asset.media_kind !== 'video') return false;
   const mime = (asset.mime_type ?? '').toLowerCase();
-  if (mime && !mime.startsWith('image/')) return false;
+  if (mime && mime.startsWith('image/') === false && mime.startsWith('video/') === false) {
+    return false;
+  }
   if (asset.analysis_status === 'failed') return false;
   return true;
 }
 
+/** Feed / Carousel pool — images only. Never video/reel/feed-video. */
+export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
+  if (!isEligibleAutopilotAsset(asset)) return false;
+  return asset.media_kind === 'image';
+}
+
+/** Story pool — image story OR video story. */
+export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
+  return isEligibleAutopilotAsset(asset);
+}
+
+export function isEligibleForSlotKind(
+  asset: AutopilotEligibleAsset,
+  slotKind: AutopilotSlotKind
+): boolean {
+  return slotKind === 'feed'
+    ? isEligibleAutopilotFeedAsset(asset)
+    : isEligibleAutopilotStoryAsset(asset);
+}
+
 export function countEligibleAssets(assets: readonly AutopilotEligibleAsset[]): number {
   return assets.filter(isEligibleAutopilotAsset).length;
+}
+
+export function countEligibleFeedAssets(assets: readonly AutopilotEligibleAsset[]): number {
+  return assets.filter(isEligibleAutopilotFeedAsset).length;
 }
 
 export function canActivateAutopilot(
@@ -30,7 +57,7 @@ export function canActivateAutopilot(
   return { ok: true, count };
 }
 
-/** Meine + Zentrale together — both scopes count when eligible. */
+/** Meine + Zentrale together — both scopes count when gate-eligible. */
 export function countByScope(assets: readonly AutopilotEligibleAsset[]): {
   personal: number;
   central: number;

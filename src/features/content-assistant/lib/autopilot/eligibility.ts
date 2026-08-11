@@ -13,17 +13,40 @@ export interface AutopilotEligibleAsset {
   analysis_status: string | null;
 }
 
-/** Image-only Autopilot eligibility — videos stay in library / manual workflow. */
+/** Gate pool: images + videos. */
 export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean {
   if (!asset?.id) return false;
   if (!asset.storage_path?.trim()) return false;
-  if (asset.media_kind !== 'image') return false;
+  if (asset.media_kind !== 'image' && asset.media_kind !== 'video') return false;
   if (asset.analysis_status === 'failed') return false;
   return true;
 }
 
+/** Feed/Carousel pool: images only. */
+export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
+  return isEligibleAutopilotAsset(asset) && asset.media_kind === 'image';
+}
+
+/** Story pool: image or video. */
+export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
+  return isEligibleAutopilotAsset(asset);
+}
+
+export function isEligibleForSlotKind(
+  asset: AutopilotEligibleAsset,
+  slotKind: 'feed' | 'story'
+): boolean {
+  return slotKind === 'feed'
+    ? isEligibleAutopilotFeedAsset(asset)
+    : isEligibleAutopilotStoryAsset(asset);
+}
+
 export function countEligibleAssets(assets: readonly AutopilotEligibleAsset[]): number {
   return assets.filter(isEligibleAutopilotAsset).length;
+}
+
+export function countEligibleFeedAssets(assets: readonly AutopilotEligibleAsset[]): number {
+  return assets.filter(isEligibleAutopilotFeedAsset).length;
 }
 
 export function canActivateAutopilot(

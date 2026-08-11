@@ -32,10 +32,18 @@ export interface PlannedSlotDraft {
   skipReason?: string;
 }
 
+/** Autopilot V2: feed is always image feed; story is always story (image or video). Never reel. */
+export function resolveAutopilotFormat(
+  slotKind: AutopilotSlotKind,
+  _asset?: AutopilotEligibleAsset
+): AutopilotContentFormat {
+  return slotKind === 'story' ? 'story' : 'feed';
+}
+
 /**
  * Build a week of slots (max 3 feed + 3 stories / day).
- * Feed: image single or image carousel (2–10). Stories: single image only.
- * Skips slots when no suitable unused asset remains.
+ * Feed: image single or image carousel (2–10). Stories: image or video story.
+ * Never plans reel / video feed / video carousel.
  */
 export function buildAutopilotWeekPlan(params: {
   periodStart: string;
@@ -105,8 +113,8 @@ export function buildAutopilotWeekPlan(params: {
           continue;
         }
 
-        for (const a of bundle.assets) reserved.add(a.id);
         for (const a of bundle.assets) {
+          reserved.add(a.id);
           history.push({
             assetId: a.id,
             category: bundle.category,
@@ -130,7 +138,7 @@ export function buildAutopilotWeekPlan(params: {
         continue;
       }
 
-      // Story — single image only
+      // Story — image or video story (never reel)
       const best = selectBestAutopilotAsset({
         assets: params.assets,
         slotKind: kind,

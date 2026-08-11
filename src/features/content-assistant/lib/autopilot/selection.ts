@@ -5,7 +5,7 @@
  * Variable order (must stay): eligibility → category → reasons/score → adjustments → return.
  */
 
-import { isEligibleAutopilotAsset } from './eligibility';
+import { isEligibleForSlotKind } from './eligibility';
 
 export const AUTOPILOT_ASSET_COOLDOWN_DAYS = 3;
 
@@ -104,7 +104,7 @@ export function scoreAutopilotCandidate(params: {
   history: readonly SelectionHistoryItem[];
 }): { asset: SelectionAsset; score: number; category: string; reasons: string[] } | null {
   const { asset, slotKind, weekday, hour, nowIso, reservedAssetIds, history } = params;
-  if (!isEligibleAutopilotAsset(asset)) return null;
+  if (!isEligibleForSlotKind(asset, slotKind)) return null;
   if (reservedAssetIds.has(asset.id)) return null;
 
   // ORDER CRITICAL: category + score + reasons before any mutation
@@ -126,7 +126,10 @@ export function scoreAutopilotCandidate(params: {
     score += 6;
   }
 
-  // Image-only Autopilot: videos filtered in eligibility.
+  if (slotKind === 'story' && asset.media_kind === 'video') {
+    score -= 6;
+    reasons.push('Video-Story — Bild-Story bevorzugt.');
+  }
 
   const usage = Number(asset.usage_count ?? 0);
   if (usage === 0) {

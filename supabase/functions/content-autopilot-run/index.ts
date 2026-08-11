@@ -22,7 +22,7 @@ import {
   isMetaFeedImageAspectError,
   publishMediaContainer,
   waitForContainerReady,
-  type ContentFormat,
+  type PublishContentFormat,
   type MediaKind,
 } from '../_shared/instagram-publish/index.ts';
 import {
@@ -33,11 +33,13 @@ import {
   isPermanentAutopilotPublishError,
   nextAutopilotPeriod,
   optimizeAutopilotDraftBeforePublish,
+  reconcileActivePlanForMembership,
   type AutopilotEligibleAsset,
   type AutopilotHistoryItem,
 } from '../_shared/content-autopilot/index.ts';
 
-const CONTENT_ASSETS_BUCKET = 'content-assets';
+/** Local name — must not collide with content-generate CONTENT_ASSETS_BUCKET in setup bundles. */
+const AUTOPILOT_RUN_ASSETS_BUCKET = 'content-assets';
 /** Slots stuck in `publishing` longer than this are released back to ready. */
 const STALE_PUBLISHING_MS = 20 * 60 * 1000;
 
@@ -75,7 +77,7 @@ type SlotRow = {
   draft_id: string;
   asset_id: string | null;
   carousel_asset_ids: string[] | null;
-  content_format: ContentFormat;
+  content_format: PublishContentFormat;
   slot_kind: string;
   planned_for: string;
   retry_count: number;
@@ -137,13 +139,13 @@ async function prepareFeedImageUrlForMeta(params: {
   }
   const jpeg = await fitted.encodeJPEG(85);
   const path = `${params.orgId}/publish-fit/autopilot-${params.slotId}.jpg`;
-  const { error: upErr } = await params.admin.storage.from(CONTENT_ASSETS_BUCKET).upload(path, jpeg, {
+  const { error: upErr } = await params.admin.storage.from(AUTOPILOT_RUN_ASSETS_BUCKET).upload(path, jpeg, {
     contentType: 'image/jpeg',
     upsert: true,
   });
   if (upErr) throw new Error('feed_image_fit_failed');
   const { data: fittedSigned, error: fitSignErr } = await params.admin.storage
-    .from(CONTENT_ASSETS_BUCKET)
+    .from(AUTOPILOT_RUN_ASSETS_BUCKET)
     .createSignedUrl(path, 7200);
   if (fitSignErr || !fittedSigned?.signedUrl) throw new Error('feed_image_fit_failed');
   return fittedSigned.signedUrl;
@@ -184,11 +186,12 @@ async function publishOneSlot(
     return releaseSlotAfterError(admin, slot, 'draft_not_ready', true);
   }
 
-  // Image-only Autopilot — never auto-publish video/reel
+  // Never auto-publish reels / video feed. Video is Story-only.
   if (draftPre.format === 'reel' || slot.content_format === 'reel') {
-    return releaseSlotAfterError(admin, slot, 'video_not_allowed_in_autopilot', true);
+    return releaseSlotAfterError(admin, slot, 'reel_not_allowed_in_autopilot', true);
   }
 
+  const isStory = slot.slot_kind === 'story' || draftPre.format === 'story';
   const carouselFromSlot = (slot.carousel_asset_ids ?? []).filter(Boolean);
   const carouselFromDraft = (draftPre.carousel_asset_ids ?? []).filter(Boolean);
   const primaryId = slot.asset_id ?? draftPre.asset_id;
@@ -196,14 +199,15 @@ async function publishOneSlot(
     ...new Set(
       [
         primaryId,
-        ...(carouselFromSlot.length >= 2 ? carouselFromSlot : carouselFromDraft),
+        ...(!isStory && carouselFromSlot.length >= 2 ? carouselFromSlot : []),
+        ...(!isStory && carouselFromDraft.length >= 2 ? carouselFromDraft : []),
       ].filter(Boolean) as string[]
     ),
   ].slice(0, 10);
-  const isCarousel = publishAssetIds.length >= 2 && slot.slot_kind !== 'story';
+  const isCarousel = !isStory && publishAssetIds.length >= 2;
 
-  // Feed/Carousel: one optimization pass immediately before publish (stories skip)
-  if (slot.slot_kind !== 'story' && draftPre.format !== 'story') {
+  // Feed/Carousel only: one optimization pass. Image Story + Video Story skip (no extra AI).
+  if (!isStory) {
     try {
       await optimizeAutopilotDraftBeforePublish({
         admin,
@@ -251,8 +255,14 @@ async function publishOneSlot(
   if (orderedAssets.length === 0 || !orderedAssets[0]?.storage_path) {
     return releaseSlotAfterError(admin, slot, 'asset_not_found', true);
   }
-  if (orderedAssets.some((a) => a.media_kind !== 'image')) {
-    return releaseSlotAfterError(admin, slot, 'video_not_allowed_in_autopilot', true);
+
+  // Feed/Carousel: images only. Story: image or video.
+  if (!isStory) {
+    if (orderedAssets.some((a) => a.media_kind !== 'image')) {
+      return releaseSlotAfterError(admin, slot, 'video_not_allowed_on_feed', true);
+    }
+  } else if (orderedAssets[0].media_kind !== 'image' && orderedAssets[0].media_kind !== 'video') {
+    return releaseSlotAfterError(admin, slot, 'asset_not_found', true);
   }
 
   const caption = buildPublishCaption({
@@ -319,7 +329,7 @@ async function publishOneSlot(
       for (let i = 0; i < orderedAssets.length; i += 1) {
         const slide = orderedAssets[i];
         const { data: signed, error: signErr } = await admin.storage
-          .from(CONTENT_ASSETS_BUCKET)
+          .from(AUTOPILOT_RUN_ASSETS_BUCKET)
           .createSignedUrl(slide.storage_path, 7200);
         if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
         const mediaUrl = await prepareFeedImageUrlForMeta({
@@ -354,13 +364,18 @@ async function publishOneSlot(
       containerId = parent.containerId;
     } else {
       const asset = orderedAssets[0];
+      const mediaKind = (asset.media_kind === 'video' ? 'video' : 'image') as MediaKind;
+      // Defense: video only allowed on story path
+      if (mediaKind === 'video' && !isStory) {
+        throw new Error('video_not_allowed_on_feed');
+      }
       const { data: signed, error: signErr } = await admin.storage
-        .from(CONTENT_ASSETS_BUCKET)
+        .from(AUTOPILOT_RUN_ASSETS_BUCKET)
         .createSignedUrl(asset.storage_path, 7200);
       if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
 
       let mediaUrl = signed.signedUrl;
-      if (draft.format !== 'story') {
+      if (!isStory && mediaKind === 'image') {
         mediaUrl = await prepareFeedImageUrlForMeta({
           admin,
           sourceSignedUrl: signed.signedUrl,
@@ -373,24 +388,37 @@ async function publishOneSlot(
       const created = await createMediaContainer({
         igUserId: connection.ig_user_id,
         accessToken,
-        mediaKind: 'image' as MediaKind,
-        format: (slot.content_format || draft.format) as ContentFormat,
+        mediaKind,
+        format: isStory ? 'story' : 'feed',
         mediaUrl,
-        caption,
+        caption: isStory ? '' : caption,
       });
       containerId = created.containerId;
+
+      await admin
+        .from('content_publish_attempts')
+        .update({ status: 'submitted', meta_container_id: containerId })
+        .eq('id', attempt.id);
+
+      await waitForContainerReady({
+        containerId,
+        accessToken,
+        mediaKind,
+      });
     }
 
-    await admin
-      .from('content_publish_attempts')
-      .update({ status: 'submitted', meta_container_id: containerId })
-      .eq('id', attempt.id);
+    if (isCarousel) {
+      await admin
+        .from('content_publish_attempts')
+        .update({ status: 'submitted', meta_container_id: containerId })
+        .eq('id', attempt.id);
 
-    await waitForContainerReady({
-      containerId,
-      accessToken,
-      mediaKind: 'image',
-    });
+      await waitForContainerReady({
+        containerId,
+        accessToken,
+        mediaKind: 'image',
+      });
+    }
 
     const published = await publishMediaContainer({
       igUserId: connection.ig_user_id,
@@ -692,6 +720,36 @@ Deno.serve(async (req) => {
 
     const staleRecovered = await recoverStalePublishing(admin);
 
+    // Incremental plan reconciliation (deleted/ineligible assets) before claim/publish.
+    // Reuses existing server cron — no frontend timers, no second cron infra.
+    const reconcileSummaries: unknown[] = [];
+    {
+      let settingsQuery = admin
+        .from('content_autopilot_settings')
+        .select('org_id, membership_id, enabled, paused')
+        .eq('enabled', true)
+        .eq('paused', false)
+        .limit(50);
+      if (body.membershipId) {
+        settingsQuery = settingsQuery.eq('membership_id', body.membershipId);
+      }
+      const { data: enabledSettings } = await settingsQuery;
+      for (const s of enabledSettings ?? []) {
+        const membershipId = s.membership_id as string;
+        const orgId = s.org_id as string;
+        const assets = await loadEligibleAssets(admin, orgId, membershipId);
+        const history = await loadHistory(admin, membershipId);
+        const summary = await reconcileActivePlanForMembership({
+          admin,
+          orgId,
+          membershipId,
+          assets,
+          history,
+        });
+        reconcileSummaries.push({ membershipId, ...summary });
+      }
+    }
+
     let dueQuery = admin
       .from('content_autopilot_slots')
       .select(
@@ -751,6 +809,7 @@ Deno.serve(async (req) => {
       processed: results.length,
       results,
       staleRecovered,
+      reconciled: reconcileSummaries,
       continued,
       facebook: 'not_used',
     });

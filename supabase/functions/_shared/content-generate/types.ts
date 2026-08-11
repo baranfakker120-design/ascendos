@@ -74,7 +74,7 @@ export interface GenerationPayload {
 
 /** Hard product rule: Instagram Content Assistant always returns exactly 5 hashtags. */
 export const REQUIRED_HASHTAG_COUNT = 5;
-/** Instagram Graph carousel hard max (children). Not the library or Autopilot pool size. */
+/** Instagram Graph carousel hard max (children). Library capacity stays 25. */
 export const CAROUSEL_MAX_ASSETS = 10;
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
