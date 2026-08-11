@@ -126,10 +126,7 @@ export function scoreAutopilotCandidate(params: {
     score += 6;
   }
 
-  if (slotKind === 'story' && asset.media_kind === 'video') {
-    score -= 6;
-    reasons.push('Video-Story — Bild-Story bevorzugt.');
-  }
+  // Image-only Autopilot: videos filtered in eligibility.
 
   const usage = Number(asset.usage_count ?? 0);
   if (usage === 0) {
@@ -176,7 +173,7 @@ export function scoreAutopilotCandidate(params: {
 
   const formats = asset.suggested_formats ?? [];
   if (slotKind === 'story' && formats.includes('story')) score += 8;
-  if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('reel'))) score += 8;
+  if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('carousel'))) score += 8;
 
   if (asset.scope === 'personal') score += 2;
 

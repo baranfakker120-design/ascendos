@@ -3,15 +3,16 @@ import {
   type AutopilotEligibleAsset,
 } from './types.ts';
 
-/** Asset is publishable + countable toward the 10-asset gate. */
+/**
+ * Autopilot V1 optimization: image-only automatic publishing.
+ * Videos/Reels stay in the library and manual workflow — not deleted.
+ */
 export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean {
   if (!asset?.id) return false;
   if (!asset.storage_path || !String(asset.storage_path).trim()) return false;
-  if (asset.media_kind !== 'image' && asset.media_kind !== 'video') return false;
+  if (asset.media_kind !== 'image') return false;
   const mime = (asset.mime_type ?? '').toLowerCase();
-  if (mime && mime.startsWith('image/') === false && mime.startsWith('video/') === false) {
-    return false;
-  }
+  if (mime && !mime.startsWith('image/')) return false;
   if (asset.analysis_status === 'failed') return false;
   return true;
 }

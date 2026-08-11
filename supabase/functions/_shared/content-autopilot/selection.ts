@@ -49,11 +49,7 @@ export function scoreAutopilotCandidate(params: {
     score += 6;
   }
 
-  // Stories: prefer images; video stories allowed but slightly lower.
-  if (slotKind === 'story' && asset.media_kind === 'video') {
-    score -= 6;
-    reasons.push('Video-Story — Bild-Story bevorzugt.');
-  }
+  // Image-only Autopilot: videos are filtered in eligibility (not scored here).
 
   const usage = Number(asset.usage_count ?? 0);
   if (usage === 0) {
@@ -98,10 +94,10 @@ export function scoreAutopilotCandidate(params: {
     reasons.push('Asset in Cooldown.');
   }
 
-  // Prefer matching suggested formats
+  // Prefer matching suggested formats (image feed/story; reel suggestions ignored for auto-publish)
   const formats = asset.suggested_formats ?? [];
   if (slotKind === 'story' && formats.includes('story')) score += 8;
-  if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('reel'))) score += 8;
+  if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('carousel'))) score += 8;
 
   if (asset.scope === 'personal') score += 2;
 

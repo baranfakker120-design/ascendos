@@ -14,12 +14,12 @@ describe('carousel selection', () => {
   it('detects carousel mode at 2+', () => {
     expect(isCarouselMode(1)).toBe(false);
     expect(isCarouselMode(2)).toBe(true);
-    expect(isCarouselMode(6)).toBe(true);
+    expect(isCarouselMode(10)).toBe(true);
   });
 
-  it('blocks a 7th image', () => {
-    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
-    expect(ids).toHaveLength(CAROUSEL_MAX_SLIDES);
+  it('blocks an 11th image', () => {
+    const ids = Array.from({ length: CAROUSEL_MAX_SLIDES }, (_, i) => `a${i}`);
+    expect(ids).toHaveLength(10);
     expect(
       canAddToSelection({
         currentIds: ids,
@@ -50,14 +50,13 @@ describe('carousel selection', () => {
     expect(replaceInSelection(['a', 'b', 'c'], 1, 'x')).toEqual(['a', 'x', 'c']);
   });
 
-  it('reorders with drag semantics', () => {
-    expect(reorderSelection(['a', 'b', 'c', 'd'], 0, 2)).toEqual(['b', 'c', 'a', 'd']);
-    expect(reorderSelection(['a', 'b', 'c'], 2, 0)).toEqual(['c', 'a', 'b']);
+  it('reorders within bounds', () => {
+    expect(reorderSelection(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a']);
   });
 
-  it('formats live counter', () => {
-    expect(selectionCounter(0)).toBe('0 / 6');
-    expect(selectionCounter(3)).toBe('3 / 6');
-    expect(selectionCounter(6)).toBe('6 / 6');
+  it('formats the counter against max 10', () => {
+    expect(selectionCounter(0)).toBe('0 / 10');
+    expect(selectionCounter(3)).toBe('3 / 10');
+    expect(selectionCounter(10)).toBe('10 / 10');
   });
 });

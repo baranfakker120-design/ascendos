@@ -14,13 +14,13 @@ import {
   buildPublishCaption,
   computeFeedImageCrop,
   connectionHasPublishScope,
+  createCarouselContainer,
   createMediaContainer,
   FEED_IMAGE_ASPECT_ERROR_MESSAGE,
   feedImageEncodeWidth,
   isFeedImageAspectAllowed,
   isMetaFeedImageAspectError,
   publishMediaContainer,
-  validateReelAssetForPublish,
   waitForContainerReady,
   type ContentFormat,
   type MediaKind,
@@ -32,6 +32,7 @@ import {
   isAutopilotPlanExhausted,
   isPermanentAutopilotPublishError,
   nextAutopilotPeriod,
+  optimizeAutopilotDraftBeforePublish,
   type AutopilotEligibleAsset,
   type AutopilotHistoryItem,
 } from '../_shared/content-autopilot/index.ts';
@@ -73,7 +74,10 @@ type SlotRow = {
   membership_id: string;
   draft_id: string;
   asset_id: string | null;
+  carousel_asset_ids: string[] | null;
   content_format: ContentFormat;
+  slot_kind: string;
+  planned_for: string;
   retry_count: number;
   max_retries: number;
 };
@@ -169,37 +173,86 @@ async function publishOneSlot(
     return { ok: true, status: 'published', mediaId: publishedRows[0].meta_media_id };
   }
 
+  const { data: draftPre } = await admin
+    .from('content_drafts')
+    .select(
+      'id, org_id, owner_membership_id, asset_id, carousel_asset_ids, format, caption, cta, hashtags, status'
+    )
+    .eq('id', slot.draft_id)
+    .maybeSingle();
+  if (!draftPre || (draftPre.status !== 'ready' && draftPre.status !== 'draft')) {
+    return releaseSlotAfterError(admin, slot, 'draft_not_ready', true);
+  }
+
+  // Image-only Autopilot — never auto-publish video/reel
+  if (draftPre.format === 'reel' || slot.content_format === 'reel') {
+    return releaseSlotAfterError(admin, slot, 'video_not_allowed_in_autopilot', true);
+  }
+
+  const carouselFromSlot = (slot.carousel_asset_ids ?? []).filter(Boolean);
+  const carouselFromDraft = (draftPre.carousel_asset_ids ?? []).filter(Boolean);
+  const primaryId = slot.asset_id ?? draftPre.asset_id;
+  const publishAssetIds = [
+    ...new Set(
+      [
+        primaryId,
+        ...(carouselFromSlot.length >= 2 ? carouselFromSlot : carouselFromDraft),
+      ].filter(Boolean) as string[]
+    ),
+  ].slice(0, 10);
+  const isCarousel = publishAssetIds.length >= 2 && slot.slot_kind !== 'story';
+
+  // Feed/Carousel: one optimization pass immediately before publish (stories skip)
+  if (slot.slot_kind !== 'story' && draftPre.format !== 'story') {
+    try {
+      await optimizeAutopilotDraftBeforePublish({
+        admin,
+        membershipId: slot.membership_id,
+        orgId: slot.org_id,
+        draftId: slot.draft_id,
+        slotKind: slot.slot_kind,
+        contentFormat: slot.content_format || draftPre.format,
+        plannedFor: slot.planned_for,
+        assetIds: publishAssetIds,
+      });
+    } catch (optErr) {
+      console.error(
+        'autopilot_optimize_failed',
+        optErr instanceof Error ? optErr.message : optErr
+      );
+      // Continue with existing draft — do not block publish on optimize soft failure
+    }
+  }
+
   const { data: draft } = await admin
     .from('content_drafts')
-    .select('id, org_id, owner_membership_id, asset_id, format, caption, cta, hashtags, status')
+    .select(
+      'id, org_id, owner_membership_id, asset_id, carousel_asset_ids, format, caption, cta, hashtags, status'
+    )
     .eq('id', slot.draft_id)
     .maybeSingle();
   if (!draft || draft.status !== 'ready') {
     return releaseSlotAfterError(admin, slot, 'draft_not_ready', true);
   }
 
-  const assetId = slot.asset_id ?? draft.asset_id;
-  const { data: asset } = await admin
+  const { data: assets } = await admin
     .from('content_assets')
     .select('id, org_id, storage_path, media_kind, mime_type, byte_size, width_px, height_px')
-    .eq('id', assetId)
-    .maybeSingle();
-  if (!asset?.storage_path) {
+    .in('id', publishAssetIds.length ? publishAssetIds : ['00000000-0000-0000-0000-000000000000']);
+  const orderedAssets = publishAssetIds
+    .map((id) => (assets ?? []).find((a) => a.id === id))
+    .filter(Boolean) as Array<{
+    id: string;
+    org_id: string;
+    storage_path: string;
+    media_kind: string;
+    mime_type: string | null;
+  }>;
+  if (orderedAssets.length === 0 || !orderedAssets[0]?.storage_path) {
     return releaseSlotAfterError(admin, slot, 'asset_not_found', true);
   }
-
-  if (asset.media_kind === 'video' || draft.format === 'reel') {
-    const videoCheck = validateReelAssetForPublish({
-      mediaKind: asset.media_kind as MediaKind,
-      format: draft.format as ContentFormat,
-      mimeType: asset.mime_type,
-      byteSize: asset.byte_size,
-      widthPx: asset.width_px,
-      heightPx: asset.height_px,
-    });
-    if (videoCheck !== 'ok') {
-      return releaseSlotAfterError(admin, slot, String(videoCheck), true);
-    }
+  if (orderedAssets.some((a) => a.media_kind !== 'image')) {
+    return releaseSlotAfterError(admin, slot, 'video_not_allowed_in_autopilot', true);
   }
 
   const caption = buildPublishCaption({
@@ -259,53 +312,97 @@ async function publishOneSlot(
   }
 
   try {
-    const { data: signed, error: signErr } = await admin.storage
-      .from(CONTENT_ASSETS_BUCKET)
-      .createSignedUrl(asset.storage_path, 7200);
-    if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
+    let containerId: string;
 
-    let mediaUrl = signed.signedUrl;
-    if (asset.media_kind === 'image' && draft.format !== 'story' && draft.format !== 'reel') {
-      mediaUrl = await prepareFeedImageUrlForMeta({
-        admin,
-        sourceSignedUrl: signed.signedUrl,
-        orgId: slot.org_id,
-        slotId: slot.id,
-        mimeType: asset.mime_type,
+    if (isCarousel) {
+      const childIds: string[] = [];
+      for (let i = 0; i < orderedAssets.length; i += 1) {
+        const slide = orderedAssets[i];
+        const { data: signed, error: signErr } = await admin.storage
+          .from(CONTENT_ASSETS_BUCKET)
+          .createSignedUrl(slide.storage_path, 7200);
+        if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
+        const mediaUrl = await prepareFeedImageUrlForMeta({
+          admin,
+          sourceSignedUrl: signed.signedUrl,
+          orgId: slot.org_id,
+          slotId: `${slot.id}-c${i}`,
+          mimeType: slide.mime_type,
+        });
+        const child = await createMediaContainer({
+          igUserId: connection.ig_user_id,
+          accessToken,
+          mediaKind: 'image',
+          format: 'feed',
+          mediaUrl,
+          caption: '',
+          isCarouselItem: true,
+        });
+        await waitForContainerReady({
+          containerId: child.containerId,
+          accessToken,
+          mediaKind: 'image',
+        });
+        childIds.push(child.containerId);
+      }
+      const parent = await createCarouselContainer({
+        igUserId: connection.ig_user_id,
+        accessToken,
+        childContainerIds: childIds,
+        caption: caption ?? '',
       });
-    }
+      containerId = parent.containerId;
+    } else {
+      const asset = orderedAssets[0];
+      const { data: signed, error: signErr } = await admin.storage
+        .from(CONTENT_ASSETS_BUCKET)
+        .createSignedUrl(asset.storage_path, 7200);
+      if (signErr || !signed?.signedUrl) throw new Error('signed_url_failed');
 
-    const created = await createMediaContainer({
-      igUserId: connection.ig_user_id,
-      accessToken,
-      mediaKind: asset.media_kind as MediaKind,
-      format: (slot.content_format || draft.format) as ContentFormat,
-      mediaUrl,
-      caption,
-    });
+      let mediaUrl = signed.signedUrl;
+      if (draft.format !== 'story') {
+        mediaUrl = await prepareFeedImageUrlForMeta({
+          admin,
+          sourceSignedUrl: signed.signedUrl,
+          orgId: slot.org_id,
+          slotId: slot.id,
+          mimeType: asset.mime_type,
+        });
+      }
+
+      const created = await createMediaContainer({
+        igUserId: connection.ig_user_id,
+        accessToken,
+        mediaKind: 'image' as MediaKind,
+        format: (slot.content_format || draft.format) as ContentFormat,
+        mediaUrl,
+        caption,
+      });
+      containerId = created.containerId;
+    }
 
     await admin
       .from('content_publish_attempts')
-      .update({ status: 'submitted', meta_container_id: created.containerId })
+      .update({ status: 'submitted', meta_container_id: containerId })
       .eq('id', attempt.id);
 
     await waitForContainerReady({
-      containerId: created.containerId,
+      containerId,
       accessToken,
-      mediaKind: asset.media_kind as MediaKind,
+      mediaKind: 'image',
     });
 
     const published = await publishMediaContainer({
       igUserId: connection.ig_user_id,
       accessToken,
-      containerId: created.containerId,
+      containerId,
     });
 
     await admin
       .from('content_publish_attempts')
       .update({
         status: 'published',
-        meta_container_id: created.containerId,
+        meta_container_id: containerId,
         meta_media_id: published.mediaId,
         error_message: null,
       })
@@ -360,7 +457,7 @@ async function publishOneSlot(
       /* insights optional */
     }
 
-    if (asset.id) {
+    for (const asset of orderedAssets) {
       const { data: usageRow } = await admin
         .from('content_assets')
         .select('usage_count')
@@ -432,20 +529,37 @@ async function loadHistory(
   const since = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await admin
     .from('content_autopilot_slots')
-    .select('asset_id, category, theme, published_at, planned_for, slot_kind, status')
+    .select(
+      'asset_id, carousel_asset_ids, category, theme, published_at, planned_for, slot_kind, status'
+    )
     .eq('membership_id', membershipId)
     .in('status', ['published', 'ready', 'planned', 'publishing'])
     .gte('planned_for', since)
     .order('planned_for', { ascending: false })
     .limit(80);
   if (error) throw error;
-  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
-    assetId: (row.asset_id as string) ?? null,
-    category: (row.category as string) ?? null,
-    theme: (row.theme as string) ?? null,
-    publishedAt: String(row.published_at ?? row.planned_for),
-    slotKind: String(row.slot_kind ?? 'feed'),
-  }));
+  const items: AutopilotHistoryItem[] = [];
+  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+    const base = {
+      category: (row.category as string) ?? null,
+      theme: (row.theme as string) ?? null,
+      publishedAt: String(row.published_at ?? row.planned_for),
+      slotKind: String(row.slot_kind ?? 'feed'),
+    };
+    const carousel = (row.carousel_asset_ids as string[] | null) ?? [];
+    const ids =
+      carousel.length >= 2
+        ? carousel
+        : [row.asset_id as string | null].filter(Boolean);
+    if (ids.length === 0) {
+      items.push({ assetId: null, ...base });
+    } else {
+      for (const id of ids) {
+        items.push({ assetId: String(id), ...base });
+      }
+    }
+  }
+  return items.slice(0, 120);
 }
 
 async function igConnectedForMember(
@@ -581,7 +695,7 @@ Deno.serve(async (req) => {
     let dueQuery = admin
       .from('content_autopilot_slots')
       .select(
-        'id, org_id, membership_id, draft_id, asset_id, content_format, retry_count, max_retries, planned_for, status'
+        'id, org_id, membership_id, draft_id, asset_id, carousel_asset_ids, content_format, slot_kind, retry_count, max_retries, planned_for, status'
       )
       .in('status', ['ready', 'planned'])
       .lte('planned_for', now)

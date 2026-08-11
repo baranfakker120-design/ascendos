@@ -78,7 +78,7 @@ describe('autopilot selection — score / category / usage / format', () => {
     expect(withFeed!.score).toBeGreaterThan(noFeed!.score);
   });
 
-  it('applies video-story score penalty vs image story', () => {
+  it('excludes videos from scoring (image-only Autopilot)', () => {
     const imageStory = scoreAutopilotCandidate({
       ...baseParams,
       slotKind: 'story',
@@ -95,9 +95,7 @@ describe('autopilot selection — score / category / usage / format', () => {
       }),
     });
     expect(imageStory).not.toBeNull();
-    expect(videoStory).not.toBeNull();
-    expect(imageStory!.score - videoStory!.score).toBe(6);
-    expect(videoStory!.reasons.some((r) => r.includes('Video-Story'))).toBe(true);
+    expect(videoStory).toBeNull();
   });
 
   it('selects best scoring asset, not first in list', () => {
