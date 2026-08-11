@@ -1045,6 +1045,241 @@ export type Database = {
           },
         ];
       };
+      content_autopilot_plans: {
+        Row: {
+          created_at: string;
+          id: string;
+          membership_id: string;
+          org_id: string;
+          period_end: string;
+          period_start: string;
+          status: string;
+          summary: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          membership_id: string;
+          org_id: string;
+          period_end: string;
+          period_start: string;
+          status?: string;
+          summary?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          membership_id?: string;
+          org_id?: string;
+          period_end?: string;
+          period_start?: string;
+          status?: string;
+          summary?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_autopilot_plans_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_plans_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      content_autopilot_settings: {
+        Row: {
+          consent_confirmed_at: string | null;
+          created_at: string;
+          enabled: boolean;
+          id: string;
+          last_activated_at: string | null;
+          last_paused_at: string | null;
+          max_feed_per_day: number;
+          max_stories_per_day: number;
+          membership_id: string;
+          min_eligible_assets: number;
+          org_id: string;
+          paused: boolean;
+          timezone: string;
+          updated_at: string;
+        };
+        Insert: {
+          consent_confirmed_at?: string | null;
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          last_activated_at?: string | null;
+          last_paused_at?: string | null;
+          max_feed_per_day?: number;
+          max_stories_per_day?: number;
+          membership_id: string;
+          min_eligible_assets?: number;
+          org_id: string;
+          paused?: boolean;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          consent_confirmed_at?: string | null;
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          last_activated_at?: string | null;
+          last_paused_at?: string | null;
+          max_feed_per_day?: number;
+          max_stories_per_day?: number;
+          membership_id?: string;
+          min_eligible_assets?: number;
+          org_id?: string;
+          paused?: boolean;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_autopilot_settings_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_settings_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      content_autopilot_slots: {
+        Row: {
+          asset_id: string | null;
+          carousel_asset_ids: string[];
+          category: string | null;
+          content_format: string;
+          created_at: string;
+          draft_id: string | null;
+          error_message: string | null;
+          id: string;
+          max_retries: number;
+          membership_id: string;
+          org_id: string;
+          performance_json: Json;
+          plan_id: string;
+          planned_for: string;
+          publish_attempt_id: string | null;
+          published_at: string | null;
+          retry_count: number;
+          selection_reason: string | null;
+          slot_kind: string;
+          status: string;
+          theme: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          asset_id?: string | null;
+          carousel_asset_ids?: string[];
+          category?: string | null;
+          content_format: string;
+          created_at?: string;
+          draft_id?: string | null;
+          error_message?: string | null;
+          id?: string;
+          max_retries?: number;
+          membership_id: string;
+          org_id: string;
+          performance_json?: Json;
+          plan_id: string;
+          planned_for: string;
+          publish_attempt_id?: string | null;
+          published_at?: string | null;
+          retry_count?: number;
+          selection_reason?: string | null;
+          slot_kind: string;
+          status?: string;
+          theme?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          asset_id?: string | null;
+          carousel_asset_ids?: string[];
+          category?: string | null;
+          content_format?: string;
+          created_at?: string;
+          draft_id?: string | null;
+          error_message?: string | null;
+          id?: string;
+          max_retries?: number;
+          membership_id?: string;
+          org_id?: string;
+          performance_json?: Json;
+          plan_id?: string;
+          planned_for?: string;
+          publish_attempt_id?: string | null;
+          published_at?: string | null;
+          retry_count?: number;
+          selection_reason?: string | null;
+          slot_kind?: string;
+          status?: string;
+          theme?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_autopilot_slots_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_assets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_slots_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_drafts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_slots_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_slots_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_slots_plan_id_fkey';
+            columns: ['plan_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_autopilot_plans';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'content_autopilot_slots_publish_attempt_id_fkey';
+            columns: ['publish_attempt_id'];
+            isOneToOne: false;
+            referencedRelation: 'content_publish_attempts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       content_daily_preparations: {
         Row: {
           asset_id: string | null;
