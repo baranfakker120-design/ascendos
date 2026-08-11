@@ -12,6 +12,7 @@ import { CarouselPreview } from './CarouselPreview';
 import { CarouselTray } from './CarouselTray';
 import { ContentAssetThumb } from './ContentAssetThumb';
 import { ContentResultPanel } from './ContentResultPanel';
+import { AutopilotPanel } from './AutopilotPanel';
 import { InstagramConnectionCard } from './InstagramConnectionCard';
 import { InstagramPublishPreview } from './InstagramPublishPreview';
 import {
@@ -789,6 +790,8 @@ export function AiContentAssistantPage() {
           <p className="text-xs text-muted">{t('contentAssistant.noAutoPublish')}</p>
         ) : null}
       </Card>
+
+      <AutopilotPanel />
 
       <InstagramConnectionCard />
 
