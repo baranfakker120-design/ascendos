@@ -13,10 +13,11 @@ export interface AutopilotEligibleAsset {
   analysis_status: string | null;
 }
 
+/** Image-only Autopilot eligibility — videos stay in library / manual workflow. */
 export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean {
   if (!asset?.id) return false;
   if (!asset.storage_path?.trim()) return false;
-  if (asset.media_kind !== 'image' && asset.media_kind !== 'video') return false;
+  if (asset.media_kind !== 'image') return false;
   if (asset.analysis_status === 'failed') return false;
   return true;
 }

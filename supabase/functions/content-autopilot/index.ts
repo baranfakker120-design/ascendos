@@ -81,20 +81,32 @@ async function loadHistory(
   const since = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await db
     .from('content_autopilot_slots')
-    .select('asset_id, category, theme, published_at, planned_for, slot_kind, status')
+    .select(
+      'asset_id, carousel_asset_ids, category, theme, published_at, planned_for, slot_kind, status'
+    )
     .eq('membership_id', membershipId)
     .in('status', ['published', 'ready', 'planned', 'publishing'])
     .gte('planned_for', since)
     .order('planned_for', { ascending: false })
     .limit(80);
   if (error) throw error;
-  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
-    assetId: (row.asset_id as string) ?? null,
-    category: (row.category as string) ?? null,
-    theme: (row.theme as string) ?? null,
-    publishedAt: String(row.published_at ?? row.planned_for),
-    slotKind: String(row.slot_kind ?? 'feed'),
-  }));
+  const items: AutopilotHistoryItem[] = [];
+  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+    const base = {
+      category: (row.category as string) ?? null,
+      theme: (row.theme as string) ?? null,
+      publishedAt: String(row.published_at ?? row.planned_for),
+      slotKind: String(row.slot_kind ?? 'feed'),
+    };
+    const carousel = (row.carousel_asset_ids as string[] | null) ?? [];
+    const ids =
+      carousel.length >= 2
+        ? carousel
+        : [row.asset_id as string | null].filter(Boolean);
+    if (ids.length === 0) items.push({ assetId: null, ...base });
+    else for (const id of ids) items.push({ assetId: String(id), ...base });
+  }
+  return items.slice(0, 120);
 }
 
 function defaultPeriod(): { start: string; end: string } {

@@ -1252,7 +1252,7 @@
     "igPublishVideoAspect": "Proporzioni non supportate (Meta: tra 0,01:1 e 10:1).",
     "igPublishImageAspect": "Le immagini del feed richiedono un rapporto tra 4:5 e 1,91:1. Adattiamo automaticamente l’immagine in pubblicazione.",
     "igPublishVideoNotReady": "Metadati video non ancora pronti. Attendi un momento e riprova.",
-    "libraryHintCarousel": "Select up to 6 images for an Instagram carousel. One image keeps the single-post workflow. Drag to reorder.",
+    "libraryHintCarousel": "Select up to 10 images for an Instagram carousel. One image keeps the single-post workflow. Drag to reorder.",
     "carouselCounter": "Selected {count}",
     "carouselSelectionTitle": "Carousel slides",
     "carouselSelectionHint": "Drag to set the Instagram order. Remove or replace any slide.",

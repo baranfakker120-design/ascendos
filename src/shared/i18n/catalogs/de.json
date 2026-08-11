@@ -1079,7 +1079,7 @@
   "contentAssistant": {
     "libraryTitle": "Asset-Bibliothek",
     "libraryHint": "Bilder und Videos privat speichern. Originale werden nie überschrieben. Auslieferung nur über signierte URLs.",
-    "libraryHintCarousel": "Wähle bis zu 6 Bilder für ein Instagram-Carousel. Ein Bild bleibt der Single-Workflow. Ziehe zum Sortieren.",
+    "libraryHintCarousel": "Wähle bis zu 10 Bilder für ein Instagram-Carousel. Ein Bild bleibt der Single-Workflow. Ziehe zum Sortieren.",
     "carouselCounter": "Auswahl {count}",
     "carouselSelectionTitle": "Carousel-Slides",
     "carouselSelectionHint": "Ziehen zum Festlegen der Instagram-Reihenfolge. Slides entfernen oder ersetzen.",
