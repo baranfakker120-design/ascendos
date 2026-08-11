@@ -1079,7 +1079,7 @@
   "contentAssistant": {
     "libraryTitle": "Asset library",
     "libraryHint": "Store images and videos privately. Originals are never overwritten. Delivery via signed URLs only.",
-    "libraryHintCarousel": "Select up to 6 images for an Instagram carousel. One image keeps the single-post workflow. Drag to reorder.",
+    "libraryHintCarousel": "Select up to 10 images for an Instagram carousel. One image keeps the single-post workflow. Drag to reorder.",
     "carouselCounter": "Selected {count}",
     "carouselSelectionTitle": "Carousel slides",
     "carouselSelectionHint": "Drag to set the Instagram order. Remove or replace any slide.",
@@ -1087,7 +1087,7 @@
     "carouselRemove": "Remove",
     "carouselMaxReached": "Maximum 6 images. Remove one before adding another.",
     "carouselVideoMix": "Videos stay single-asset. Clear the selection before mixing formats.",
-    "carouselImagesOnly": "Carousels support images only (2–6).",
+    "carouselImagesOnly": "Carousels support images only (2–10).",
     "carouselPreviewTitle": "Carousel preview",
     "carouselFormatLocked": "Carousel mode uses Feed format automatically.",
     "carouselBadge": "Carousel",

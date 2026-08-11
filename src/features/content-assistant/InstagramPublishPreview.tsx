@@ -35,7 +35,7 @@ export function InstagramPublishPreview({
   hashtags,
 }: {
   asset: ContentAsset | null;
-  /** Ordered carousel slides (2–6). When set, publish uses draft.carousel_asset_ids server-side. */
+  /** Ordered carousel slides (2–10). When set, publish uses draft.carousel_asset_ids server-side. */
   assets?: ContentAsset[];
   draft: ContentDraft;
   caption: string;

@@ -1,6 +1,6 @@
-/** Carousel selection helpers — max 6 images; single-image path when length === 1. */
+/** Carousel selection helpers — max 10 images; single-image path when length === 1. */
 
-export const CAROUSEL_MAX_SLIDES = 6;
+export const CAROUSEL_MAX_SLIDES = 10;
 
 export type CarouselMediaKind = 'image' | 'video';
 
