@@ -789,7 +789,8 @@ export interface GenerationPayload {
 
 /** Hard product rule: Instagram Content Assistant always returns exactly 5 hashtags. */
 export const REQUIRED_HASHTAG_COUNT = 5;
-export const CAROUSEL_MAX_ASSETS = 6;
+/** Instagram Graph carousel hard max (children). Not the library or Autopilot pool size. */
+export const CAROUSEL_MAX_ASSETS = 10;
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
 export const DEFAULT_DAILY_GENERATION_LIMIT = 25;
@@ -1766,7 +1767,7 @@ export async function generateDraftFromAsset(params: {
 }
 
 /**
- * Single image OR carousel (2–6 images) generation.
+ * Single image OR carousel (2–10 images) generation.
  * Videos remain single-asset only.
  */
 export async function generateDraftFromAssets(params: {
