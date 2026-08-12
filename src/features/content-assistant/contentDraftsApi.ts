@@ -5,6 +5,7 @@ import { useI18n } from '@shared/i18n';
 import type { ContentFormat } from './contentAssetsApi';
 import { formatCleanCheckNotes, runCleanCheck, type CleanCheckStatus } from './lib/cleanCheck';
 import type { HashtagCandidate, HashtagResearchResult } from './lib/hashtagResearch';
+import { CAROUSEL_MAX_SLIDES } from './lib/carousel/selection';
 
 export type ContentDraftStatus = 'draft' | 'ready' | 'archived';
 
@@ -123,7 +124,7 @@ export async function generateContentDraft(params: {
   format: ContentFormat;
   locale: string;
 }): Promise<ContentGenerateResult> {
-  const assetIds = params.assetIds.filter(Boolean).slice(0, 6);
+  const assetIds = params.assetIds.filter(Boolean).slice(0, CAROUSEL_MAX_SLIDES);
   const { data, error } = await supabase.functions.invoke('content-assistant', {
     body: {
       action: 'generate_draft',

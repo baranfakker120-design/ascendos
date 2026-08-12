@@ -1115,7 +1115,7 @@
     "carouselSelectionHint": "Ziehen zum Festlegen der Instagram-Reihenfolge. Slides entfernen oder ersetzen.",
     "carouselReplace": "Ersetzen",
     "carouselRemove": "Entfernen",
-    "carouselMaxReached": "Maximal 6 Bilder. Entferne eines, bevor du ein weiteres hinzufügst.",
+    "carouselMaxReached": "Maximal 10 Bilder. Entferne eines, bevor du ein weiteres hinzufügst.",
     "carouselVideoMix": "Videos bleiben Einzel-Assets. Leere die Auswahl, bevor du Formate mischst.",
     "carouselImagesOnly": "Carousels unterstützen nur Bilder (2–10).",
     "carouselPreviewTitle": "Carousel-Vorschau",

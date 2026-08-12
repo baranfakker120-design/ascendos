@@ -1,4 +1,4 @@
-/** Carousel selection helpers — max 10 images; single-image path when length === 1. */
+/** Carousel selection helpers — max 10 images (Instagram Graph API); single-image path when length === 1. */
 
 export const CAROUSEL_MAX_SLIDES = 10;
 
