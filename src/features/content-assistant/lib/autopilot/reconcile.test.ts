@@ -91,6 +91,69 @@ describe('autopilot plan reconciliation', () => {
       assets,
     });
     expect(d.action).toBe('repair_carousel');
+    expect(d).toMatchObject({ reason: 'autopilot_collapse_to_single', keepPrimary: true });
+  });
+
+  it('9. valid Autopilot READY carousel (all children ok) → still collapse to single', () => {
+    const assets = new Map([
+      ['a1', { media_kind: 'image' }],
+      ['a2', { media_kind: 'image' }],
+      ['a3', { media_kind: 'image' }],
+      ['a4', { media_kind: 'image' }],
+      ['a5', { media_kind: 'image' }],
+    ]);
+    const evening = decideSlotReconcile({
+      slot: slot({
+        id: 'a51ea327-4ac2-4149-addc-c4bf7777e91e',
+        assetId: 'a1',
+        carouselAssetIds: ['a1', 'a2'],
+        status: 'ready',
+      }),
+      assets,
+    });
+    expect(evening).toEqual({
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    });
+
+    const midday = decideSlotReconcile({
+      slot: slot({
+        id: '03f0b3b3-450c-4d90-8155-ac079f78e9e2',
+        assetId: 'a1',
+        carouselAssetIds: ['a1', 'a2', 'a3', 'a4', 'a5'],
+        status: 'ready',
+      }),
+      assets,
+    });
+    expect(midday.action).toBe('repair_carousel');
+  });
+
+  it('10. published carousel → ignore_published (unverändert)', () => {
+    const assets = new Map([
+      ['a1', { media_kind: 'image' }],
+      ['a2', { media_kind: 'image' }],
+    ]);
+    const d = decideSlotReconcile({
+      slot: slot({
+        id: '950a34c8-published',
+        status: 'published',
+        assetId: 'a1',
+        carouselAssetIds: ['a1', 'a2', 'a3', 'a4', 'a5'],
+      }),
+      assets,
+    });
+    expect(d.action).toBe('ignore_published');
+  });
+
+  it('single-image feed with empty carousel stays keep', () => {
+    const assets = new Map([['a1', { media_kind: 'image' }]]);
+    expect(
+      decideSlotReconcile({
+        slot: slot({ id: 's', assetId: 'a1', carouselAssetIds: [] }),
+        assets,
+      }).action
+    ).toBe('keep');
   });
 
   it('failed/publishing terminal statuses are not rewritten', () => {

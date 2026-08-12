@@ -195,16 +195,49 @@ async function publishOneSlot(
   const carouselFromSlot = (slot.carousel_asset_ids ?? []).filter(Boolean);
   const carouselFromDraft = (draftPre.carousel_asset_ids ?? []).filter(Boolean);
   const primaryId = slot.asset_id ?? draftPre.asset_id;
-  const publishAssetIds = [
-    ...new Set(
-      [
-        primaryId,
-        ...(!isStory && carouselFromSlot.length >= 2 ? carouselFromSlot : []),
-        ...(!isStory && carouselFromDraft.length >= 2 ? carouselFromDraft : []),
-      ].filter(Boolean) as string[]
-    ),
-  ].slice(0, 10);
-  const isCarousel = !isStory && publishAssetIds.length >= 2;
+
+  // AUTOPILOT HARD RULE: Feed = exactly 1 image. Never publish as carousel.
+  // Legacy multi-asset slots are collapsed to the primary before publish.
+  // Manual Content Assistant carousel publishing is a separate code path.
+  const hadLegacyCarousel =
+    !isStory &&
+    (carouselFromSlot.length >= 2 ||
+      carouselFromDraft.length >= 2 ||
+      [...carouselFromSlot, ...carouselFromDraft].some(
+        (id) => id && id !== primaryId
+      ));
+
+  if (hadLegacyCarousel && primaryId) {
+    console.warn('autopilot_publish_collapse_carousel', {
+      slotId: slot.id,
+      primaryId,
+      slotCarouselCount: carouselFromSlot.length,
+      draftCarouselCount: carouselFromDraft.length,
+    });
+    await admin
+      .from('content_autopilot_slots')
+      .update({
+        asset_id: primaryId,
+        carousel_asset_ids: [],
+        content_format: 'feed',
+        selection_reason:
+          'Autopilot publish safety: Carousel → Single-Image Feed (1 Image only).',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', slot.id);
+    // Preserve caption / hashtags / cta — only clear companions.
+    await admin
+      .from('content_drafts')
+      .update({
+        asset_id: primaryId,
+        carousel_asset_ids: [],
+      })
+      .eq('id', slot.draft_id);
+  }
+
+  const publishAssetIds = primaryId ? [primaryId] : [];
+  // AUTOPILOT HARD RULE: never set isCarousel true on the publish path.
+  const isCarousel = false;
 
   // Feed/Carousel only: one optimization pass. Image Story + Video Story skip (no extra AI).
   if (!isStory) {

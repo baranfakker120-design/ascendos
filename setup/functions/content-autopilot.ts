@@ -1132,12 +1132,15 @@ export function selectBestAutopilotAsset(params: {
 
 // ---- inline: _shared/content-autopilot/carouselBundle.ts ----
 /**
- * Autopilot feed bundle: 1 image → single feed; 2–10 images → carousel.
- * Images only. No duplicates. Respects reservation set.
+ * Autopilot feed bundle: ALWAYS exactly 1 image.
+ *
+ * Hard rule (2026-08): Autopilot must never plan, reserve, or publish carousels.
+ * Manual Content Assistant carousel (lib/carousel/*) is unrelated and untouched.
  */
 
 
-export const AUTOPILOT_CAROUSEL_MAX = CAROUSEL_MAX_ASSETS; // Instagram Graph hard max = 10
+/** Kept for Instagram Graph max reference — Autopilot never uses multi-slide. */
+export const AUTOPILOT_CAROUSEL_MAX = CAROUSEL_MAX_ASSETS; // 10
 
 export interface AutopilotFeedBundle {
   assets: AutopilotEligibleAsset[];
@@ -1146,24 +1149,54 @@ export interface AutopilotFeedBundle {
   reasons: string[];
   /** Always 'feed' for image autopilot (never reel). */
   contentFormat: 'feed';
-  isCarousel: boolean;
+  /** Always false — Autopilot feed is single-image only. */
+  isCarousel: false;
 }
 
-/** Target slide count for a feed slot (1–10). Midday prefers multi-image. */
-export function targetCarouselSize(params: {
+/**
+ * Autopilot hard block: feed target size is always exactly 1.
+ * Daypart no longer expands to 2/3/5.
+ */
+export function targetCarouselSize(_params: {
   hour: number;
   availableEligible: number;
 }): number {
-  const daypart = daypartFromHour(params.hour);
-  let target = 1;
-  if (daypart === 'midday') target = 5;
-  else if (daypart === 'afternoon') target = 3;
-  else if (daypart === 'evening') target = 2;
-  else target = 1;
+  return 1;
+}
 
-  target = Math.min(AUTOPILOT_CAROUSEL_MAX, Math.max(1, target));
-  // Never request more than remaining eligible images
-  return Math.min(target, Math.max(1, params.availableEligible));
+/** Autopilot feed ids: keep only the primary (first) asset. */
+export function clampAutopilotFeedAssetIds(ids: readonly string[]): string[] {
+  for (const id of ids) {
+    if (id) return [id];
+  }
+  return [];
+}
+
+/**
+ * Collapse a legacy Autopilot multi-asset feed slot to single-image.
+ * Preserves primary; clears companions. Does not touch caption/hashtags/cta.
+ */
+export function collapseAutopilotFeedToSingle(params: {
+  assetId: string | null;
+  carouselAssetIds: readonly string[];
+}): {
+  assetId: string | null;
+  carouselAssetIds: [];
+  isCarousel: false;
+  contentFormat: 'feed';
+  collapsed: boolean;
+} {
+  const companions = params.carouselAssetIds.filter((id) => Boolean(id));
+  const primary = params.assetId || companions[0] || null;
+  const hasExtra =
+    companions.length >= 2 || companions.some((id) => id && id !== params.assetId);
+  return {
+    assetId: primary,
+    carouselAssetIds: [],
+    isCarousel: false,
+    contentFormat: 'feed',
+    collapsed: hasExtra,
+  };
 }
 
 export function selectAutopilotFeedBundle(params: {
@@ -1175,9 +1208,7 @@ export function selectAutopilotFeedBundle(params: {
   history: readonly AutopilotHistoryItem[];
   minScore?: number;
 }): AutopilotFeedBundle | null {
-  const eligiblePool = params.assets.filter(
-    (a) => isEligibleAutopilotFeedAsset(a) && !params.reservedAssetIds.has(a.id)
-  );
+  void isEligibleAutopilotFeedAsset;
   const best = selectBestAutopilotAsset({
     assets: params.assets,
     slotKind: 'feed',
@@ -1190,72 +1221,19 @@ export function selectAutopilotFeedBundle(params: {
   });
   if (!best) return null;
 
-  const target = targetCarouselSize({
+  // Hard block: never pick additional slides, regardless of hour / pool size.
+  void targetCarouselSize({
     hour: params.hour,
-    availableEligible: eligiblePool.length,
+    availableEligible: params.assets.length,
   });
 
-  const picked: AutopilotEligibleAsset[] = [best.asset];
-  const reserved = new Set(params.reservedAssetIds);
-  reserved.add(best.asset.id);
-
-  if (target >= 2) {
-    const scored = eligiblePool
-      .filter((a) => a.id !== best.asset.id)
-      .map((asset) =>
-        scoreAutopilotCandidate({
-          asset,
-          slotKind: 'feed',
-          weekday: params.weekday,
-          hour: params.hour,
-          nowIso: params.nowIso,
-          reservedAssetIds: reserved,
-          history: params.history,
-        })
-      )
-      .filter((s): s is NonNullable<typeof s> => Boolean(s))
-      // Prefer same category / theme cohesion for carousel slides
-      .map((s) => {
-        let bonus = 0;
-        if (s.category === best.category) bonus += 12;
-        if (
-          best.asset.theme &&
-          s.asset.theme &&
-          String(s.asset.theme).toLowerCase() === String(best.asset.theme).toLowerCase()
-        ) {
-          bonus += 8;
-        }
-        return { ...s, score: s.score + bonus };
-      })
-      .sort((a, b) => b.score - a.score);
-
-    for (const s of scored) {
-      if (picked.length >= target) break;
-      if (picked.length >= AUTOPILOT_CAROUSEL_MAX) break;
-      if (reserved.has(s.asset.id)) continue;
-      if (s.score < (params.minScore ?? 35) - 5) continue;
-      picked.push(s.asset);
-      reserved.add(s.asset.id);
-    }
-  }
-
-  // Cap hard at 10; never pack 11+
-  const assets = picked.slice(0, AUTOPILOT_CAROUSEL_MAX);
-  const isCarousel = assets.length >= 2;
-  const reasons = [
-    ...best.reasons.slice(0, 2),
-    isCarousel
-      ? `Image-Carousel mit ${assets.length} Slides (max ${AUTOPILOT_CAROUSEL_MAX}).`
-      : 'Single-Image Feed.',
-  ];
-
   return {
-    assets,
-    primary: assets[0],
+    assets: [best.asset],
+    primary: best.asset,
     category: best.category,
-    reasons,
+    reasons: [...best.reasons.slice(0, 2), 'Single-Image Feed (Autopilot — kein Carousel).'],
     contentFormat: 'feed',
-    isCarousel,
+    isCarousel: false,
   };
 }
 
@@ -1987,14 +1965,26 @@ export function decideSlotReconcile(params: {
     return { action: 'replace', reason: 'asset_missing_or_ineligible' };
   }
 
-  // Feed carousel: any missing/non-image child → repair (may shrink or replace)
+  // AUTOPILOT HARD RULE: any multi-asset feed → collapse to single image (never re-expand).
+  // Manual Content Assistant carousels are not stored as autopilot slots.
   if (kind === 'feed' && slot.carouselAssetIds.length >= 2) {
-    for (const id of slot.carouselAssetIds) {
-      const a = assetsById.get(id);
-      if (!assetValidForSlot(a, 'feed')) {
-        return { action: 'repair_carousel', reason: 'carousel_child_invalid', keepPrimary: true };
-      }
-    }
+    return {
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    };
+  }
+  // Also collapse if companions remain even when length check used primary+children shape
+  if (
+    kind === 'feed' &&
+    slot.carouselAssetIds.length >= 1 &&
+    slot.carouselAssetIds.some((id) => id && id !== slot.assetId)
+  ) {
+    return {
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    };
   }
 
   // Video must never sit on a feed slot (defense in depth)
@@ -2028,24 +2018,22 @@ export function pickReplacementAsset(params: {
   return best?.asset ?? null;
 }
 
-/** Filter carousel ids to still-valid images; drop dups; cap 10. */
+/**
+ * Autopilot repair: always collapse to the primary image only.
+ * Never rebuild multi-slide carousels. `max` is ignored (hard max = 1).
+ */
 export function repairCarouselAssetIds(params: {
   primaryId: string;
   carouselAssetIds: string[];
   assetsById: ReadonlyMap<string, AutopilotEligibleAsset>;
   max: number;
 }): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const id of [params.primaryId, ...params.carouselAssetIds]) {
-    if (!id || seen.has(id)) continue;
-    const a = params.assetsById.get(id);
-    if (!assetValidForSlot(a, 'feed')) continue;
-    seen.add(id);
-    out.push(id);
-    if (out.length >= params.max) break;
-  }
-  return out;
+  void params.max;
+  void params.carouselAssetIds;
+  if (!params.primaryId) return [];
+  const primary = params.assetsById.get(params.primaryId);
+  if (!assetValidForSlot(primary, 'feed')) return [];
+  return [params.primaryId];
 }
 
 /** Pure multi-slot plan: which slot ids need replace vs keep. */
@@ -2065,7 +2053,7 @@ export interface PlannedSlotDraft {
   slotKind: AutopilotSlotKind;
   contentFormat: AutopilotContentFormat;
   assetId: string;
-  /** Additional image IDs for carousel (excludes primary). Empty for single/story. */
+  /** Always empty — Autopilot feed never carries carousel children. */
   carouselAssetIds: string[];
   theme: string | null;
   category: string;
@@ -2084,8 +2072,9 @@ export function resolveAutopilotFormat(
 
 /**
  * Build a week of slots (max 3 feed + 3 stories / day).
- * Feed: image single or image carousel (2–10). Stories: image or video story.
- * Never plans reel / video feed / video carousel.
+ * Feed: ALWAYS exactly 1 image (never carousel).
+ * Stories: image or video story.
+ * Never plans reel / video feed / image carousel / video carousel.
  */
 export function buildAutopilotWeekPlan(params: {
   periodStart: string;
@@ -2171,7 +2160,8 @@ export function buildAutopilotWeekPlan(params: {
           slotKind: kind,
           contentFormat: 'feed',
           assetId: bundle.primary.id,
-          carouselAssetIds: bundle.assets.slice(1).map((a) => a.id),
+          // Hard block: Autopilot feed never carries carousel children.
+          carouselAssetIds: [],
           theme: bundle.primary.theme,
           category: bundle.category,
           selectionReason: bundle.reasons.slice(0, 3).join(' ') || 'Beste Passung für diesen Slot.',
@@ -2258,13 +2248,14 @@ export async function createAutopilotDraftForSlot(
   assetId: string,
   format: 'story' | 'feed' | 'reel',
   category: string,
-  carouselAssetIds: string[] = []
+  /** Ignored — Autopilot never persists carousel companions. */
+  _carouselAssetIds: string[] = []
 ): Promise<string | null> {
-  const carouselIds = [...new Set([assetId, ...carouselAssetIds.filter(Boolean)])];
-  const isCarousel = format === 'feed' && carouselIds.length >= 2;
+  void _carouselAssetIds;
+  // AUTOPILOT HARD RULE: never create carousel drafts (manual carousel is separate).
 
-  // Reuse existing ready draft for same primary + format when not a carousel.
-  if (!isCarousel) {
+  // Reuse existing ready draft for same primary + format.
+  {
     const { data: existing } = await db
       .from('content_drafts')
       .select('id, status, format')
@@ -2336,16 +2327,16 @@ export async function createAutopilotDraftForSlot(
       keywords,
       hashtags,
       clean_check_status: 'clean',
-      clean_check_notes: 'Autopilot draft placeholder — feed/carousel optimized before publish.',
+      clean_check_notes: 'Autopilot draft placeholder — feed optimized before publish.',
       target_audience: asset.audience_hint,
       posting_hint: `Autopilot · ${category}`,
       status: 'ready',
-      carousel_asset_ids: isCarousel ? carouselIds : [],
+      carousel_asset_ids: [],
       analysis_json: {
         source: 'autopilot_v1',
         category,
         reused_analysis: Boolean(analysis && Object.keys(analysis).length),
-        is_carousel: isCarousel,
+        is_carousel: false,
         optimization_pending: format !== 'story',
       },
     })
@@ -2426,14 +2417,14 @@ export async function buildAndInsertAutopilotPlan(
       continue;
     }
 
-    const allCarousel = [s.assetId, ...s.carouselAssetIds];
+    // AUTOPILOT HARD RULE: feed slots persist exactly 1 asset; carousel_asset_ids always [].
     const draftId = await createAutopilotDraftForSlot(
       db,
       membership,
       s.assetId,
       s.contentFormat === 'reel' ? 'feed' : s.contentFormat,
       s.category,
-      s.carouselAssetIds
+      []
     );
     if (!draftId) {
       skipped += 1;
@@ -2442,7 +2433,7 @@ export async function buildAndInsertAutopilotPlan(
         membership_id: membership.id,
         plan_id: plan.id,
         asset_id: s.assetId,
-        carousel_asset_ids: s.carouselAssetIds,
+        carousel_asset_ids: [],
         planned_for: s.plannedFor,
         slot_kind: s.slotKind,
         content_format: s.contentFormat,
@@ -2461,7 +2452,7 @@ export async function buildAndInsertAutopilotPlan(
       plan_id: plan.id,
       draft_id: draftId,
       asset_id: s.assetId,
-      carousel_asset_ids: allCarousel.length >= 2 ? allCarousel : [],
+      carousel_asset_ids: [],
       planned_for: s.plannedFor,
       slot_kind: s.slotKind,
       content_format: s.contentFormat,
@@ -2585,66 +2576,38 @@ export async function reconcileActivePlanForMembership(params: {
     const kind = (slot.slotKind === 'story' ? 'story' : 'feed') as AutopilotSlotKind;
 
     if (decision.action === 'repair_carousel') {
+      // AUTOPILOT HARD RULE: always collapse to primary single-image feed.
+      // Never re-expand. Caption / hashtags / CTA on the draft are preserved
+      // (draft update only clears carousel_asset_ids + may align asset_id).
       const repaired = repairCarouselAssetIds({
         primaryId: slot.assetId ?? '',
         carouselAssetIds: slot.carouselAssetIds,
         assetsById,
-        max: AUTOPILOT_CAROUSEL_MAX,
+        max: 1,
       });
       if (repaired.length === 0) {
         // fall through to full replace
-      } else if (repaired.length === 1) {
+      } else {
         await params.admin
           .from('content_autopilot_slots')
           .update({
             asset_id: repaired[0],
             carousel_asset_ids: [],
             content_format: 'feed',
-            selection_reason: 'Carousel repaired → single image after asset delete.',
+            selection_reason:
+              'Autopilot Carousel → Single-Image Feed (Hard Rule: 1 Image only).',
             error_message: null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', slot.id)
           .in('status', ['planned', 'ready']);
         if (raw.draft_id) {
+          // Preserve caption, hashtags, cta, hook — only clear carousel companions.
           await params.admin
             .from('content_drafts')
             .update({
               asset_id: repaired[0],
               carousel_asset_ids: [],
-              status: 'ready',
-            })
-            .eq('id', raw.draft_id);
-        }
-        summary.repairedCarousel += 1;
-        reserved = reservedFromSlots(
-          (
-            await params.admin
-              .from('content_autopilot_slots')
-              .select('id, asset_id, carousel_asset_ids, status')
-              .eq('plan_id', plan.id)
-          ).data ?? []
-        );
-        continue;
-      } else {
-        await params.admin
-          .from('content_autopilot_slots')
-          .update({
-            asset_id: repaired[0],
-            carousel_asset_ids: repaired,
-            content_format: 'feed',
-            selection_reason: 'Carousel repaired after invalid child asset.',
-            error_message: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', slot.id)
-          .in('status', ['planned', 'ready']);
-        if (raw.draft_id) {
-          await params.admin
-            .from('content_drafts')
-            .update({
-              asset_id: repaired[0],
-              carousel_asset_ids: repaired,
               status: 'ready',
             })
             .eq('id', raw.draft_id);

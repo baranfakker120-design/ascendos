@@ -4,7 +4,6 @@
  */
 
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
-import { AUTOPILOT_CAROUSEL_MAX } from './carouselBundle.ts';
 import { createAutopilotDraftForSlot } from './persistPlan.ts';
 import {
   decideSlotReconcile,
@@ -112,66 +111,38 @@ export async function reconcileActivePlanForMembership(params: {
     const kind = (slot.slotKind === 'story' ? 'story' : 'feed') as AutopilotSlotKind;
 
     if (decision.action === 'repair_carousel') {
+      // AUTOPILOT HARD RULE: always collapse to primary single-image feed.
+      // Never re-expand. Caption / hashtags / CTA on the draft are preserved
+      // (draft update only clears carousel_asset_ids + may align asset_id).
       const repaired = repairCarouselAssetIds({
         primaryId: slot.assetId ?? '',
         carouselAssetIds: slot.carouselAssetIds,
         assetsById,
-        max: AUTOPILOT_CAROUSEL_MAX,
+        max: 1,
       });
       if (repaired.length === 0) {
         // fall through to full replace
-      } else if (repaired.length === 1) {
+      } else {
         await params.admin
           .from('content_autopilot_slots')
           .update({
             asset_id: repaired[0],
             carousel_asset_ids: [],
             content_format: 'feed',
-            selection_reason: 'Carousel repaired → single image after asset delete.',
+            selection_reason:
+              'Autopilot Carousel → Single-Image Feed (Hard Rule: 1 Image only).',
             error_message: null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', slot.id)
           .in('status', ['planned', 'ready']);
         if (raw.draft_id) {
+          // Preserve caption, hashtags, cta, hook — only clear carousel companions.
           await params.admin
             .from('content_drafts')
             .update({
               asset_id: repaired[0],
               carousel_asset_ids: [],
-              status: 'ready',
-            })
-            .eq('id', raw.draft_id);
-        }
-        summary.repairedCarousel += 1;
-        reserved = reservedFromSlots(
-          (
-            await params.admin
-              .from('content_autopilot_slots')
-              .select('id, asset_id, carousel_asset_ids, status')
-              .eq('plan_id', plan.id)
-          ).data ?? []
-        );
-        continue;
-      } else {
-        await params.admin
-          .from('content_autopilot_slots')
-          .update({
-            asset_id: repaired[0],
-            carousel_asset_ids: repaired,
-            content_format: 'feed',
-            selection_reason: 'Carousel repaired after invalid child asset.',
-            error_message: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', slot.id)
-          .in('status', ['planned', 'ready']);
-        if (raw.draft_id) {
-          await params.admin
-            .from('content_drafts')
-            .update({
-              asset_id: repaired[0],
-              carousel_asset_ids: repaired,
               status: 'ready',
             })
             .eq('id', raw.draft_id);

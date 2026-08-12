@@ -23,7 +23,7 @@ export interface PlannedSlotDraft {
   slotKind: AutopilotSlotKind;
   contentFormat: AutopilotContentFormat;
   assetId: string;
-  /** Additional image IDs for carousel (excludes primary). Empty for single/story. */
+  /** Always empty — Autopilot feed never carries carousel children. */
   carouselAssetIds: string[];
   theme: string | null;
   category: string;
@@ -42,8 +42,9 @@ export function resolveAutopilotFormat(
 
 /**
  * Build a week of slots (max 3 feed + 3 stories / day).
- * Feed: image single or image carousel (2–10). Stories: image or video story.
- * Never plans reel / video feed / video carousel.
+ * Feed: ALWAYS exactly 1 image (never carousel).
+ * Stories: image or video story.
+ * Never plans reel / video feed / image carousel / video carousel.
  */
 export function buildAutopilotWeekPlan(params: {
   periodStart: string;
@@ -129,7 +130,8 @@ export function buildAutopilotWeekPlan(params: {
           slotKind: kind,
           contentFormat: 'feed',
           assetId: bundle.primary.id,
-          carouselAssetIds: bundle.assets.slice(1).map((a) => a.id),
+          // Hard block: Autopilot feed never carries carousel children.
+          carouselAssetIds: [],
           theme: bundle.primary.theme,
           category: bundle.category,
           selectionReason: bundle.reasons.slice(0, 3).join(' ') || 'Beste Passung für diesen Slot.',
