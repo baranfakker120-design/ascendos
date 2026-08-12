@@ -32,6 +32,19 @@ export function formatBerlinDate(iso: string | Date, locale = 'de'): string {
   });
 }
 
+/**
+ * Calendar-day offset of `startsAt` vs `now` in Europe/Berlin
+ * (0 = heute, 1 = morgen, negative = past day).
+ */
+export function berlinCalendarDayOffset(startsAt: string | Date, now: Date = new Date()): number {
+  const start = startsAt instanceof Date ? startsAt : new Date(startsAt);
+  const startYmd = berlinYmd(start);
+  const nowYmd = berlinYmd(now);
+  const startMid = Date.parse(`${startYmd}T12:00:00Z`);
+  const nowMid = Date.parse(`${nowYmd}T12:00:00Z`);
+  return Math.round((startMid - nowMid) / 86_400_000);
+}
+
 /** End clock from local datetime-local start + duration (minutes). */
 export function endLocalInputValue(startsLocal: string, durationMinutes: number): string {
   if (!startsLocal || !Number.isFinite(durationMinutes) || durationMinutes <= 0) return '';

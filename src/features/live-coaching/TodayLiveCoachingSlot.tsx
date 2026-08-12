@@ -6,12 +6,13 @@ import { LiveCoachingPushEnableCard } from './LiveCoachingPushEnableCard';
 import { useLiveCoachingEvents } from './liveCoachingApi';
 import { flushDueLocalNotifications } from './notifications';
 import { isOverlayDismissed, readOverlayDismiss } from './overlayDismiss';
-import { pickTodayCoachingEvent } from './pickTodayEvent';
+import { listPresentableCoachingEvents } from './pickTodayEvent';
 import './live-coaching.css';
 
 /**
  * Additive Today slot — does not alter Daily Plan state machine.
- * Hides finished events automatically via pickTodayCoachingEvent.
+ * Shows active upcoming / LIVE events (including 2–3 days ahead).
+ * Finished events hide automatically; history remains in DB.
  * Push opt-in remains visible so members can subscribe before events exist.
  */
 export function TodayLiveCoachingSlot() {
@@ -44,7 +45,9 @@ export function TodayLiveCoachingSlot() {
     };
   }, []);
 
-  const event = pickTodayCoachingEvent(events);
+  const presentable = listPresentableCoachingEvents(events);
+  const event = presentable[0] ?? null;
+  const upcoming = presentable.slice(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +74,16 @@ export function TodayLiveCoachingSlot() {
     <section className="space-y-2" aria-label={t('liveCoaching.slotTitle')}>
       <LiveCoachingPushEnableCard />
       {event ? <LiveCoachingCard event={event} /> : null}
+      {upcoming.length > 0 ? (
+        <div className="live-coach-upcoming" aria-label={t('liveCoaching.upcomingTitle')}>
+          <p className="live-coach-upcoming__title">{t('liveCoaching.upcomingTitle')}</p>
+          <div className="live-coach-upcoming__list">
+            {upcoming.map((ev) => (
+              <LiveCoachingCard key={ev.id} event={ev} compact />
+            ))}
+          </div>
+        </div>
+      ) : null}
       {event && dismissReady && overlayOpen && !dismissed ? (
         <LiveCoachingOverlay
           event={event}

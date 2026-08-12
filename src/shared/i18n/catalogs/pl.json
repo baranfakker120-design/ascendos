@@ -876,7 +876,13 @@
     "newcomer": "Nowa osoba"
   },
   "liveCoaching": {
-    "countdown": "Odliczanie · {time}",
+    "countdown": "Jeszcze {time}",
+    "clock": "{time}",
+    "whenToday": "Dziś · {time}",
+    "whenTomorrow": "Jutro · {time}",
+    "whenDate": "{date} · {time}",
+    "durationMinutes": "Czas trwania {n} minut",
+    "upcomingTitle": "Kolejne nadchodzące coachingi",
     "live": "NA ŻYWO",
     "finished": "Zakończone",
     "join": "Dołącz do Live Coaching",

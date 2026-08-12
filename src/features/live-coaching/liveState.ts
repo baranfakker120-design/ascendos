@@ -32,10 +32,27 @@ export function countdownParts(
   return { totalMs, days, hours, minutes, seconds };
 }
 
-export function formatCountdown(startsAt: string | Date, now: Date = new Date()): string {
+/**
+ * Human countdown for Home / overlay.
+ * German default: "1 Tag / 14 Std. / 47 Min." (wrapped by i18n as "Noch …").
+ */
+export function formatCountdown(
+  startsAt: string | Date,
+  now: Date = new Date(),
+  locale = 'de'
+): string {
   const { days, hours, minutes, seconds, totalMs } = countdownParts(startsAt, now);
   if (totalMs <= 0) return 'LIVE';
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-  return `${minutes}m ${seconds}s`;
+  const de = locale.toLowerCase().startsWith('de');
+  if (de) {
+    if (days > 0) {
+      const dayLabel = days === 1 ? 'Tag' : 'Tage';
+      return `${days} ${dayLabel} / ${hours} Std. / ${minutes} Min.`;
+    }
+    if (hours > 0) return `${hours} Std. / ${minutes} Min. / ${seconds} Sek.`;
+    return `${minutes} Min. / ${seconds} Sek.`;
+  }
+  if (days > 0) return `${days}d / ${hours}h / ${minutes}m`;
+  if (hours > 0) return `${hours}h / ${minutes}m / ${seconds}s`;
+  return `${minutes}m / ${seconds}s`;
 }
