@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { endLocalInputValue, formatEndClock } from './berlinTime';
-import { assertValidDuration } from './liveCoachingApi';
+import { assertValidDuration } from './duration';
 
 describe('duration end time', () => {
   it('computes end for 30/60/90 minutes', () => {

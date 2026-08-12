@@ -24,12 +24,14 @@ import {
   useLiveCoachingEvents,
   useLiveCoachingMutations,
 } from './liveCoachingApi';
+import { LiveCoachingPushEnableCard } from './LiveCoachingPushEnableCard';
 import {
   LIVE_COACHING_CATEGORIES,
   type LiveCoachingEvent,
   type LiveMediaType,
   type LiveRepeatRule,
 } from './types';
+import './live-coaching.css';
 
 const DURATION_PRESETS = [30, 45, 60, 75, 90, 120];
 
@@ -418,6 +420,8 @@ export function LiveCoachingAdminPage() {
         </h1>
         <p className="mt-1 text-sm text-muted">{t('liveCoaching.adminSubtitle')}</p>
       </header>
+
+      <LiveCoachingPushEnableCard />
 
       {message ? <Alert tone="info">{message}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}

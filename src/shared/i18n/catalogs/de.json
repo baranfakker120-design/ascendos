@@ -938,7 +938,18 @@
     "titleRequired": "Titel fehlt.",
     "discardDraft": "Verwerfen",
     "draftDiscarded": "Entwurf verworfen.",
-    "draftHint": "Entwurf wird automatisch gespeichert — auch bei App-Wechsel."
+    "draftHint": "Entwurf wird automatisch gespeichert — auch bei App-Wechsel.",
+    "pushTitle": "🔔 Live-Coaching Erinnerungen",
+    "pushBody": "Damit du kein wichtiges Zoom-Coaching verpasst.",
+    "pushBodyStandalone": "Damit du kein wichtiges Zoom-Coaching verpasst — auch wenn AscendOS geschlossen ist.",
+    "pushEnableCta": "Benachrichtigungen aktivieren",
+    "pushEnabling": "Wird aktiviert …",
+    "pushEnabledTitle": "✓ Erinnerungen aktiviert",
+    "pushEnabledBody": "Benachrichtigungen aktiviert",
+    "pushReminder45": "45 Minuten vorher",
+    "pushReminder5": "5 Minuten vorher",
+    "pushDeniedBody": "Benachrichtigungen sind derzeit deaktiviert. Du kannst sie später in den iPhone-Einstellungen aktivieren.",
+    "pushMissingVapid": "Push ist noch nicht konfiguriert (VAPID Public Key fehlt). Bitte Admin / Deploy-Env prüfen."
   },
   "push": {
     "publishedTitle": "Neues Live Coaching",

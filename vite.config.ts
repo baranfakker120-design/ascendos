@@ -40,6 +40,12 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        // Live Coaching Web Push handlers (closed PWA).
+        importScripts: ['/coaching-push-sw.js'],
+        clientsClaim: true,
+        skipWaiting: true,
+      },
     }),
   ],
   resolve: {

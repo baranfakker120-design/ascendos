@@ -1,5 +1,6 @@
 import { createTranslator } from '@shared/i18n';
 import { readStoredLocale } from '@shared/lib/locale';
+import { isWebPushPrimaryActive } from './webPush';
 
 /**
  * Outbox/DB kind `t_minus_30` is retained for schema compatibility (no migration).
@@ -173,14 +174,25 @@ export function upsertLocalNotificationPlan(
   return next;
 }
 
-/** Fire due local notifications (call on app focus / interval). Each kind once. */
+/**
+ * Fire due local notifications (fallback when Web Push is not primary).
+ * When Web Push subscription is active on this device, skip T−45/T−5 locally
+ * to avoid duplicate banners alongside server push. `published` may still fire
+ * on the publisher device at save time.
+ */
 export async function flushDueLocalNotifications(now: Date = new Date()): Promise<number> {
+  const webPushPrimary = isWebPushPrimaryActive();
   const items = readLocalNotificationSchedule();
   let fired = 0;
   const next: LocalScheduledNotification[] = [];
   for (const item of items) {
     if (item.fired) {
       next.push(item);
+      continue;
+    }
+    if (webPushPrimary && (item.kind === 't_minus_30' || item.kind === 't_minus_5')) {
+      // Server Web Push owns these reminders — mark local as handled.
+      next.push({ ...item, fired: true });
       continue;
     }
     if (new Date(item.scheduledFor).getTime() <= now.getTime()) {
@@ -198,4 +210,13 @@ export async function flushDueLocalNotifications(now: Date = new Date()): Promis
   }
   writeLocalNotificationSchedule(next);
   return fired;
+}
+
+/** Sync helper for tests — whether local flush should skip a kind. */
+export function shouldSkipLocalReminderKind(
+  kind: CoachingNotifyKind,
+  webPushPrimary: boolean
+): boolean {
+  if (!webPushPrimary) return false;
+  return kind === 't_minus_30' || kind === 't_minus_5';
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
+import { assertValidDuration } from './duration';
 import {
   buildCoachingNotificationPlan,
   clearLocalNotificationsForEvent,
@@ -9,6 +10,7 @@ import {
 import type { LiveCoachingEvent, LiveMediaType, LiveRepeatRule } from './types';
 
 export { pickTodayCoachingEvent } from './pickTodayEvent';
+export { assertValidDuration } from './duration';
 
 const MEDIA_BUCKET = 'coaching-media';
 const IMAGE_ACCEPT = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -49,12 +51,6 @@ export interface SaveLiveCoachingInput {
   active: boolean;
   publish: boolean;
   actorId: string | null;
-}
-
-export function assertValidDuration(minutes: number): void {
-  if (!Number.isFinite(minutes) || minutes < 5 || minutes > 480) {
-    throw new Error('invalid_duration');
-  }
 }
 
 export function isAllowedLiveCoachingImage(file: File): boolean {
@@ -183,6 +179,13 @@ export function useLiveCoachingMutations() {
         await scheduleReminders(event);
       } else {
         clearLocalNotificationsForEvent(event.id);
+        // Drop unsent outbox rows so inactive/archived events never push.
+        const { error: clearErr } = await supabase
+          .from('coaching_notification_outbox')
+          .delete()
+          .eq('event_id', event.id)
+          .is('sent_at', null);
+        if (clearErr) console.warn('coaching outbox clear', clearErr.message);
       }
 
       return event;
