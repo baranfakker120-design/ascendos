@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
-import {
-  berlinCalendarDayOffset,
-  formatBerlinDate,
-  formatBerlinTime,
-} from './berlinTime';
+import { berlinCalendarDayOffset, formatBerlinDate, formatBerlinTime } from './berlinTime';
 import { buildGoogleCalendarUrl, buildOutlookCalendarUrl, downloadAppleIcs } from './calendarLinks';
 import { formatCountdown, resolveLiveCoachingState } from './liveState';
 import type { LiveCoachingEvent } from './types';
@@ -99,9 +95,7 @@ export function LiveCoachingCard({
         {event.subtitle ? <p className="live-coach-card__subtitle">{event.subtitle}</p> : null}
         <div className="live-coach-card__meta">
           <span className="live-coach-card__when">{whenLabel}</span>
-          <span>
-            {t('liveCoaching.durationMinutes', { n: event.duration_minutes })}
-          </span>
+          <span>{t('liveCoaching.durationMinutes', { n: event.duration_minutes })}</span>
           {state !== 'live' ? (
             <span className="live-coach-card__countdown">{stateLabel}</span>
           ) : (

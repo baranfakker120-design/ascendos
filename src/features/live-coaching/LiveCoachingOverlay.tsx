@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
-import {
-  berlinCalendarDayOffset,
-  formatBerlinDate,
-  formatBerlinTime,
-} from './berlinTime';
+import { berlinCalendarDayOffset, formatBerlinDate, formatBerlinTime } from './berlinTime';
 import { formatCountdown, resolveLiveCoachingState, endsAt } from './liveState';
 import { dismissOverlayForEvent } from './overlayDismiss';
 import type { LiveCoachingEvent } from './types';

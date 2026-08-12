@@ -36,10 +36,7 @@ export function formatBerlinDate(iso: string | Date, locale = 'de'): string {
  * Calendar-day offset of `startsAt` vs `now` in Europe/Berlin
  * (0 = heute, 1 = morgen, negative = past day).
  */
-export function berlinCalendarDayOffset(
-  startsAt: string | Date,
-  now: Date = new Date()
-): number {
+export function berlinCalendarDayOffset(startsAt: string | Date, now: Date = new Date()): number {
   const start = startsAt instanceof Date ? startsAt : new Date(startsAt);
   const startYmd = berlinYmd(start);
   const nowYmd = berlinYmd(now);
