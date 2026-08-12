@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { berlinCalendarDayOffset, formatBerlinDate, formatBerlinTime } from './berlinTime';
+import { LiveCoachingFlyer } from './LiveCoachingFlyer';
 import { formatCountdown, resolveLiveCoachingState, endsAt } from './liveState';
 import { dismissOverlayForEvent } from './overlayDismiss';
 import type { LiveCoachingEvent } from './types';
@@ -91,11 +92,10 @@ export function LiveCoachingOverlay({ event, onClose }: Props) {
         </p>
         {event.media_url ? (
           <div className="live-coach-overlay__flyer">
-            {event.media_type === 'video' ? (
-              <video src={event.media_url} muted playsInline loop autoPlay />
-            ) : (
-              <img src={event.media_url} alt="" />
-            )}
+            <LiveCoachingFlyer
+              src={event.media_url}
+              mediaType={event.media_type === 'video' ? 'video' : 'image'}
+            />
           </div>
         ) : null}
         <h2 className="live-coach-overlay__title">{event.title}</h2>
