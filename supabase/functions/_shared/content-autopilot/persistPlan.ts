@@ -30,13 +30,14 @@ export async function createAutopilotDraftForSlot(
   assetId: string,
   format: 'story' | 'feed' | 'reel',
   category: string,
-  carouselAssetIds: string[] = []
+  /** Ignored — Autopilot never persists carousel companions. */
+  _carouselAssetIds: string[] = []
 ): Promise<string | null> {
-  const carouselIds = [...new Set([assetId, ...carouselAssetIds.filter(Boolean)])];
-  const isCarousel = format === 'feed' && carouselIds.length >= 2;
+  void _carouselAssetIds;
+  // AUTOPILOT HARD RULE: never create carousel drafts (manual carousel is separate).
 
-  // Reuse existing ready draft for same primary + format when not a carousel.
-  if (!isCarousel) {
+  // Reuse existing ready draft for same primary + format.
+  {
     const { data: existing } = await db
       .from('content_drafts')
       .select('id, status, format')
@@ -108,16 +109,16 @@ export async function createAutopilotDraftForSlot(
       keywords,
       hashtags,
       clean_check_status: 'clean',
-      clean_check_notes: 'Autopilot draft placeholder — feed/carousel optimized before publish.',
+      clean_check_notes: 'Autopilot draft placeholder — feed optimized before publish.',
       target_audience: asset.audience_hint,
       posting_hint: `Autopilot · ${category}`,
       status: 'ready',
-      carousel_asset_ids: isCarousel ? carouselIds : [],
+      carousel_asset_ids: [],
       analysis_json: {
         source: 'autopilot_v1',
         category,
         reused_analysis: Boolean(analysis && Object.keys(analysis).length),
-        is_carousel: isCarousel,
+        is_carousel: false,
         optimization_pending: format !== 'story',
       },
     })
@@ -198,14 +199,14 @@ export async function buildAndInsertAutopilotPlan(
       continue;
     }
 
-    const allCarousel = [s.assetId, ...s.carouselAssetIds];
+    // AUTOPILOT HARD RULE: feed slots persist exactly 1 asset; carousel_asset_ids always [].
     const draftId = await createAutopilotDraftForSlot(
       db,
       membership,
       s.assetId,
       s.contentFormat === 'reel' ? 'feed' : s.contentFormat,
       s.category,
-      s.carouselAssetIds
+      []
     );
     if (!draftId) {
       skipped += 1;
@@ -214,7 +215,7 @@ export async function buildAndInsertAutopilotPlan(
         membership_id: membership.id,
         plan_id: plan.id,
         asset_id: s.assetId,
-        carousel_asset_ids: s.carouselAssetIds,
+        carousel_asset_ids: [],
         planned_for: s.plannedFor,
         slot_kind: s.slotKind,
         content_format: s.contentFormat,
@@ -233,7 +234,7 @@ export async function buildAndInsertAutopilotPlan(
       plan_id: plan.id,
       draft_id: draftId,
       asset_id: s.assetId,
-      carousel_asset_ids: allCarousel.length >= 2 ? allCarousel : [],
+      carousel_asset_ids: [],
       planned_for: s.plannedFor,
       slot_kind: s.slotKind,
       content_format: s.contentFormat,

@@ -80,14 +80,26 @@ export function decideSlotReconcile(params: {
     return { action: 'replace', reason: 'asset_missing_or_ineligible' };
   }
 
-  // Feed carousel: any missing/non-image child → repair (may shrink or replace)
+  // AUTOPILOT HARD RULE: any multi-asset feed → collapse to single image (never re-expand).
+  // Manual Content Assistant carousels are not stored as autopilot slots.
   if (kind === 'feed' && slot.carouselAssetIds.length >= 2) {
-    for (const id of slot.carouselAssetIds) {
-      const a = assetsById.get(id);
-      if (!assetValidForSlot(a, 'feed')) {
-        return { action: 'repair_carousel', reason: 'carousel_child_invalid', keepPrimary: true };
-      }
-    }
+    return {
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    };
+  }
+  // Also collapse if companions remain even when length check used primary+children shape
+  if (
+    kind === 'feed' &&
+    slot.carouselAssetIds.length >= 1 &&
+    slot.carouselAssetIds.some((id) => id && id !== slot.assetId)
+  ) {
+    return {
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    };
   }
 
   // Video must never sit on a feed slot (defense in depth)
@@ -121,24 +133,22 @@ export function pickReplacementAsset(params: {
   return best?.asset ?? null;
 }
 
-/** Filter carousel ids to still-valid images; drop dups; cap 10. */
+/**
+ * Autopilot repair: always collapse to the primary image only.
+ * Never rebuild multi-slide carousels. `max` is ignored (hard max = 1).
+ */
 export function repairCarouselAssetIds(params: {
   primaryId: string;
   carouselAssetIds: string[];
   assetsById: ReadonlyMap<string, AutopilotEligibleAsset>;
   max: number;
 }): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const id of [params.primaryId, ...params.carouselAssetIds]) {
-    if (!id || seen.has(id)) continue;
-    const a = params.assetsById.get(id);
-    if (!assetValidForSlot(a, 'feed')) continue;
-    seen.add(id);
-    out.push(id);
-    if (out.length >= params.max) break;
-  }
-  return out;
+  void params.max;
+  void params.carouselAssetIds;
+  if (!params.primaryId) return [];
+  const primary = params.assetsById.get(params.primaryId);
+  if (!assetValidForSlot(primary, 'feed')) return [];
+  return [params.primaryId];
 }
 
 /** Pure multi-slot plan: which slot ids need replace vs keep. */

@@ -27,6 +27,35 @@ describe('carousel selection', () => {
     expect(isCarouselMode(10)).toBe(true);
   });
 
+  it('7. Manual Carousel 1–10 → weiterhin erlaubt (Autopilot-unabhängig)', () => {
+    for (let n = 1; n <= 10; n += 1) {
+      const ids = Array.from({ length: n }, (_, i) => `a${i}`);
+      expect(isCarouselMode(n)).toBe(n >= 2);
+      if (n < CAROUSEL_MAX_SLIDES) {
+        expect(
+          canAddToSelection({
+            currentIds: ids,
+            nextId: `a${n}`,
+            nextKind: 'image',
+            existingKinds: ids.map(() => 'image' as const),
+          })
+        ).toEqual({ ok: true });
+      }
+    }
+  });
+
+  it('8. Manual Carousel 11 → weiterhin blockiert', () => {
+    const ids = Array.from({ length: 10 }, (_, i) => `a${i}`);
+    expect(
+      canAddToSelection({
+        currentIds: ids,
+        nextId: 'a10',
+        nextKind: 'image',
+        existingKinds: ids.map(() => 'image' as const),
+      })
+    ).toEqual({ ok: false, reason: 'max' });
+  });
+
   it('allows 1, 2, 6, and 10 images', () => {
     for (const n of [1, 2, 6, 10]) {
       const ids = Array.from({ length: n }, (_, i) => `a${i}`);

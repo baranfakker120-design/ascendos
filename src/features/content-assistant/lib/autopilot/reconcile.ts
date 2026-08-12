@@ -45,13 +45,24 @@ export function decideSlotReconcile(params: {
   if (kind === 'feed' && primary.media_kind !== 'image') {
     return { action: 'replace', reason: 'video_not_allowed_on_feed' };
   }
+  // AUTOPILOT HARD RULE: any multi-asset feed → collapse to single (never keep carousel).
   if (kind === 'feed' && slot.carouselAssetIds.length >= 2) {
-    for (const id of slot.carouselAssetIds) {
-      const child = assets.get(id);
-      if (!child || child.media_kind !== 'image') {
-        return { action: 'repair_carousel', reason: 'carousel_child_invalid', keepPrimary: true };
-      }
-    }
+    return {
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    };
+  }
+  if (
+    kind === 'feed' &&
+    slot.carouselAssetIds.length >= 1 &&
+    slot.carouselAssetIds.some((id) => id && id !== slot.assetId)
+  ) {
+    return {
+      action: 'repair_carousel',
+      reason: 'autopilot_collapse_to_single',
+      keepPrimary: true,
+    };
   }
   return { action: 'keep' };
 }
