@@ -1,9 +1,11 @@
 /**
  * Web Push subscription for Live Coaching (iOS Home Screen PWA + browsers).
  * Uses VITE_VAPID_PUBLIC_KEY only — private key never touches the client.
+ *
+ * Supabase is loaded lazily inside persist helpers so unit tests can import
+ * pure helpers (VAPID decode, status flags, payload wiring) without
+ * initializing Realtime/WebSocket at module load (GitHub CI = Node 20).
  */
-
-import { supabase } from '@shared/api/supabase';
 
 const WEB_PUSH_FLAG_KEY = 'ascendos.webPushSubscribed';
 
@@ -132,6 +134,8 @@ export async function persistPushSubscription(
     return { ok: false, error: 'invalid_subscription_keys' };
   }
 
+  // Lazy load: keeps module import CI-safe on Node 20 (no native WebSocket).
+  const { supabase } = await import('@shared/api/supabase');
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: userId,
