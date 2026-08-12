@@ -1120,7 +1120,7 @@
     "unsupportedType": "Bu dosya türü desteklenmiyor.",
     "fileTooLarge": "Dosya çok büyük (en fazla 50 MB).",
     "uploadFailed": "Yükleme başarısız. Lütfen tekrar dene.",
-    "uploadCta": "Varlık yükle",
+    "uploadCta": "Upload assets",
     "uploading": "Yükleniyor …",
     "loading": "Kütüphane yükleniyor …",
     "loadError": "Kütüphane yüklenemedi.",
@@ -1323,6 +1323,12 @@
     "optimizationTitle": "Optimization",
     "igPreviewTitleCarousel": "Instagram carousel preview",
     "igPreviewHintCarousel": "How your carousel will feel before publishing. Nothing posts automatically.",
-    "igPublishNowCarousel": "Publish carousel to Instagram now"
+    "igPublishNowCarousel": "Publish carousel to Instagram now",
+    "uploadProgress": "{done} / {total} uploaded",
+    "uploadPartialOk": "{ok} of {total} images uploaded.",
+    "uploadPartialFail": "{failed} could not be uploaded.",
+    "uploadRemainingSlots": "You can still add {count} assets.",
+    "uploadLibraryFullNow": "{ok} of {selected} images added. Your asset library is now full ({limit}/{limit}).",
+    "uploadBatchCapped": "Maximum {max} files per selection."
   }
 }

@@ -1120,7 +1120,7 @@
     "unsupportedType": "Ten typ pliku nie jest obsługiwany.",
     "fileTooLarge": "Plik jest za duży (maks. 50 MB).",
     "uploadFailed": "Przesyłanie nie powiodło się. Spróbuj ponownie.",
-    "uploadCta": "Prześlij zasób",
+    "uploadCta": "Upload assets",
     "uploading": "Przesyłanie …",
     "loading": "Ładowanie biblioteki …",
     "loadError": "Nie udało się załadować biblioteki.",
@@ -1323,6 +1323,12 @@
     "optimizationTitle": "Optimization",
     "igPreviewTitleCarousel": "Instagram carousel preview",
     "igPreviewHintCarousel": "How your carousel will feel before publishing. Nothing posts automatically.",
-    "igPublishNowCarousel": "Publish carousel to Instagram now"
+    "igPublishNowCarousel": "Publish carousel to Instagram now",
+    "uploadProgress": "{done} / {total} uploaded",
+    "uploadPartialOk": "{ok} of {total} images uploaded.",
+    "uploadPartialFail": "{failed} could not be uploaded.",
+    "uploadRemainingSlots": "You can still add {count} assets.",
+    "uploadLibraryFullNow": "{ok} of {selected} images added. Your asset library is now full ({limit}/{limit}).",
+    "uploadBatchCapped": "Maximum {max} files per selection."
   }
 }

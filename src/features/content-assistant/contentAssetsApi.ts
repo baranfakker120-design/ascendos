@@ -11,9 +11,17 @@ import {
 } from './lib/contentAssets/uploadMime';
 
 export const CONTENT_ASSETS_BUCKET = 'content-assets';
-export const DEFAULT_CONTENT_ASSET_LIMIT = 25;
+export const DEFAULT_CONTENT_ASSET_LIMIT = 50;
 /** Re-export for the file input `accept` attribute. */
 export { CONTENT_ASSET_FILE_ACCEPT };
+
+export {
+  CONTENT_LIBRARY_ASSET_LIMIT,
+  CONTENT_UPLOAD_BATCH_MAX,
+  planMultiUpload,
+  remainingLibrarySlots,
+  isLibraryUploadDisabled,
+} from './lib/contentAssets/multiUpload';
 
 export type ContentAssetScope = 'personal' | 'central';
 export type ContentMediaKind = 'image' | 'video';

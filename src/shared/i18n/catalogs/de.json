@@ -1156,7 +1156,7 @@
     "unsupportedType": "Dieser Dateityp wird nicht unterstützt.",
     "fileTooLarge": "Datei ist zu groß (max. 50 MB).",
     "uploadFailed": "Upload fehlgeschlagen. Bitte erneut versuchen.",
-    "uploadCta": "Asset hochladen",
+    "uploadCta": "Assets hochladen",
     "uploading": "Wird hochgeladen …",
     "loading": "Bibliothek wird geladen …",
     "loadError": "Bibliothek konnte nicht geladen werden.",
@@ -1323,6 +1323,12 @@
     "igPublishVideoResolution": "Videoauflösung nicht unterstützt (Meta: max. 1920 px Breite).",
     "igPublishVideoAspect": "Seitenverhältnis nicht unterstützt (Meta: zwischen 0,01:1 und 10:1).",
     "igPublishImageAspect": "Feed-Bilder brauchen ein Seitenverhältnis zwischen 4:5 und 1,91:1. Wir passen das Bild beim Veröffentlichen automatisch an.",
-    "igPublishVideoNotReady": "Video-Metadaten noch nicht bereit. Bitte kurz warten und erneut versuchen."
+    "igPublishVideoNotReady": "Video-Metadaten noch nicht bereit. Bitte kurz warten und erneut versuchen.",
+    "uploadProgress": "{done} / {total} hochgeladen",
+    "uploadPartialOk": "{ok} von {total} Bildern hochgeladen.",
+    "uploadPartialFail": "{failed} konnten nicht hochgeladen werden.",
+    "uploadRemainingSlots": "Du kannst noch {count} Assets hinzufügen.",
+    "uploadLibraryFullNow": "{ok} von {selected} Bildern hinzugefügt. Deine Asset-Bibliothek ist jetzt voll ({limit}/{limit}).",
+    "uploadBatchCapped": "Maximal {max} Dateien pro Auswahl."
   }
 }
