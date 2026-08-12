@@ -1,7 +1,14 @@
 import { createTranslator } from '@shared/i18n';
 import { readStoredLocale } from '@shared/lib/locale';
 
+/**
+ * Outbox/DB kind `t_minus_30` is retained for schema compatibility (no migration).
+ * Timing is T−45 minutes as required by Live Coaching V2 UX.
+ */
 export type CoachingNotifyKind = 'published' | 't_minus_30' | 't_minus_5';
+
+export const COACHING_REMINDER_T45_MS = 45 * 60_000;
+export const COACHING_REMINDER_T5_MS = 5 * 60_000;
 
 export interface CoachingNotifyPlanItem {
   kind: CoachingNotifyKind;
@@ -19,12 +26,10 @@ export interface ScheduleNotifyInput {
 }
 
 /**
- * Notification schedule after publish:
+ * Notification schedule after publish / activate:
  * - immediately (published)
- * - 30 minutes before
+ * - 45 minutes before (stored as kind t_minus_30 — legacy DB check)
  * - 5 minutes before
- *
- * Past due reminders are skipped (except published, which fires at publish time).
  */
 export function buildCoachingNotificationPlan(
   input: ScheduleNotifyInput
@@ -48,15 +53,15 @@ export function buildCoachingNotificationPlan(
     },
   ];
 
-  const t30 = new Date(startsAt.getTime() - 30 * 60_000);
-  const t5 = new Date(startsAt.getTime() - 5 * 60_000);
+  const t45 = new Date(startsAt.getTime() - COACHING_REMINDER_T45_MS);
+  const t5 = new Date(startsAt.getTime() - COACHING_REMINDER_T5_MS);
 
-  if (t30.getTime() > now.getTime()) {
+  if (t45.getTime() > now.getTime()) {
     items.push({
       kind: 't_minus_30',
-      scheduledFor: t30,
-      title: t('push.t30Title'),
-      body: t('push.t30Body', { title: input.title }),
+      scheduledFor: t45,
+      title: t('push.t45Title'),
+      body: t('push.t45Body', { title: input.title }),
     });
   }
   if (t5.getTime() > now.getTime()) {
@@ -84,26 +89,26 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return result === 'granted';
 }
 
-/**
- * Shows a local notification intended for lock screen / notification center / banner
- * when the browser + OS allow it (PWA / installed context preferred).
- */
-export async function showCoachingNotification(title: string, body: string): Promise<boolean> {
+export async function showCoachingNotification(
+  title: string,
+  body: string,
+  tag?: string
+): Promise<boolean> {
   const ok = await ensureNotificationPermission();
   if (!ok) return false;
+  const notifyTag = tag ?? `coaching-${title}`;
   try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg?.showNotification) {
         await reg.showNotification(title, {
           body,
-          tag: `coaching-${title}`,
+          tag: notifyTag,
         });
         return true;
       }
     }
-    // Banner / Notification Center fallback
-    new Notification(title, { body, tag: `coaching-${title}` });
+    new Notification(title, { body, tag: notifyTag });
     return true;
   } catch {
     return false;
@@ -142,6 +147,11 @@ export function writeLocalNotificationSchedule(items: LocalScheduledNotification
   }
 }
 
+export function clearLocalNotificationsForEvent(eventId: string): void {
+  const next = readLocalNotificationSchedule().filter((n) => n.eventId !== eventId);
+  writeLocalNotificationSchedule(next);
+}
+
 export function upsertLocalNotificationPlan(
   eventId: string,
   plan: CoachingNotifyPlanItem[]
@@ -163,19 +173,24 @@ export function upsertLocalNotificationPlan(
   return next;
 }
 
-/** Fire due local notifications (call on app focus / interval). */
+/** Fire due local notifications (call on app focus / interval). Each kind once. */
 export async function flushDueLocalNotifications(now: Date = new Date()): Promise<number> {
   const items = readLocalNotificationSchedule();
   let fired = 0;
-  const next = [];
+  const next: LocalScheduledNotification[] = [];
   for (const item of items) {
     if (item.fired) {
       next.push(item);
       continue;
     }
     if (new Date(item.scheduledFor).getTime() <= now.getTime()) {
-      const ok = await showCoachingNotification(item.title, item.body);
-      next.push({ ...item, fired: ok || item.kind !== 'published' ? true : item.fired });
+      const ok = await showCoachingNotification(
+        item.title,
+        item.body,
+        `coaching-${item.eventId}-${item.kind}`
+      );
+      // Mark fired only on success so we can retry if permission was denied.
+      next.push({ ...item, fired: ok ? true : item.fired });
       if (ok) fired += 1;
     } else {
       next.push(item);
