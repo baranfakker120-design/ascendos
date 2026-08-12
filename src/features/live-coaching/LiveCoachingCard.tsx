@@ -3,6 +3,7 @@ import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { berlinCalendarDayOffset, formatBerlinDate, formatBerlinTime } from './berlinTime';
 import { buildGoogleCalendarUrl, buildOutlookCalendarUrl, downloadAppleIcs } from './calendarLinks';
+import { LiveCoachingFlyer } from './LiveCoachingFlyer';
 import { formatCountdown, resolveLiveCoachingState } from './liveState';
 import type { LiveCoachingEvent } from './types';
 import { openZoomJoin } from './zoomJoin';
@@ -64,23 +65,18 @@ export function LiveCoachingCard({
 
   if (state === 'finished') return null;
 
-  const mediaClass =
-    event.media_type === 'image'
-      ? 'live-coach-card__media--image'
-      : 'live-coach-card__media--video';
-
   return (
     <article className={`live-coach-card ${compact ? 'live-coach-card--compact' : ''}`}>
-      <div className={`live-coach-card__media ${mediaClass}`}>
-        {event.media_type === 'video' && event.media_url ? (
-          <video src={event.media_url} muted playsInline loop autoPlay controls={false} />
-        ) : event.media_url ? (
-          <img src={event.media_url} alt="" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-white/50">
-            {t('liveCoaching.slotTitle')}
-          </div>
-        )}
+      <div className="live-coach-card__media">
+        <LiveCoachingFlyer
+          src={event.media_url}
+          mediaType={event.media_type === 'video' ? 'video' : 'image'}
+          placeholder={
+            <div className="flex h-full items-center justify-center text-sm text-white/50">
+              {t('liveCoaching.slotTitle')}
+            </div>
+          }
+        />
       </div>
       <div className="live-coach-card__body">
         <p
