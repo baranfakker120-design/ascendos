@@ -78,12 +78,7 @@ describe('autopilot selection — score / category / usage / format', () => {
     expect(withFeed!.score).toBeGreaterThan(noFeed!.score);
   });
 
-  it('applies video-story score penalty vs image story', () => {
-    const imageStory = scoreAutopilotCandidate({
-      ...baseParams,
-      slotKind: 'story',
-      asset: asset({ id: 'img', media_kind: 'image', suggested_formats: ['story'] }),
-    });
+  it('allows video for story scoring but never for feed', () => {
     const videoStory = scoreAutopilotCandidate({
       ...baseParams,
       slotKind: 'story',
@@ -94,10 +89,18 @@ describe('autopilot selection — score / category / usage / format', () => {
         suggested_formats: ['story'],
       }),
     });
-    expect(imageStory).not.toBeNull();
+    const videoFeed = scoreAutopilotCandidate({
+      ...baseParams,
+      slotKind: 'feed',
+      asset: asset({
+        id: 'vid2',
+        media_kind: 'video',
+        mime_type: 'video/mp4',
+        suggested_formats: ['feed', 'reel'],
+      }),
+    });
     expect(videoStory).not.toBeNull();
-    expect(imageStory!.score - videoStory!.score).toBe(6);
-    expect(videoStory!.reasons.some((r) => r.includes('Video-Story'))).toBe(true);
+    expect(videoFeed).toBeNull();
   });
 
   it('selects best scoring asset, not first in list', () => {

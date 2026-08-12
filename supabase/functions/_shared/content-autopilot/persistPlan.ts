@@ -1,6 +1,9 @@
 /**
  * Persist an Autopilot week plan (shared by user activate/replan + cron auto-continue).
  * Instagram-only. No Facebook.
+ *
+ * Drafts are lightweight placeholders; feed/carousel copy is optimized once
+ * immediately before publish (see optimize.ts + content-autopilot-run).
  */
 
 import {
@@ -10,6 +13,7 @@ import {
   type AutopilotHistoryItem,
 } from './types.ts';
 import { buildAutopilotWeekPlan } from './planner.ts';
+import { selectExactFiveHashtags, extractAutopilotKeywords } from './optimize.ts';
 
 /** Minimal DB surface — avoids importing jsr types into the shared group. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,23 +29,30 @@ export async function createAutopilotDraftForSlot(
   membership: AutopilotMembershipRef,
   assetId: string,
   format: 'story' | 'feed' | 'reel',
-  category: string
+  category: string,
+  carouselAssetIds: string[] = []
 ): Promise<string | null> {
-  const { data: existing } = await db
-    .from('content_drafts')
-    .select('id, status, format')
-    .eq('asset_id', assetId)
-    .eq('owner_membership_id', membership.id)
-    .eq('format', format)
-    .in('status', ['draft', 'ready'])
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (existing?.id) {
-    if (existing.status !== 'ready') {
-      await db.from('content_drafts').update({ status: 'ready' }).eq('id', existing.id);
+  const carouselIds = [...new Set([assetId, ...carouselAssetIds.filter(Boolean)])];
+  const isCarousel = format === 'feed' && carouselIds.length >= 2;
+
+  // Reuse existing ready draft for same primary + format when not a carousel.
+  if (!isCarousel) {
+    const { data: existing } = await db
+      .from('content_drafts')
+      .select('id, status, format')
+      .eq('asset_id', assetId)
+      .eq('owner_membership_id', membership.id)
+      .eq('format', format)
+      .in('status', ['draft', 'ready'])
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) {
+      if (existing.status !== 'ready') {
+        await db.from('content_drafts').update({ status: 'ready' }).eq('id', existing.id);
+      }
+      return existing.id as string;
     }
-    return existing.id as string;
   }
 
   const { data: asset } = await db
@@ -65,17 +76,24 @@ export async function createAutopilotDraftForSlot(
   const cta =
     (typeof analysis.cta === 'string' && analysis.cta) ||
     (format === 'story' ? '' : 'Speichere diesen Beitrag für später.');
-  const keywords = Array.isArray(asset.keywords) ? asset.keywords.slice(0, 12) : [];
-  let hashtags: string[] = [];
-  if (Array.isArray(analysis.hashtags)) {
-    hashtags = analysis.hashtags.map(String).map((h) => h.replace(/^#/, '')).slice(0, 5);
-  }
-  while (hashtags.length < 5) {
-    const pad = ['ascendos', 'content', category || 'business', 'team', 'fokus'][hashtags.length];
-    if (!hashtags.includes(pad)) hashtags.push(pad);
-    else hashtags.push(`tag${hashtags.length + 1}`);
-  }
-  hashtags = hashtags.slice(0, 5);
+
+  const keywords = extractAutopilotKeywords({
+    theme: asset.theme,
+    caption: typeof caption === 'string' ? caption : null,
+    analysisKeywords: Array.isArray(asset.keywords) ? asset.keywords.map(String) : [],
+    analysisJson: analysis,
+  });
+
+  const llmHashtags = Array.isArray(analysis.hashtags)
+    ? analysis.hashtags.map(String)
+    : [];
+  const { hashtags } = selectExactFiveHashtags({
+    theme: asset.theme ? String(asset.theme) : null,
+    keywords,
+    llmHashtags,
+    caption: typeof caption === 'string' ? caption : null,
+    contentCategory: category,
+  });
 
   const { data: draft, error } = await db
     .from('content_drafts')
@@ -83,22 +101,24 @@ export async function createAutopilotDraftForSlot(
       org_id: membership.org_id,
       asset_id: assetId,
       owner_membership_id: membership.id,
-      format,
+      format: format === 'reel' ? 'feed' : format,
       hook,
-      caption: format === 'story' ? caption.slice(0, 400) : caption,
+      caption: format === 'story' ? String(caption).slice(0, 400) : caption,
       cta,
       keywords,
       hashtags,
       clean_check_status: 'clean',
-      clean_check_notes: 'Autopilot draft from existing asset analysis / metadata.',
+      clean_check_notes: 'Autopilot draft placeholder — feed/carousel optimized before publish.',
       target_audience: asset.audience_hint,
       posting_hint: `Autopilot · ${category}`,
       status: 'ready',
-      carousel_asset_ids: [],
+      carousel_asset_ids: isCarousel ? carouselIds : [],
       analysis_json: {
         source: 'autopilot_v1',
         category,
         reused_analysis: Boolean(analysis && Object.keys(analysis).length),
+        is_carousel: isCarousel,
+        optimization_pending: format !== 'story',
       },
     })
     .select('id')
@@ -165,6 +185,7 @@ export async function buildAndInsertAutopilotPlan(
         membership_id: membership.id,
         plan_id: plan.id,
         asset_id: null,
+        carousel_asset_ids: [],
         planned_for: s.plannedFor,
         slot_kind: s.slotKind,
         content_format: s.contentFormat,
@@ -177,12 +198,14 @@ export async function buildAndInsertAutopilotPlan(
       continue;
     }
 
+    const allCarousel = [s.assetId, ...s.carouselAssetIds];
     const draftId = await createAutopilotDraftForSlot(
       db,
       membership,
       s.assetId,
-      s.contentFormat,
-      s.category
+      s.contentFormat === 'reel' ? 'feed' : s.contentFormat,
+      s.category,
+      s.carouselAssetIds
     );
     if (!draftId) {
       skipped += 1;
@@ -191,6 +214,7 @@ export async function buildAndInsertAutopilotPlan(
         membership_id: membership.id,
         plan_id: plan.id,
         asset_id: s.assetId,
+        carousel_asset_ids: s.carouselAssetIds,
         planned_for: s.plannedFor,
         slot_kind: s.slotKind,
         content_format: s.contentFormat,
@@ -209,6 +233,7 @@ export async function buildAndInsertAutopilotPlan(
       plan_id: plan.id,
       draft_id: draftId,
       asset_id: s.assetId,
+      carousel_asset_ids: allCarousel.length >= 2 ? allCarousel : [],
       planned_for: s.plannedFor,
       slot_kind: s.slotKind,
       content_format: s.contentFormat,

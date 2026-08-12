@@ -88,6 +88,10 @@ describe('carousel selection', () => {
     expect(replaceInSelection(['a', 'b', 'c'], 1, 'x')).toEqual(['a', 'x', 'c']);
   });
 
+  it('reorders within bounds', () => {
+    expect(reorderSelection(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a']);
+  });
+
   it('reorders 10 assets with drag semantics', () => {
     const ten = Array.from({ length: 10 }, (_, i) => `a${i}`);
     expect(reorderSelection(ten, 0, 9)).toEqual([
@@ -105,7 +109,7 @@ describe('carousel selection', () => {
     expect(reorderSelection(ten, 9, 0)[0]).toBe('a9');
   });
 
-  it('formats live counter as n / 10', () => {
+  it('formats the counter against max 10', () => {
     expect(selectionCounter(0)).toBe('0 / 10');
     expect(selectionCounter(3)).toBe('3 / 10');
     expect(selectionCounter(10)).toBe('10 / 10');

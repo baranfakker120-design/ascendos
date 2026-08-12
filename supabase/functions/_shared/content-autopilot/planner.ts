@@ -6,6 +6,7 @@ import {
   type AutopilotHistoryItem,
   type AutopilotSlotKind,
 } from './types.ts';
+import { selectAutopilotFeedBundle } from './carouselBundle.ts';
 import { selectBestAutopilotAsset } from './selection.ts';
 import {
   berlinUtcOffsetHours,
@@ -22,6 +23,8 @@ export interface PlannedSlotDraft {
   slotKind: AutopilotSlotKind;
   contentFormat: AutopilotContentFormat;
   assetId: string;
+  /** Additional image IDs for carousel (excludes primary). Empty for single/story. */
+  carouselAssetIds: string[];
   theme: string | null;
   category: string;
   selectionReason: string;
@@ -29,18 +32,18 @@ export interface PlannedSlotDraft {
   skipReason?: string;
 }
 
-function resolveFormat(
+/** Autopilot V2: feed is always image feed; story is always story (image or video). Never reel. */
+export function resolveAutopilotFormat(
   slotKind: AutopilotSlotKind,
-  asset: AutopilotEligibleAsset
+  _asset?: AutopilotEligibleAsset
 ): AutopilotContentFormat {
-  if (slotKind === 'story') return 'story';
-  if (asset.media_kind === 'video') return 'reel';
-  return 'feed';
+  return slotKind === 'story' ? 'story' : 'feed';
 }
 
 /**
  * Build a week of slots (max 3 feed + 3 stories / day).
- * Skips slots when no suitable unused asset remains.
+ * Feed: image single or image carousel (2–10). Stories: image or video story.
+ * Never plans reel / video feed / video carousel.
  */
 export function buildAutopilotWeekPlan(params: {
   periodStart: string;
@@ -84,6 +87,58 @@ export function buildAutopilotWeekPlan(params: {
         continue;
       }
 
+      if (kind === 'feed') {
+        const bundle = selectAutopilotFeedBundle({
+          assets: params.assets,
+          weekday,
+          hour,
+          nowIso: plannedFor,
+          reservedAssetIds: reserved,
+          history,
+        });
+
+        if (!bundle) {
+          slots.push({
+            plannedFor,
+            slotKind: kind,
+            contentFormat: 'feed',
+            assetId: '',
+            carouselAssetIds: [],
+            theme: null,
+            category: 'none',
+            selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
+            status: 'skipped',
+            skipReason: 'no_suitable_asset',
+          });
+          continue;
+        }
+
+        for (const a of bundle.assets) {
+          reserved.add(a.id);
+          history.push({
+            assetId: a.id,
+            category: bundle.category,
+            theme: a.theme,
+            publishedAt: plannedFor,
+            slotKind: kind,
+          });
+        }
+
+        slots.push({
+          plannedFor,
+          slotKind: kind,
+          contentFormat: 'feed',
+          assetId: bundle.primary.id,
+          carouselAssetIds: bundle.assets.slice(1).map((a) => a.id),
+          theme: bundle.primary.theme,
+          category: bundle.category,
+          selectionReason: bundle.reasons.slice(0, 3).join(' ') || 'Beste Passung für diesen Slot.',
+          status: 'planned',
+        });
+        continue;
+      }
+
+      // Story — image or video story (never reel)
       const best = selectBestAutopilotAsset({
         assets: params.assets,
         slotKind: kind,
@@ -98,8 +153,9 @@ export function buildAutopilotWeekPlan(params: {
         slots.push({
           plannedFor,
           slotKind: kind,
-          contentFormat: kind === 'story' ? 'story' : 'feed',
+          contentFormat: 'story',
           assetId: '',
+          carouselAssetIds: [],
           theme: null,
           category: 'none',
           selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
@@ -121,8 +177,9 @@ export function buildAutopilotWeekPlan(params: {
       slots.push({
         plannedFor,
         slotKind: kind,
-        contentFormat: resolveFormat(kind, best.asset),
+        contentFormat: 'story',
         assetId: best.asset.id,
+        carouselAssetIds: [],
         theme: best.asset.theme,
         category: best.category,
         selectionReason: best.reasons.slice(0, 3).join(' ') || 'Beste Passung für diesen Slot.',

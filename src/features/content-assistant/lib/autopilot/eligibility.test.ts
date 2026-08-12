@@ -6,6 +6,11 @@ import {
   canActivateAutopilot,
   countByScope,
   countEligibleAssets,
+  countEligibleFeedAssets,
+  isEligibleAutopilotAsset,
+  isEligibleAutopilotFeedAsset,
+  isEligibleAutopilotStoryAsset,
+  isEligibleForSlotKind,
 } from './eligibility';
 
 function asset(
@@ -28,22 +33,59 @@ function asset(
   };
 }
 
-describe('autopilot eligibility', () => {
-  it('requires at least 10 eligible assets across Meine + Zentrale', () => {
-    const nine = Array.from({ length: 9 }, (_, i) =>
-      asset({ id: `p${i}`, scope: i % 2 === 0 ? 'personal' : 'central' })
-    );
-    expect(canActivateAutopilot(nine)).toEqual({
-      ok: false,
-      count: 9,
-      reason: 'below_min_assets',
-    });
+describe('autopilot eligibility V2 — gate vs feed vs story pools', () => {
+  it('gate counts images + videos (>=10)', () => {
+    const mix = [
+      ...Array.from({ length: 7 }, (_, i) => asset({ id: `img${i}` })),
+      ...Array.from({ length: 3 }, (_, i) =>
+        asset({ id: `vid${i}`, media_kind: 'video', storage_path: `org/u/v${i}.mp4` })
+      ),
+    ];
+    expect(countEligibleAssets(mix)).toBe(10);
+    expect(canActivateAutopilot(mix)).toEqual({ ok: true, count: 10 });
     expect(AUTOPILOT_MIN_ELIGIBLE_ASSETS).toBe(10);
-    const ten = [...nine, asset({ id: 'p9' })];
-    expect(canActivateAutopilot(ten)).toEqual({ ok: true, count: 10 });
   });
 
-  it('counts personal + central together and ignores broken assets', () => {
+  it('allows pools above the gate (15 / 25)', () => {
+    expect(
+      canActivateAutopilot(Array.from({ length: 15 }, (_, i) => asset({ id: `i${i}` })))
+    ).toEqual({ ok: true, count: 15 });
+    expect(
+      canActivateAutopilot(Array.from({ length: 25 }, (_, i) => asset({ id: `i${i}` })))
+    ).toEqual({ ok: true, count: 25 });
+  });
+
+  it('feed pool is image-only; story pool allows video', () => {
+    const img = asset({ id: 'img' });
+    const vid = asset({ id: 'vid', media_kind: 'video', storage_path: 'org/u/v.mp4' });
+    expect(isEligibleAutopilotFeedAsset(img)).toBe(true);
+    expect(isEligibleAutopilotFeedAsset(vid)).toBe(false);
+    expect(isEligibleAutopilotStoryAsset(vid)).toBe(true);
+    expect(isEligibleForSlotKind(vid, 'feed')).toBe(false);
+    expect(isEligibleForSlotKind(vid, 'story')).toBe(true);
+    expect(isEligibleForSlotKind(img, 'feed')).toBe(true);
+  });
+
+  it('gate pool != feed pool when videos present', () => {
+    const assets = [
+      ...Array.from({ length: 10 }, (_, i) => asset({ id: `img${i}` })),
+      ...Array.from({ length: 5 }, (_, i) =>
+        asset({ id: `vid${i}`, media_kind: 'video', storage_path: `org/u/v${i}.mp4` })
+      ),
+    ];
+    expect(countEligibleAssets(assets)).toBe(15);
+    expect(countEligibleFeedAssets(assets)).toBe(10);
+  });
+
+  it('videos still count toward gate; not deleted from eligibility', () => {
+    expect(
+      isEligibleAutopilotAsset(
+        asset({ id: 'v1', media_kind: 'video', storage_path: 'org/u/v1/clip.mp4' })
+      )
+    ).toBe(true);
+  });
+
+  it('ignores broken assets in scope counts', () => {
     const assets = [
       asset({ id: '1', scope: 'personal' }),
       asset({ id: '2', scope: 'central' }),

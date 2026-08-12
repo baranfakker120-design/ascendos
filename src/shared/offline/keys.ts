@@ -16,4 +16,7 @@ export const DRAFT_SCOPES = {
   storiesAdmin: 'stories:admin',
   profileEdit: 'profile:edit',
   leadershipNote: (membershipId: string) => `leadership:note:${membershipId}`,
+  /** Live Coaching admin form — survive app switch / navigation. */
+  liveCoachingAdmin: 'live-coaching:admin-form',
+  liveCoachingOverlayDismiss: 'live-coaching:overlay-dismiss',
 } as const;

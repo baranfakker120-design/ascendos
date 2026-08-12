@@ -12,7 +12,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   // x-ascendos-org: org selector from the shared Supabase client (additive; required for browser preflight).
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-ascendos-org',
+    'authorization, x-client-info, apikey, content-type, x-ascendos-org, x-cron-secret',
 };
 
 export function handleOptions(req: Request): Response | null {
@@ -417,7 +417,8 @@ export type PublishAttemptStatus =
   | 'failed'
   | 'cancelled';
 
-export type ContentFormat = 'story' | 'feed' | 'reel';
+/** Named distinctly from content-generate ContentFormat — setup bundles share one scope. */
+export type PublishContentFormat = 'story' | 'feed' | 'reel';
 
 export type MediaKind = 'image' | 'video';
 
@@ -552,7 +553,7 @@ function readGraphError(json: Record<string, unknown>, fallback: string): string
 
 export function resolveMediaProduct(params: {
   mediaKind: MediaKind;
-  format: ContentFormat;
+  format: PublishContentFormat;
 }): {
   mediaType: 'IMAGE' | 'REELS' | 'STORIES' | null;
   useImageUrl: boolean;
@@ -584,7 +585,7 @@ export async function createMediaContainer(params: {
   igUserId: string;
   accessToken: string;
   mediaKind: MediaKind;
-  format: ContentFormat;
+  format: PublishContentFormat;
   mediaUrl: string;
   caption: string;
   /** When true, creates a carousel child item (no caption on child). */
@@ -1063,7 +1064,7 @@ interface DraftRow {
   owner_membership_id: string;
   asset_id: string;
   carousel_asset_ids: string[] | null;
-  format: ContentFormat;
+  format: PublishContentFormat;
   caption: string | null;
   cta: string | null;
   hashtags: string[] | null;
