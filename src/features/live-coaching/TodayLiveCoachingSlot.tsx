@@ -13,7 +13,7 @@ import './live-coaching.css';
  * Additive Today slot — does not alter Daily Plan state machine.
  * Shows active upcoming / LIVE events (including 2–3 days ahead).
  * Finished events hide automatically; history remains in DB.
- * Push opt-in remains visible so members can subscribe before events exist.
+ * Push opt-in shows only when not yet subscribed; success is a brief toast.
  */
 export function TodayLiveCoachingSlot() {
   const { t } = useI18n();

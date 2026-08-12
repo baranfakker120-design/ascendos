@@ -545,6 +545,34 @@
   color: color-mix(in srgb, #f5f2ea 85%, transparent);
 }
 
+/* Temporary success confirmation after opt-in — auto-hides; not a permanent card. */
+.live-coaching-push-toast {
+  border: 1px solid color-mix(in srgb, #3d9a6a 45%, transparent);
+  border-radius: 0.85rem;
+  padding: 0.7rem 1rem;
+  background: color-mix(in srgb, #1a1b1f 88%, #3d9a6a);
+  color: #f5f2ea;
+  animation: live-coaching-push-toast-in 0.28s ease-out;
+}
+
+.live-coaching-push-toast__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+@keyframes live-coaching-push-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .live-coach-card__state--live .live-coach-card__state-dot,
   .live-coach-overlay,
@@ -554,7 +582,8 @@
   .live-coach-flyer__sweep,
   .live-coach-flyer__particle,
   .live-coach-flyer__frame,
-  .live-coach-flyer__fx {
+  .live-coach-flyer__fx,
+  .live-coaching-push-toast {
     animation: none !important;
     transition: none !important;
   }

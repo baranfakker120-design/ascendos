@@ -93,6 +93,9 @@ export function SettingsPage() {
           <div>
             <span className="font-medium">{t('settings.pushTitle')}</span>
             <p className="mt-0.5 text-xs text-muted">{t('settings.pushBody')}</p>
+            {pushEnabled && !pushHint ? (
+              <p className="mt-1 text-xs text-muted">{t('liveCoaching.pushEnabledTitle')}</p>
+            ) : null}
             {pushHint ? <p className="mt-1 text-xs text-muted">{pushHint}</p> : null}
           </div>
           <Toggle

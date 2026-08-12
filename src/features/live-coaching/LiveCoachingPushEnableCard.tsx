@@ -4,6 +4,11 @@ import { useI18n } from '@shared/i18n';
 import { isStandaloneDisplayMode } from '@features/first-launch/platform';
 import { Button } from '@shared/ui/Button';
 import {
+  PUSH_SUCCESS_TOAST_MS,
+  resolvePushEnableUiMode,
+  type PushEnableUiStatus,
+} from './pushEnableUi';
+import {
   enableLiveCoachingWebPush,
   resolveWebPushStatus,
   syncExistingSubscriptionToServer,
@@ -13,12 +18,17 @@ import {
 /**
  * Opt-in Web Push for Live Coaching (iOS Home-Screen PWA + browsers).
  * Permission is only requested on explicit button click.
+ *
+ * UX: enable CTA when not subscribed; brief success toast after opt-in;
+ * no permanent "Erinnerungen aktiviert" card on Heute once subscribed.
+ * Subscription / T−45 / T−5 dispatch are unchanged.
  */
 export function LiveCoachingPushEnableCard() {
   const { t } = useI18n();
   const { profile } = useAuth();
   const [status, setStatus] = useState<WebPushStatus | 'loading'>('loading');
   const [busy, setBusy] = useState(false);
+  const [successUntilMs, setSuccessUntilMs] = useState<number | null>(null);
   const standalone = isStandaloneDisplayMode();
   const userId = profile?.id ?? null;
 
@@ -34,36 +44,48 @@ export function LiveCoachingPushEnableCard() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (successUntilMs == null) return;
+    const remaining = successUntilMs - Date.now();
+    if (remaining <= 0) {
+      setSuccessUntilMs(null);
+      return;
+    }
+    const id = window.setTimeout(() => setSuccessUntilMs(null), remaining);
+    return () => window.clearTimeout(id);
+  }, [successUntilMs]);
+
   const onEnable = async () => {
     if (!userId || busy) return;
     setBusy(true);
     try {
       const result = await enableLiveCoachingWebPush(userId);
       setStatus(result.status);
+      if (result.status === 'subscribed') {
+        setSuccessUntilMs(Date.now() + PUSH_SUCCESS_TOAST_MS);
+      }
     } finally {
       setBusy(false);
     }
   };
 
-  if (status === 'loading') return null;
+  const mode = resolvePushEnableUiMode({
+    status: status as PushEnableUiStatus,
+    successUntilMs,
+    nowMs: Date.now(),
+  });
 
-  // Hide entirely when Web Push APIs are missing (desktop Safari without SW push, etc.)
-  if (status === 'unsupported') return null;
+  if (mode === 'hidden') return null;
 
-  if (status === 'subscribed') {
+  if (mode === 'success_toast') {
     return (
-      <div className="live-coaching-push-card live-coaching-push-card--ok" role="status">
-        <p className="live-coaching-push-card__title">{t('liveCoaching.pushEnabledTitle')}</p>
-        <p className="live-coaching-push-card__body">{t('liveCoaching.pushEnabledBody')}</p>
-        <ul className="live-coaching-push-card__list">
-          <li>{t('liveCoaching.pushReminder45')}</li>
-          <li>{t('liveCoaching.pushReminder5')}</li>
-        </ul>
+      <div className="live-coaching-push-toast" role="status" aria-live="polite">
+        <p className="live-coaching-push-toast__title">{t('liveCoaching.pushEnabledTitle')}</p>
       </div>
     );
   }
 
-  if (status === 'denied') {
+  if (mode === 'denied') {
     return (
       <div className="live-coaching-push-card" role="status">
         <p className="live-coaching-push-card__title">{t('liveCoaching.pushTitle')}</p>
@@ -72,7 +94,7 @@ export function LiveCoachingPushEnableCard() {
     );
   }
 
-  if (status === 'missing_vapid') {
+  if (mode === 'missing_vapid') {
     return (
       <div className="live-coaching-push-card" role="status">
         <p className="live-coaching-push-card__title">{t('liveCoaching.pushTitle')}</p>
