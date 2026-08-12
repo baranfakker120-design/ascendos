@@ -938,7 +938,18 @@
     "titleRequired": "Title required.",
     "discardDraft": "Discard",
     "draftDiscarded": "Draft discarded.",
-    "draftHint": "Draft autosaves — including when you leave the app."
+    "draftHint": "Draft autosaves — including when you leave the app.",
+    "pushTitle": "🔔 Live Coaching reminders",
+    "pushBody": "So you never miss an important Zoom coaching.",
+    "pushBodyStandalone": "So you never miss an important Zoom coaching — even when AscendOS is closed.",
+    "pushEnableCta": "Enable notifications",
+    "pushEnabling": "Enabling…",
+    "pushEnabledTitle": "✓ Reminders enabled",
+    "pushEnabledBody": "Notifications enabled",
+    "pushReminder45": "45 minutes before",
+    "pushReminder5": "5 minutes before",
+    "pushDeniedBody": "Notifications are currently disabled. You can enable them later in iPhone Settings.",
+    "pushMissingVapid": "Push is not configured yet (VAPID public key missing). Check admin / deploy env."
   },
   "push": {
     "publishedTitle": "New Live Coaching",

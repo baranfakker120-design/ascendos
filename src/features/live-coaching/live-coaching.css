@@ -267,6 +267,43 @@
   }
 }
 
+.live-coaching-push-card {
+  border: 1px solid color-mix(in srgb, var(--accent, #c9a227) 35%, transparent);
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, #1a1b1f 92%, #c9a227),
+    color-mix(in srgb, #121316 96%, #2a2c33)
+  );
+  color: #f5f2ea;
+}
+
+.live-coaching-push-card--ok {
+  border-color: color-mix(in srgb, #3d9a6a 45%, transparent);
+}
+
+.live-coaching-push-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.live-coaching-push-card__body {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, #f5f2ea 78%, transparent);
+}
+
+.live-coaching-push-card__list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, #f5f2ea 85%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .live-coach-card__media--image::after,
   .live-coach-card__state--live .live-coach-card__state-dot,

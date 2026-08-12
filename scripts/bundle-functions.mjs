@@ -34,6 +34,7 @@ const FUNCTIONS = [
   'instagram-publish',
   'meta-data-deletion',
   'instagram-webhook',
+  'coaching-push-dispatch',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
@@ -101,6 +102,7 @@ const SHARED_GROUPS = [
   'instagram-oauth',
   'instagram-publish',
   'meta',
+  'coaching-push',
 ];
 
 const DECL_RE =

@@ -183,6 +183,13 @@ export function useLiveCoachingMutations() {
         await scheduleReminders(event);
       } else {
         clearLocalNotificationsForEvent(event.id);
+        // Drop unsent outbox rows so inactive/archived events never push.
+        const { error: clearErr } = await supabase
+          .from('coaching_notification_outbox')
+          .delete()
+          .eq('event_id', event.id)
+          .is('sent_at', null);
+        if (clearErr) console.warn('coaching outbox clear', clearErr.message);
       }
 
       return event;

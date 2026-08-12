@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { LiveCoachingCard } from './LiveCoachingCard';
 import { LiveCoachingOverlay } from './LiveCoachingOverlay';
+import { LiveCoachingPushEnableCard } from './LiveCoachingPushEnableCard';
 import { useLiveCoachingEvents } from './liveCoachingApi';
 import { flushDueLocalNotifications } from './notifications';
 import { isOverlayDismissed, readOverlayDismiss } from './overlayDismiss';
 import { pickTodayCoachingEvent } from './pickTodayEvent';
+import './live-coaching.css';
 
 /**
  * Additive Today slot — does not alter Daily Plan state machine.
  * Hides finished events automatically via pickTodayCoachingEvent.
+ * Push opt-in remains visible so members can subscribe before events exist.
  */
 export function TodayLiveCoachingSlot() {
   const { t } = useI18n();
-  const { data: events = [], isPending } = useLiveCoachingEvents({ activeOnly: true });
+  const { data: events = [] } = useLiveCoachingEvents({ activeOnly: true });
   const [, setTick] = useState(0);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [dismissReady, setDismissReady] = useState(false);
@@ -64,12 +67,11 @@ export function TodayLiveCoachingSlot() {
     };
   }, [event?.id]);
 
-  if (isPending || !event) return null;
-
   return (
     <section className="space-y-2" aria-label={t('liveCoaching.slotTitle')}>
-      <LiveCoachingCard event={event} />
-      {dismissReady && overlayOpen && !dismissed ? (
+      <LiveCoachingPushEnableCard />
+      {event ? <LiveCoachingCard event={event} /> : null}
+      {event && dismissReady && overlayOpen && !dismissed ? (
         <LiveCoachingOverlay
           event={event}
           onClose={() => {
