@@ -11,12 +11,12 @@ import {
 } from './selection';
 
 /** Library capacity — must stay independent of carousel slide max. */
-const LIBRARY_ASSET_CAPACITY = 25;
+const LIBRARY_ASSET_CAPACITY = 50;
 
 describe('carousel selection', () => {
   it('uses Instagram Graph max of 10 slides (not library capacity)', () => {
     expect(CAROUSEL_MAX_SLIDES).toBe(10);
-    expect(LIBRARY_ASSET_CAPACITY).toBe(25);
+    expect(LIBRARY_ASSET_CAPACITY).toBe(50);
     expect(CAROUSEL_MAX_SLIDES).toBeLessThan(LIBRARY_ASSET_CAPACITY);
   });
 

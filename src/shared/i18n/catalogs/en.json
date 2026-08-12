@@ -1156,7 +1156,7 @@
     "unsupportedType": "This file type is not supported.",
     "fileTooLarge": "File is too large (max 50 MB).",
     "uploadFailed": "Upload failed. Please try again.",
-    "uploadCta": "Upload asset",
+    "uploadCta": "Upload assets",
     "uploading": "Uploading …",
     "loading": "Loading library …",
     "loadError": "Could not load the library.",
@@ -1323,6 +1323,12 @@
     "igPublishVideoResolution": "Unsupported video resolution (Meta: max 1920 px width).",
     "igPublishVideoAspect": "Unsupported aspect ratio (Meta: between 0.01:1 and 10:1).",
     "igPublishImageAspect": "Feed images need an aspect ratio between 4:5 and 1.91:1. We automatically fit the image when publishing.",
-    "igPublishVideoNotReady": "Video metadata not ready yet. Please wait a moment and try again."
+    "igPublishVideoNotReady": "Video metadata not ready yet. Please wait a moment and try again.",
+    "uploadProgress": "{done} / {total} uploaded",
+    "uploadPartialOk": "{ok} of {total} images uploaded.",
+    "uploadPartialFail": "{failed} could not be uploaded.",
+    "uploadRemainingSlots": "You can still add {count} assets.",
+    "uploadLibraryFullNow": "{ok} of {selected} images added. Your asset library is now full ({limit}/{limit}).",
+    "uploadBatchCapped": "Maximum {max} files per selection."
   }
 }

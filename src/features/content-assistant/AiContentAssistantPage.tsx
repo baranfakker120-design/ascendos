@@ -17,6 +17,10 @@ import { InstagramConnectionCard } from './InstagramConnectionCard';
 import { InstagramPublishPreview } from './InstagramPublishPreview';
 import {
   CONTENT_ASSET_FILE_ACCEPT,
+  CONTENT_UPLOAD_BATCH_MAX,
+  isLibraryUploadDisabled,
+  planMultiUpload,
+  remainingLibrarySlots,
   useContentLibrary,
   type ContentAsset,
   type ContentAssetScope,
@@ -32,7 +36,6 @@ import {
 import {
   addToSelection,
   canAddToSelection,
-  CAROUSEL_MAX_SLIDES,
   isCarouselMode,
   removeFromSelection,
   replaceInSelection,
@@ -53,6 +56,8 @@ export function AiContentAssistantPage() {
   const replaceIndexRef = useRef<number | null>(null);
   const [scope, setScope] = useState<ContentAssetScope>('personal');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [format, setFormat] = useState<ContentFormat>('feed');
   const [generateError, setGenerateError] = useState<string | null>(null);
@@ -150,40 +155,125 @@ export function AiContentAssistantPage() {
     }
   }, [selectedAsset?.id, carouselMode]);
 
-  const onPickFile = async (file: File | null) => {
-    if (!file) return;
+  const onPickFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
     setUploadError(null);
-    try {
-      if (selectedAssetIds.length >= CAROUSEL_MAX_SLIDES) {
-        setUploadError(t('contentAssistant.carouselMaxReached'));
-        return;
-      }
-      const uploaded = await uploadMutation.mutateAsync({ file, scope });
-      const kinds = selectedAssets.map((a) => a.media_kind);
-      const gate = canAddToSelection({
-        currentIds: selectedAssetIds,
-        nextId: uploaded.id,
-        nextKind: uploaded.media_kind,
-        existingKinds: kinds,
-      });
-      if (!gate.ok) {
-        if (gate.reason === 'max') setUploadError(t('contentAssistant.carouselMaxReached'));
-        else if (gate.reason === 'video_mix' || gate.reason === 'video_limit')
-          setUploadError(t('contentAssistant.carouselVideoMix'));
-        else setSelectedAssetIds([uploaded.id]);
-        return;
-      }
-      setSelectedAssetIds((ids) => addToSelection(ids, uploaded.id));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'upload_failed';
-      if (msg.includes('content_asset_limit_reached'))
+    setUploadProgress(null);
+
+    const allFiles = Array.from(fileList);
+    const used = quota?.used ?? 0;
+    const limit = quota?.limit ?? 50;
+    const remaining =
+      scope === 'personal' ? remainingLibrarySlots(used, limit) : Math.max(allFiles.length, 1);
+
+    const plan = planMultiUpload({
+      selectedCount: allFiles.length,
+      remainingSlots: remaining,
+      maxBatch: CONTENT_UPLOAD_BATCH_MAX,
+      usedCount: used,
+      libraryLimit: limit,
+    });
+
+    if (plan.acceptCount <= 0) {
+      if (scope === 'personal' && remaining <= 0) {
         setUploadError(t('contentAssistant.quotaFull'));
-      else if (msg.includes('unsupported_mime'))
-        setUploadError(t('contentAssistant.unsupportedType'));
-      else if (msg.includes('file_too_large')) setUploadError(t('contentAssistant.fileTooLarge'));
-      else setUploadError(t('contentAssistant.uploadFailed'));
-    } finally {
+      } else {
+        setUploadError(
+          t('contentAssistant.uploadRemainingSlots', { count: String(Math.max(0, remaining)) })
+        );
+      }
       if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+
+    const toUpload = allFiles.slice(0, plan.acceptCount);
+    setUploadBusy(true);
+    let ok = 0;
+    let failed = 0;
+    const uploadedAssets: ContentAsset[] = [];
+
+    try {
+      for (let i = 0; i < toUpload.length; i += 1) {
+        setUploadProgress(
+          t('contentAssistant.uploadProgress', {
+            done: String(i),
+            total: String(toUpload.length),
+          })
+        );
+        try {
+          const uploaded = await uploadMutation.mutateAsync({ file: toUpload[i], scope });
+          ok += 1;
+          uploadedAssets.push(uploaded);
+          setUploadProgress(
+            t('contentAssistant.uploadProgress', {
+              done: String(ok),
+              total: String(toUpload.length),
+            })
+          );
+        } catch (e) {
+          failed += 1;
+          const msg = e instanceof Error ? e.message : '';
+          if (msg.includes('content_asset_limit_reached') && ok === 0 && failed === 1) {
+            // Stop early only when quota blocks the first file.
+            setUploadError(t('contentAssistant.quotaFull'));
+            break;
+          }
+        }
+      }
+
+      setSelectedAssetIds((prev) => {
+        let next = [...prev];
+        const kinds = next
+          .map((id) => (assetsQuery.data ?? []).find((a) => a.id === id)?.media_kind)
+          .filter(Boolean) as Array<'image' | 'video'>;
+        for (const uploaded of uploadedAssets) {
+          const gate = canAddToSelection({
+            currentIds: next,
+            nextId: uploaded.id,
+            nextKind: uploaded.media_kind,
+            existingKinds: kinds,
+          });
+          if (!gate.ok) continue;
+          next = addToSelection(next, uploaded.id);
+          kinds.push(uploaded.media_kind);
+        }
+        return next;
+      });
+
+      const parts: string[] = [];
+      if (plan.skippedOverQuota > 0 && plan.libraryWillBeFull) {
+        parts.push(
+          t('contentAssistant.uploadLibraryFullNow', {
+            ok: String(ok),
+            selected: String(allFiles.length),
+            limit: String(limit),
+          })
+        );
+      } else if (ok > 0 && (failed > 0 || plan.skippedOverBatch > 0 || plan.skippedOverQuota > 0)) {
+        parts.push(
+          t('contentAssistant.uploadPartialOk', {
+            ok: String(ok),
+            total: String(allFiles.length),
+          })
+        );
+      }
+      if (failed > 0) {
+        parts.push(t('contentAssistant.uploadPartialFail', { failed: String(failed) }));
+      }
+      if (plan.skippedOverQuota > 0 && !plan.libraryWillBeFull) {
+        parts.push(t('contentAssistant.uploadRemainingSlots', { count: String(remaining) }));
+      }
+      if (plan.skippedOverBatch > 0) {
+        parts.push(
+          t('contentAssistant.uploadBatchCapped', { max: String(CONTENT_UPLOAD_BATCH_MAX) })
+        );
+      }
+      if (parts.length > 0) setUploadError(parts.join(' '));
+      else if (ok === 0) setUploadError(t('contentAssistant.uploadFailed'));
+    } finally {
+      setUploadBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+      window.setTimeout(() => setUploadProgress(null), 2500);
     }
   };
 
@@ -374,14 +464,16 @@ export function AiContentAssistantPage() {
             type="button"
             size="sm"
             fullWidth={false}
-            disabled={
-              uploadMutation.isPending ||
-              selectedAssetIds.length >= CAROUSEL_MAX_SLIDES ||
-              (scope === 'personal' ? quota?.canUploadPersonal === false : !canCentral)
-            }
+            disabled={isLibraryUploadDisabled({
+              used: quota?.used ?? 0,
+              limit: quota?.limit ?? 50,
+              canUpload:
+                scope === 'personal' ? quota?.canUploadPersonal !== false : Boolean(canCentral),
+              uploading: uploadBusy || uploadMutation.isPending,
+            })}
             onClick={() => fileRef.current?.click()}
           >
-            {uploadMutation.isPending
+            {uploadBusy || uploadMutation.isPending
               ? t('contentAssistant.uploading')
               : t('contentAssistant.uploadCta')}
           </Button>
@@ -389,8 +481,9 @@ export function AiContentAssistantPage() {
             ref={fileRef}
             type="file"
             accept={CONTENT_ASSET_FILE_ACCEPT}
+            multiple
             className="hidden"
-            onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => void onPickFiles(e.target.files)}
           />
           <input
             ref={replaceRef}
@@ -400,6 +493,11 @@ export function AiContentAssistantPage() {
             onChange={(e) => void onReplaceFile(e.target.files?.[0] ?? null)}
           />
         </div>
+        {uploadProgress ? (
+          <p className="text-sm font-medium text-muted" role="status" aria-live="polite">
+            {uploadProgress}
+          </p>
+        ) : null}
         {uploadError ? <p className="text-sm font-medium text-red-700">{uploadError}</p> : null}
 
         {selectedAssets.length > 0 ? (
