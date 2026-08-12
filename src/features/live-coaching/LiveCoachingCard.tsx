@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
-import { formatBerlinDate, formatBerlinTime } from './berlinTime';
+import {
+  berlinCalendarDayOffset,
+  formatBerlinDate,
+  formatBerlinTime,
+} from './berlinTime';
 import { buildGoogleCalendarUrl, buildOutlookCalendarUrl, downloadAppleIcs } from './calendarLinks';
 import { formatCountdown, resolveLiveCoachingState } from './liveState';
 import type { LiveCoachingEvent } from './types';
@@ -28,13 +32,27 @@ export function LiveCoachingCard({
     now,
   });
 
-  const countdown = formatCountdown(event.starts_at, now);
+  const countdown = formatCountdown(event.starts_at, now, locale);
   const stateLabel =
     state === 'live'
       ? t('liveCoaching.live')
       : countdown === 'LIVE'
         ? t('liveCoaching.startingNow')
         : t('liveCoaching.countdown', { time: countdown });
+
+  const clock = t('liveCoaching.clock', { time: formatBerlinTime(event.starts_at, locale) });
+  const dayOffset = berlinCalendarDayOffset(event.starts_at, now);
+  const whenLabel =
+    state === 'live'
+      ? t('liveCoaching.live')
+      : dayOffset === 0
+        ? t('liveCoaching.whenToday', { time: clock })
+        : dayOffset === 1
+          ? t('liveCoaching.whenTomorrow', { time: clock })
+          : t('liveCoaching.whenDate', {
+              date: formatBerlinDate(event.starts_at, locale),
+              time: clock,
+            });
 
   const calendarInput = useMemo(
     () => ({
@@ -80,11 +98,17 @@ export function LiveCoachingCard({
         <h2 className="live-coach-card__title">{event.title}</h2>
         {event.subtitle ? <p className="live-coach-card__subtitle">{event.subtitle}</p> : null}
         <div className="live-coach-card__meta">
+          <span className="live-coach-card__when">{whenLabel}</span>
           <span>
-            {formatBerlinDate(event.starts_at, locale)} ·{' '}
-            {formatBerlinTime(event.starts_at, locale)}
+            {t('liveCoaching.durationMinutes', { n: event.duration_minutes })}
           </span>
-          <span className="live-coach-card__countdown">{stateLabel}</span>
+          {state !== 'live' ? (
+            <span className="live-coach-card__countdown">{stateLabel}</span>
+          ) : (
+            <span className="live-coach-card__countdown live-coach-card__countdown--live">
+              {stateLabel}
+            </span>
+          )}
           {event.coach_name ? (
             <span>
               {event.coach_name}

@@ -28,7 +28,15 @@ describe('resolveLiveCoachingState', () => {
     ).toBe('finished');
   });
 
-  it('formats countdown', () => {
-    expect(formatCountdown(start, new Date('2026-08-03T17:00:00.000Z'))).toMatch(/1h/);
+  it('formats countdown (de)', () => {
+    expect(formatCountdown(start, new Date('2026-08-03T17:00:00.000Z'), 'de')).toMatch(
+      /1 Std\. \/ \d+ Min\./
+    );
+  });
+
+  it('formats countdown (en)', () => {
+    expect(formatCountdown(start, new Date('2026-08-03T17:00:00.000Z'), 'en')).toMatch(
+      /1h \/ \d+m/
+    );
   });
 });

@@ -876,7 +876,13 @@
     "newcomer": "Yeni üye"
   },
   "liveCoaching": {
-    "countdown": "Geri sayım · {time}",
+    "countdown": "Kalan {time}",
+    "clock": "{time}",
+    "whenToday": "Bugün · {time}",
+    "whenTomorrow": "Yarın · {time}",
+    "whenDate": "{date} · {time}",
+    "durationMinutes": "Süre {n} dakika",
+    "upcomingTitle": "Diğer yaklaşan coachingler",
     "live": "CANLI",
     "finished": "Bitti",
     "join": "Coaching’e katıl",

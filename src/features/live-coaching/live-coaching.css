@@ -100,9 +100,49 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+.live-coach-card__when {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
 .live-coach-card__countdown {
   color: var(--lc-gold-hi);
   font-weight: 600;
+}
+
+.live-coach-card__countdown--live {
+  color: #ff6b6b;
+}
+
+.live-coach-card--compact .live-coach-card__media {
+  max-height: min(42vh, 16rem);
+}
+
+.live-coach-upcoming {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.live-coach-upcoming__title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 27, 30, 0.62);
+}
+
+.live-coach-upcoming__list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.live-coach-overlay__duration {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .live-coach-card__actions {

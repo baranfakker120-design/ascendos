@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
-import { formatBerlinDate, formatBerlinTime } from './berlinTime';
+import {
+  berlinCalendarDayOffset,
+  formatBerlinDate,
+  formatBerlinTime,
+} from './berlinTime';
 import { formatCountdown, resolveLiveCoachingState, endsAt } from './liveState';
 import { dismissOverlayForEvent } from './overlayDismiss';
 import type { LiveCoachingEvent } from './types';
@@ -36,12 +40,27 @@ export function LiveCoachingOverlay({ event, onClose }: Props) {
 
   if (state === 'finished') return null;
 
+  const countdown = formatCountdown(event.starts_at, now, locale);
   const stateLabel =
     state === 'live'
       ? t('liveCoaching.live')
-      : formatCountdown(event.starts_at, now) === 'LIVE'
+      : countdown === 'LIVE'
         ? t('liveCoaching.startingNow')
-        : t('liveCoaching.countdown', { time: formatCountdown(event.starts_at, now) });
+        : t('liveCoaching.countdown', { time: countdown });
+
+  const clock = t('liveCoaching.clock', { time: formatBerlinTime(event.starts_at, locale) });
+  const dayOffset = berlinCalendarDayOffset(event.starts_at, now);
+  const whenLabel =
+    state === 'live'
+      ? t('liveCoaching.live')
+      : dayOffset === 0
+        ? t('liveCoaching.whenToday', { time: clock })
+        : dayOffset === 1
+          ? t('liveCoaching.whenTomorrow', { time: clock })
+          : t('liveCoaching.whenDate', {
+              date: formatBerlinDate(event.starts_at, locale),
+              time: clock,
+            });
 
   const close = () => {
     const until = endsAt(new Date(event.starts_at), event.duration_minutes).toISOString();
@@ -85,8 +104,9 @@ export function LiveCoachingOverlay({ event, onClose }: Props) {
         ) : null}
         <h2 className="live-coach-overlay__title">{event.title}</h2>
         {event.subtitle ? <p className="live-coach-overlay__subtitle">{event.subtitle}</p> : null}
-        <p className="live-coach-overlay__when">
-          {formatBerlinDate(event.starts_at, locale)} · {formatBerlinTime(event.starts_at, locale)}
+        <p className="live-coach-overlay__when">{whenLabel}</p>
+        <p className="live-coach-overlay__duration">
+          {t('liveCoaching.durationMinutes', { n: event.duration_minutes })}
         </p>
         <p className="live-coach-overlay__countdown">{stateLabel}</p>
         {event.zoom_url ? (

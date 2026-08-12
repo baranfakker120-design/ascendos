@@ -9,7 +9,11 @@ import {
 } from './notifications';
 import type { LiveCoachingEvent, LiveMediaType, LiveRepeatRule } from './types';
 
-export { pickTodayCoachingEvent } from './pickTodayEvent';
+export {
+  isLiveCoachingPresentable,
+  listPresentableCoachingEvents,
+  pickTodayCoachingEvent,
+} from './pickTodayEvent';
 export { assertValidDuration } from './duration';
 
 const MEDIA_BUCKET = 'coaching-media';

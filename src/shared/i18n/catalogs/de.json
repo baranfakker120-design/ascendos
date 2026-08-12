@@ -876,7 +876,13 @@
     "newcomer": "Newcomer"
   },
   "liveCoaching": {
-    "countdown": "Countdown · {time}",
+    "countdown": "Noch {time}",
+    "clock": "{time} Uhr",
+    "whenToday": "Heute · {time}",
+    "whenTomorrow": "Morgen · {time}",
+    "whenDate": "{date} · {time}",
+    "durationMinutes": "Dauer {n} Minuten",
+    "upcomingTitle": "Weitere kommende Coachings",
     "live": "LIVE",
     "finished": "Beendet",
     "join": "Coaching beitreten",
