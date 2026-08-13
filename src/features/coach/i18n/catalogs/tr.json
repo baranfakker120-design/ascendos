@@ -120,7 +120,7 @@
       "weaknessNoTeam": "Henüz kendi ekibi yok"
     },
     "message": {
-      "onboarding": "Merhaba {name}, onboarding bağlantın burada — kayıttan sonraki son adım: http://waytomoon.netlify.app\nNet olmayan bir konu varsa bana yazabilirsin.",
+      "onboarding": "Merhaba {name}, onboarding bağlantın burada — kayıttan sonraki son adım{onboardingUrl}\nNet olmayan bir konu varsa bana yazabilirsin.",
       "reactivation": "Merhaba {name}, bir süredir sessizlik olduğunu fark ettim. Baskı yok — nasılsın, yükünü hafifletebileceğim bir konu var mı?",
       "recognition": "Merhaba {name}, kısa bir not: Aktiviten gerçekten dikkat çekiyor. Böyle devam et — emeğini görüyorum.",
       "checkIn": "Merhaba {name}, bir sonraki adımla ilgili kısa bir kontrol yapmak istedim. Bugün veya yarın kısa bir görüşme sana uyar mı?"
@@ -133,9 +133,9 @@
     "interested": "İlgili ancak yakın zamanda temas kurulmamış — bir sonraki adımı netleştir."
   },
   "onboarding": {
-    "registered": "Kaydoldu — son aktivasyon adımı olarak WayToMoon → Onboarding bağlantısını gönder.",
+    "registered": "Kaydoldu — son aktivasyon adımı olarak onboarding bağlantısını gönder.",
     "opened": "Uygulama açıldı — onboarding sürecinin tamamlandığını ve grup erişimlerinin net olduğunu kontrol et.",
-    "completed": "Aktivite görünür durumda — paylaşım grubuna ve Nina bilgilendirme grubuna erişimi güvence altına al.",
+    "completed": "Aktivite görünür durumda — paylaşım grubuna ve bilgilendirme grubuna erişimi güvence altına al.",
     "fullyOnboarded": "Onboarding tamamlanmış görünüyor — liderlik desteğine geçir.",
     "stuck": "Takılmış durumda — kişisel olarak iletişime geç ve onboarding bağlantısını yeniden paylaş."
   },
@@ -329,7 +329,7 @@
     },
     "onboarding": {
       "title": "Onboarding",
-      "body": "Merhaba {name}, onboarding bağlantın burada — kayıttan sonraki son aktivasyon adımı:\nhttp://waytomoon.netlify.app\n\nİçerikte işin temelleri, kazanç planı, ilk adımlar, ekip beklentileri, paylaşım grubu ve Nina bilgilendirme grubuna erişim yer alıyor. Takıldığın yerde doğrudan bana yaz."
+      "body": "Merhaba {name}, onboarding bağlantın burada — kayıttan sonraki son aktivasyon adımı\n{onboardingUrl}\n\nİçerikte işin temelleri, kazanç planı, ilk adımlar, ekip beklentileri, paylaşım grubu ve bilgilendirme grubuna erişim yer alıyor. Takıldığın yerde doğrudan bana yaz."
     },
     "zoom_invitation": {
       "title": "Zoom Daveti",

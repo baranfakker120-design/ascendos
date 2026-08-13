@@ -13,6 +13,7 @@ import {
   useTeamInsights,
   useTeamLeaderProgress,
 } from '@features/leadership/leadershipApi';
+import { useActiveOrganizationProfile } from '@shared/org/useActiveOrganizationProfile';
 import { buildCoachOrgIntelligence, isMorningWindow } from './analyzeOrg';
 import { createCoachTranslator } from '../i18n';
 import type {
@@ -51,6 +52,7 @@ export function useCoachOrgIntelligence(enabled = true): {
 } {
   const { profile } = useAuth();
   const { locale } = useI18n();
+  const { profile: orgProfile } = useActiveOrganizationProfile();
   const t = useMemo(() => createCoachTranslator(locale), [locale]);
   const queryClient = useQueryClient();
   const dash = useLeaderDashboard();
@@ -123,6 +125,7 @@ export function useCoachOrgIntelligence(enabled = true): {
       pendingShareProofs: listPendingShareVerifications().length,
       planPendingCount: (cachedPlan?.items ?? []).filter((i) => i.status === 'pending').length,
       planDoneCount: (cachedPlan?.items ?? []).filter((i) => i.status === 'done').length,
+      onboardingUrl: orgProfile?.onboardingUrl ?? null,
       t,
     };
 
@@ -130,6 +133,7 @@ export function useCoachOrgIntelligence(enabled = true): {
   }, [
     enabled,
     profile,
+    orgProfile?.onboardingUrl,
     queryClient,
     dash.data,
     insights.data,

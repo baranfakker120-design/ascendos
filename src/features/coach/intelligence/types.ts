@@ -128,6 +128,8 @@ export interface CoachOrgInput {
   pendingShareProofs: number;
   planPendingCount: number;
   planDoneCount: number;
+  /** Active-org onboarding tool URL from external_tools — never Org-1 hardcode. */
+  onboardingUrl?: string | null;
   /** Translator for coach-authored content; German is used when omitted. */
   t?: CoachTranslateFn;
 }

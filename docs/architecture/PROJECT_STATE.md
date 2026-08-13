@@ -1,13 +1,13 @@
 # PROJECT_STATE — AscendOS Multi-Tenant
 
 **Last updated:** 2026-08-13  
-**Updated by:** Phase 7 Live Coaching + Push + Stories (repository; production unchanged)
+**Updated by:** Phase 8 Frontend Tenant Awareness (repository; production unchanged)
 
 ---
 
 ## Current phase
 
-**PHASE 7 — Live Coaching + Push + Stories** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
+**PHASE 8 — Frontend Tenant Awareness** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
 
 ---
 
@@ -20,14 +20,15 @@
 | 4     | #114 | RLS tenant isolation CMS/Live/Stories     |
 | 5     | #115 | Edge tenant discipline chat/ingest/push   |
 | 6     | #116 | Knowledge + AI isolation                  |
+| 7     | #117 | Live coaching + push + stories + media    |
 
 ---
 
 ## Next step
 
-**PHASE 8+** only after explicit Phase 7 approval — Frontend tenant awareness / brand hardcoding removal, then Admin UIs.
+**PHASE 9+** only after explicit Phase 8 approval — Admin UI, then Platform Admin, Billing, second org.
 
-Do **not** apply Phase 7 to production without approval.
+Do **not** apply Phase 8 migration to production without approval.
 
 ---
 
@@ -43,11 +44,11 @@ Do **not** apply Phase 7 to production without approval.
 | Knowledge Center CMS        | Org-scoped RLS; not in coach-chat prompts                  |
 | Live Coaching / Outbox      | Org-scoped RLS + push membership filter                    |
 | Ascend Stories              | Org-scoped RLS                                             |
-| coaching-media Storage      | **Private** + signed URLs (Phase 7; migration in repo)     |
+| coaching-media Storage      | **Private** + signed URLs (Phase 7)                        |
 | Content / Autopilot / IG    | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10 |
 | Web Push                    | Central VAPID; send-time org filter (ADR 0008)             |
+| Frontend branding / tools   | **Org-scoped** (Phase 8) — no Team Seyda / WayToMoon FE pins |
 | Platform Admin UI           | **Missing** (Phase 10)                                     |
-| Team Seyda hardcoding       | AI CORE_RULES neutralized; FE/routes still Phase 8         |
 
 ---
 
@@ -66,7 +67,7 @@ Do **not** apply Phase 7 to production without approval.
 ## Known risks
 
 1. Legacy public `media_url` values become inert after private bucket apply (expected)
-2. Frontend org switcher / brand hardcoding (Phase 8+)
+2. Org #1 branding migration not yet applied in production (repo only)
 3. Admin UIs missing (Phase 9–10)
 4. Billing not implemented (Phase 11)
 5. No second production organization (Phase 12)
@@ -78,7 +79,7 @@ Do **not** apply Phase 7 to production without approval.
 
 | Item                            | State                                      |
 | ------------------------------- | ------------------------------------------ |
-| This Phase 7 work               | Repository only — production **UNCHANGED** |
+| This Phase 8 work               | Repository only — production **UNCHANGED** |
 | Database                        | **UNCHANGED** by agent                     |
 | Secrets / API keys / VAPID      | **UNCHANGED**                              |
 | Migrations applied by this work | **NONE** (migration exists in repo only)   |
@@ -92,9 +93,9 @@ Do **not** apply Phase 7 to production without approval.
 | Phase | Status                                |
 | ----- | ------------------------------------- |
 | 0     | Done (docs)                           |
-| 2–6   | Merged                                |
-| 7     | Implemented in repo — awaiting review |
-| 8–12  | Not started                           |
+| 2–7   | Merged                                |
+| 8     | Implemented in repo — awaiting review |
+| 9–12  | Not started                           |
 
 ---
 
@@ -103,6 +104,7 @@ Do **not** apply Phase 7 to production without approval.
 | File                                             | Role                    |
 | ------------------------------------------------ | ----------------------- |
 | `PHASE_7_LIVE_COACHING_PUSH_STORIES.md`          | Phase 7 report          |
+| `PHASE_8_FRONTEND_TENANT_AWARENESS.md`           | Phase 8 report          |
 | `ADR/0008-user-level-push-org-filter-at-send.md` | Push subscription model |
 | `ADR/0010-private-coaching-media-signed-urls.md` | Storage model           |
 | `PROJECT_STATE.md`                               | This file               |

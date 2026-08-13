@@ -4,19 +4,21 @@ import { useState } from 'react';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n } from '@shared/i18n';
+import { useActiveOrganizationProfile } from '@shared/org/useActiveOrganizationProfile';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
 import { ButtonLink } from '@shared/ui/ButtonLink';
 import { Card } from '@shared/ui/Card';
 import { displayShareTool } from '@shared/lib/shareToolsDisplay';
-import type { ExternalTool, FirstlineProgress } from '@shared/types/domain';
+import type { FirstlineProgress } from '@shared/types/domain';
 
 /**
- * More — business hub (Team Seyda, Journey, Firstline, Invite, Tools, Resources).
+ * More — business hub (org guide, Journey, Firstline, Invite, Tools, Resources).
  * System preferences live on Settings.
  */
 export function MorePage() {
   const { profile, isSuperAdmin, canManageCoachContent, membership, needsOrgSelection } = useAuth();
+  const { profile: orgProfile } = useActiveOrganizationProfile();
   const { t } = useI18n();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -24,8 +26,8 @@ export function MorePage() {
   const [busy, setBusy] = useState(false);
 
   const { data: firstlineProgress } = useQuery({
-    queryKey: ['firstline-progress', profile?.id],
-    enabled: !!profile,
+    queryKey: ['firstline-progress', membership?.org_id, profile?.id],
+    enabled: !!profile && !!membership?.org_id,
     queryFn: async (): Promise<FirstlineProgress[]> => {
       const { data, error } = await supabase
         .from('firstline_journey_progress')
@@ -46,14 +48,11 @@ export function MorePage() {
     },
   });
 
-  const { data: tools } = useQuery({
-    queryKey: ['external-tools-more'],
-    queryFn: async (): Promise<ExternalTool[]> => {
-      const { data, error } = await supabase.from('external_tools').select('*');
-      if (error) throw error;
-      return (data ?? []) as ExternalTool[];
-    },
-  });
+  const tools = (orgProfile?.tools ?? []).map(displayShareTool);
+  const guideLabel = orgProfile?.displayName
+    ? t('more.orgGuide', { name: orgProfile.displayName })
+    : t('more.orgGuideGeneric');
+  const showGuide = Boolean(orgProfile?.guideUrl);
 
   const createInvite = async () => {
     setBusy(true);
@@ -128,17 +127,19 @@ export function MorePage() {
         </Card>
       </Link>
 
-      <Link to="/team-seyda" className="block">
-        <Card className="flex items-center justify-between">
-          <div>
-            <p className="font-semibold">{t('more.teamSeyda')}</p>
-            <p className="mt-0.5 text-sm text-muted">{t('more.teamSeydaSub')}</p>
-          </div>
-          <span className="text-primary" aria-hidden>
-            →
-          </span>
-        </Card>
-      </Link>
+      {showGuide ? (
+        <Link to="/guide" className="block">
+          <Card className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">{guideLabel}</p>
+              <p className="mt-0.5 text-sm text-muted">{t('more.orgGuideSub')}</p>
+            </div>
+            <span className="text-primary" aria-hidden>
+              →
+            </span>
+          </Card>
+        </Link>
+      ) : null}
 
       <Link to="/reise" className="block">
         <Card className="flex items-center justify-between">
@@ -208,11 +209,11 @@ export function MorePage() {
       <Card>
         <p className="font-semibold">{t('more.tools')}</p>
         <p className="mt-0.5 text-sm text-muted">{t('more.toolsSub')}</p>
-        {tools && tools.length > 0 ? (
+        {tools.length > 0 ? (
           <ul className="mt-3 space-y-2">
-            {tools.map((raw) => {
-              const tool = displayShareTool(raw);
-              return (
+            {tools
+              .filter((tool) => tool.key !== 'guide')
+              .map((tool) => (
                 <li key={tool.key}>
                   <a
                     href={tool.url}
@@ -226,8 +227,7 @@ export function MorePage() {
                     </span>
                   </a>
                 </li>
-              );
-            })}
+              ))}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted">{t('more.toolsEmpty')}</p>
@@ -258,11 +258,11 @@ export function MorePage() {
           <ButtonLink to="/wissen" variant="secondary" className="mt-3">
             {t('more.adminKnowledgeShort')}
           </ButtonLink>
-        ) : (
-          <ButtonLink to="/team-seyda" variant="secondary" className="mt-3">
-            {t('more.teamSeydaGuide')}
+        ) : showGuide ? (
+          <ButtonLink to="/guide" variant="secondary" className="mt-3">
+            {guideLabel}
           </ButtonLink>
-        )}
+        ) : null}
       </Card>
     </div>
   );

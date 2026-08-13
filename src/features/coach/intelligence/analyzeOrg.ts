@@ -343,9 +343,11 @@ export function buildPersonInsight(
   if (partner.teamCount === 0 && tenure > 21) weaknesses.push(t('person.metrics.weaknessNoTeam'));
 
   const first = partner.name.split(' ')[0] || partner.name;
+  const onboardingUrl = (input.onboardingUrl ?? '').trim();
+  const onboardingUrlSuffix = onboardingUrl ? `: ${onboardingUrl}` : '';
   const suggestedWhatsApp =
     recommendation === 'onboarding'
-      ? t('person.message.onboarding', { name: first })
+      ? t('person.message.onboarding', { name: first, onboardingUrl: onboardingUrlSuffix })
       : recommendation === 'reactivation' || recommendation === 'voice_message'
         ? t('person.message.reactivation', { name: first })
         : recommendation === 'recognition' || recommendation === 'congratulation'

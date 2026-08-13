@@ -9,15 +9,16 @@ const DEFAULT_T = createCoachTranslator('de');
  */
 export function buildMessageDraft(
   kind: MessageDraftKind,
-  opts: { firstName: string; sponsorFirstName?: string },
+  opts: { firstName: string; sponsorFirstName?: string; onboardingUrl?: string | null },
   t: CoachTranslateFn = DEFAULT_T
 ): MessageDraft {
   const name = opts.firstName.trim() || t('common.informalYou');
   const sponsor = opts.sponsorFirstName?.trim() || t('common.firstPerson');
+  const onboardingUrl = (opts.onboardingUrl ?? '').trim();
   return {
     kind,
     title: t(`draft.${kind}.title`),
-    body: t(`draft.${kind}.body`, { name, sponsor }),
+    body: t(`draft.${kind}.body`, { name, sponsor, onboardingUrl }),
     requiresSponsorApproval: true,
   };
 }

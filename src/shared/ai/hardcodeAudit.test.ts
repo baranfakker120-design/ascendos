@@ -30,13 +30,12 @@ describe('Phase 6 — Team Seyda / Chogan AI context audit', () => {
     expect(intents).toMatch(/Parfum Duftnummer/);
   });
 
-  it('documents remaining brand vocabulary outside CORE_RULES as Phase 8 scope', () => {
-    // WayToMoon UI labels in coach-chat TEXT maps are product UX strings,
-    // not prompt assembly — deferred to Phase 8 frontend/branding cleanup.
+  it('keeps waytomoon_sent domain key; Phase 8 neutralized visible WayToMoon labels', () => {
     const coachChat = readFileSync(
       join(process.cwd(), 'supabase/functions/coach-chat/index.ts'),
       'utf8'
     );
     expect(coachChat).toMatch(/waytomoon_sent/);
+    expect(coachChat).not.toMatch(/WayToMoon (gesendet|sent)/);
   });
 });

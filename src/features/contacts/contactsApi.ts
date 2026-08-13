@@ -96,14 +96,17 @@ export function useContactEvents(contactId: string) {
 }
 
 export function useExternalTools() {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['external-tools'],
+    queryKey: ['external-tools', orgId],
+    enabled: Boolean(orgId),
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*').order('sort_order');
       if (error) throw error;
       return data as ExternalTool[];
     },
-    staleTime: 5 * 60_000, // Tool-Liste ändert sich selten
+    staleTime: 5 * 60_000,
   });
 }
 

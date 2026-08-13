@@ -120,7 +120,7 @@
       "weaknessNoTeam": "Non ha ancora un proprio team"
     },
     "message": {
-      "onboarding": "Ciao {name}, ecco il tuo onboarding — l’ultimo passo dopo la registrazione: http://waytomoon.netlify.app\nSe qualcosa non è chiaro, scrivimi pure.",
+      "onboarding": "Ciao {name}, ecco il tuo onboarding — l’ultimo passo dopo la registrazione{onboardingUrl}\nSe qualcosa non è chiaro, scrivimi pure.",
       "reactivation": "Ciao {name}, ho notato che è passato un po’ di tempo senza sentirci. Nessuna pressione — come stai e c’è qualcosa in cui posso alleggerirti?",
       "recognition": "Ciao {name}, un breve messaggio: la tua attività si nota davvero. Continua così — vedo il tuo impegno.",
       "checkIn": "Ciao {name}, volevo fare un rapido punto sul prossimo passo. Ti andrebbe una breve chiamata oggi o domani?"
@@ -133,9 +133,9 @@
     "interested": "Interessato, ma senza contatti recenti — definisci il prossimo passo."
   },
   "onboarding": {
-    "registered": "Registrato — invia WayToMoon → Onboarding come ultimo passaggio di attivazione.",
+    "registered": "Registrato — invia l'onboarding come ultimo passaggio di attivazione.",
     "opened": "App aperta — verifica che l’onboarding sia completo e che l’accesso ai gruppi sia chiaro.",
-    "completed": "L’attività è visibile — conferma l’accesso al gruppo di confronto e al gruppo informazioni Nina.",
+    "completed": "L’attività è visibile — conferma l’accesso al gruppo di confronto e al gruppo informazioni.",
     "fullyOnboarded": "L’onboarding sembra completato — passa all’accompagnamento sulla leadership.",
     "stuck": "La persona è bloccata — fai un check-in personale e condividi nuovamente il link dell’onboarding."
   },
@@ -329,7 +329,7 @@
     },
     "onboarding": {
       "title": "Onboarding",
-      "body": "Ciao {name}, ecco il tuo onboarding — l’ultimo passaggio di attivazione dopo la registrazione:\nhttp://waytomoon.netlify.app\n\nTroverai le basi del business, il piano compensi, i primi passi, le aspettative del team e l’accesso al gruppo di confronto e al gruppo informazioni Nina. Se ti blocchi, contattami direttamente."
+      "body": "Ciao {name}, ecco il tuo onboarding — l’ultimo passaggio di attivazione dopo la registrazione\n{onboardingUrl}\n\nTroverai le basi del business, il piano compensi, i primi passi, le aspettative del team e l’accesso al gruppo di confronto e al gruppo informazioni. Se ti blocchi, contattami direttamente."
     },
     "zoom_invitation": {
       "title": "Invito su Zoom",

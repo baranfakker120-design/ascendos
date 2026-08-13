@@ -29,6 +29,7 @@ export function shouldPersistQuery(queryKey: readonly unknown[]): boolean {
     'contact-events',
     'daily-plan',
     'external-tools',
+    'organization-profile',
     'profile',
     'profile-detail',
     'genealogy-tree',

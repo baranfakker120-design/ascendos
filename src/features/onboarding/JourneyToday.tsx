@@ -20,13 +20,14 @@ import { useCompleteStep, useJourneyState } from './journeyApi';
  */
 export function JourneyToday() {
   const { t } = useI18n();
-  const { profile } = useAuth();
+  const { profile, membership } = useAuth();
   const { data: state, isPending, isError, refetch } = useJourneyState();
   const complete = useCompleteStep();
   const pendingStepId = complete.isPending ? (complete.variables ?? null) : null;
   const [stepError, setStepError] = useState<string | null>(null);
   const { data: tools } = useQuery({
-    queryKey: ['external-tools-journey'],
+    queryKey: ['external-tools', membership?.org_id ?? null, 'journey'],
+    enabled: Boolean(membership?.org_id),
     queryFn: async (): Promise<ExternalTool[]> => {
       const { data, error } = await supabase.from('external_tools').select('*');
       if (error) throw error;

@@ -1,4 +1,5 @@
 import type { MessageKey } from '@shared/i18n';
+import { useCoachDisplayName } from '@shared/org/useCoachDisplayName';
 import type { ConversationKind } from './workspace/types';
 import { kindHintKey, welcomeIdentityLine, welcomeNextStepBody } from './CoachWelcomeContent';
 import './coach-welcome.css';
@@ -19,9 +20,10 @@ export function CoachWelcomePanel({ kind, welcome, t }: Props) {
   const identity = welcomeIdentityLine(welcome);
   const nextBody = welcomeNextStepBody(welcome);
   const hint = t(kindHintKey(kind));
+  const coachName = useCoachDisplayName();
 
   return (
-    <section className={`coach-welcome coach-welcome--${kind}`} aria-label={t('coach.name')}>
+    <section className={`coach-welcome coach-welcome--${kind}`} aria-label={coachName}>
       <div className="coach-welcome__intro">
         <p className="coach-welcome__identity">{identity}</p>
         <p className="coach-welcome__hint">{hint}</p>

@@ -186,8 +186,6 @@
     "leadershipSub": "Dashboard, Insights, Teambaum",
     "qualifications": "Qualifikationen",
     "qualificationsSub": "Rang, TeamLeader, 100 € Bonus",
-    "teamSeyda": "Team Seyda",
-    "teamSeydaSub": "Guide — Way to Moon",
     "journey": "Reise",
     "journeySub": "Meilensteine und Wochenrhythmus",
     "firstline": "Firstline",
@@ -216,8 +214,10 @@
     "copyLink": "Link kopieren",
     "adminKnowledgeRag": "Wissensdatenbank (RAG)",
     "adminKnowledgeShort": "Wissensdatenbank",
-    "teamSeydaGuide": "Team Seyda Guide",
-    "new": "+ Neu"
+    "new": "+ Neu",
+    "orgGuide": "{name} Guide",
+    "orgGuideGeneric": "Organisations-Guide",
+    "orgGuideSub": "Guide der aktiven Organisation"
   },
   "pipeline": {
     "phase": {
@@ -1045,14 +1045,6 @@
     "emptyBody": "_Leer_",
     "changeHistory": "Änderungsverlauf"
   },
-  "teamSeyda": {
-    "loadError": "Guide konnte nicht geladen werden.",
-    "openGuide": "Guide öffnen ↗",
-    "title": "Team Seyda Guide",
-    "eyebrow": "Team Seyda",
-    "guide": "Guide",
-    "loadHint": "Öffne ihn in einem neuen Tab und komm danach zurück."
-  },
   "firstLaunch": {
     "brandName": "AscendOS",
     "welcomeTitle": "AscendOS",
@@ -1334,5 +1326,16 @@
     "uploadRemainingSlots": "Du kannst noch {count} Assets hinzufügen.",
     "uploadLibraryFullNow": "{ok} von {selected} Bildern hinzugefügt. Deine Asset-Bibliothek ist jetzt voll ({limit}/{limit}).",
     "uploadBatchCapped": "Maximal {max} Dateien pro Auswahl."
+  },
+  "orgGuide": {
+    "loadError": "Guide konnte nicht geladen werden.",
+    "openGuide": "Guide öffnen ↗",
+    "title": "Organisations-Guide",
+    "titleNamed": "{name} Guide",
+    "eyebrow": "Organisation",
+    "guide": "Guide",
+    "loadHint": "Öffne ihn in einem neuen Tab und komm danach zurück.",
+    "notConfigured": "Noch kein Guide konfiguriert.",
+    "notConfiguredHint": "Die aktive Organisation hat noch keinen Guide-Link hinterlegt."
   }
 }

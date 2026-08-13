@@ -1,10 +1,14 @@
+/**
+ * Visible labels/URLs for share tools — keeps DB keys stable while
+ * renaming WayToMoon → Onboarding. URLs always come from external_tools.
+ */
+
 import { describe, expect, it } from 'vitest';
 import type { ExternalTool } from '@shared/types/domain';
 import {
   ONBOARDING_DESCRIPTION,
   ONBOARDING_DETAIL,
   ONBOARDING_NAME,
-  ONBOARDING_URL,
   PRESENTATION_NAME,
   displayShareTool,
   isOnboardingShareTool,
@@ -28,23 +32,33 @@ function tool(partial: Partial<ExternalTool> & Pick<ExternalTool, 'key' | 'name'
   };
 }
 
-describe('displayShareTool', () => {
-  it('renames WayToMoon to Onboarding with post-registration copy and http URL', () => {
+describe('displayShareTool (Phase 8)', () => {
+  it('renames WayToMoon label but keeps org-scoped DB URL', () => {
     const display = displayShareTool(
       tool({
         key: 'waytomoon',
         name: 'WayToMoon',
         description: 'Onboarding für neue Interessenten',
-        url: 'https://waytomoon.netlify.app',
+        url: 'https://org-b-onboarding.example/path',
       })
     );
     expect(display.name).toBe(ONBOARDING_NAME);
-    expect(display.description).toBe(ONBOARDING_DESCRIPTION);
-    expect(display.description).toContain('nach der Registrierung');
-    expect(ONBOARDING_DETAIL).toContain('Austauschgruppe');
-    expect(ONBOARDING_DETAIL).toContain('Nina-Informationsgruppe');
-    expect(display.url).toBe(ONBOARDING_URL);
+    expect(display.description).toBe('Onboarding für neue Interessenten');
+    expect(ONBOARDING_DETAIL).toContain('Businessplan');
+    expect(display.url).toBe('https://org-b-onboarding.example/path');
+    expect(display.url).not.toMatch(/waytomoon\.netlify\.app/i);
     expect(isOnboardingShareTool(display)).toBe(true);
+  });
+
+  it('does not invent a WayToMoon URL when org has none', () => {
+    const display = displayShareTool(
+      tool({
+        key: 'waytomoon',
+        name: 'Onboarding',
+        url: 'https://test-org.onboarding.example',
+      })
+    );
+    expect(display.url).toBe('https://test-org.onboarding.example');
   });
 
   it('keeps Firmenpräsentation as a separate prospect action', () => {
@@ -53,14 +67,14 @@ describe('displayShareTool', () => {
         key: 'presentation',
         name: 'Firmenpräsentation',
         description: 'Präsentation für Interessenten',
-        url: 'https://mywaytomoon.netlify.app',
+        url: 'https://org-b-presentation.example',
         share_event_type: 'presentation_sent',
         sort_order: 2,
       })
     );
     expect(display.name).toBe(PRESENTATION_NAME);
     expect(display.key).toBe('presentation');
-    expect(display.url).toContain('mywaytomoon');
+    expect(display.url).toBe('https://org-b-presentation.example');
     expect(isOnboardingShareTool(display)).toBe(false);
   });
 
@@ -75,5 +89,9 @@ describe('displayShareTool', () => {
   it('renames legacy WayToMoon labels in free text', () => {
     expect(renameWayToMoonLabel('WayToMoon öffnen')).toBe('Onboarding öffnen');
     expect(renameWayToMoonLabel('MyWayToMoon')).toBe('Onboarding');
+  });
+
+  it('keeps generic onboarding description constant available', () => {
+    expect(ONBOARDING_DESCRIPTION).toContain('Registrierung');
   });
 });

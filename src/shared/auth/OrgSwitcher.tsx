@@ -19,7 +19,7 @@ export function OrgSwitcher() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('organizations')
-        .select('id, name')
+        .select('id, name, branding')
         .in('id', orgIds);
       if (error) throw error;
       return data ?? [];
@@ -28,7 +28,17 @@ export function OrgSwitcher() {
 
   if (memberships.length <= 1) return null;
 
-  const labelFor = (orgId: string) => orgs?.find((o) => o.id === orgId)?.name ?? t('org.fallback');
+  const labelFor = (orgId: string) => {
+    const org = orgs?.find((o) => o.id === orgId);
+    if (!org) return t('org.fallback');
+    const branding =
+      org.branding && typeof org.branding === 'object' && !Array.isArray(org.branding)
+        ? (org.branding as Record<string, unknown>)
+        : {};
+    const display =
+      typeof branding.display_name === 'string' ? branding.display_name.trim() : '';
+    return display || org.name || t('org.fallback');
+  };
 
   return (
     <Select

@@ -1,33 +1,38 @@
+/**
+ * Phase 8 — share tool display without Org-1 URL hardcodes.
+ * DB keys (waytomoon, presentation) stay stable; URLs come from external_tools.
+ */
+
 import type { ExternalTool } from '@shared/types/domain';
 
-/** Canonical onboarding share target (WayToMoon product). */
+/** Stable tool key for onboarding share (legacy product key). */
 export const ONBOARDING_TOOL_KEY = 'waytomoon';
-export const ONBOARDING_URL = 'http://waytomoon.netlify.app';
 export const ONBOARDING_NAME = 'Onboarding';
 
-/** Short card subtitle under "Onboarding teilen". */
+/** Short card subtitle under onboarding share (generic; not org-specific). */
 export const ONBOARDING_DESCRIPTION = 'Letzter Schritt für neue Berater nach der Registrierung.';
 
-/** Longer purpose copy — shown in the verification sheet, not the card. */
+/** Longer purpose copy — shown in the verification sheet. */
 export const ONBOARDING_DETAIL =
-  'Hilft neuen Beratern dabei, den Businessplan, die ersten Schritte, alle wichtigen Informationen, sowie den Zugang zur Austauschgruppe und zur Nina-Informationsgruppe zu erhalten.';
+  'Hilft neuen Beratern dabei, den Businessplan, die ersten Schritte, alle wichtigen Informationen sowie den Zugang zu Team-Gruppen zu erhalten.';
 
 export const PRESENTATION_TOOL_KEY = 'presentation';
 export const PRESENTATION_NAME = 'Firmenpräsentation';
 export const PRESENTATION_DESCRIPTION = 'Business-Präsentation für Interessenten';
 
 /**
- * Visible labels/URLs for share tools — keeps DB keys stable while
- * renaming WayToMoon → Onboarding and pinning the onboarding URL.
- * Onboarding and Firmenpräsentation stay completely separate actions.
+ * Visible labels for share tools. Never pin a foreign Org-1 URL.
+ * Onboarding display name may be neutralized when the DB still says WayToMoon.
  */
 export function displayShareTool(tool: ExternalTool): ExternalTool {
   if (tool.key === ONBOARDING_TOOL_KEY) {
+    const looksLikeLegacyName = /waytomoon/i.test(tool.name);
     return {
       ...tool,
-      name: ONBOARDING_NAME,
-      description: ONBOARDING_DESCRIPTION,
-      url: ONBOARDING_URL,
+      name: looksLikeLegacyName || !tool.name.trim() ? ONBOARDING_NAME : tool.name,
+      description: tool.description?.trim() || ONBOARDING_DESCRIPTION,
+      // URL always from org-scoped external_tools row — never hardcoded.
+      url: tool.url,
     };
   }
   if (tool.key === PRESENTATION_TOOL_KEY) {
@@ -52,7 +57,7 @@ export function isOnboardingShareTool(tool: ExternalTool): boolean {
   return tool.key === ONBOARDING_TOOL_KEY;
 }
 
-/** Replace legacy product names in any visible UI string. */
+/** Sanitize legacy product names in seed/journey copy for display. */
 export function renameWayToMoonLabel(text: string): string {
   return text.replace(/MyWayToMoon|WayToMoon/gi, ONBOARDING_NAME);
 }
