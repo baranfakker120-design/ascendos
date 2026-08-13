@@ -60,20 +60,33 @@
 
 -- ---------------------------------------------------------------------------
 -- Phase-3 transitional DEFAULT Org#1 → membership-resolved current org.
--- Omitted org_id on insert becomes current_org_id(); forged foreign
--- org_id is still rejected by WITH CHECK.
+-- coalesce keeps a safe Org#1 fallback when current_org_id() is NULL
+-- (owner/seed paths, Phase-3 integrity fixtures). Authenticated tenants
+-- still get current_org_id(); forged foreign org_id fails WITH CHECK.
 -- ---------------------------------------------------------------------------
 alter table public.coach_knowledge_articles
-  alter column org_id set default public.current_org_id();
+  alter column org_id set default coalesce(
+    public.current_org_id(),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 alter table public.live_coaching_events
-  alter column org_id set default public.current_org_id();
+  alter column org_id set default coalesce(
+    public.current_org_id(),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 alter table public.coaching_notification_outbox
-  alter column org_id set default public.current_org_id();
+  alter column org_id set default coalesce(
+    public.current_org_id(),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 alter table public.ascend_stories
-  alter column org_id set default public.current_org_id();
+  alter column org_id set default coalesce(
+    public.current_org_id(),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 -- ---------------------------------------------------------------------------
 -- coach_knowledge_articles
