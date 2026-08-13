@@ -103,22 +103,22 @@ values
 
 insert into public.coach_convos (id, user_id, org_id, agent_key)
 values
-  ('e9000000-0000-0000-0000-0000000000v1', 'd9000000-0000-0000-0000-00000000000d',
+  ('e9000000-0000-0000-0000-0000000000f1', 'd9000000-0000-0000-0000-00000000000d',
    'a9000000-0000-0000-0000-000000000001', 'knowledge'),
-  ('e9000000-0000-0000-0000-0000000000v2', 'd9000000-0000-0000-0000-00000000000d',
+  ('e9000000-0000-0000-0000-0000000000f2', 'd9000000-0000-0000-0000-00000000000d',
    'a9000000-0000-0000-0000-000000000002', 'knowledge');
 
 insert into public.coach_messages (convo_id, role, content)
 values
-  ('e9000000-0000-0000-0000-0000000000v1', 'user', 'ORG_A_CONVERSATION_SECRET'),
-  ('e9000000-0000-0000-0000-0000000000v2', 'user', 'ORG_B_CONVERSATION_SECRET');
+  ('e9000000-0000-0000-0000-0000000000f1', 'user', 'ORG_A_CONVERSATION_SECRET'),
+  ('e9000000-0000-0000-0000-0000000000f2', 'user', 'ORG_B_CONVERSATION_SECRET');
 
 insert into public.coach_knowledge_articles
   (id, org_id, title, slug, body_markdown, category, status, active, approved_at)
 values
-  ('e9000000-0000-0000-0000-0000000000m1', 'a9000000-0000-0000-0000-000000000001',
+  ('e9000000-0000-0000-0000-0000000000e1', 'a9000000-0000-0000-0000-000000000001',
    'CMS A', 'cms-a', 'ASCENDOS_ORG_A_CMS_SECRET', 'Allgemein', 'approved', true, now()),
-  ('e9000000-0000-0000-0000-0000000000m2', 'a9000000-0000-0000-0000-000000000002',
+  ('e9000000-0000-0000-0000-0000000000e2', 'a9000000-0000-0000-0000-000000000002',
    'CMS B', 'cms-b', 'ASCENDOS_ORG_B_CMS_SECRET', 'Allgemein', 'approved', true, now());
 
 insert into public.knowledge_gaps (org_id, user_id, agent_key, question)
@@ -243,14 +243,14 @@ select tests.select_org('a9000000-0000-0000-0000-000000000001');
 
 select is(
   (select count(*)::int from public.coach_convos
-   where id = 'e9000000-0000-0000-0000-0000000000v1'),
+   where id = 'e9000000-0000-0000-0000-0000000000f1'),
   1,
   'AB header A → convo A visible'
 );
 
 select is(
   (select count(*)::int from public.coach_convos
-   where id = 'e9000000-0000-0000-0000-0000000000v2'),
+   where id = 'e9000000-0000-0000-0000-0000000000f2'),
   0,
   'AB header A → convo B DENY'
 );
@@ -273,14 +273,14 @@ select tests.select_org('a9000000-0000-0000-0000-000000000002');
 
 select is(
   (select count(*)::int from public.coach_convos
-   where id = 'e9000000-0000-0000-0000-0000000000v2'),
+   where id = 'e9000000-0000-0000-0000-0000000000f2'),
   1,
   'AB header B → convo B visible'
 );
 
 select is(
   (select count(*)::int from public.coach_convos
-   where id = 'e9000000-0000-0000-0000-0000000000v1'),
+   where id = 'e9000000-0000-0000-0000-0000000000f1'),
   0,
   'AB header B → convo A DENY'
 );
