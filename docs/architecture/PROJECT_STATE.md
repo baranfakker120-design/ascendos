@@ -34,21 +34,21 @@ Do **not** apply Phase 8 migration to production without approval.
 
 ## Current architecture stand (facts)
 
-| Area                        | Status                                                     |
-| --------------------------- | ---------------------------------------------------------- |
-| Single Supabase project     | Yes                                                        |
-| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                           |
-| Org selector                | `x-ascendos-org` + `current_org_id()`                      |
-| Roles                       | Org roles + `platform_admins`                              |
-| RAG / AI context            | Org-scoped (Phase 6)                                       |
-| Knowledge Center CMS        | Org-scoped RLS; not in coach-chat prompts                  |
-| Live Coaching / Outbox      | Org-scoped RLS + push membership filter                    |
-| Ascend Stories              | Org-scoped RLS                                             |
-| coaching-media Storage      | **Private** + signed URLs (Phase 7)                        |
-| Content / Autopilot / IG    | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10 |
-| Web Push                    | Central VAPID; send-time org filter (ADR 0008)             |
+| Area                        | Status                                                       |
+| --------------------------- | ------------------------------------------------------------ |
+| Single Supabase project     | Yes                                                          |
+| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                             |
+| Org selector                | `x-ascendos-org` + `current_org_id()`                        |
+| Roles                       | Org roles + `platform_admins`                                |
+| RAG / AI context            | Org-scoped (Phase 6)                                         |
+| Knowledge Center CMS        | Org-scoped RLS; not in coach-chat prompts                    |
+| Live Coaching / Outbox      | Org-scoped RLS + push membership filter                      |
+| Ascend Stories              | Org-scoped RLS                                               |
+| coaching-media Storage      | **Private** + signed URLs (Phase 7)                          |
+| Content / Autopilot / IG    | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10   |
+| Web Push                    | Central VAPID; send-time org filter (ADR 0008)               |
 | Frontend branding / tools   | **Org-scoped** (Phase 8) — no Team Seyda / WayToMoon FE pins |
-| Platform Admin UI           | **Missing** (Phase 10)                                     |
+| Platform Admin UI           | **Missing** (Phase 10)                                       |
 
 ---
 

@@ -12,7 +12,8 @@ function usesFillLayout(pathname: string): boolean {
     pathname === '/coach' ||
     pathname.startsWith('/coach/person/') ||
     pathname === '/team' ||
-    pathname === '/guide' || pathname === '/team-seyda'
+    pathname === '/guide' ||
+    pathname === '/team-seyda'
   );
 }
 

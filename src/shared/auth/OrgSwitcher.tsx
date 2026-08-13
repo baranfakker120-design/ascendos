@@ -35,8 +35,7 @@ export function OrgSwitcher() {
       org.branding && typeof org.branding === 'object' && !Array.isArray(org.branding)
         ? (org.branding as Record<string, unknown>)
         : {};
-    const display =
-      typeof branding.display_name === 'string' ? branding.display_name.trim() : '';
+    const display = typeof branding.display_name === 'string' ? branding.display_name.trim() : '';
     return display || org.name || t('org.fallback');
   };
 

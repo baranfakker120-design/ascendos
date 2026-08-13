@@ -199,7 +199,11 @@ export function assessBranchHealth(
 export function buildPersonInsight(
   partner: CoachPartnerSnapshot,
   now: Date,
-  org?: { siblings?: CoachPartnerSnapshot[]; directsNeedingHelp?: number },
+  org?: {
+    siblings?: CoachPartnerSnapshot[];
+    directsNeedingHelp?: number;
+    onboardingUrl?: string | null;
+  },
   translate?: CoachTranslateFn
 ): PersonCoachInsight {
   const t = translator(undefined, translate);
@@ -343,7 +347,7 @@ export function buildPersonInsight(
   if (partner.teamCount === 0 && tenure > 21) weaknesses.push(t('person.metrics.weaknessNoTeam'));
 
   const first = partner.name.split(' ')[0] || partner.name;
-  const onboardingUrl = (input.onboardingUrl ?? '').trim();
+  const onboardingUrl = (org?.onboardingUrl ?? '').trim();
   const onboardingUrlSuffix = onboardingUrl ? `: ${onboardingUrl}` : '';
   const suggestedWhatsApp =
     recommendation === 'onboarding'
@@ -940,7 +944,12 @@ export function buildCoachOrgIntelligence(input: CoachOrgInput): CoachOrgIntelli
             (x) => x.membershipId === o.membershipId && x.sponsorMembershipId === p.membershipId
           )
       ).length;
-      return buildPersonInsight(p, input.now, { directsNeedingHelp }, t);
+      return buildPersonInsight(
+        p,
+        input.now,
+        { directsNeedingHelp, onboardingUrl: input.onboardingUrl },
+        t
+      );
     });
   const followUps = buildFollowUpRecommendations(input.contacts, input.now, t);
   const managerMessages = buildManagerMessages(input, priorities, teamHealth);

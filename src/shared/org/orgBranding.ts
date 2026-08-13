@@ -33,8 +33,7 @@ export function resolveOrgGuideUrl(
   branding: OrgBranding,
   tools: Array<{ key: string; url: string; is_active?: boolean }>
 ): string | null {
-  const fromBranding =
-    typeof branding.guideUrl === 'string' ? branding.guideUrl.trim() : '';
+  const fromBranding = typeof branding.guideUrl === 'string' ? branding.guideUrl.trim() : '';
   if (fromBranding) return fromBranding;
   const guideTool = tools.find((t) => t.key === 'guide' && t.url && t.is_active !== false);
   return guideTool?.url?.trim() || null;
@@ -45,10 +44,7 @@ export function resolveOnboardingToolUrl(
 ): string | null {
   // Legacy Org-1 key is `waytomoon`; newer orgs may use `onboarding`.
   const tool = tools.find(
-    (t) =>
-      (t.key === 'waytomoon' || t.key === 'onboarding') &&
-      t.url &&
-      t.is_active !== false
+    (t) => (t.key === 'waytomoon' || t.key === 'onboarding') && t.url && t.is_active !== false
   );
   return tool?.url?.trim() || null;
 }

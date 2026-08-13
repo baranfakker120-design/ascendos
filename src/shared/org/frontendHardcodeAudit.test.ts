@@ -9,11 +9,7 @@ import { join, relative } from 'node:path';
 
 const ROOT = process.cwd();
 
-const RUNTIME_GLOBS_ROOTS = [
-  'src/app',
-  'src/features',
-  'src/shared',
-];
+const RUNTIME_GLOBS_ROOTS = ['src/app', 'src/features', 'src/shared'];
 
 const ALLOWED_PATH_FRAGMENTS = [
   '.test.ts',
@@ -79,10 +75,7 @@ describe('Phase 8 — frontend Org-1 hardcode audit', () => {
   });
 
   it('OrganizationGuidePage does not pin Org-1 guide URL', () => {
-    const page = readFileSync(
-      join(ROOT, 'src/features/team-seyda/TeamSeydaPage.tsx'),
-      'utf8'
-    );
+    const page = readFileSync(join(ROOT, 'src/features/team-seyda/TeamSeydaPage.tsx'), 'utf8');
     expect(page).toMatch(/OrganizationGuidePage/);
     expect(page).not.toMatch(/teamseydaguide/i);
     expect(page).not.toMatch(/waytomoon\.netlify/i);
@@ -96,10 +89,7 @@ describe('Phase 8 — frontend Org-1 hardcode audit', () => {
   });
 
   it('coach-chat event labels no longer say WayToMoon', () => {
-    const coachChat = readFileSync(
-      join(ROOT, 'supabase/functions/coach-chat/index.ts'),
-      'utf8'
-    );
+    const coachChat = readFileSync(join(ROOT, 'supabase/functions/coach-chat/index.ts'), 'utf8');
     expect(coachChat).toMatch(/waytomoon_sent/);
     expect(coachChat).not.toMatch(/WayToMoon (gesendet|sent|envoyé|inviato|wysłany|gönderildi)/);
     expect(coachChat).toMatch(/Onboarding (gesendet|sent|envoyé|inviato|wysłany|gönderildi)/);

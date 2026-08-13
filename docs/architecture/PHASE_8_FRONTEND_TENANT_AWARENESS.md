@@ -14,18 +14,18 @@ AscendOS frontend must not assume the product is exclusively Team Seyda / Chogan
 
 ## Removed / replaced hardcodings
 
-| Surface | Before | After |
-| ------- | ------ | ----- |
-| Guide page | Hardcoded `https://teamseydaguide.netlify.app` | `organizations.branding.guideUrl` or tool key `guide` |
-| Route | `/team-seyda` only | `/guide` + redirect from `/team-seyda` |
-| More page | “Team Seyda Guide” | Org display name + guide when configured |
-| Share tools | Pinned WayToMoon URL | URL from `external_tools` only |
-| Coach drafts | Hardcoded WayToMoon URL in copy | `{onboardingUrl}` from active org tools |
-| Coach labels | WayToMoon event text | “Onboarding …” (domain key `waytomoon_sent` kept) |
-| Nav icon | `TeamSeydaIcon` / `teamseyda.svg` | Generic `TeamIcon` (SVG unused asset removed) |
-| i18n | `teamSeyda.*` | `orgGuide.*` / `more.orgGuide*` |
-| Org switcher | `organizations.name` only | Prefers `branding.display_name` |
-| Coach chrome | Always platform / risk of Seyda | `branding.coachDisplayName` else platform “Ascent” |
+| Surface      | Before                                         | After                                                 |
+| ------------ | ---------------------------------------------- | ----------------------------------------------------- |
+| Guide page   | Hardcoded `https://teamseydaguide.netlify.app` | `organizations.branding.guideUrl` or tool key `guide` |
+| Route        | `/team-seyda` only                             | `/guide` + redirect from `/team-seyda`                |
+| More page    | “Team Seyda Guide”                             | Org display name + guide when configured              |
+| Share tools  | Pinned WayToMoon URL                           | URL from `external_tools` only                        |
+| Coach drafts | Hardcoded WayToMoon URL in copy                | `{onboardingUrl}` from active org tools               |
+| Coach labels | WayToMoon event text                           | “Onboarding …” (domain key `waytomoon_sent` kept)     |
+| Nav icon     | `TeamSeydaIcon` / `teamseyda.svg`              | Generic `TeamIcon` (SVG unused asset removed)         |
+| i18n         | `teamSeyda.*`                                  | `orgGuide.*` / `more.orgGuide*`                       |
+| Org switcher | `organizations.name` only                      | Prefers `branding.display_name`                       |
+| Coach chrome | Always platform / risk of Seyda                | `branding.coachDisplayName` else platform “Ascent”    |
 
 ---
 
@@ -58,14 +58,14 @@ Unit tests simulate Org A vs Org B branding/tools. Org B never inherits Team Sey
 
 ## Remaining intentional references
 
-| Kind | Examples |
-| ---- | -------- |
-| KEEP — Org seed | `seed.sql`, `bootstrap.sql`, journey copy mentioning WayToMoon historically |
-| KEEP — domain keys | `waytomoon`, `waytomoon_sent`, contact source enum |
-| KEEP — documentation | Constitution, ADRs, PROJECT_BIBLE historical language |
-| KEEP — test fixtures | `shareVerification.test.ts` URLs as expected share targets |
-| KEEP — folder alias | `src/features/team-seyda/` path + `TeamSeydaPage` export alias |
-| REPLACE done | Runtime FE URLs, More/Guide/Coach/share hardcodes |
+| Kind                 | Examples                                                                    |
+| -------------------- | --------------------------------------------------------------------------- |
+| KEEP — Org seed      | `seed.sql`, `bootstrap.sql`, journey copy mentioning WayToMoon historically |
+| KEEP — domain keys   | `waytomoon`, `waytomoon_sent`, contact source enum                          |
+| KEEP — documentation | Constitution, ADRs, PROJECT_BIBLE historical language                       |
+| KEEP — test fixtures | `shareVerification.test.ts` URLs as expected share targets                  |
+| KEEP — folder alias  | `src/features/team-seyda/` path + `TeamSeydaPage` export alias              |
+| REPLACE done         | Runtime FE URLs, More/Guide/Coach/share hardcodes                           |
 
 ---
 
