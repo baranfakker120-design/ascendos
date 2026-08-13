@@ -366,6 +366,7 @@ export type Database = {
           media_kind: string;
           media_path: string | null;
           media_url: string | null;
+          org_id: string;
           published_at: string;
           source: string;
           story_type: string;
@@ -387,6 +388,7 @@ export type Database = {
           media_kind?: string;
           media_path?: string | null;
           media_url?: string | null;
+          org_id?: string;
           published_at?: string;
           source?: string;
           story_type: string;
@@ -408,6 +410,7 @@ export type Database = {
           media_kind?: string;
           media_path?: string | null;
           media_url?: string | null;
+          org_id?: string;
           published_at?: string;
           source?: string;
           story_type?: string;
@@ -438,6 +441,13 @@ export type Database = {
             columns: ['created_by'];
             isOneToOne: false;
             referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ascend_stories_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
           {
@@ -547,6 +557,7 @@ export type Database = {
           created_by: string | null;
           current_version: number;
           id: string;
+          org_id: string;
           slug: string;
           status: string;
           tags: string[];
@@ -567,6 +578,7 @@ export type Database = {
           created_by?: string | null;
           current_version?: number;
           id?: string;
+          org_id?: string;
           slug: string;
           status?: string;
           tags?: string[];
@@ -587,6 +599,7 @@ export type Database = {
           created_by?: string | null;
           current_version?: number;
           id?: string;
+          org_id?: string;
           slug?: string;
           status?: string;
           tags?: string[];
@@ -635,6 +648,13 @@ export type Database = {
             columns: ['created_by'];
             isOneToOne: false;
             referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coach_knowledge_articles_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
           {
@@ -835,6 +855,7 @@ export type Database = {
           event_id: string;
           id: string;
           kind: string;
+          org_id: string;
           scheduled_for: string;
           sent_at: string | null;
           title: string;
@@ -845,6 +866,7 @@ export type Database = {
           event_id: string;
           id?: string;
           kind: string;
+          org_id?: string;
           scheduled_for: string;
           sent_at?: string | null;
           title: string;
@@ -855,6 +877,7 @@ export type Database = {
           event_id?: string;
           id?: string;
           kind?: string;
+          org_id?: string;
           scheduled_for?: string;
           sent_at?: string | null;
           title?: string;
@@ -865,6 +888,13 @@ export type Database = {
             columns: ['event_id'];
             isOneToOne: false;
             referencedRelation: 'live_coaching_events';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coaching_notification_outbox_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
         ];
@@ -2413,6 +2443,7 @@ export type Database = {
           media_path: string | null;
           media_type: string;
           media_url: string | null;
+          org_id: string;
           published_at: string | null;
           published_by: string | null;
           recording_url: string | null;
@@ -2440,6 +2471,7 @@ export type Database = {
           media_path?: string | null;
           media_type: string;
           media_url?: string | null;
+          org_id?: string;
           published_at?: string | null;
           published_by?: string | null;
           recording_url?: string | null;
@@ -2467,6 +2499,7 @@ export type Database = {
           media_path?: string | null;
           media_type?: string;
           media_url?: string | null;
+          org_id?: string;
           published_at?: string | null;
           published_by?: string | null;
           recording_url?: string | null;
@@ -2499,6 +2532,13 @@ export type Database = {
             columns: ['created_by'];
             isOneToOne: false;
             referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'live_coaching_events_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
           {
