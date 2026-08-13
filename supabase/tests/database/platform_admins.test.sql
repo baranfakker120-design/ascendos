@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(28);
 
 -- ---------- Auth inserts (bypass handle_new_user invite requirement) ----------
 set local session_replication_role = replica;
@@ -15,7 +15,7 @@ insert into auth.users (id, email) values
   ('d6000000-0000-0000-0000-00000000000a', 'p2-anna@test.local'),
   ('d6000000-0000-0000-0000-00000000000b', 'p2-bert@test.local'),
   ('d6000000-0000-0000-0000-00000000000c', 'p2-cara@test.local'),
-  ('d6000000-0000-0000-0000-00000000000p', 'p2-plat@test.local');
+  ('d6000000-0000-0000-0000-00000000000d', 'p2-plat@test.local');
 set local session_replication_role = origin;
 
 insert into public.organizations (id, name) values
@@ -44,7 +44,7 @@ values
    'f6000000-0000-0000-0000-000000000001', 'd6000000-0000-0000-0000-00000000000a', 'berater', 'P2Bert', 'B', 'p2bert'),
   ('d6000000-0000-0000-0000-00000000000c', 'e6000000-0000-0000-0000-000000000002',
    'f6000000-0000-0000-0000-000000000002', null, 'admin', 'P2Cara', 'C', 'p2cara'),
-  ('d6000000-0000-0000-0000-00000000000p', 'e6000000-0000-0000-0000-000000000001',
+  ('d6000000-0000-0000-0000-00000000000d', 'e6000000-0000-0000-0000-000000000001',
    'f6000000-0000-0000-0000-000000000001', null, 'berater', 'P2Plat', 'P', 'p2plat');
 
 set local session_replication_role = replica;
@@ -56,7 +56,7 @@ values
    'f6000000-0000-0000-0000-000000000001', 'berater', 'active'),
   ('d6000000-0000-0000-0000-00000000000c', 'e6000000-0000-0000-0000-000000000002',
    'f6000000-0000-0000-0000-000000000002', 'admin', 'active'),
-  ('d6000000-0000-0000-0000-00000000000p', 'e6000000-0000-0000-0000-000000000001',
+  ('d6000000-0000-0000-0000-00000000000d', 'e6000000-0000-0000-0000-000000000001',
    'f6000000-0000-0000-0000-000000000001', 'berater', 'active'),
   ('d6000000-0000-0000-0000-00000000000a', 'e6000000-0000-0000-0000-000000000002',
    'f6000000-0000-0000-0000-000000000002', 'berater', 'active');
@@ -95,7 +95,7 @@ select set_config('request.jwt.claims', '', true);
 select set_config('request.headers', '', true);
 
 insert into public.platform_admins (identity_id, notes)
-values ('d6000000-0000-0000-0000-00000000000p', 'p2 test bootstrap');
+values ('d6000000-0000-0000-0000-00000000000d', 'p2 test bootstrap');
 
 -- 1) Member (berater) is NOT platform admin
 select tests.authenticate_as('d6000000-0000-0000-0000-00000000000b');
@@ -119,7 +119,7 @@ select is(public.is_super_admin(), false, 'membership admin is not is_super_admi
 select is(public.is_platform_super_admin(), false, 'membership admin is not platform admin');
 
 -- 4) Explicit platform_admins row is recognized
-select tests.authenticate_as('d6000000-0000-0000-0000-00000000000p');
+select tests.authenticate_as('d6000000-0000-0000-0000-00000000000d');
 select tests.select_org('e6000000-0000-0000-0000-000000000001');
 select is(public.is_platform_super_admin(), true, 'explicit platform_admins row is detected');
 select is(public.is_super_admin(), false, 'platform admin berater membership is not org super_admin');
@@ -128,9 +128,9 @@ select is(public.is_super_admin(), false, 'platform admin berater membership is 
 reset role;
 update public.platform_admins
 set is_active = false, revoked_at = now()
-where identity_id = 'd6000000-0000-0000-0000-00000000000p';
+where identity_id = 'd6000000-0000-0000-0000-00000000000d';
 
-select tests.authenticate_as('d6000000-0000-0000-0000-00000000000p');
+select tests.authenticate_as('d6000000-0000-0000-0000-00000000000d');
 select tests.select_org('e6000000-0000-0000-0000-000000000001');
 select is(public.is_platform_super_admin(), false, 'deactivated platform admin is rejected');
 
@@ -192,6 +192,30 @@ select ok(
 select ok(
   to_regprocedure('public.is_organization_admin()') is not null,
   'is_organization_admin() exists'
+);
+
+-- K) platform_admins table: ordinary org users cannot read/write
+select tests.authenticate_as('d6000000-0000-0000-0000-00000000000b');
+select tests.select_org('e6000000-0000-0000-0000-000000000001');
+select is(
+  (select count(*)::int from public.platform_admins),
+  0,
+  'berater cannot read platform_admins rows'
+);
+select throws_ok(
+  $$ insert into public.platform_admins (identity_id, notes)
+     values ('d6000000-0000-0000-0000-00000000000b', 'escalation attempt') $$,
+  '42501',
+  null,
+  'berater cannot insert into platform_admins'
+);
+
+select tests.authenticate_as('d6000000-0000-0000-0000-00000000000a');
+select tests.select_org('e6000000-0000-0000-0000-000000000001');
+select is(
+  (select count(*)::int from public.platform_admins),
+  0,
+  'org super_admin cannot read platform_admins rows'
 );
 
 select * from finish();
