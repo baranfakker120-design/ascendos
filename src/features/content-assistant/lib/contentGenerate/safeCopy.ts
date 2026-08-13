@@ -3,8 +3,7 @@
  */
 
 /** UUID-shaped token (with dashes) — asset ids, request ids, filenames. */
-export const INTERNAL_UUID_RE =
-  /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+export const INTERNAL_UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
 
 const UUID_COMPACT_RE = /^[0-9a-f]{32}$/i;
 const MEDIA_EXT_RE = /\.(jpe?g|png|webp|heic|gif|mp4|mov|webm)$/i;
@@ -29,9 +28,7 @@ export function textContainsInternalId(value: string | null | undefined): boolea
 }
 
 /** First candidate that is non-empty and not an internal id; else null. */
-export function pickSafePublicCopy(
-  ...candidates: Array<string | null | undefined>
-): string | null {
+export function pickSafePublicCopy(...candidates: Array<string | null | undefined>): string | null {
   for (const c of candidates) {
     if (c == null) continue;
     const s = String(c).trim();
