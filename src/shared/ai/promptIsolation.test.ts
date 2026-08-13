@@ -239,11 +239,7 @@ describe('Phase 6 — prompt assembly + AI context inspection', () => {
     ]);
     expect(assembled.ok).toBe(true);
     if (!assembled.ok) return;
-    const inspect = inspectAiContextIsolation(
-      assembled.prompt,
-      [ORG_B_SECRET],
-      [ORG_A_SECRET]
-    );
+    const inspect = inspectAiContextIsolation(assembled.prompt, [ORG_B_SECRET], [ORG_A_SECRET]);
     expect(inspect.allowedPresent).toBe(true);
     expect(inspect.foreignLeak).toBe(false);
   });

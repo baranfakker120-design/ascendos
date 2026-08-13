@@ -31,15 +31,15 @@ Never: `profiles.org_id` as authorization.
 
 ## Guarantees
 
-| Surface | Guarantee |
-| --- | --- |
-| `match_knowledge` | `p_org_id` must equal `current_org_id()`; org filter inside retrieval (docs + chunks); no `is_super_admin` bypass |
-| Agents | Selected with `org_id = activeOrgId` |
-| Conversations / messages | RLS `user_id` **and** `org_id = current_org_id()`; Edge also filters by `activeOrgId` |
-| Knowledge gaps | Existing org-scoped admin select preserved |
-| CMS articles | RLS org-scoped (Phase 4). **Not loaded into coach-chat prompts** (RAG only) |
-| Usage | `usage_events.org_id = activeOrgId` |
-| Ingest | Phase 5 tenant discipline unchanged |
+| Surface                  | Guarantee                                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `match_knowledge`        | `p_org_id` must equal `current_org_id()`; org filter inside retrieval (docs + chunks); no `is_super_admin` bypass |
+| Agents                   | Selected with `org_id = activeOrgId`                                                                              |
+| Conversations / messages | RLS `user_id` **and** `org_id = current_org_id()`; Edge also filters by `activeOrgId`                             |
+| Knowledge gaps           | Existing org-scoped admin select preserved                                                                        |
+| CMS articles             | RLS org-scoped (Phase 4). **Not loaded into coach-chat prompts** (RAG only)                                       |
+| Usage                    | `usage_events.org_id = activeOrgId`                                                                               |
+| Ingest                   | Phase 5 tenant discipline unchanged                                                                               |
 
 ## Migration (required)
 
@@ -51,12 +51,12 @@ Also hardens `match_knowledge` p_org_id validation and adds `c.org_id = p_org_id
 
 ## Hard-code audit
 
-| Item | Class | Action |
-| --- | --- | --- |
+| Item                           | Class               | Action                                           |
+| ------------------------------ | ------------------- | ------------------------------------------------ |
 | `CORE_RULES` Chogan/Team Seyda | D — AI context leak | Minimal neutralize (generic product/org wording) |
-| Intent rewrite `Chogan Parfum` | D — embedding bias | Minimal neutralize (`Parfum Duft…`) |
-| coach-chat WayToMoon UI labels | B — Org-1 UX | OUT OF SCOPE — Phase 8 |
-| Seed/docs Team Seyda | C — historical | OUT OF SCOPE — Phase 8 |
+| Intent rewrite `Chogan Parfum` | D — embedding bias  | Minimal neutralize (`Parfum Duft…`)              |
+| coach-chat WayToMoon UI labels | B — Org-1 UX        | OUT OF SCOPE — Phase 8                           |
+| Seed/docs Team Seyda           | C — historical      | OUT OF SCOPE — Phase 8                           |
 
 ## CMS in coach-chat
 

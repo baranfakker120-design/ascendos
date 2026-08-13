@@ -18,12 +18,7 @@ export const ORG_A_INGEST_SECRET = 'ASCENDOS_INGEST_A_SECRET';
 export const ORG_B_INGEST_SECRET = 'ASCENDOS_INGEST_B_SECRET';
 
 export type PromptBlockKind =
-  | 'platform'
-  | 'organization'
-  | 'membership'
-  | 'knowledge'
-  | 'cms'
-  | 'conversation';
+  'platform' | 'organization' | 'membership' | 'knowledge' | 'cms' | 'conversation';
 
 export interface PromptBlock {
   kind: PromptBlockKind;
@@ -102,9 +97,7 @@ export function selectOrgAgent(
   agentKey: string
 ): AgentRow | null {
   return (
-    agents.find(
-      (a) => a.org_id === orgId && a.key === agentKey && a.is_active !== false
-    ) ?? null
+    agents.find((a) => a.org_id === orgId && a.key === agentKey && a.is_active !== false) ?? null
   );
 }
 
@@ -115,10 +108,7 @@ export function loadOrgConversation(
   userId: string,
   orgId: string
 ): ConvoRow | null {
-  return (
-    convos.find((c) => c.id === convoId && c.user_id === userId && c.org_id === orgId) ??
-    null
-  );
+  return convos.find((c) => c.id === convoId && c.user_id === userId && c.org_id === orgId) ?? null;
 }
 
 /**
@@ -167,7 +157,9 @@ export function textContainsMarker(text: string, marker: string): boolean {
 export function assembleTenantSafePrompt(
   activeOrgId: string,
   blocks: PromptBlock[]
-): { ok: true; prompt: string } | { ok: false; error: 'foreign_block'; foreignKind: PromptBlockKind } {
+):
+  | { ok: true; prompt: string }
+  | { ok: false; error: 'foreign_block'; foreignKind: PromptBlockKind } {
   for (const block of blocks) {
     if (block.kind === 'platform') continue;
     if (block.orgId !== activeOrgId) {
@@ -210,7 +202,5 @@ export function formatKnowledgeBlock(
   header: string
 ): string {
   if (matches.length === 0) return '';
-  return (
-    `${header}:\n` + matches.map((m) => `[${m.doc_title}]\n${m.content}`).join('\n---\n')
-  );
+  return `${header}:\n` + matches.map((m) => `[${m.doc_title}]\n${m.content}`).join('\n---\n');
 }
