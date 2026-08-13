@@ -1,29 +1,27 @@
 # PROJECT_STATE — AscendOS Multi-Tenant
 
 **Last updated:** 2026-08-13  
-**Updated by:** Phase 0 architecture memory (documentation only)
+**Updated by:** Phase 5 Edge Function Tenant Discipline (repository; production unchanged)
 
 ---
 
 ## Current phase
 
-**PHASE 0 — Bestandsaufnahme / Architecture Memory** — **COMPLETED (docs)**
+**PHASE 5 — Edge Function Tenant Discipline** — **IMPLEMENTED IN REPO** (awaiting approval; not merged/deployed by agent)
 
 ---
 
 ## Last completed phase
 
-Phase 0 documentation persisted under `docs/architecture/`.
+Phase 4 — RLS tenant isolation for Knowledge / Live Coaching / Outbox / Stories (#114)
 
 ---
 
 ## Next step
 
-**PHASE 1 — Architektur + Datenmodell vertiefen**
+**PHASE 6+** only after explicit approval — Frontend tenant awareness, Admin UI, etc.
 
-- Finalize platform-principal ADR choice
-- Table-level retrofit checklist sign-off
-- Explicit approval required before any migration / deploy / merge of implementing work
+Do **not** apply Phase 5 to production without approval.
 
 ---
 

@@ -85,7 +85,7 @@ function splitImports(source) {
 }
 
 /** Reihenfolge der eingebetteten Module: stabil, damit Diffs klein bleiben. */
-const SHARED_ORDER = ['cors.ts', 'gemini.ts', 'prompts.ts'];
+const SHARED_ORDER = ['cors.ts', 'tenant.ts', 'gemini.ts', 'prompts.ts'];
 
 /** Verzeichnisse unter `_shared/`, deren Dateien sich UNTEREINANDER über
  *  `./relativ.ts` importieren (siehe resolveSharedGroup). Ein neuer

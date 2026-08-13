@@ -7,6 +7,7 @@ export type CoachingPushKind = 'published' | 't_minus_30' | 't_minus_5';
 export interface OutboxRow {
   id: string;
   event_id: string;
+  org_id?: string;
   kind: CoachingPushKind;
   scheduled_for: string;
   sent_at: string | null;
@@ -16,6 +17,7 @@ export interface OutboxRow {
 
 export interface EventRow {
   id: string;
+  org_id?: string;
   title: string;
   starts_at: string;
   duration_minutes: number;

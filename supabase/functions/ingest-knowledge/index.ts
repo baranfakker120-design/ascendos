@@ -1,13 +1,17 @@
 // ============================================================
 // ingest-knowledge: Text-Dokument in die Wissensbasis aufnehmen.
-// Nur super_admin. Dokument startet als DRAFT — Freigabe ist ein
-// bewusster menschlicher Schritt (ADR-010), aktuell via Studio,
-// Admin-UI folgt in Sprint 5.
+// Nur super_admin (membership role). Dokument startet als DRAFT —
+// Freigabe ist ein bewusster menschlicher Schritt (ADR-010).
+// Phase 5: JWT + x-ascendos-org forwarded; org from membership only.
 // ============================================================
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import { geminiEmbedBatch, GeminiError } from '../_shared/gemini.ts';
+import {
+  assertClientOrgMatches,
+  resolveActiveMembership,
+  userClientFromRequest,
+} from '../_shared/tenant.ts';
 
 const CHUNK_SIZE = 1600; // Zeichen (~400 Token), mit Überlappung
 const CHUNK_OVERLAP = 200;
@@ -42,33 +46,27 @@ Deno.serve(async (req) => {
   if (options) return options;
 
   try {
-    const db = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } }
-    );
+    const db = userClientFromRequest(req);
+    const resolved = await resolveActiveMembership(db, req);
+    if (!resolved.ok) {
+      if (resolved.status === 401) return json({ error: 'Nicht angemeldet.' }, 401);
+      return json({ error: 'Keine aktive Organisationsmitgliedschaft.' }, 403);
+    }
 
-    const { data: userData } = await db.auth.getUser();
-    if (!userData.user) return json({ error: 'Nicht angemeldet.' }, 401);
-
-    // Canonical authority: memberships.role (not profiles.role mirror).
-    const { data: memberships, error: membershipError } = await db
-      .from('memberships')
-      .select('id, org_id, role, status')
-      .eq('identity_id', userData.user.id)
-      .eq('status', 'active');
-    if (membershipError) throw membershipError;
-
-    const orgHeader = req.headers.get('x-ascendos-org');
-    const active =
-      memberships?.find((m) => orgHeader && m.org_id === orgHeader) ??
-      (memberships?.length === 1 ? memberships[0] : null);
-
-    if (!active || active.role !== 'super_admin') {
+    const { userId, membership: active } = resolved;
+    if (active.role !== 'super_admin') {
       return json({ error: 'Nur Super-Admins können Wissen aufnehmen.' }, 403);
     }
 
     const body = await req.json();
+    // Client-supplied organization_id / org_id is never authoritative.
+    const bodyOrg =
+      body.organization_id ?? body.org_id ?? body.organizationId ?? body.orgId ?? null;
+    const orgCheck = assertClientOrgMatches(bodyOrg, active.org_id);
+    if (!orgCheck.ok) {
+      return json({ error: 'organisation_mismatch' }, 403);
+    }
+
     const title = String(body.title ?? '').trim();
     const category = String(body.category ?? '').trim();
     const content = String(body.content ?? '').trim();
@@ -85,17 +83,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: doc, error: docError } = await db.from('knowledge_docs')
+    const { data: doc, error: docError } = await db
+      .from('knowledge_docs')
       .insert({
         org_id: active.org_id,
         team_id: teamId,
         title,
         category,
-        author_id: userData.user.id,
+        author_id: userId,
         source_type: body.sourceType ?? 'document',
         status: 'draft',
       })
-      .select().single();
+      .select()
+      .single();
     if (docError) throw docError;
 
     const chunks = chunkText(content);
@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
       docId: doc.id,
       chunks: chunks.length,
       status: 'draft',
+      orgId: active.org_id,
       hint: 'Dokument ist als Entwurf gespeichert. Erst nach Freigabe (status = approved) nutzt der Coach es.',
     });
   } catch (e) {
@@ -134,8 +135,10 @@ Deno.serve(async (req) => {
     // generische Meldung.
     if (e instanceof GeminiError) {
       console.error(`ingest-knowledge llm error [${e.code}]`, e.message);
-      return json({ error: `Einbettung fehlgeschlagen (${e.code}).` },
-        e.code === 'missing_api_key' ? 503 : 502);
+      return json(
+        { error: `Einbettung fehlgeschlagen (${e.code}).` },
+        e.code === 'missing_api_key' ? 503 : 502
+      );
     }
     console.error('ingest-knowledge error', e instanceof Error ? e.message : e);
     return json({ error: 'Aufnahme fehlgeschlagen.' }, 500);
