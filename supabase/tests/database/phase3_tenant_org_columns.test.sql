@@ -336,7 +336,7 @@ insert into public.ascend_stories
   (id, story_type, title, body, published_at, expires_at, created_by)
 values
   (
-    's7000000-0000-0000-0000-000000000001',
+    '77000000-0000-0000-0000-000000000001',
     'achievements',
     'P3 Story',
     'story body marker',
@@ -348,7 +348,7 @@ values
 select is(
   (
     select org_id from public.ascend_stories
-    where id = 's7000000-0000-0000-0000-000000000001'
+    where id = '77000000-0000-0000-0000-000000000001'
   ),
   '00000000-0000-0000-0000-000000000001'::uuid,
   'new story defaults to Org #1'
@@ -357,7 +357,7 @@ select is(
 select is(
   (
     select body from public.ascend_stories
-    where id = 's7000000-0000-0000-0000-000000000001'
+    where id = '77000000-0000-0000-0000-000000000001'
   ),
   'story body marker',
   'story content preserved'
@@ -398,7 +398,7 @@ select ok(
   )
   and exists (
     select 1 from public.ascend_stories
-    where id = 's7000000-0000-0000-0000-000000000001'
+    where id = '77000000-0000-0000-0000-000000000001'
   ),
   'fixture IDs and content remain (no delete / no id rewrite)'
 );
