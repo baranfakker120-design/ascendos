@@ -2963,6 +2963,85 @@ export type Database = {
           },
         ];
       };
+      platform_admins: {
+        Row: {
+          created_at: string;
+          granted_at: string;
+          granted_by: string | null;
+          id: string;
+          identity_id: string;
+          is_active: boolean;
+          notes: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          granted_at?: string;
+          granted_by?: string | null;
+          id?: string;
+          identity_id: string;
+          is_active?: boolean;
+          notes?: string | null;
+          revoked_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          granted_at?: string;
+          granted_by?: string | null;
+          id?: string;
+          identity_id?: string;
+          is_active?: boolean;
+          notes?: string | null;
+          revoked_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'platform_admins_granted_by_fkey';
+            columns: ['granted_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'platform_admins_granted_by_fkey';
+            columns: ['granted_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'platform_admins_granted_by_fkey';
+            columns: ['granted_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'platform_admins_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: true;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'platform_admins_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'platform_admins_identity_id_fkey';
+            columns: ['identity_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -3698,6 +3777,8 @@ export type Database = {
       };
       is_ancestor_of: { Args: { p_target: string }; Returns: boolean };
       is_coach_content_manager: { Args: never; Returns: boolean };
+      is_organization_admin: { Args: never; Returns: boolean };
+      is_platform_super_admin: { Args: never; Returns: boolean };
       is_super_admin: { Args: never; Returns: boolean };
       list_ap_tasks: {
         Args: never;
