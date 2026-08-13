@@ -13,3 +13,10 @@ export {
   sendWebPushToSubscription,
   type StoredPushSubscription,
 } from './webPushSend.ts';
+
+export {
+  assertPayloadOrgSafe,
+  filterSubscriptionsForOrg,
+  type MembershipRecipient,
+  type PushSubRow,
+} from './recipients.ts';

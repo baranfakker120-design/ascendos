@@ -4,7 +4,7 @@
 // GENERIERT von scripts/bundle-functions.mjs — NICHT von Hand ändern.
 // Quelle: supabase/functions/ingest-knowledge/index.ts
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { GoogleGenAI } from 'npm:@google/genai@2.13.0';
 
 // ---- inline: _shared/cors.ts ----
@@ -25,6 +25,98 @@ export function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// ---- inline: _shared/tenant.ts ----
+/**
+ * Phase 5 — Edge tenant discipline helpers.
+ *
+ * Canonical authority: memberships + x-ascendos-org (same rules as
+ * active_membership_id() / content-assistant / instagram-oauth).
+ * Never treat profiles.org_id as authorization.
+ *
+ * Keep pure resolve logic in sync with:
+ *   src/shared/auth/tenantResolve.ts
+ */
+
+
+export interface ActiveMembership {
+  id: string;
+  org_id: string;
+  role: string;
+  status: string;
+}
+
+/** Forward Authorization + x-ascendos-org so PostgREST RLS sees current_org_id(). */
+export function userClientFromRequest(req: Request): SupabaseClient {
+  const forwardHeaders: Record<string, string> = {
+    Authorization: req.headers.get('Authorization') ?? '',
+  };
+  const orgSelector = req.headers.get('x-ascendos-org');
+  if (orgSelector) forwardHeaders['x-ascendos-org'] = orgSelector;
+  return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: forwardHeaders },
+  });
+}
+
+/**
+ * Pure membership pick (header preferred; single active auto-resolves;
+ * multi without header → null). Mirrors DB Fall 1–4 without profiles mirror.
+ */
+export function pickActiveMembershipFromList(
+  memberships: ActiveMembership[],
+  orgHeader: string | null
+): ActiveMembership | null {
+  const active = memberships.filter((m) => m.status === 'active');
+  if (active.length === 0) return null;
+  if (orgHeader) {
+    return active.find((m) => m.org_id === orgHeader) ?? null;
+  }
+  if (active.length === 1) return active[0];
+  return null;
+}
+
+export type ResolveMembershipResult =
+  | { ok: true; userId: string; membership: ActiveMembership }
+  | { ok: false; status: 401 | 403; error: 'not_authenticated' | 'no_active_membership' };
+
+export async function resolveActiveMembership(
+  db: SupabaseClient,
+  req: Request
+): Promise<ResolveMembershipResult> {
+  const { data: userData, error: authError } = await db.auth.getUser();
+  if (authError || !userData.user) {
+    return { ok: false, status: 401, error: 'not_authenticated' };
+  }
+
+  const { data: memberships, error: membershipError } = await db
+    .from('memberships')
+    .select('id, org_id, role, status')
+    .eq('identity_id', userData.user.id)
+    .eq('status', 'active');
+  if (membershipError) throw membershipError;
+
+  const orgHeader = req.headers.get('x-ascendos-org');
+  const list = (memberships as ActiveMembership[] | null) ?? [];
+  const membership = pickActiveMembershipFromList(list, orgHeader);
+  if (!membership) {
+    return { ok: false, status: 403, error: 'no_active_membership' };
+  }
+  return { ok: true, userId: userData.user.id, membership };
+}
+
+/** Deny client-supplied org ids that do not match the server-resolved org. */
+export function assertClientOrgMatches(
+  bodyOrgId: unknown,
+  serverOrgId: string
+): { ok: true } | { ok: false; error: 'org_mismatch' } {
+  if (bodyOrgId === undefined || bodyOrgId === null || bodyOrgId === '') {
+    return { ok: true };
+  }
+  if (String(bodyOrgId) !== serverOrgId) {
+    return { ok: false, error: 'org_mismatch' };
+  }
+  return { ok: true };
 }
 
 // ---- inline: _shared/gemini.ts ----
@@ -264,9 +356,9 @@ export async function geminiEmbed(text: string, task: EmbedTask): Promise<number
 
 // ============================================================
 // ingest-knowledge: Text-Dokument in die Wissensbasis aufnehmen.
-// Nur super_admin. Dokument startet als DRAFT — Freigabe ist ein
-// bewusster menschlicher Schritt (ADR-010), aktuell via Studio,
-// Admin-UI folgt in Sprint 5.
+// Nur super_admin (membership role). Dokument startet als DRAFT —
+// Freigabe ist ein bewusster menschlicher Schritt (ADR-010).
+// Phase 5: JWT + x-ascendos-org forwarded; org from membership only.
 // ============================================================
 
 
@@ -303,33 +395,27 @@ Deno.serve(async (req) => {
   if (options) return options;
 
   try {
-    const db = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } }
-    );
+    const db = userClientFromRequest(req);
+    const resolved = await resolveActiveMembership(db, req);
+    if (!resolved.ok) {
+      if (resolved.status === 401) return json({ error: 'Nicht angemeldet.' }, 401);
+      return json({ error: 'Keine aktive Organisationsmitgliedschaft.' }, 403);
+    }
 
-    const { data: userData } = await db.auth.getUser();
-    if (!userData.user) return json({ error: 'Nicht angemeldet.' }, 401);
-
-    // Canonical authority: memberships.role (not profiles.role mirror).
-    const { data: memberships, error: membershipError } = await db
-      .from('memberships')
-      .select('id, org_id, role, status')
-      .eq('identity_id', userData.user.id)
-      .eq('status', 'active');
-    if (membershipError) throw membershipError;
-
-    const orgHeader = req.headers.get('x-ascendos-org');
-    const active =
-      memberships?.find((m) => orgHeader && m.org_id === orgHeader) ??
-      (memberships?.length === 1 ? memberships[0] : null);
-
-    if (!active || active.role !== 'super_admin') {
+    const { userId, membership: active } = resolved;
+    if (active.role !== 'super_admin') {
       return json({ error: 'Nur Super-Admins können Wissen aufnehmen.' }, 403);
     }
 
     const body = await req.json();
+    // Client-supplied organization_id / org_id is never authoritative.
+    const bodyOrg =
+      body.organization_id ?? body.org_id ?? body.organizationId ?? body.orgId ?? null;
+    const orgCheck = assertClientOrgMatches(bodyOrg, active.org_id);
+    if (!orgCheck.ok) {
+      return json({ error: 'organisation_mismatch' }, 403);
+    }
+
     const title = String(body.title ?? '').trim();
     const category = String(body.category ?? '').trim();
     const content = String(body.content ?? '').trim();
@@ -346,17 +432,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: doc, error: docError } = await db.from('knowledge_docs')
+    const { data: doc, error: docError } = await db
+      .from('knowledge_docs')
       .insert({
         org_id: active.org_id,
         team_id: teamId,
         title,
         category,
-        author_id: userData.user.id,
+        author_id: userId,
         source_type: body.sourceType ?? 'document',
         status: 'draft',
       })
-      .select().single();
+      .select()
+      .single();
     if (docError) throw docError;
 
     const chunks = chunkText(content);
@@ -388,6 +476,7 @@ Deno.serve(async (req) => {
       docId: doc.id,
       chunks: chunks.length,
       status: 'draft',
+      orgId: active.org_id,
       hint: 'Dokument ist als Entwurf gespeichert. Erst nach Freigabe (status = approved) nutzt der Coach es.',
     });
   } catch (e) {
@@ -395,8 +484,10 @@ Deno.serve(async (req) => {
     // generische Meldung.
     if (e instanceof GeminiError) {
       console.error(`ingest-knowledge llm error [${e.code}]`, e.message);
-      return json({ error: `Einbettung fehlgeschlagen (${e.code}).` },
-        e.code === 'missing_api_key' ? 503 : 502);
+      return json(
+        { error: `Einbettung fehlgeschlagen (${e.code}).` },
+        e.code === 'missing_api_key' ? 503 : 502
+      );
     }
     console.error('ingest-knowledge error', e instanceof Error ? e.message : e);
     return json({ error: 'Aufnahme fehlgeschlagen.' }, 500);

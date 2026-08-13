@@ -4,7 +4,7 @@
 // GENERIERT von scripts/bundle-functions.mjs — NICHT von Hand ändern.
 // Quelle: supabase/functions/coach-chat/index.ts
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { GoogleGenAI } from 'npm:@google/genai@2.13.0';
 
 // ---- inline: _shared/cors.ts ----
@@ -25,6 +25,98 @@ export function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// ---- inline: _shared/tenant.ts ----
+/**
+ * Phase 5 — Edge tenant discipline helpers.
+ *
+ * Canonical authority: memberships + x-ascendos-org (same rules as
+ * active_membership_id() / content-assistant / instagram-oauth).
+ * Never treat profiles.org_id as authorization.
+ *
+ * Keep pure resolve logic in sync with:
+ *   src/shared/auth/tenantResolve.ts
+ */
+
+
+export interface ActiveMembership {
+  id: string;
+  org_id: string;
+  role: string;
+  status: string;
+}
+
+/** Forward Authorization + x-ascendos-org so PostgREST RLS sees current_org_id(). */
+export function userClientFromRequest(req: Request): SupabaseClient {
+  const forwardHeaders: Record<string, string> = {
+    Authorization: req.headers.get('Authorization') ?? '',
+  };
+  const orgSelector = req.headers.get('x-ascendos-org');
+  if (orgSelector) forwardHeaders['x-ascendos-org'] = orgSelector;
+  return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: forwardHeaders },
+  });
+}
+
+/**
+ * Pure membership pick (header preferred; single active auto-resolves;
+ * multi without header → null). Mirrors DB Fall 1–4 without profiles mirror.
+ */
+export function pickActiveMembershipFromList(
+  memberships: ActiveMembership[],
+  orgHeader: string | null
+): ActiveMembership | null {
+  const active = memberships.filter((m) => m.status === 'active');
+  if (active.length === 0) return null;
+  if (orgHeader) {
+    return active.find((m) => m.org_id === orgHeader) ?? null;
+  }
+  if (active.length === 1) return active[0];
+  return null;
+}
+
+export type ResolveMembershipResult =
+  | { ok: true; userId: string; membership: ActiveMembership }
+  | { ok: false; status: 401 | 403; error: 'not_authenticated' | 'no_active_membership' };
+
+export async function resolveActiveMembership(
+  db: SupabaseClient,
+  req: Request
+): Promise<ResolveMembershipResult> {
+  const { data: userData, error: authError } = await db.auth.getUser();
+  if (authError || !userData.user) {
+    return { ok: false, status: 401, error: 'not_authenticated' };
+  }
+
+  const { data: memberships, error: membershipError } = await db
+    .from('memberships')
+    .select('id, org_id, role, status')
+    .eq('identity_id', userData.user.id)
+    .eq('status', 'active');
+  if (membershipError) throw membershipError;
+
+  const orgHeader = req.headers.get('x-ascendos-org');
+  const list = (memberships as ActiveMembership[] | null) ?? [];
+  const membership = pickActiveMembershipFromList(list, orgHeader);
+  if (!membership) {
+    return { ok: false, status: 403, error: 'no_active_membership' };
+  }
+  return { ok: true, userId: userData.user.id, membership };
+}
+
+/** Deny client-supplied org ids that do not match the server-resolved org. */
+export function assertClientOrgMatches(
+  bodyOrgId: unknown,
+  serverOrgId: string
+): { ok: true } | { ok: false; error: 'org_mismatch' } {
+  if (bodyOrgId === undefined || bodyOrgId === null || bodyOrgId === '') {
+    return { ok: true };
+  }
+  if (String(bodyOrgId) !== serverOrgId) {
+    return { ok: false, error: 'org_mismatch' };
+  }
+  return { ok: true };
 }
 
 // ---- inline: _shared/gemini.ts ----
@@ -1842,18 +1934,17 @@ Deno.serve(async (req) => {
     const phaseLabels = PHASE_LABELS[locale];
     const eventLabels = EVENT_LABELS[locale];
 
-    // User-Client mit dem JWT des Aufrufers: JEDE Datenbankoperation
-    // in dieser Function läuft unter der RLS des Nutzers (ADR-002/014).
-    const authHeader = req.headers.get('Authorization') ?? '';
-    const db = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: userData, error: authError } = await db.auth.getUser();
-    if (authError || !userData.user) return json({ error: text.errors.notSignedIn }, 401);
-    const userId = userData.user.id;
+    // User-Client: JWT + x-ascendos-org forwarded so RLS/current_org_id() work.
+    // Org authority = validated membership (Phase 5), never profiles.org_id alone.
+    const db = userClientFromRequest(req);
+    const resolved = await resolveActiveMembership(db, req);
+    if (!resolved.ok) {
+      if (resolved.status === 401) return json({ error: text.errors.notSignedIn }, 401);
+      return json({ error: text.errors.profileNotFound }, 403);
+    }
+    const userId = resolved.userId;
+    const activeOrgId = resolved.membership.org_id;
+    const activeRole = resolved.membership.role;
 
     const { data: profile } = await db.from('profiles').select('*').eq('id', userId).single();
     if (!profile) return json({ error: text.errors.profileNotFound }, 403);
@@ -1862,7 +1953,7 @@ Deno.serve(async (req) => {
     const { data: org } = await db
       .from('organizations')
       .select('settings')
-      .eq('id', profile.org_id)
+      .eq('id', activeOrgId)
       .single();
     const dailyLimit = Number(org?.settings?.coach_daily_message_limit ?? 50);
     // Schwellwert für die Wissenssuche. Default bewusst niedriger als der
@@ -1947,7 +2038,7 @@ Deno.serve(async (req) => {
     }
     if (!convoId) {
       const { data: convo, error } = await db.from('coach_convos')
-        .insert({ user_id: userId, org_id: profile.org_id, contact_id: contactId })
+        .insert({ user_id: userId, org_id: activeOrgId, contact_id: contactId })
         .select().single();
       if (error) throw error;
       convoId = convo.id;
@@ -1979,7 +2070,7 @@ Deno.serve(async (req) => {
     mark('router_ms', tRouter);
 
     const { data: agent } = await db.from('agents')
-      .select('*').eq('org_id', profile.org_id).eq('key', agentKey).single();
+      .select('*').eq('org_id', activeOrgId).eq('key', agentKey).single();
     if (!agent) return json({ error: text.errors.coachNotConfigured }, 500);
 
     // ---------- Intent-Router (Sprint 3.1): pro Nachricht neu ----------
@@ -2047,7 +2138,7 @@ Deno.serve(async (req) => {
       const queryEmbedding = await geminiEmbed(effectiveIntent.searchQuery, 'RETRIEVAL_QUERY');
       const { data: matches } = await db.rpc('match_knowledge', {
         query_embedding: queryEmbedding,
-        p_org_id: profile.org_id,
+        p_org_id: activeOrgId,
         // Erkannter Intent ueberschreibt NUR fuer diesen Aufruf die
         // Kategorien des Agenten -- agents.retrieval_categories selbst
         // bleibt unangetastet (Auftrag: Datenbank nicht aendern).
@@ -2096,7 +2187,7 @@ Deno.serve(async (req) => {
         try {
           const { data: kategorieDocs } = await db.from('knowledge_docs')
             .select('id, title')
-            .eq('org_id', profile.org_id)
+            .eq('org_id', activeOrgId)
             .in('category', effectiveIntent.categories);
           const docIds = (kategorieDocs ?? []).map((d: { id: string }) => d.id);
           if (docIds.length > 0) {
@@ -2155,7 +2246,7 @@ Deno.serve(async (req) => {
         })).text.trim().slice(0, 200);
         if (topic.length >= 5) {
           await db.from('knowledge_gaps').insert({
-            org_id: profile.org_id, user_id: userId, agent_key: agentKey, question: topic,
+            org_id: activeOrgId, user_id: userId, agent_key: agentKey, question: topic,
           });
         }
       } catch (_e) {
@@ -2182,7 +2273,7 @@ Deno.serve(async (req) => {
     const system = [
       CORE_RULES,
       `DEINE SPEZIALISIERUNG:\n${agent.system_prompt}`,
-      `NUTZER: ${profile.first_name} (Rolle: ${profile.role}).`,
+      `NUTZER: ${profile.first_name} (Rolle: ${activeRole}).`,
       continuity,
       contactContext || null,
       knowledgeBlock ||
@@ -2221,7 +2312,7 @@ Deno.serve(async (req) => {
       { convo_id: convoId, role: 'assistant', content: reply },
     ]);
     await db.from('usage_events').insert({
-      user_id: userId, org_id: profile.org_id, event_type: 'coach_message_sent',
+      user_id: userId, org_id: activeOrgId, event_type: 'coach_message_sent',
       metadata: { agent_key: agentKey, had_knowledge: hadKnowledge },
     }).then(() => {}, () => {}); // Tracking bricht nie den Coach
 

@@ -37,6 +37,7 @@ export type CoachingPushKind = 'published' | 't_minus_30' | 't_minus_5';
 export interface OutboxRow {
   id: string;
   event_id: string;
+  org_id?: string;
   kind: CoachingPushKind;
   scheduled_for: string;
   sent_at: string | null;
@@ -46,6 +47,7 @@ export interface OutboxRow {
 
 export interface EventRow {
   id: string;
+  org_id?: string;
   title: string;
   starts_at: string;
   duration_minutes: number;
@@ -163,6 +165,54 @@ export async function sendWebPushToSubscription(
   }
 }
 
+// ---- inline: _shared/coaching-push/recipients.ts ----
+/**
+ * Org-scoped push recipient selection (Phase 5).
+ * push_subscriptions stay user-scoped; isolation happens at send time.
+ *
+ * Keep in sync with src/features/live-coaching/pushOrgRecipients.ts
+ */
+
+export interface MembershipRecipient {
+  identity_id: string;
+  org_id: string;
+  status: string;
+}
+
+export interface PushSubRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+/**
+ * Keep only subscriptions whose user has an active membership in eventOrgId.
+ */
+export function filterSubscriptionsForOrg(
+  subscriptions: PushSubRow[],
+  memberships: MembershipRecipient[],
+  eventOrgId: string
+): PushSubRow[] {
+  const allowedUsers = new Set(
+    memberships
+      .filter((m) => m.status === 'active' && m.org_id === eventOrgId)
+      .map((m) => m.identity_id)
+  );
+  return subscriptions.filter((s) => allowedUsers.has(s.user_id));
+}
+
+/** Payload must not advertise a foreign organization id. */
+export function assertPayloadOrgSafe(
+  payload: Record<string, unknown>,
+  eventOrgId: string
+): boolean {
+  if (payload.org_id != null && String(payload.org_id) !== eventOrgId) return false;
+  if (payload.orgId != null && String(payload.orgId) !== eventOrgId) return false;
+  return true;
+}
+
 // ---- inline: _shared/coaching-push/index.ts ----
 
 
@@ -173,10 +223,16 @@ export async function sendWebPushToSubscription(
  * Same auth pattern as content-daily-prepare / content-autopilot-run:
  *   Header: x-cron-secret: $CRON_SECRET   (or Bearer CRON_SECRET)
  *
+ * Phase 5 tenant discipline (service_role bypasses RLS — filter explicitly):
+ *   outbox.org_id / event.org_id
+ *   → active memberships in that org
+ *   → push_subscriptions for those users only
+ *
  * Uses existing tables only:
  *   - coaching_notification_outbox
  *   - push_subscriptions
  *   - live_coaching_events
+ *   - memberships
  *
  * Secrets (server):
  *   CRON_SECRET, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
@@ -264,7 +320,7 @@ Deno.serve(async (req) => {
 
   const { data: dueRows, error: dueErr } = await db
     .from('coaching_notification_outbox')
-    .select('id, event_id, kind, scheduled_for, sent_at, title, body')
+    .select('id, event_id, org_id, kind, scheduled_for, sent_at, title, body')
     .is('sent_at', null)
     .lte('scheduled_for', nowIso)
     .order('scheduled_for', { ascending: true })
@@ -282,25 +338,43 @@ Deno.serve(async (req) => {
   const eventIds = [...new Set(rows.map((r) => r.event_id))];
   const { data: eventsData, error: evErr } = await db
     .from('live_coaching_events')
-    .select('id, title, starts_at, duration_minutes, zoom_url, active')
+    .select('id, org_id, title, starts_at, duration_minutes, zoom_url, active')
     .in('id', eventIds);
   if (evErr) {
     return json({ ok: false, error: evErr.message }, 500);
   }
   const eventsById = new Map((eventsData as EventRow[] | null)?.map((e) => [e.id, e]) ?? []);
 
+  const orgIds = [
+    ...new Set(
+      rows
+        .map((r) => r.org_id ?? eventsById.get(r.event_id)?.org_id)
+        .filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  const { data: membershipRows, error: memErr } = await db
+    .from('memberships')
+    .select('identity_id, org_id, status')
+    .in('org_id', orgIds.length > 0 ? orgIds : ['00000000-0000-0000-0000-000000000000'])
+    .eq('status', 'active');
+  if (memErr) {
+    return json({ ok: false, error: memErr.message }, 500);
+  }
+  const memberships = (membershipRows ?? []) as MembershipRecipient[];
+
+  const memberUserIds = [...new Set(memberships.map((m) => m.identity_id))];
   const { data: subsData, error: subErr } = await db
     .from('push_subscriptions')
-    .select('id, endpoint, p256dh, auth');
+    .select('id, user_id, endpoint, p256dh, auth')
+    .in(
+      'user_id',
+      memberUserIds.length > 0 ? memberUserIds : ['00000000-0000-0000-0000-000000000000']
+    );
   if (subErr) {
     return json({ ok: false, error: subErr.message }, 500);
   }
-  const subscriptions = (subsData ?? []) as Array<{
-    id: string;
-    endpoint: string;
-    p256dh: string;
-    auth: string;
-  }>;
+  const allSubscriptions = (subsData ?? []) as PushSubRow[];
 
   let sent = 0;
   let skipped = 0;
@@ -309,18 +383,27 @@ Deno.serve(async (req) => {
 
   for (const row of rows) {
     const event = eventsById.get(row.event_id) ?? null;
+    const eventOrgId = row.org_id ?? event?.org_id ?? null;
     const decision = evaluateDispatch(row, event, now);
     if (!decision.ok) {
       await markOutboxSkipped(db, row.id, nowIso);
       skipped += 1;
-      details.push({ id: row.id, skipped: decision.reason });
+      details.push({ id: row.id, skipped: decision.reason, orgId: eventOrgId });
       continue;
     }
 
+    if (!eventOrgId) {
+      await markOutboxSkipped(db, row.id, nowIso);
+      skipped += 1;
+      details.push({ id: row.id, skipped: 'missing_org_id' });
+      continue;
+    }
+
+    const subscriptions = filterSubscriptionsForOrg(allSubscriptions, memberships, eventOrgId);
     if (subscriptions.length === 0) {
       // Keep due for later — someone may subscribe before the event.
       skipped += 1;
-      details.push({ id: row.id, skipped: 'no_subscriptions' });
+      details.push({ id: row.id, skipped: 'no_org_subscriptions', orgId: eventOrgId });
       continue;
     }
 
@@ -328,11 +411,18 @@ Deno.serve(async (req) => {
     const claimed = await claimOutboxRow(db, row.id, nowIso);
     if (!claimed) {
       skipped += 1;
-      details.push({ id: row.id, skipped: 'race_lost' });
+      details.push({ id: row.id, skipped: 'race_lost', orgId: eventOrgId });
       continue;
     }
 
-    const payload = JSON.stringify(buildPayload(event!, row));
+    const payloadObj = buildPayload(event!, row);
+    if (!assertPayloadOrgSafe(payloadObj, eventOrgId)) {
+      await releaseOutboxClaim(db, row.id);
+      skipped += 1;
+      details.push({ id: row.id, skipped: 'payload_org_unsafe', orgId: eventOrgId });
+      continue;
+    }
+    const payload = JSON.stringify(payloadObj);
     let anyOk = false;
     let sendErrors = 0;
     let goneCount = 0;
@@ -353,7 +443,14 @@ Deno.serve(async (req) => {
 
     if (anyOk) {
       sent += 1;
-      details.push({ id: row.id, sent: true, kind: row.kind, eventId: row.event_id });
+      details.push({
+        id: row.id,
+        sent: true,
+        kind: row.kind,
+        eventId: row.event_id,
+        orgId: eventOrgId,
+        recipients: subscriptions.length,
+      });
       continue;
     }
 
@@ -361,13 +458,13 @@ Deno.serve(async (req) => {
     if (goneCount === subscriptions.length) {
       // All endpoints dead — keep claimed to avoid endless retries.
       skipped += 1;
-      details.push({ id: row.id, skipped: 'all_subscriptions_gone' });
+      details.push({ id: row.id, skipped: 'all_subscriptions_gone', orgId: eventOrgId });
       continue;
     }
 
     // Transient failures — release for retry.
     await releaseOutboxClaim(db, row.id);
-    details.push({ id: row.id, retry: true, sendErrors });
+    details.push({ id: row.id, retry: true, sendErrors, orgId: eventOrgId });
   }
 
   return json({
