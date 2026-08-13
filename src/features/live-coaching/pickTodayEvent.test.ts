@@ -12,6 +12,7 @@ function event(
   partial: Partial<LiveCoachingEvent> & Pick<LiveCoachingEvent, 'id' | 'starts_at'>
 ): LiveCoachingEvent {
   return {
+    org_id: '00000000-0000-0000-0000-000000000001',
     title: 'Coaching',
     subtitle: null,
     description: null,

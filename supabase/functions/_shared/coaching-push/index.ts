@@ -17,6 +17,7 @@ export {
 export {
   assertPayloadOrgSafe,
   filterSubscriptionsForOrg,
+  resolveDispatchOrgId,
   type MembershipRecipient,
   type PushSubRow,
 } from './recipients.ts';

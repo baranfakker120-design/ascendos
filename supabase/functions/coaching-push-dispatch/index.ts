@@ -31,6 +31,8 @@ import {
   configureVapid,
   evaluateDispatch,
   filterSubscriptionsForOrg,
+  resolveDispatchOrgId,
+  sendWebPushToSubscription,
   type EventRow,
   type MembershipRecipient,
   type OutboxRow,
@@ -178,7 +180,15 @@ Deno.serve(async (req) => {
 
   for (const row of rows) {
     const event = eventsById.get(row.event_id) ?? null;
-    const eventOrgId = row.org_id ?? event?.org_id ?? null;
+    const orgResolved = resolveDispatchOrgId(row.org_id, event?.org_id ?? null);
+    if (!orgResolved.ok) {
+      await markOutboxSkipped(db, row.id, nowIso);
+      skipped += 1;
+      details.push({ id: row.id, skipped: orgResolved.reason });
+      continue;
+    }
+    const eventOrgId = orgResolved.orgId;
+
     const decision = evaluateDispatch(row, event, now);
     if (!decision.ok) {
       await markOutboxSkipped(db, row.id, nowIso);
@@ -187,13 +197,7 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    if (!eventOrgId) {
-      await markOutboxSkipped(db, row.id, nowIso);
-      skipped += 1;
-      details.push({ id: row.id, skipped: 'missing_org_id' });
-      continue;
-    }
-
+    // Recipients are filtered per-event org — never reuse another org's list.
     const subscriptions = filterSubscriptionsForOrg(allSubscriptions, memberships, eventOrgId);
     if (subscriptions.length === 0) {
       // Keep due for later — someone may subscribe before the event.

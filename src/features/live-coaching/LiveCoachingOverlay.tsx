@@ -6,6 +6,7 @@ import { LiveCoachingFlyer } from './LiveCoachingFlyer';
 import { formatCountdown, resolveLiveCoachingState, endsAt } from './liveState';
 import { dismissOverlayForEvent } from './overlayDismiss';
 import type { LiveCoachingEvent } from './types';
+import { useCoachingMediaUrl } from './useCoachingMediaUrl';
 import { openZoomJoin } from './zoomJoin';
 import './live-coaching.css';
 
@@ -16,6 +17,7 @@ interface Props {
 
 export function LiveCoachingOverlay({ event, onClose }: Props) {
   const { t, locale } = useI18n();
+  const mediaSrc = useCoachingMediaUrl(event.media_path, event.media_url);
   const [now, setNow] = useState(() => new Date());
   const [entered, setEntered] = useState(false);
 
@@ -90,10 +92,10 @@ export function LiveCoachingOverlay({ event, onClose }: Props) {
           <span className="live-coach-card__state-dot" aria-hidden />
           {t('liveCoaching.liveBadge')}
         </p>
-        {event.media_url ? (
+        {mediaSrc ? (
           <div className="live-coach-overlay__flyer">
             <LiveCoachingFlyer
-              src={event.media_url}
+              src={mediaSrc}
               mediaType={event.media_type === 'video' ? 'video' : 'image'}
             />
           </div>

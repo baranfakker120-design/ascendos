@@ -44,3 +44,21 @@ export function assertPayloadOrgSafe(
   if (payload.orgId != null && String(payload.orgId) !== eventOrgId) return false;
   return true;
 }
+
+/**
+ * Event org is authority. Outbox org must match when both present
+ * (Phase 7 — no cross-org outbox → event send).
+ */
+export function resolveDispatchOrgId(
+  outboxOrgId: string | null | undefined,
+  eventOrgId: string | null | undefined
+): { ok: true; orgId: string } | { ok: false; reason: 'missing_org' | 'org_mismatch' } {
+  if (!eventOrgId) {
+    if (!outboxOrgId) return { ok: false, reason: 'missing_org' };
+    return { ok: true, orgId: outboxOrgId };
+  }
+  if (outboxOrgId && outboxOrgId !== eventOrgId) {
+    return { ok: false, reason: 'org_mismatch' };
+  }
+  return { ok: true, orgId: eventOrgId };
+}

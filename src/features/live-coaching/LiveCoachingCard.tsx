@@ -6,6 +6,7 @@ import { buildGoogleCalendarUrl, buildOutlookCalendarUrl, downloadAppleIcs } fro
 import { LiveCoachingFlyer } from './LiveCoachingFlyer';
 import { formatCountdown, resolveLiveCoachingState } from './liveState';
 import type { LiveCoachingEvent } from './types';
+import { useCoachingMediaUrl } from './useCoachingMediaUrl';
 import { openZoomJoin } from './zoomJoin';
 import './live-coaching.css';
 
@@ -17,6 +18,7 @@ export function LiveCoachingCard({
   compact?: boolean;
 }) {
   const { t, locale } = useI18n();
+  const mediaSrc = useCoachingMediaUrl(event.media_path, event.media_url);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000);
@@ -69,7 +71,7 @@ export function LiveCoachingCard({
     <article className={`live-coach-card ${compact ? 'live-coach-card--compact' : ''}`}>
       <div className="live-coach-card__media">
         <LiveCoachingFlyer
-          src={event.media_url}
+          src={mediaSrc}
           mediaType={event.media_type === 'video' ? 'video' : 'image'}
           placeholder={
             <div className="flex h-full items-center justify-center text-sm text-white/50">

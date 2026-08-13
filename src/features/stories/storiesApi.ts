@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { supabase } from '@shared/api/supabase';
 import {
   STORY_TTL_MS,
@@ -11,8 +12,11 @@ import {
 import { toStoryCardFromRow } from './buildCoachStories';
 
 export function usePublishedAscendStories() {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['ascend-stories', 'feed'],
+    queryKey: ['ascend-stories', 'feed', orgId],
+    enabled: Boolean(orgId),
     queryFn: async (): Promise<StoryCard[]> => {
       const now = new Date().toISOString();
       const { data, error } = await supabase
@@ -29,8 +33,11 @@ export function usePublishedAscendStories() {
 }
 
 export function useAllAscendStories() {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['ascend-stories', 'admin'],
+    queryKey: ['ascend-stories', 'admin', orgId],
+    enabled: Boolean(orgId),
     queryFn: async (): Promise<AscendStory[]> => {
       const { data, error } = await supabase
         .from('ascend_stories')

@@ -4,6 +4,7 @@ export type LiveCoachingState = 'countdown' | 'live' | 'finished';
 
 export interface LiveCoachingEvent {
   id: string;
+  org_id: string;
   title: string;
   subtitle: string | null;
   description: string | null;

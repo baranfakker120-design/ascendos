@@ -22,6 +22,7 @@ export type StorySource = 'coach' | 'admin' | 'system';
 
 export interface AscendStory {
   id: string;
+  org_id: string;
   story_type: StoryType;
   media_kind: StoryMediaKind;
   title: string;
