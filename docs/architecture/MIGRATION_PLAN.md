@@ -18,19 +18,19 @@
 
 ## Phase overview
 
-| Phase | Name | Implement? |
-|---|---|---|
-| **0** | Bestandsaufnahme + Architektur-Memory | **DONE (docs)** |
-| 1 | Architektur + Datenmodell vertiefen / ADRs finalize | Docs / design |
-| 2 | Organizations + Rollen (target vocabulary) | Code + migrations (later) |
-| 3 | Database + RLS for gap tables | Migrations |
-| 4 | Backend + APIs / Edge org-header discipline | Edge + RPCs |
-| 5 | Knowledge + AI isolation (CMS + coach-chat) | Code + migrations |
-| 6 | Frontend tenant awareness (remove Seyda hardcoding) | Frontend |
-| 7 | Organization Admin UI | Frontend + auth |
-| 8 | Platform Admin UI | Frontend + platform principal |
-| 9 | Billing / Usage (design → implement) | Deferred product |
-| 10 | Second real organization | Ops + verification |
+| Phase | Name                                                | Implement?                    |
+| ----- | --------------------------------------------------- | ----------------------------- |
+| **0** | Bestandsaufnahme + Architektur-Memory               | **DONE (docs)**               |
+| 1     | Architektur + Datenmodell vertiefen / ADRs finalize | Docs / design                 |
+| 2     | Organizations + Rollen (target vocabulary)          | Code + migrations (later)     |
+| 3     | Database + RLS for gap tables                       | Migrations                    |
+| 4     | Backend + APIs / Edge org-header discipline         | Edge + RPCs                   |
+| 5     | Knowledge + AI isolation (CMS + coach-chat)         | Code + migrations             |
+| 6     | Frontend tenant awareness (remove Seyda hardcoding) | Frontend                      |
+| 7     | Organization Admin UI                               | Frontend + auth               |
+| 8     | Platform Admin UI                                   | Frontend + platform principal |
+| 9     | Billing / Usage (design → implement)                | Deferred product              |
+| 10    | Second real organization                            | Ops + verification            |
 
 ---
 

@@ -88,11 +88,11 @@ Organisation B must **never** see Organisation A data — not via REST, direct q
 
 Three mandatory levels (target vocabulary; see `ROLE_MODEL.md` for current → target mapping):
 
-| Level | Purpose |
-|---|---|
+| Level                  | Purpose                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------- |
 | `PLATFORM_SUPER_ADMIN` | Platform operator: create/manage/disable orgs; platform settings; cross-org admin |
-| `ORGANIZATION_ADMIN` | Admin of **one** org only |
-| `MEMBER` | Normal consultant/user within org capabilities |
+| `ORGANIZATION_ADMIN`   | Admin of **one** org only                                                         |
+| `MEMBER`               | Normal consultant/user within org capabilities                                    |
 
 No org role automatically becomes platform super admin. Later roles (`coach`, `manager`, `content_manager`, …) may be added without elevating to platform.
 
@@ -152,14 +152,14 @@ Flow: User → Auth → Organization → Org Knowledge → AI Context → AI →
 
 ## 11–16. Domain isolation (summary)
 
-| Domain | Rule |
-|---|---|
-| Coach data | Org-scoped; never assume coach = Seyda |
-| Links / Mehr | Org-scoped |
-| Branding | Org-scoped (logo, name, colors, texts, …) |
-| Live Coaching | Org-scoped (events, flyers, push, zoom, replay, …) |
-| Content / Autopilot | Org-scoped; **Autopilot feed = exactly 1 image**; **Manual carousel ≤ 10** — never mix |
-| Web Push | Central VAPID stays; private keys never in frontend; subscriptions/events org-aware when data is org-owned |
+| Domain              | Rule                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Coach data          | Org-scoped; never assume coach = Seyda                                                                     |
+| Links / Mehr        | Org-scoped                                                                                                 |
+| Branding            | Org-scoped (logo, name, colors, texts, …)                                                                  |
+| Live Coaching       | Org-scoped (events, flyers, push, zoom, replay, …)                                                         |
+| Content / Autopilot | Org-scoped; **Autopilot feed = exactly 1 image**; **Manual carousel ≤ 10** — never mix                     |
+| Web Push            | Central VAPID stays; private keys never in frontend; subscriptions/events org-aware when data is org-owned |
 
 ---
 
@@ -201,11 +201,11 @@ No Big Bang. Phased plan in `MIGRATION_PLAN.md`. Preserve Team Seyda behavior an
 
 Before executing a future task:
 
-1. Read this Constitution  
-2. Read `PROJECT_STATE.md`  
-3. Read relevant architecture docs + ADRs  
-4. Inspect repository state  
-5. Then plan  
+1. Read this Constitution
+2. Read `PROJECT_STATE.md`
+3. Read relevant architecture docs + ADRs
+4. Inspect repository state
+5. Then plan
 
 Update docs / ADRs when decisions change.
 
@@ -213,14 +213,14 @@ Update docs / ADRs when decisions change.
 
 ## Related documents
 
-| Doc | Purpose |
-|---|---|
-| `MULTI_TENANT_ARCHITECTURE.md` | Target architecture |
-| `SECURITY_MODEL.md` | Enforcement model |
-| `ROLE_MODEL.md` | Roles current → target |
-| `DATA_MODEL.md` | Tables & tenant relevance |
-| `AI_KNOWLEDGE_ISOLATION.md` | AI / RAG / CMS isolation |
-| `MIGRATION_PLAN.md` | Phases 0–10 |
-| `PROJECT_STATE.md` | Living status |
-| `ADR/` | Architecture Decision Records |
+| Doc                                | Purpose                         |
+| ---------------------------------- | ------------------------------- |
+| `MULTI_TENANT_ARCHITECTURE.md`     | Target architecture             |
+| `SECURITY_MODEL.md`                | Enforcement model               |
+| `ROLE_MODEL.md`                    | Roles current → target          |
+| `DATA_MODEL.md`                    | Tables & tenant relevance       |
+| `AI_KNOWLEDGE_ISOLATION.md`        | AI / RAG / CMS isolation        |
+| `MIGRATION_PLAN.md`                | Phases 0–10                     |
+| `PROJECT_STATE.md`                 | Living status                   |
+| `ADR/`                             | Architecture Decision Records   |
 | `docs/ASCENDOS_CONSTITUTION_v1.md` | Product philosophy constitution |

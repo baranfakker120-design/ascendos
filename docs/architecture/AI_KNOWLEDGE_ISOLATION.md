@@ -19,10 +19,10 @@ Violation of (2)–(4) is a **critical security bug**.
 
 ## 2. Two knowledge systems today
 
-| System | Tables | Org-scoped? | Used by |
-|---|---|---|---|
-| **RAG Knowledge** | `knowledge_docs`, `knowledge_chunks`, `knowledge_gaps`, `agents` | **Yes** | Coach chat (`match_knowledge`), `/wissen` ingest |
-| **Knowledge Center CMS** | `coach_knowledge_articles`, versions, change_log | **No** | `/knowledge-center`, coach surfaces reading approved articles |
+| System                   | Tables                                                           | Org-scoped? | Used by                                                       |
+| ------------------------ | ---------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
+| **RAG Knowledge**        | `knowledge_docs`, `knowledge_chunks`, `knowledge_gaps`, `agents` | **Yes**     | Coach chat (`match_knowledge`), `/wissen` ingest              |
+| **Knowledge Center CMS** | `coach_knowledge_articles`, versions, change_log                 | **No**      | `/knowledge-center`, coach surfaces reading approved articles |
 
 Target: CMS must become org-scoped like RAG (or be explicitly platform-only with a separate ADR — default is **org-scoped**).
 
@@ -45,15 +45,15 @@ User
 
 ## 4. Current Edge / client surfaces
 
-| Surface | Path | Tenant notes |
-|---|---|---|
-| Coach chat | `supabase/functions/coach-chat` | Must resolve org via header; risk if using profile mirror only |
-| Ingest | `supabase/functions/ingest-knowledge` | Super admin + org; embeddings 1536-d |
-| Content vision | `content-assistant` / shared `content-generate` | Org assets; OpenRouter |
-| Autopilot optimize | `content-autopilot-run` | Membership/org filtered; service role |
-| Client coach | `src/features/coach/` | Uses Edge |
-| Client RAG admin | `src/features/knowledge/` | `/wissen` |
-| Client CMS | `src/features/knowledge-center/` | Global today |
+| Surface            | Path                                            | Tenant notes                                                   |
+| ------------------ | ----------------------------------------------- | -------------------------------------------------------------- |
+| Coach chat         | `supabase/functions/coach-chat`                 | Must resolve org via header; risk if using profile mirror only |
+| Ingest             | `supabase/functions/ingest-knowledge`           | Super admin + org; embeddings 1536-d                           |
+| Content vision     | `content-assistant` / shared `content-generate` | Org assets; OpenRouter                                         |
+| Autopilot optimize | `content-autopilot-run`                         | Membership/org filtered; service role                          |
+| Client coach       | `src/features/coach/`                           | Uses Edge                                                      |
+| Client RAG admin   | `src/features/knowledge/`                       | `/wissen`                                                      |
+| Client CMS         | `src/features/knowledge-center/`                | Global today                                                   |
 
 ---
 
@@ -67,12 +67,12 @@ User
 
 ## 6. Provider inventory (names only)
 
-| Secret / config name | Domain |
-|---|---|
-| `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FAST_MODEL` | Coach / ingest |
-| `OPENROUTER_API_KEY` | Content vision (+ optional coach router) |
-| `CEREBRAS_API_KEY`, `GROQ_API_KEY` | Optional AI routers |
-| `SUPABASE_*` | Platform |
+| Secret / config name                                  | Domain                                   |
+| ----------------------------------------------------- | ---------------------------------------- |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FAST_MODEL` | Coach / ingest                           |
+| `OPENROUTER_API_KEY`                                  | Content vision (+ optional coach router) |
+| `CEREBRAS_API_KEY`, `GROQ_API_KEY`                    | Optional AI routers                      |
+| `SUPABASE_*`                                          | Platform                                 |
 
 No per-org copies of these keys.
 

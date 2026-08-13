@@ -29,20 +29,20 @@ Phase 0 documentation persisted under `docs/architecture/`.
 
 ## Current architecture stand (facts)
 
-| Area | Status |
-|---|---|
-| Single Supabase project | Yes — `shaydtihwicnocjjlnjm` |
-| Organizations + memberships | Yes — seeded **1** org (Chogan) + Team Seyda |
-| Org selector | `x-ascendos-org` + `current_org_id()` |
-| Roles | `super_admin`, `admin`, `leader`, `berater`, `developer` (no platform principal yet) |
-| RAG knowledge isolation | Org-scoped |
-| Knowledge Center CMS | **Global** (gap) |
-| Live Coaching | **Global** (gap) |
-| Ascend Stories | **Global** (gap) |
-| Content / Autopilot / IG | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10 |
-| Web Push | Central VAPID; subscriptions user-scoped; outbox not org-scoped |
-| Platform Admin UI | **Missing** |
-| Team Seyda hardcoding | Present (route, iframe, Mehr, prompts, seed tools) |
+| Area                        | Status                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| Single Supabase project     | Yes — `shaydtihwicnocjjlnjm`                                                         |
+| Organizations + memberships | Yes — seeded **1** org (Chogan) + Team Seyda                                         |
+| Org selector                | `x-ascendos-org` + `current_org_id()`                                                |
+| Roles                       | `super_admin`, `admin`, `leader`, `berater`, `developer` (no platform principal yet) |
+| RAG knowledge isolation     | Org-scoped                                                                           |
+| Knowledge Center CMS        | **Global** (gap)                                                                     |
+| Live Coaching               | **Global** (gap)                                                                     |
+| Ascend Stories              | **Global** (gap)                                                                     |
+| Content / Autopilot / IG    | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10                           |
+| Web Push                    | Central VAPID; subscriptions user-scoped; outbox not org-scoped                      |
+| Platform Admin UI           | **Missing**                                                                          |
+| Team Seyda hardcoding       | Present (route, iframe, Mehr, prompts, seed tools)                                   |
 
 ---
 
@@ -72,16 +72,16 @@ Phase 0 documentation persisted under `docs/architecture/`.
 
 ## Production status
 
-| Item | State |
-|---|---|
-| Production app | Live (Cloudflare Pages: `ascendseyda` / `ascendos`) |
-| This Phase 0 work | **Documentation only — production UNCHANGED** |
-| Database | **UNCHANGED** by Phase 0 |
-| Secrets | **UNCHANGED** |
-| API keys | **UNCHANGED** |
-| Migrations applied by this work | **NONE** |
-| Deploy by this work | **NONE** |
-| Merge | Requires human approval |
+| Item                            | State                                               |
+| ------------------------------- | --------------------------------------------------- |
+| Production app                  | Live (Cloudflare Pages: `ascendseyda` / `ascendos`) |
+| This Phase 0 work               | **Documentation only — production UNCHANGED**       |
+| Database                        | **UNCHANGED** by Phase 0                            |
+| Secrets                         | **UNCHANGED**                                       |
+| API keys                        | **UNCHANGED**                                       |
+| Migrations applied by this work | **NONE**                                            |
+| Deploy by this work             | **NONE**                                            |
+| Merge                           | Requires human approval                             |
 
 ---
 
@@ -95,35 +95,35 @@ Phase 0 documentation persisted under `docs/architecture/`.
 
 ## Migration status (multi-tenant program)
 
-| Phase | Status |
-|---|---|
-| 0 | Done (docs) |
-| 1–10 | Not started |
+| Phase | Status      |
+| ----- | ----------- |
+| 0     | Done (docs) |
+| 1–10  | Not started |
 
 ---
 
 ## Deployment status
 
-| Channel | Notes |
-|---|---|
-| Cloudflare Pages | Primary host (`ascendseyda`, `ascendos`) |
-| Netlify | Historical / preview drift in some docs; not primary |
-| Edge Functions | Deployed to project `shaydtihwicnocjjlnjm` as part of normal ops (not by Phase 0) |
+| Channel          | Notes                                                                             |
+| ---------------- | --------------------------------------------------------------------------------- |
+| Cloudflare Pages | Primary host (`ascendseyda`, `ascendos`)                                          |
+| Netlify          | Historical / preview drift in some docs; not primary                              |
+| Edge Functions   | Deployed to project `shaydtihwicnocjjlnjm` as part of normal ops (not by Phase 0) |
 
 ---
 
 ## Documentation index
 
-| File | Role |
-|---|---|
-| `ASCENDOS_CONSTITUTION.md` | Binding architecture constitution |
-| `MULTI_TENANT_ARCHITECTURE.md` | Target architecture |
-| `SECURITY_MODEL.md` | Enforcement + gaps |
-| `ROLE_MODEL.md` | Roles current → target |
-| `DATA_MODEL.md` | Tenant-relevant tables |
-| `AI_KNOWLEDGE_ISOLATION.md` | AI / knowledge rules |
-| `MIGRATION_PLAN.md` | Phases 0–10 |
-| `PROJECT_STATE.md` | This file |
-| `ADR/*.md` | Decision records |
+| File                           | Role                              |
+| ------------------------------ | --------------------------------- |
+| `ASCENDOS_CONSTITUTION.md`     | Binding architecture constitution |
+| `MULTI_TENANT_ARCHITECTURE.md` | Target architecture               |
+| `SECURITY_MODEL.md`            | Enforcement + gaps                |
+| `ROLE_MODEL.md`                | Roles current → target            |
+| `DATA_MODEL.md`                | Tenant-relevant tables            |
+| `AI_KNOWLEDGE_ISOLATION.md`    | AI / knowledge rules              |
+| `MIGRATION_PLAN.md`            | Phases 0–10                       |
+| `PROJECT_STATE.md`             | This file                         |
+| `ADR/*.md`                     | Decision records                  |
 
 Also still relevant: `docs/ASCENDOS_CONSTITUTION_v1.md` (product philosophy), `docs/security-baseline.md`, `docs/f2-autorisierung-final.md`.

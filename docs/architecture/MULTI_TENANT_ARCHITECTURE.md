@@ -26,16 +26,16 @@ One AscendOS platform serving many organizations with **hard data isolation**, w
 
 ## 2. Current vs target
 
-| Concern | Current (Phase 0 finding) | Target |
-|---|---|---|
-| Tenant root | `organizations` + `teams` | Same; Team Seyda = normal org (or team inside org) |
-| Auth unit | `memberships` (identity ↔ org) | Same; extend role vocabulary |
-| Org selector | `x-ascendos-org` → `current_org_id()` | Same; always forwarded by Edge |
-| Isolation | Strong on CRM/RAG/content; **weak** on Live Coaching / Knowledge Center / Stories / push outbox | All product domains org-scoped + RLS |
-| Brand / coach / links | Hardcoded Team Seyda surfaces | Org branding + org links + org coach |
-| Platform admin | Missing | `/platform-admin` + platform principal |
-| Org admin | Partial (`super_admin` / developer gates) | `/admin` bound to current org |
-| Infra | Single project `shaydtihwicnocjjlnjm` | **Keep** single project |
+| Concern               | Current (Phase 0 finding)                                                                       | Target                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Tenant root           | `organizations` + `teams`                                                                       | Same; Team Seyda = normal org (or team inside org) |
+| Auth unit             | `memberships` (identity ↔ org)                                                                  | Same; extend role vocabulary                       |
+| Org selector          | `x-ascendos-org` → `current_org_id()`                                                           | Same; always forwarded by Edge                     |
+| Isolation             | Strong on CRM/RAG/content; **weak** on Live Coaching / Knowledge Center / Stories / push outbox | All product domains org-scoped + RLS               |
+| Brand / coach / links | Hardcoded Team Seyda surfaces                                                                   | Org branding + org links + org coach               |
+| Platform admin        | Missing                                                                                         | `/platform-admin` + platform principal             |
+| Org admin             | Partial (`super_admin` / developer gates)                                                       | `/admin` bound to current org                      |
+| Infra                 | Single project `shaydtihwicnocjjlnjm`                                                           | **Keep** single project                            |
 
 ---
 
@@ -83,11 +83,11 @@ Provider keys remain platform secrets. Context is tenant-local.
 
 ## 6. Content systems (immutable product split)
 
-| System | Rule |
-|---|---|
-| Autopilot feed | Exactly **1 image**. Never auto-carousel. |
-| Manual carousel | Manual only; up to **10** slides (existing). |
-| Multi-tenant work | Must not re-merge these systems. |
+| System            | Rule                                         |
+| ----------------- | -------------------------------------------- |
+| Autopilot feed    | Exactly **1 image**. Never auto-carousel.    |
+| Manual carousel   | Manual only; up to **10** slides (existing). |
+| Multi-tenant work | Must not re-merge these systems.             |
 
 ---
 

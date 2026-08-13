@@ -8,11 +8,11 @@
 
 ## 1. Target vocabulary (Constitution)
 
-| Target role | Scope | Capabilities (summary) |
-|---|---|---|
-| `PLATFORM_SUPER_ADMIN` | Platform | Create/manage/activate/deactivate orgs; platform settings; cross-org administration |
-| `ORGANIZATION_ADMIN` | Single org | Members, coaches, knowledge, links, branding, settings, content of **own** org only |
-| `MEMBER` | Single org | Use features granted for that org/role |
+| Target role            | Scope      | Capabilities (summary)                                                              |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| `PLATFORM_SUPER_ADMIN` | Platform   | Create/manage/activate/deactivate orgs; platform settings; cross-org administration |
+| `ORGANIZATION_ADMIN`   | Single org | Members, coaches, knowledge, links, branding, settings, content of **own** org only |
+| `MEMBER`               | Single org | Use features granted for that org/role                                              |
 
 Future org roles may include: `coach`, `manager`, `content_manager`, …  
 **None** of these automatically imply platform super admin.
@@ -23,13 +23,13 @@ Future org roles may include: `coach`, `manager`, `content_manager`, …
 
 From `memberships.role` / `profiles.role` CHECK (incl. developer role migration):
 
-| Current role | Typical meaning today |
-|---|---|
-| `super_admin` | Org-level admin power (`is_super_admin()`); Wissen ingest UI; invite/admin writes |
-| `developer` | With super_admin: coach content manager (`is_coach_content_manager()`); special frames |
-| `admin` | Present in enum; lightly used in RLS |
-| `leader` | Leadership / genealogy UX |
-| `berater` | Default consultant (**closest to target MEMBER**) |
+| Current role  | Typical meaning today                                                                  |
+| ------------- | -------------------------------------------------------------------------------------- |
+| `super_admin` | Org-level admin power (`is_super_admin()`); Wissen ingest UI; invite/admin writes      |
+| `developer`   | With super_admin: coach content manager (`is_coach_content_manager()`); special frames |
+| `admin`       | Present in enum; lightly used in RLS                                                   |
+| `leader`      | Leadership / genealogy UX                                                              |
+| `berater`     | Default consultant (**closest to target MEMBER**)                                      |
 
 **There is no** DB role named `member` or `PLATFORM_SUPER_ADMIN` today.
 
@@ -41,10 +41,10 @@ Membership status: `pending` \| `active` \| `suspended` \| `ended`.
 
 ## 3. Mapping plan (non-binding until Phase 2 ADR)
 
-| Target | Likely source |
-|---|---|
-| `MEMBER` | `berater` (+ possibly `leader` as elevated member) |
-| `ORGANIZATION_ADMIN` | today’s `super_admin` / `admin` **scoped to one org** |
+| Target                 | Likely source                                            |
+| ---------------------- | -------------------------------------------------------- |
+| `MEMBER`               | `berater` (+ possibly `leader` as elevated member)       |
+| `ORGANIZATION_ADMIN`   | today’s `super_admin` / `admin` **scoped to one org**    |
 | `PLATFORM_SUPER_ADMIN` | **new** principal — must **not** equal org `super_admin` |
 
 **Critical:** Today’s `super_admin` is **organization-scoped** in practice (membership row). It must **not** be silently treated as platform operator when Phase 8 ships.
@@ -58,10 +58,10 @@ Platform principal options (decide in Phase 2 ADR — do not implement now):
 
 ## 4. Current UI gates (not security by themselves)
 
-| Guard | Who | Routes |
-|---|---|---|
-| `RequireSuperAdmin` | `membership.role === 'super_admin'` | `/wissen` |
-| `RequireCoachContentManager` | `super_admin` \| `developer` | `/knowledge-center`, `/live-coaching`, `/stories` |
+| Guard                        | Who                                 | Routes                                            |
+| ---------------------------- | ----------------------------------- | ------------------------------------------------- |
+| `RequireSuperAdmin`          | `membership.role === 'super_admin'` | `/wissen`                                         |
+| `RequireCoachContentManager` | `super_admin` \| `developer`        | `/knowledge-center`, `/live-coaching`, `/stories` |
 
 **Missing:** `/platform-admin`, `/admin` as dedicated org-admin shell.
 

@@ -27,13 +27,13 @@ A user must never obtain another organization’s data by:
 
 ### 2.1 Membership resolution
 
-| Helper | Behavior |
-|---|---|
-| `active_membership_id()` | Resolve from `x-ascendos-org` header (must match active membership) OR unique single membership; if ambiguous without header → **NULL** (deny) |
-| `current_org_id()` | Org of active membership |
-| `current_user_role()` | Role of active membership |
-| `is_super_admin()` | Membership role = `super_admin` |
-| `is_coach_content_manager()` | `super_admin` \| `developer` |
+| Helper                       | Behavior                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active_membership_id()`     | Resolve from `x-ascendos-org` header (must match active membership) OR unique single membership; if ambiguous without header → **NULL** (deny) |
+| `current_org_id()`           | Org of active membership                                                                                                                       |
+| `current_user_role()`        | Role of active membership                                                                                                                      |
+| `is_super_admin()`           | Membership role = `super_admin`                                                                                                                |
+| `is_coach_content_manager()` | `super_admin` \| `developer`                                                                                                                   |
 
 Client sets `x-ascendos-org` via `/workspace/src/shared/api/supabase.ts` and persists selection under `ascendos.activeOrg.<userId>`.
 
@@ -51,16 +51,16 @@ Must self-check org / membership. Never trust client-supplied `org_id` without m
 
 ## 3. Known isolation gaps (Phase 0)
 
-| Surface | Gap |
-|---|---|
-| `coach_knowledge_articles` (+ versions, change_log) | **No `org_id`**; approved articles readable by any authenticated user |
-| `live_coaching_events` | **No `org_id`**; active events global to all authed users |
-| `ascend_stories` | **No `org_id`** |
-| `coaching_notification_outbox` | **No `org_id`**; broad select policies historically |
-| `push_subscriptions` | User-scoped only; dispatch not org-filtered |
-| `coach-chat` Edge | May omit `x-ascendos-org` forwarding; can fall back to `profiles.org_id` mirror |
-| `ingest-knowledge` Edge | Header handling must stay aligned with RLS |
-| Public `coaching-media` bucket | Public read of flyer media |
+| Surface                                             | Gap                                                                             |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `coach_knowledge_articles` (+ versions, change_log) | **No `org_id`**; approved articles readable by any authenticated user           |
+| `live_coaching_events`                              | **No `org_id`**; active events global to all authed users                       |
+| `ascend_stories`                                    | **No `org_id`**                                                                 |
+| `coaching_notification_outbox`                      | **No `org_id`**; broad select policies historically                             |
+| `push_subscriptions`                                | User-scoped only; dispatch not org-filtered                                     |
+| `coach-chat` Edge                                   | May omit `x-ascendos-org` forwarding; can fall back to `profiles.org_id` mirror |
+| `ingest-knowledge` Edge                             | Header handling must stay aligned with RLS                                      |
+| Public `coaching-media` bucket                      | Public read of flyer media                                                      |
 
 These are **blocking** for a second real organization.
 
@@ -89,16 +89,16 @@ These are **blocking** for a second real organization.
 
 ## 6. Isolation test matrix (required before Phase 10)
 
-| Case | Expected |
-|---|---|
-| Org A member reads A | Allow |
-| Org A member reads B | Deny |
-| Org B member reads B | Allow |
-| Org B member reads A | Deny |
-| Org admin manages only own org | Allow / Deny cross-org |
-| Platform super admin manages orgs | Allow |
-| Member hits admin APIs | Deny |
-| AI context / knowledge / live coaching / links / content | Tenant-isolated |
+| Case                                                     | Expected               |
+| -------------------------------------------------------- | ---------------------- |
+| Org A member reads A                                     | Allow                  |
+| Org A member reads B                                     | Deny                   |
+| Org B member reads B                                     | Allow                  |
+| Org B member reads A                                     | Deny                   |
+| Org admin manages only own org                           | Allow / Deny cross-org |
+| Platform super admin manages orgs                        | Allow                  |
+| Member hits admin APIs                                   | Deny                   |
+| AI context / knowledge / live coaching / links / content | Tenant-isolated        |
 
 Automated preference: pgTAP + Edge integration tests + RLS policy tests.
 
