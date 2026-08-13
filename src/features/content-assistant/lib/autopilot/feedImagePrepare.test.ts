@@ -23,19 +23,18 @@ describe('autopilot feed image prepare (Edge worker crash guard)', () => {
   });
 
   it('detects the forbidden remote ImageScript specifier', () => {
-    expect(sourceHasForbiddenImagescriptImport(`import { Image } from '${FORBIDDEN_IMAGESCRIPT_REMOTE}';`)).toBe(
-      true
-    );
-    expect(sourceHasForbiddenImagescriptImport("import { handleOptions } from '../_shared/cors.ts';")).toBe(
-      false
-    );
+    expect(
+      sourceHasForbiddenImagescriptImport(
+        `import { Image } from '${FORBIDDEN_IMAGESCRIPT_REMOTE}';`
+      )
+    ).toBe(true);
+    expect(
+      sourceHasForbiddenImagescriptImport("import { handleOptions } from '../_shared/cors.ts';")
+    ).toBe(false);
   });
 
   it('content-autopilot-run source must not statically import deno.land ImageScript', () => {
-    const edgePath = resolve(
-      process.cwd(),
-      'supabase/functions/content-autopilot-run/index.ts'
-    );
+    const edgePath = resolve(process.cwd(), 'supabase/functions/content-autopilot-run/index.ts');
     const source = readFileSync(edgePath, 'utf8');
     expect(sourceHasForbiddenImagescriptImport(source)).toBe(false);
     expect(source).toMatch(/resolveAutopilotFeedImageUrl/);

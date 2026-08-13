@@ -5,8 +5,7 @@
 
 export const AUTOPILOT_FEED_IMAGE_PROCESSOR = 'passthrough_no_imagescript' as const;
 
-export const FORBIDDEN_IMAGESCRIPT_REMOTE =
-  'https://deno.land/x/imagescript@1.3.0/mod.ts' as const;
+export const FORBIDDEN_IMAGESCRIPT_REMOTE = 'https://deno.land/x/imagescript@1.3.0/mod.ts' as const;
 
 export function resolveAutopilotFeedImageUrl(sourceSignedUrl: string): string {
   if (!sourceSignedUrl || typeof sourceSignedUrl !== 'string') {
