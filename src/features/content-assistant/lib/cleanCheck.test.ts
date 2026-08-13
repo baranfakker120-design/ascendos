@@ -52,4 +52,16 @@ describe('runCleanCheck', () => {
     expect(formatted).toContain('·');
     expect(formatted).toContain('technical precaution');
   });
+
+  it('flags internal UUID copy as attention', () => {
+    const result = runCleanCheck({
+      hook: 'F92F7B5E-3F63-42FC-8BD7-31071AB7213C',
+      caption: 'F92F7B5E-3F63-42FC-8BD7-31071AB7213C',
+      cta: 'Save',
+      keywords: [],
+      hashtags: ['teamarbeit'],
+    });
+    expect(result.status).toBe('attention');
+    expect(result.notes.some((n) => n.includes('UUID') || n.includes('Internal id'))).toBe(true);
+  });
 });

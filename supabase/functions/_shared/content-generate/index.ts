@@ -55,6 +55,12 @@ export {
 export { normalizeFormat, enforceExactHashtagCount } from './parse.ts';
 export { runHeuristicCleanCheck, CLEAN_CHECK_DISCLAIMER } from './cleanCheck.ts';
 export { VisionFailureError } from './vision.ts';
+export {
+  looksLikeInternalId,
+  textContainsInternalId,
+  pickSafePublicCopy,
+  filterInternalIdHashtags,
+} from './safeCopy.ts';
 
 const DRAFT_SELECT =
   'id, org_id, asset_id, carousel_asset_ids, analysis_json, owner_membership_id, format, hook, caption, cta, keywords, hashtags, clean_check_status, clean_check_notes, target_audience, posting_hint, content_score, status, created_at, updated_at';

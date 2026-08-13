@@ -6,6 +6,11 @@ import {
   type KeywordDetail,
   type SlideAnalysis,
 } from './types.ts';
+import {
+  filterInternalIdHashtags,
+  looksLikeInternalId,
+  textContainsInternalId,
+} from './safeCopy.ts';
 
 export function extractJsonObject(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -172,13 +177,27 @@ export function parseGeneration(
   const visual = asNullableString(o.visual_summary, 4000);
   if (!visual) throw new Error('missing_visual_summary');
 
-  const hook = asNullableString(o.hook, 280) ?? '';
-  const caption = asNullableString(o.caption, 2200) ?? '';
-  const cta = asNullableString(o.cta, 280) ?? '';
-  if (!hook || !caption) throw new Error('missing_draft_fields');
+  const hookRaw = asNullableString(o.hook, 280) ?? '';
+  const captionRaw = asNullableString(o.caption, 2200) ?? '';
+  const ctaRaw = asNullableString(o.cta, 280) ?? '';
+  if (!hookRaw || !captionRaw) throw new Error('missing_draft_fields');
+  if (
+    looksLikeInternalId(hookRaw) ||
+    looksLikeInternalId(captionRaw) ||
+    textContainsInternalId(hookRaw) ||
+    textContainsInternalId(captionRaw) ||
+    textContainsInternalId(ctaRaw)
+  ) {
+    throw new Error('invalid_ai_public_copy');
+  }
+  const hook = hookRaw;
+  const caption = captionRaw;
+  const cta = looksLikeInternalId(ctaRaw) ? '' : ctaRaw;
 
-  const keywords = asStringArray(o.keywords, 16);
-  const hashtagsRaw = asStringArray(o.hashtags, 18);
+  const keywords = asStringArray(o.keywords, 16).filter(
+    (k) => !looksLikeInternalId(k) && !textContainsInternalId(k)
+  );
+  const hashtagsRaw = filterInternalIdHashtags(asStringArray(o.hashtags, 18));
   const hashtags = enforceExactHashtagCount(hashtagsRaw);
   const slideCount = options?.slideCount ?? 1;
 

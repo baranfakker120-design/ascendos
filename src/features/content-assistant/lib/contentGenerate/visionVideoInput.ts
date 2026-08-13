@@ -18,6 +18,7 @@ export type VisionErrorCode =
   | 'AI_PROVIDER_AUTH_ERROR'
   | 'AI_PROVIDER_RATE_LIMIT'
   | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_CREDITS_EXHAUSTED'
   | 'AI_PROVIDER_ERROR'
   | 'missing_openrouter_key';
 
@@ -101,6 +102,7 @@ export function buildVisionMediaPart(params: {
 export function mapHttpStatusToVisionCode(status: number): VisionErrorCode {
   if (status === 400) return 'AI_PROVIDER_BAD_REQUEST';
   if (status === 401 || status === 403) return 'AI_PROVIDER_AUTH_ERROR';
+  if (status === 402) return 'AI_PROVIDER_CREDITS_EXHAUSTED';
   if (status === 429) return 'AI_PROVIDER_RATE_LIMIT';
   if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
   return 'AI_PROVIDER_ERROR';
@@ -189,6 +191,7 @@ export function sanitizeVisionErrorDetail(value: string): string {
     'AI_PROVIDER_AUTH_ERROR',
     'AI_PROVIDER_RATE_LIMIT',
     'AI_PROVIDER_TIMEOUT',
+    'AI_PROVIDER_CREDITS_EXHAUSTED',
     'AI_PROVIDER_ERROR',
     'missing_openrouter_key',
   ];

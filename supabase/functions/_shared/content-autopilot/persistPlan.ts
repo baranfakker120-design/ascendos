@@ -14,6 +14,7 @@ import {
 } from './types.ts';
 import { buildAutopilotWeekPlan } from './planner.ts';
 import { selectExactFiveHashtags, extractAutopilotKeywords } from './optimize.ts';
+import { pickSafePublicCopy } from '../content-generate/safeCopy.ts';
 
 /** Minimal DB surface — avoids importing jsr types into the shared group. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,21 +67,24 @@ export async function createAutopilotDraftForSlot(
   if (!asset) return null;
 
   const analysis = (asset.analysis_json ?? {}) as Record<string, unknown>;
+  // Never use asset title/filename as public copy — iPhone exports are often UUIDs.
   const hook =
-    (typeof analysis.hook === 'string' && analysis.hook) ||
-    (asset.theme ? String(asset.theme).slice(0, 120) : null) ||
-    (asset.title ? String(asset.title).slice(0, 120) : 'AscendOS Update');
+    pickSafePublicCopy(
+      typeof analysis.hook === 'string' ? analysis.hook : null,
+      asset.theme ? String(asset.theme).slice(0, 120) : null
+    ) ?? '';
   const caption =
-    (typeof analysis.caption === 'string' && analysis.caption) ||
-    (asset.detected_summary ? String(asset.detected_summary).slice(0, 1800) : null) ||
-    `${hook}`;
+    pickSafePublicCopy(
+      typeof analysis.caption === 'string' ? analysis.caption : null,
+      asset.detected_summary ? String(asset.detected_summary).slice(0, 1800) : null
+    ) ?? '';
   const cta =
-    (typeof analysis.cta === 'string' && analysis.cta) ||
-    (format === 'story' ? '' : 'Speichere diesen Beitrag für später.');
+    pickSafePublicCopy(typeof analysis.cta === 'string' ? analysis.cta : null) ||
+    (format === 'story' ? '' : '');
 
   const keywords = extractAutopilotKeywords({
     theme: asset.theme,
-    caption: typeof caption === 'string' ? caption : null,
+    caption: caption || null,
     analysisKeywords: Array.isArray(asset.keywords) ? asset.keywords.map(String) : [],
     analysisJson: analysis,
   });
@@ -92,9 +96,11 @@ export async function createAutopilotDraftForSlot(
     theme: asset.theme ? String(asset.theme) : null,
     keywords,
     llmHashtags,
-    caption: typeof caption === 'string' ? caption : null,
+    caption: caption || null,
     contentCategory: category,
   });
+
+  const isPlaceholder = !hook.trim() || !caption.trim();
 
   const { data: draft, error } = await db
     .from('content_drafts')
@@ -108,8 +114,10 @@ export async function createAutopilotDraftForSlot(
       cta,
       keywords,
       hashtags,
-      clean_check_status: 'clean',
-      clean_check_notes: 'Autopilot draft placeholder — feed optimized before publish.',
+      clean_check_status: isPlaceholder ? 'attention' : 'clean',
+      clean_check_notes: isPlaceholder
+        ? 'Autopilot draft placeholder — awaiting KI optimization before publish.'
+        : 'Autopilot draft placeholder — feed optimized before publish.',
       target_audience: asset.audience_hint,
       posting_hint: `Autopilot · ${category}`,
       status: 'ready',
@@ -120,6 +128,7 @@ export async function createAutopilotDraftForSlot(
         reused_analysis: Boolean(analysis && Object.keys(analysis).length),
         is_carousel: false,
         optimization_pending: format !== 'story',
+        placeholder: isPlaceholder,
       },
     })
     .select('id')

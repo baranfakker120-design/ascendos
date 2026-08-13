@@ -65,6 +65,8 @@ export function AiContentAssistantPage() {
   const [research, setResearch] = useState<ContentResearchPayload | null>(null);
   const [analysis, setAnalysis] = useState<ContentAnalysisJson | null>(null);
   const [assetPersistNote, setAssetPersistNote] = useState<string | null>(null);
+  /** When true, do not show stale autopilot/placeholder drafts as a successful KI analysis. */
+  const [suppressStaleDraft, setSuppressStaleDraft] = useState(false);
   const [edit, setEdit] = useState<{
     hook: string;
     caption: string;
@@ -117,6 +119,7 @@ export function AiContentAssistantPage() {
   const activeDraft: ContentDraft | null = draftsQuery.data?.[0] ?? null;
 
   useEffect(() => {
+    if (suppressStaleDraft) return;
     if (!activeDraft) {
       setEdit(null);
       return;
@@ -141,7 +144,7 @@ export function AiContentAssistantPage() {
           : curr
       );
     }
-  }, [activeDraft?.id, activeDraft?.updated_at]);
+  }, [activeDraft?.id, activeDraft?.updated_at, suppressStaleDraft]);
 
   useEffect(() => {
     if (carouselMode) {
@@ -303,12 +306,26 @@ export function AiContentAssistantPage() {
     setGenerateError(null);
     setSaveMessage(null);
     setAssetPersistNote(null);
+    setSuppressStaleDraft(false);
+    setEdit(null);
+    setAnalysis(null);
+    setResearch(null);
     try {
       const result: ContentGenerateResult = await generateMutation.mutateAsync({
         format: carouselMode ? 'feed' : format,
       });
+      setSuppressStaleDraft(false);
       setResearch(result.research ?? result.analysis?.research ?? null);
       setAnalysis(result.analysis ?? null);
+      setEdit({
+        hook: result.draft.hook ?? '',
+        caption: result.draft.caption ?? '',
+        cta: result.draft.cta ?? '',
+        keywords: (result.draft.keywords ?? []).join(', '),
+        hashtags: (result.draft.hashtags ?? [])
+          .map((h) => (h.startsWith('#') ? h : `#${h}`))
+          .join(' '),
+      });
       if (result.assetAnalysisMode === 'draft_only_central_or_foreign') {
         setAssetPersistNote(t('contentAssistant.assetAnalysisDraftOnly'));
       } else if (result.assetAnalysisMode === 'persist_failed') {
@@ -318,6 +335,11 @@ export function AiContentAssistantPage() {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'generate_failed';
+      console.error('[content-assistant] KI-Analyse fehlgeschlagen', msg, e);
+      setSuppressStaleDraft(true);
+      setEdit(null);
+      setAnalysis(null);
+      setResearch(null);
       if (msg.includes('content_generation_quota_reached'))
         setGenerateError(t('contentAssistant.generationQuotaFull'));
       else if (msg.includes('ai_not_configured'))
@@ -334,6 +356,14 @@ export function AiContentAssistantPage() {
         setGenerateError(t('contentAssistant.aiProviderTimeout'));
       else if (msg.includes('AI_PROVIDER_BAD_REQUEST'))
         setGenerateError(t('contentAssistant.aiProviderBadRequest'));
+      else if (msg.includes('AI_PROVIDER_CREDITS_EXHAUSTED'))
+        setGenerateError(t('contentAssistant.aiProviderCredits'));
+      else if (msg.includes('AI_PROVIDER_RATE_LIMIT'))
+        setGenerateError(t('contentAssistant.aiProviderRateLimit'));
+      else if (msg.includes('AI_PROVIDER_AUTH_ERROR'))
+        setGenerateError(t('contentAssistant.aiProviderAuth'));
+      else if (msg.includes('AI_PROVIDER_ERROR'))
+        setGenerateError(t('contentAssistant.aiProviderError'));
       else setGenerateError(t('contentAssistant.generateFailed'));
     }
   };
@@ -384,6 +414,7 @@ export function AiContentAssistantPage() {
     setResearch(null);
     setAnalysis(null);
     setAssetPersistNote(null);
+    setSuppressStaleDraft(false);
     setSelectedAssetIds((ids) => {
       if (ids.includes(asset.id)) return removeFromSelection(ids, asset.id);
       const existing = ids

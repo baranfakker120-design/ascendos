@@ -1,3 +1,5 @@
+import { looksLikeInternalId, textContainsInternalId } from './contentGenerate/safeCopy';
+
 /**
  * Deterministic Clean Check heuristics for Content Assistant drafts.
  * Supportive signal only — never claims Instagram compliance or shadowban safety.
@@ -113,6 +115,15 @@ export function runCleanCheck(input: CleanCheckInput): CleanCheckResult {
 
   if (RISKY_TERMS.test(blob)) {
     notes.push('Potentially risky growth/manipulation language detected.');
+  }
+
+  if (
+    looksLikeInternalId(input.hook) ||
+    looksLikeInternalId(input.caption) ||
+    looksLikeInternalId(input.cta) ||
+    textContainsInternalId(blob)
+  ) {
+    notes.push('Internal id / UUID must not appear in public copy.');
   }
 
   const letters = caption.replace(/[^A-Za-zÄÖÜäöüß]/g, '');
