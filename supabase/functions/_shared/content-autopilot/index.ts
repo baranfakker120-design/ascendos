@@ -11,3 +11,4 @@ export * from './reconcilePlan.ts';
 export * from './planner.ts';
 export * from './continuation.ts';
 export * from './persistPlan.ts';
+export * from './feedImagePrepare.ts';

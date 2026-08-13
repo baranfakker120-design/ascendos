@@ -5,7 +5,6 @@
 // Quelle: supabase/functions/content-autopilot-run/index.ts
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
-import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
 // ---- inline: _shared/cors.ts ----
@@ -2757,6 +2756,45 @@ export function isPermanentAutopilotPublishError(error: string): boolean {
   ].includes(error);
 }
 
+// ---- inline: _shared/content-autopilot/feedImagePrepare.ts ----
+/**
+ * Autopilot feed image URL prep — Edge-worker safe.
+ *
+ * Production crash (2026-08-13): top-level
+ * `import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts'`
+ * loads WASM via fetch+arrayBuffer in zlib.js. On Supabase Edge Runtime that
+ * fails with uncaught `TypeError: brotli error` → WORKER_ERROR every cron tick
+ * before claim/publish.
+ *
+ * Autopilot therefore must not boot imagescript in this worker. Pass through
+ * the signed source URL; Meta accepts in-range aspect assets (crop/re-encode
+ * can return later via a worker-safe codec, not a remote deno.land imagescript boot).
+ */
+
+export const AUTOPILOT_FEED_IMAGE_PROCESSOR = 'passthrough_no_imagescript' as const;
+
+/** Forbidden remote ImageScript specifier that crashes Supabase Edge workers. */
+export const FORBIDDEN_IMAGESCRIPT_REMOTE =
+  'https://deno.land/x/imagescript@1.3.0/mod.ts' as const;
+
+/**
+ * Resolve the media URL Autopilot should hand to Instagram Graph.
+ * Always passthrough while ImageScript is unsafe on this runtime.
+ */
+export function resolveAutopilotFeedImageUrl(sourceSignedUrl: string): string {
+  if (!sourceSignedUrl || typeof sourceSignedUrl !== 'string') {
+    throw new Error('feed_image_url_missing');
+  }
+  return sourceSignedUrl;
+}
+
+/** True when source text still has a live ESM import of the crashing remote module. */
+export function sourceHasForbiddenImagescriptImport(source: string): boolean {
+  const liveImport =
+    /(?:^|\n)\s*(?:import|export)\s+[\s\S]*?\s+from\s+['"]https:\/\/deno\.land\/x\/imagescript@[^'"]+['"]/m;
+  return liveImport.test(source);
+}
+
 // ---- inline: _shared/content-autopilot/index.ts ----
 
 
@@ -3783,6 +3821,14 @@ async function releaseSlotAfterError(
   return { ok: false, status: giveUp ? 'failed' : 'retry', error };
 }
 
+/**
+ * Feed image URL for Meta containers.
+ *
+ * MUST NOT import `deno.land/x/imagescript` in this worker: on Supabase Edge the
+ * imagescript WASM boot hits `TypeError: brotli error` (zlib.js → Response.arrayBuffer)
+ * as an uncaught event-loop error → WORKER_ERROR on every cold start / cron tick,
+ * before any slot claim. See feedImagePrepare.ts.
+ */
 async function prepareFeedImageUrlForMeta(params: {
   admin: SupabaseClient;
   sourceSignedUrl: string;
@@ -3790,44 +3836,11 @@ async function prepareFeedImageUrlForMeta(params: {
   slotId: string;
   mimeType: string | null | undefined;
 }): Promise<string> {
-  const res = await fetch(params.sourceSignedUrl);
-  if (!res.ok) throw new Error('feed_image_fetch_failed');
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  const image = await Image.decode(bytes);
-  const crop = computeFeedImageCrop(image.width, image.height);
-  const needsCrop =
-    crop.x !== 0 || crop.y !== 0 || crop.width !== image.width || crop.height !== image.height;
-  const mime = (params.mimeType ?? '').toLowerCase();
-  const needsJpeg = mime !== 'image/jpeg' && mime !== 'image/jpg';
-  const targetW = feedImageEncodeWidth(crop.width);
-  const needsResize = targetW !== crop.width;
-  if (
-    !needsCrop &&
-    !needsJpeg &&
-    !needsResize &&
-    isFeedImageAspectAllowed(image.width, image.height)
-  ) {
-    return params.sourceSignedUrl;
-  }
-  let fitted = image;
-  if (needsCrop) fitted = image.clone().crop(crop.x, crop.y, crop.width, crop.height);
-  const encodeW = feedImageEncodeWidth(fitted.width);
-  if (encodeW !== fitted.width) {
-    const encodeH = Math.max(1, Math.round((fitted.height * encodeW) / fitted.width));
-    fitted.resize(encodeW, encodeH);
-  }
-  const jpeg = await fitted.encodeJPEG(85);
-  const path = `${params.orgId}/publish-fit/autopilot-${params.slotId}.jpg`;
-  const { error: upErr } = await params.admin.storage.from(AUTOPILOT_RUN_ASSETS_BUCKET).upload(path, jpeg, {
-    contentType: 'image/jpeg',
-    upsert: true,
-  });
-  if (upErr) throw new Error('feed_image_fit_failed');
-  const { data: fittedSigned, error: fitSignErr } = await params.admin.storage
-    .from(AUTOPILOT_RUN_ASSETS_BUCKET)
-    .createSignedUrl(path, 7200);
-  if (fitSignErr || !fittedSigned?.signedUrl) throw new Error('feed_image_fit_failed');
-  return fittedSigned.signedUrl;
+  void params.admin;
+  void params.orgId;
+  void params.slotId;
+  void params.mimeType;
+  return resolveAutopilotFeedImageUrl(params.sourceSignedUrl);
 }
 
 async function publishOneSlot(
