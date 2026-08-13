@@ -58,6 +58,27 @@ describe('autopilot optimization', () => {
         hashtags: [],
       })
     ).toBe('refresh_copy');
+
+    expect(
+      assessAutopilotOptimizeMode({
+        format: 'feed',
+        hook: 'F92F7B5E-3F63-42FC-8BD7-31071AB7213C',
+        caption: 'F92F7B5E-3F63-42FC-8BD7-31071AB7213C',
+        cta: 'Speichern für später',
+        hashtags: ['teamarbeit', 'businessmindset', 'netzwerk', 'leadership', 'community'],
+      })
+    ).toBe('refresh_copy');
+  });
+
+  it('rejects UUID public copy in quality check', () => {
+    expect(
+      runAutopilotQualityCheck({
+        hook: 'F92F7B5E-3F63-42FC-8BD7-31071AB7213C',
+        caption: 'F92F7B5E-3F63-42FC-8BD7-31071AB7213C and more text here',
+        cta: 'CTA',
+        hashtags: ['a', 'b', 'c', 'd', 'e'],
+      }).ok
+    ).toBe(false);
   });
 
   it('extracts keywords from theme/caption — not filenames', () => {

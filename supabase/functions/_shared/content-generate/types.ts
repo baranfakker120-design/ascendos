@@ -103,6 +103,7 @@ export type VisionErrorCode =
   | 'AI_PROVIDER_AUTH_ERROR'
   | 'AI_PROVIDER_RATE_LIMIT'
   | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_CREDITS_EXHAUSTED'
   | 'AI_PROVIDER_ERROR'
   | 'missing_openrouter_key';
 

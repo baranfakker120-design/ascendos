@@ -214,7 +214,7 @@ async function publishOneSlot(
   // Feed/Carousel only: one optimization pass. Image Story + Video Story skip (no extra AI).
   if (!isStory) {
     try {
-      await optimizeAutopilotDraftBeforePublish({
+      const opt = await optimizeAutopilotDraftBeforePublish({
         admin,
         membershipId: slot.membership_id,
         orgId: slot.org_id,
@@ -224,24 +224,44 @@ async function publishOneSlot(
         plannedFor: slot.planned_for,
         assetIds: publishAssetIds,
       });
+      if (!opt.qualityOk) {
+        console.error('autopilot_optimize_quality_failed', {
+          slotId: slot.id,
+          draftId: slot.draft_id,
+          mode: opt.mode,
+          notes: opt.notes.slice(0, 8),
+        });
+        return releaseSlotAfterError(admin, slot, 'content_quality_failed', false);
+      }
     } catch (optErr) {
       console.error(
         'autopilot_optimize_failed',
         optErr instanceof Error ? optErr.message : optErr
       );
-      // Continue with existing draft — do not block publish on optimize soft failure
+      return releaseSlotAfterError(admin, slot, 'content_optimize_failed', false);
     }
   }
 
   const { data: draft } = await admin
     .from('content_drafts')
     .select(
-      'id, org_id, owner_membership_id, asset_id, carousel_asset_ids, format, caption, cta, hashtags, status'
+      'id, org_id, owner_membership_id, asset_id, carousel_asset_ids, format, hook, caption, cta, hashtags, status'
     )
     .eq('id', slot.draft_id)
     .maybeSingle();
   if (!draft || draft.status !== 'ready') {
     return releaseSlotAfterError(admin, slot, 'draft_not_ready', true);
+  }
+
+  // Hard stop: never publish UUID / request-id shaped copy to Instagram.
+  const hookText = String(draft.hook ?? '');
+  const captionText = String(draft.caption ?? '');
+  const ctaText = String(draft.cta ?? '');
+  const uuidRe =
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+  if (uuidRe.test(hookText) || uuidRe.test(captionText) || uuidRe.test(ctaText)) {
+    console.error('autopilot_internal_id_in_copy', { slotId: slot.id, draftId: draft.id });
+    return releaseSlotAfterError(admin, slot, 'internal_id_in_copy', true);
   }
 
   const { data: assets } = await admin

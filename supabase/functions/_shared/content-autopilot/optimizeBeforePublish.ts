@@ -7,6 +7,11 @@ import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { generateDraftFromAssets } from '../content-generate/index.ts';
 import type { AssetRow, MembershipRow } from '../content-generate/types.ts';
 import {
+  filterInternalIdHashtags,
+  pickSafePublicCopy,
+  textContainsInternalId,
+} from '../content-generate/safeCopy.ts';
+import {
   aggregatePerformanceContext,
   assessAutopilotOptimizeMode,
   buildTimingContext,
@@ -150,17 +155,20 @@ export async function optimizeAutopilotDraftBeforePublish(params: {
   const recentHashtags = await loadRecentHashtags(params.admin, params.membershipId);
   const recentCaptions = await loadRecentCaptions(params.admin, params.membershipId);
 
-  let hook = String(draft.hook ?? '');
-  let caption = String(draft.caption ?? '');
-  let cta = String(draft.cta ?? '');
+  let hook = pickSafePublicCopy(draft.hook) ?? '';
+  let caption = pickSafePublicCopy(draft.caption) ?? '';
+  let cta = pickSafePublicCopy(draft.cta) ?? '';
   let keywords = extractAutopilotKeywords({
     theme: null,
     caption,
     analysisKeywords: Array.isArray(draft.keywords) ? draft.keywords.map(String) : [],
     analysisJson: (draft.analysis_json as Record<string, unknown>) ?? null,
   });
-  let hashtags = Array.isArray(draft.hashtags) ? draft.hashtags.map(String) : [];
+  let hashtags = filterInternalIdHashtags(
+    Array.isArray(draft.hashtags) ? draft.hashtags.map(String) : []
+  );
   let visionUsed = false;
+  let visionRequiredFailed = false;
   const notes: string[] = [`mode=${mode}`];
   if (performance?.hint) notes.push(`performance_hint=${performance.hint}`);
   notes.push(`timing=${timing.daypart}/weekday${timing.weekday}`);
@@ -194,11 +202,13 @@ export async function optimizeAutopilotDraftBeforePublish(params: {
         });
         visionUsed = true;
         const g = generated.draft;
-        hook = String(g.hook ?? hook);
-        caption = String(g.caption ?? caption);
-        cta = String(g.cta ?? cta);
+        hook = pickSafePublicCopy(g.hook as string | null) ?? hook;
+        caption = pickSafePublicCopy(g.caption as string | null) ?? caption;
+        cta = pickSafePublicCopy(g.cta as string | null) ?? cta;
         keywords = Array.isArray(g.keywords) ? g.keywords.map(String) : keywords;
-        hashtags = Array.isArray(g.hashtags) ? g.hashtags.map(String) : hashtags;
+        hashtags = filterInternalIdHashtags(
+          Array.isArray(g.hashtags) ? g.hashtags.map(String) : hashtags
+        );
         notes.push('vision_refresh_applied');
         // Soft-cancel the extra draft insert — keep publishing the original draft id
         if (g.id && g.id !== params.draftId) {
@@ -207,13 +217,17 @@ export async function optimizeAutopilotDraftBeforePublish(params: {
             .update({ status: 'archived', posting_hint: 'autopilot_opt_temp' })
             .eq('id', g.id);
         }
+      } else {
+        visionRequiredFailed = true;
+        notes.push('vision_refresh_failed:no_assets');
       }
     } catch (e) {
+      visionRequiredFailed = true;
       notes.push(`vision_refresh_failed:${e instanceof Error ? e.message : 'error'}`);
     }
   }
 
-  if (mode === 'reuse' || mode === 'hashtags_only' || mode === 'refresh_copy') {
+  if (mode === 'reuse' || mode === 'hashtags_only' || (mode === 'refresh_copy' && visionUsed)) {
     const tuned = lightlyTuneCaption({
       caption,
       hook,
@@ -244,9 +258,15 @@ export async function optimizeAutopilotDraftBeforePublish(params: {
     notes.push(...selected.notes.slice(0, 2));
   }
 
+  // Strip any UUID that slipped through after tune/vision.
+  hook = pickSafePublicCopy(hook) ?? '';
+  caption = pickSafePublicCopy(caption) ?? '';
+  cta = pickSafePublicCopy(cta) ?? '';
+  hashtags = filterInternalIdHashtags(hashtags);
+
   let quality = runAutopilotQualityCheck({ hook, caption, cta, keywords, hashtags });
   // One correction attempt if quality fails (hashtag/catalog repair only — no second vision)
-  if (!quality.ok) {
+  if (!quality.ok && visionUsed && !textContainsInternalId(caption) && caption.trim()) {
     const repaired = selectExactFiveHashtags({
       theme: null,
       keywords,
@@ -259,6 +279,12 @@ export async function optimizeAutopilotDraftBeforePublish(params: {
     if (!hook.trim() && caption) hook = caption.slice(0, 80);
     quality = runAutopilotQualityCheck({ hook, caption, cta, keywords, hashtags });
     notes.push('quality_repair_attempt');
+  }
+
+  // Vision was required but failed → never treat placeholder/UUID copy as publishable success.
+  if (visionRequiredFailed || (mode === 'refresh_copy' && !visionUsed)) {
+    notes.push('vision_required_unavailable');
+    quality = { ok: false, status: 'attention', notes: [...quality.notes, 'vision_required_unavailable'] };
   }
 
   await params.admin
@@ -274,6 +300,8 @@ export async function optimizeAutopilotDraftBeforePublish(params: {
       status: 'ready',
       analysis_json: {
         ...((draft.analysis_json as Record<string, unknown>) ?? {}),
+        placeholder: !quality.ok,
+        optimization_pending: !quality.ok,
         autopilot_optimization: {
           mode,
           timing,

@@ -95,6 +95,7 @@ export function buildVisionMediaPart(params: {
 export function mapHttpStatusToVisionCode(status: number): VisionErrorCode {
   if (status === 400) return 'AI_PROVIDER_BAD_REQUEST';
   if (status === 401 || status === 403) return 'AI_PROVIDER_AUTH_ERROR';
+  if (status === 402) return 'AI_PROVIDER_CREDITS_EXHAUSTED';
   if (status === 429) return 'AI_PROVIDER_RATE_LIMIT';
   if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
   return 'AI_PROVIDER_ERROR';
@@ -184,6 +185,9 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
     if (err.message.includes('401') || err.message.includes('403')) {
       return 'AI_PROVIDER_AUTH_ERROR';
     }
+    if (err.message.includes('402') || /credits|afford/i.test(err.message)) {
+      return 'AI_PROVIDER_CREDITS_EXHAUSTED';
+    }
     if (err.message.includes('429')) return 'AI_PROVIDER_RATE_LIMIT';
     if (err.message.includes('400') || err.message.includes('Bad Request')) {
       return 'AI_PROVIDER_BAD_REQUEST';
@@ -200,6 +204,7 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
       msg === 'AI_PROVIDER_AUTH_ERROR' ||
       msg === 'AI_PROVIDER_RATE_LIMIT' ||
       msg === 'AI_PROVIDER_TIMEOUT' ||
+      msg === 'AI_PROVIDER_CREDITS_EXHAUSTED' ||
       msg === 'AI_PROVIDER_ERROR' ||
       msg === 'missing_openrouter_key'
     ) {
@@ -209,6 +214,9 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
       return 'AI_PROVIDER_TIMEOUT';
     }
     if (msg.includes('401') || msg.includes('403')) return 'AI_PROVIDER_AUTH_ERROR';
+    if (msg.includes('402') || /credits|afford/i.test(msg)) {
+      return 'AI_PROVIDER_CREDITS_EXHAUSTED';
+    }
     if (msg.includes('429')) return 'AI_PROVIDER_RATE_LIMIT';
     if (msg.includes('400') || msg.includes('Bad Request')) {
       return 'AI_PROVIDER_BAD_REQUEST';

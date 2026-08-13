@@ -156,6 +156,7 @@ describe('visionVideoInput — server fetch + data URL', () => {
     expect(mapHttpStatusToVisionCode(400)).toBe('AI_PROVIDER_BAD_REQUEST');
     expect(mapHttpStatusToVisionCode(401)).toBe('AI_PROVIDER_AUTH_ERROR');
     expect(mapHttpStatusToVisionCode(403)).toBe('AI_PROVIDER_AUTH_ERROR');
+    expect(mapHttpStatusToVisionCode(402)).toBe('AI_PROVIDER_CREDITS_EXHAUSTED');
     expect(mapHttpStatusToVisionCode(429)).toBe('AI_PROVIDER_RATE_LIMIT');
     expect(mapHttpStatusToVisionCode(500)).toBe('AI_PROVIDER_ERROR');
     expect(mapHttpStatusToVisionCode(502)).toBe('AI_PROVIDER_ERROR');

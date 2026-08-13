@@ -170,6 +170,7 @@ Deno.serve(async (req) => {
         msg === 'AI_PROVIDER_AUTH_ERROR' ||
         msg === 'AI_PROVIDER_RATE_LIMIT' ||
         msg === 'AI_PROVIDER_TIMEOUT' ||
+        msg === 'AI_PROVIDER_CREDITS_EXHAUSTED' ||
         msg === 'AI_PROVIDER_ERROR'
       ) {
         if (canPersistAssetAnalysis(assetRow, active)) {
@@ -185,7 +186,9 @@ Deno.serve(async (req) => {
               ? 504
               : msg === 'AI_PROVIDER_RATE_LIMIT'
                 ? 429
-                : 502;
+                : msg === 'AI_PROVIDER_CREDITS_EXHAUSTED'
+                  ? 402
+                  : 502;
         return json(
           {
             error: msg,
@@ -198,7 +201,8 @@ Deno.serve(async (req) => {
       if (
         msg.includes('invalid_ai_json') ||
         msg.includes('missing_visual_summary') ||
-        msg.includes('missing_draft_fields')
+        msg.includes('missing_draft_fields') ||
+        msg.includes('invalid_ai_public_copy')
       ) {
         await markAssetAnalysisFailed(db, assetRow, active, {
           error: 'parse_failed',

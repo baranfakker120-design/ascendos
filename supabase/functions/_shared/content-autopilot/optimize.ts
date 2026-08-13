@@ -6,6 +6,7 @@
 import { REQUIRED_HASHTAG_COUNT } from '../content-generate/types.ts';
 import { enforceExactHashtagCount } from '../content-generate/parse.ts';
 import { runHeuristicCleanCheck } from '../content-generate/cleanCheck.ts';
+import { textContainsInternalId, looksLikeInternalId } from '../content-generate/safeCopy.ts';
 import { runHashtagResearch } from '../content-research/pipeline.ts';
 import { matchCuratedTopics } from '../content-research/curated-catalog.ts';
 import { daypartFromHour, type Daypart } from './signals.ts';
@@ -188,6 +189,17 @@ export function assessAutopilotOptimizeMode(draft: AutopilotDraftSnapshot): Auto
   const hook = (draft.hook ?? '').trim();
   const cta = (draft.cta ?? '').trim();
   const tags = normalizeHashtagList(draft.hashtags);
+  const aj = draft.analysis_json ?? {};
+  if (
+    aj.placeholder === true ||
+    looksLikeInternalId(hook) ||
+    looksLikeInternalId(caption) ||
+    textContainsInternalId(hook) ||
+    textContainsInternalId(caption) ||
+    textContainsInternalId(cta)
+  ) {
+    return 'refresh_copy';
+  }
   const hasGoodCaption = caption.length >= 40 && hook.length >= 8;
   const hasGoodTags = tags.length === REQUIRED_HASHTAG_COUNT;
   const hasCta = cta.length >= 4;
@@ -302,6 +314,18 @@ export function runAutopilotQualityCheck(params: {
   if (params.caption.trim().length < 12) notes.push('Caption too short.');
   if (!params.hook.trim()) notes.push('Hook missing.');
   if (!params.cta.trim()) notes.push('CTA missing.');
+  if (
+    looksLikeInternalId(params.hook) ||
+    looksLikeInternalId(params.caption) ||
+    textContainsInternalId(params.hook) ||
+    textContainsInternalId(params.caption) ||
+    textContainsInternalId(params.cta)
+  ) {
+    notes.push('Internal id / UUID must not appear in public copy.');
+  }
+  if (params.hashtags.some((t) => looksLikeInternalId(String(t).replace(/^#/, '')))) {
+    notes.push('Internal id hashtags are not allowed.');
+  }
   const tags = normalizeHashtagList(params.hashtags);
   if (tags.length !== REQUIRED_HASHTAG_COUNT) {
     notes.push(`Expected exactly ${REQUIRED_HASHTAG_COUNT} hashtags, got ${tags.length}.`);
@@ -323,7 +347,13 @@ export function runAutopilotQualityCheck(params: {
   const hardFail =
     !params.caption.trim() ||
     tags.length !== REQUIRED_HASHTAG_COUNT ||
-    params.hashtags.some((t) => FILLER_TAG_RE.test(String(t).replace(/^#/, '')));
+    params.hashtags.some((t) => FILLER_TAG_RE.test(String(t).replace(/^#/, ''))) ||
+    looksLikeInternalId(params.hook) ||
+    looksLikeInternalId(params.caption) ||
+    textContainsInternalId(params.hook) ||
+    textContainsInternalId(params.caption) ||
+    textContainsInternalId(params.cta) ||
+    params.hashtags.some((t) => looksLikeInternalId(String(t).replace(/^#/, '')));
 
   return {
     ok: !hardFail && clean.status === 'clean',

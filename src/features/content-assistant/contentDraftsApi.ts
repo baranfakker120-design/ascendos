@@ -138,19 +138,40 @@ export async function generateContentDraft(params: {
   if (error) {
     const ctx = error as { context?: Response; message?: string };
     let detail = ctx.message ?? 'generate_failed';
+    let errorDetails: unknown;
+    let httpStatus: number | undefined;
     try {
       if (ctx.context) {
-        const body = (await ctx.context.json()) as { error?: string; message?: string };
-        detail = body.error ?? body.message ?? detail;
+        httpStatus = ctx.context.status;
+        const body = (await ctx.context.json()) as {
+          error?: string;
+          message?: string;
+          detail?: string;
+          error_details?: unknown;
+        };
+        detail = body.error ?? body.message ?? body.detail ?? detail;
+        errorDetails = body.error_details;
       }
     } catch {
       /* keep detail */
     }
+    console.error('[content-assistant] generate_draft failed', {
+      detail,
+      httpStatus,
+      errorDetails,
+      assetIds,
+      format: params.format,
+    });
     throw new Error(detail);
   }
 
   const payload = data as ContentGenerateResult & { error?: string; ok?: boolean };
   if (!payload?.draft || payload.error) {
+    console.error('[content-assistant] generate_draft empty/error payload', {
+      error: payload?.error,
+      assetIds,
+      format: params.format,
+    });
     throw new Error(payload?.error ?? 'generate_failed');
   }
   return {
