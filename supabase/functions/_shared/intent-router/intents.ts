@@ -59,7 +59,7 @@ export const duftNummer: IntentDefinition = {
   },
   rewriteQuery(message) {
     const num = message.match(/\d{1,4}/)?.[0] ?? message;
-    return `Chogan Parfum Duftnummer ${num}`;
+    return `Parfum Duftnummer ${num}`;
   },
 };
 
@@ -93,7 +93,7 @@ export const duftName: IntentDefinition = {
     return DUFT_KEYWORD.test(message) ? 0.85 : null;
   },
   rewriteQuery(message) {
-    return `Chogan Parfum Duft ${message.trim()}`;
+    return `Parfum Duft ${message.trim()}`;
   },
 };
 

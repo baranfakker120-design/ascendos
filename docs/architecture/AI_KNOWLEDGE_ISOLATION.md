@@ -19,12 +19,12 @@ Violation of (2)–(4) is a **critical security bug**.
 
 ## 2. Two knowledge systems today
 
-| System                   | Tables                                                           | Org-scoped? | Used by                                                       |
-| ------------------------ | ---------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
-| **RAG Knowledge**        | `knowledge_docs`, `knowledge_chunks`, `knowledge_gaps`, `agents` | **Yes**     | Coach chat (`match_knowledge`), `/wissen` ingest              |
-| **Knowledge Center CMS** | `coach_knowledge_articles`, versions, change_log                 | **No**      | `/knowledge-center`, coach surfaces reading approved articles |
+| System                   | Tables                                                           | Org-scoped?             | Used by                                                                 |
+| ------------------------ | ---------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------- |
+| **RAG Knowledge**        | `knowledge_docs`, `knowledge_chunks`, `knowledge_gaps`, `agents` | **Yes**                 | Coach chat (`match_knowledge`), `/wissen` ingest                        |
+| **Knowledge Center CMS** | `coach_knowledge_articles`, versions, change_log                 | **Yes** (Phase 3/4 RLS) | `/knowledge-center` (FE). Not loaded into coach-chat prompts (RAG only) |
 
-Target: CMS must become org-scoped like RAG (or be explicitly platform-only with a separate ADR — default is **org-scoped**).
+Target: CMS remains org-scoped via RLS. Coach-chat AI context uses RAG (`knowledge_docs` / `match_knowledge`); CMS is not assembled into prompts (Phase 6 decision — not part of existing coach architecture).
 
 ---
 

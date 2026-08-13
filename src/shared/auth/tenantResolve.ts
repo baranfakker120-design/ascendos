@@ -48,3 +48,11 @@ export function knowledgeContainsForeignMarker(
 ): boolean {
   return knowledgeText.includes(foreignMarker);
 }
+
+/** Conversation load must require active org (Phase 6 defense-in-depth). */
+export function conversationBelongsToActiveOrg(
+  convoOrgId: string | null | undefined,
+  activeOrgId: string
+): boolean {
+  return Boolean(convoOrgId && convoOrgId === activeOrgId);
+}

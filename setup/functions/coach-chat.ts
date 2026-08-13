@@ -527,9 +527,11 @@ Karten-Regeln:
 
 WISSENSBASIS:
 - Teamdokumente (falls vorhanden) sind oberste Wahrheit.
-- Fehlt Wissen zu Chogan / Team Seyda / Produkt / Vergütung: sage klar,
-  dass dir keine Teaminformation vorliegt — und rate nicht.
+- Fehlt Wissen zu Produkt / Vergütung / Organisationsprozessen: sage klar,
+  dass dir keine Organisationsinformation vorliegt — und rate nicht.
 - Allgemeine Prinzipien darfst du als solche gekennzeichnet anbieten.
+- Nenne keine fremde Marke, Organisation oder Produktlinie, die nicht im
+  mitgelieferten Organisationskontext steht.
 
 GRENZEN (nicht verhandelbar):
 - Keine Einkommensversprechen, keine "finanzielle Freiheit"-Prognosen.
@@ -1160,7 +1162,7 @@ export const duftNummer: IntentDefinition = {
   },
   rewriteQuery(message) {
     const num = message.match(/\d{1,4}/)?.[0] ?? message;
-    return `Chogan Parfum Duftnummer ${num}`;
+    return `Parfum Duftnummer ${num}`;
   },
 };
 
@@ -1194,7 +1196,7 @@ export const duftName: IntentDefinition = {
     return DUFT_KEYWORD.test(message) ? 0.85 : null;
   },
   rewriteQuery(message) {
-    return `Chogan Parfum Duft ${message.trim()}`;
+    return `Parfum Duft ${message.trim()}`;
   },
 };
 
@@ -2025,7 +2027,13 @@ Deno.serve(async (req) => {
     let history: ChatMessage[] = [];
     let agentKey: string | null = null;
     if (convoId) {
-      const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
+      // Phase 6: conversation history must belong to the active org.
+      // Never load Org B messages into an Org A prompt (multi-org users).
+      const { data: convo } = await db.from('coach_convos')
+        .select('*')
+        .eq('id', convoId)
+        .eq('org_id', activeOrgId)
+        .single();
       if (convo) {
         agentKey = convo.agent_key;
         const { data: msgs } = await db.from('coach_messages')
