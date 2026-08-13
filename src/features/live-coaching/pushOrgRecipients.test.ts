@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { assertPayloadOrgSafe, filterSubscriptionsForOrg } from './pushOrgRecipients';
+import {
+  assertPayloadOrgSafe,
+  filterSubscriptionsForOrg,
+  resolveDispatchOrgId,
+} from './pushOrgRecipients';
 
 const orgA = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const orgB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -47,5 +51,19 @@ describe('assertPayloadOrgSafe', () => {
   it('rejects payload advertising foreign org_id', () => {
     expect(assertPayloadOrgSafe({ title: 'x', org_id: orgB }, orgA)).toBe(false);
     expect(assertPayloadOrgSafe({ title: 'x', eventId: 'e1' }, orgA)).toBe(true);
+  });
+});
+
+describe('resolveDispatchOrgId (Phase 7)', () => {
+  it('denies outbox/event org mismatch', () => {
+    expect(resolveDispatchOrgId(orgA, orgB)).toEqual({
+      ok: false,
+      reason: 'org_mismatch',
+    });
+  });
+
+  it('prefers event org when consistent', () => {
+    expect(resolveDispatchOrgId(orgA, orgA)).toEqual({ ok: true, orgId: orgA });
+    expect(resolveDispatchOrgId(null, orgB)).toEqual({ ok: true, orgId: orgB });
   });
 });

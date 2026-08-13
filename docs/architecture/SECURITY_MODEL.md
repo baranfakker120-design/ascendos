@@ -51,16 +51,16 @@ Must self-check org / membership. Never trust client-supplied `org_id` without m
 
 ## 3. Known isolation gaps (Phase 0)
 
-| Surface                                             | Gap                                                                             |
-| --------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `coach_knowledge_articles` (+ versions, change_log) | **No `org_id`**; approved articles readable by any authenticated user           |
-| `live_coaching_events`                              | **No `org_id`**; active events global to all authed users                       |
-| `ascend_stories`                                    | **No `org_id`**                                                                 |
-| `coaching_notification_outbox`                      | **No `org_id`**; broad select policies historically                             |
-| `push_subscriptions`                                | User-scoped only; dispatch not org-filtered                                     |
-| `coach-chat` Edge                                   | May omit `x-ascendos-org` forwarding; can fall back to `profiles.org_id` mirror |
-| `ingest-knowledge` Edge                             | Header handling must stay aligned with RLS                                      |
-| Public `coaching-media` bucket                      | Public read of flyer media                                                      |
+| Surface                                             | Gap                                                                   |
+| --------------------------------------------------- | --------------------------------------------------------------------- |
+| `coach_knowledge_articles` (+ versions, change_log) | **No `org_id`**; approved articles readable by any authenticated user |
+| `live_coaching_events`                              | **No `org_id`**; active events global to all authed users             |
+| `ascend_stories`                                    | **No `org_id`**                                                       |
+| `coaching_notification_outbox`                      | **No `org_id`**; broad select policies historically                   |
+| `push_subscriptions`                                | User-scoped; send-time membership filter (Phases 5–7 / ADR 0008)      |
+| `coach-chat` Edge                                   | Phase 5+6 tenant discipline                                           |
+| `ingest-knowledge` Edge                             | Header handling aligned with RLS                                      |
+| Public `coaching-media` bucket                      | **Closed Phase 7** — private + signed URLs (repo migration)           |
 
 These are **blocking** for a second real organization.
 

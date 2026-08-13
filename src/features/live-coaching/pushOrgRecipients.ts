@@ -38,3 +38,18 @@ export function assertPayloadOrgSafe(
   if (payload.orgId != null && String(payload.orgId) !== eventOrgId) return false;
   return true;
 }
+
+/** Event org is authority; outbox/event mismatch → deny send. */
+export function resolveDispatchOrgId(
+  outboxOrgId: string | null | undefined,
+  eventOrgId: string | null | undefined
+): { ok: true; orgId: string } | { ok: false; reason: 'missing_org' | 'org_mismatch' } {
+  if (!eventOrgId) {
+    if (!outboxOrgId) return { ok: false, reason: 'missing_org' };
+    return { ok: true, orgId: outboxOrgId };
+  }
+  if (outboxOrgId && outboxOrgId !== eventOrgId) {
+    return { ok: false, reason: 'org_mismatch' };
+  }
+  return { ok: true, orgId: eventOrgId };
+}

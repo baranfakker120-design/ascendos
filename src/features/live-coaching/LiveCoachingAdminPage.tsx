@@ -68,7 +68,7 @@ function emptyForm() {
 
 export function LiveCoachingAdminPage() {
   const { t, locale } = useI18n();
-  const { profile } = useAuth();
+  const { profile, membership } = useAuth();
   const { data: events = [], isPending } = useLiveCoachingEvents();
   const { saveEvent } = useLiveCoachingMutations();
 
@@ -341,6 +341,7 @@ export function LiveCoachingAdminPage() {
         active: form.active,
         publish,
         actorId: profile?.id ?? null,
+        orgId: membership?.org_id ?? '',
       });
       await clearLiveCoachingFormDraft();
       skipNextAutosave.current = true;
@@ -382,6 +383,7 @@ export function LiveCoachingAdminPage() {
     form.title && form.existingMediaUrl
       ? {
           id: form.selectedId ?? 'preview',
+          org_id: membership?.org_id ?? '',
           title: form.title,
           subtitle: form.subtitle || null,
           description: form.description || null,

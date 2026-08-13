@@ -37,14 +37,14 @@
 
 ## 3. Not org-scoped today (must gain `org_id` before multi-org)
 
-| Table / object                                      | Current gate     | Risk                                                              |
-| --------------------------------------------------- | ---------------- | ----------------------------------------------------------------- |
-| `coach_knowledge_articles` (+ versions, change_log) | Role / approved  | Cross-org CMS leak                                                |
-| `live_coaching_events`                              | Role / active    | Cross-org events/flyers                                           |
-| `ascend_stories`                                    | Role / published | Cross-org stories                                                 |
-| `coaching_notification_outbox`                      | Global / loose   | Cross-org notification text                                       |
-| `push_subscriptions`                                | `user_id` only   | Shared push pool; OK if user∈one org, risky if multi-org identity |
-| Storage `coaching-media`                            | Public read      | URL leakage                                                       |
+| Table / object                                      | Current gate     | Risk                                                     |
+| --------------------------------------------------- | ---------------- | -------------------------------------------------------- |
+| `coach_knowledge_articles` (+ versions, change_log) | Role / approved  | Cross-org CMS leak                                       |
+| `live_coaching_events`                              | Role / active    | Cross-org events/flyers                                  |
+| `ascend_stories`                                    | Role / published | Cross-org stories                                        |
+| `coaching_notification_outbox`                      | Global / loose   | Cross-org notification text                              |
+| `push_subscriptions`                                | `user_id` only   | User/device scoped; org isolation at **send** (ADR 0008) |
+| Storage `coaching-media`                            | Private + signed | Phase 7; paths `{org_id}/…`; legacy dual-read via event  |
 
 ---
 

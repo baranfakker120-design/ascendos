@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { supabase } from '@shared/api/supabase';
+import {
+  COACHING_MEDIA_BUCKET,
+  buildCoachingMediaObjectPath,
+  coachingMediaPathBelongsToOrg,
+} from './coachingMedia';
 import { assertValidDuration } from './duration';
 import {
   buildCoachingNotificationPlan,
@@ -8,6 +14,7 @@ import {
   upsertLocalNotificationPlan,
 } from './notifications';
 import type { LiveCoachingEvent, LiveMediaType, LiveRepeatRule } from './types';
+import { createSignedCoachingMediaUrl } from './useCoachingMediaUrl';
 
 export {
   isLiveCoachingPresentable,
@@ -16,13 +23,15 @@ export {
 } from './pickTodayEvent';
 export { assertValidDuration } from './duration';
 
-const MEDIA_BUCKET = 'coaching-media';
 const IMAGE_ACCEPT = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 export function useLiveCoachingEvents(opts?: { activeOnly?: boolean }) {
   const activeOnly = opts?.activeOnly ?? false;
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['live-coaching-events', activeOnly],
+    queryKey: ['live-coaching-events', orgId, activeOnly],
+    enabled: Boolean(orgId),
     queryFn: async (): Promise<LiveCoachingEvent[]> => {
       let q = supabase
         .from('live_coaching_events')
@@ -55,6 +64,8 @@ export interface SaveLiveCoachingInput {
   active: boolean;
   publish: boolean;
   actorId: string | null;
+  /** Server-resolved active org — never trust a client org picker alone. */
+  orgId: string;
 }
 
 export function isAllowedLiveCoachingImage(file: File): boolean {
@@ -65,17 +76,19 @@ export function isAllowedLiveCoachingImage(file: File): boolean {
 
 async function uploadMedia(
   file: File,
+  orgId: string,
   actorId: string | null
-): Promise<{ path: string; url: string }> {
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-  const path = `${actorId ?? 'anon'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
+): Promise<{ path: string }> {
+  const path = buildCoachingMediaObjectPath(orgId, actorId, file.name);
+  if (!coachingMediaPathBelongsToOrg(path, orgId)) {
+    throw new Error('media_org_mismatch');
+  }
+  const { error } = await supabase.storage.from(COACHING_MEDIA_BUCKET).upload(path, file, {
     upsert: false,
     contentType: file.type || undefined,
   });
   if (error) throw error;
-  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-  return { path, url: data.publicUrl };
+  return { path };
 }
 
 async function scheduleReminders(event: LiveCoachingEvent): Promise<void> {
@@ -113,23 +126,29 @@ async function scheduleReminders(event: LiveCoachingEvent): Promise<void> {
 
 export function useLiveCoachingMutations() {
   const qc = useQueryClient();
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   const invalidate = () => qc.invalidateQueries({ queryKey: ['live-coaching-events'] });
 
   const saveEvent = useMutation({
     mutationFn: async (input: SaveLiveCoachingInput) => {
       assertValidDuration(input.durationMinutes);
+      if (!input.orgId || (orgId && input.orgId !== orgId)) {
+        throw new Error('org_mismatch');
+      }
 
       let mediaPath = input.existingMediaPath ?? null;
-      let mediaUrl = input.existingMediaUrl ?? null;
       if (input.mediaFile) {
-        const uploaded = await uploadMedia(input.mediaFile, input.actorId);
+        const uploaded = await uploadMedia(input.mediaFile, input.orgId, input.actorId);
         mediaPath = uploaded.path;
-        mediaUrl = uploaded.url;
       }
 
-      if (!mediaPath || !mediaUrl) {
+      if (!mediaPath) {
         throw new Error('media_required');
       }
+
+      // Signed URL for immediate preview; not a durable public link.
+      const mediaUrl = await createSignedCoachingMediaUrl(mediaPath);
 
       const publishedAt = input.publish ? new Date().toISOString() : null;
       const becomesActive = input.publish ? true : input.active;
@@ -183,7 +202,6 @@ export function useLiveCoachingMutations() {
         await scheduleReminders(event);
       } else {
         clearLocalNotificationsForEvent(event.id);
-        // Drop unsent outbox rows so inactive/archived events never push.
         const { error: clearErr } = await supabase
           .from('coaching_notification_outbox')
           .delete()
@@ -196,8 +214,7 @@ export function useLiveCoachingMutations() {
     },
     onSuccess: (event) => {
       void invalidate();
-      // Optimistic Today refresh
-      qc.setQueryData<LiveCoachingEvent[]>(['live-coaching-events', true], (prev) => {
+      qc.setQueryData<LiveCoachingEvent[]>(['live-coaching-events', orgId, true], (prev) => {
         const list = prev ? [...prev] : [];
         const idx = list.findIndex((e) => e.id === event.id);
         if (event.active) {

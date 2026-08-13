@@ -213,6 +213,24 @@ export function assertPayloadOrgSafe(
   return true;
 }
 
+/**
+ * Event org is authority. Outbox org must match when both present
+ * (Phase 7 — no cross-org outbox → event send).
+ */
+export function resolveDispatchOrgId(
+  outboxOrgId: string | null | undefined,
+  eventOrgId: string | null | undefined
+): { ok: true; orgId: string } | { ok: false; reason: 'missing_org' | 'org_mismatch' } {
+  if (!eventOrgId) {
+    if (!outboxOrgId) return { ok: false, reason: 'missing_org' };
+    return { ok: true, orgId: outboxOrgId };
+  }
+  if (outboxOrgId && outboxOrgId !== eventOrgId) {
+    return { ok: false, reason: 'org_mismatch' };
+  }
+  return { ok: true, orgId: eventOrgId };
+}
+
 // ---- inline: _shared/coaching-push/index.ts ----
 
 
@@ -383,7 +401,15 @@ Deno.serve(async (req) => {
 
   for (const row of rows) {
     const event = eventsById.get(row.event_id) ?? null;
-    const eventOrgId = row.org_id ?? event?.org_id ?? null;
+    const orgResolved = resolveDispatchOrgId(row.org_id, event?.org_id ?? null);
+    if (!orgResolved.ok) {
+      await markOutboxSkipped(db, row.id, nowIso);
+      skipped += 1;
+      details.push({ id: row.id, skipped: orgResolved.reason });
+      continue;
+    }
+    const eventOrgId = orgResolved.orgId;
+
     const decision = evaluateDispatch(row, event, now);
     if (!decision.ok) {
       await markOutboxSkipped(db, row.id, nowIso);
@@ -392,13 +418,7 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    if (!eventOrgId) {
-      await markOutboxSkipped(db, row.id, nowIso);
-      skipped += 1;
-      details.push({ id: row.id, skipped: 'missing_org_id' });
-      continue;
-    }
-
+    // Recipients are filtered per-event org — never reuse another org's list.
     const subscriptions = filterSubscriptionsForOrg(allSubscriptions, memberships, eventOrgId);
     if (subscriptions.length === 0) {
       // Keep due for later — someone may subscribe before the event.

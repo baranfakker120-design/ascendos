@@ -1,13 +1,13 @@
 # PROJECT_STATE — AscendOS Multi-Tenant
 
 **Last updated:** 2026-08-13  
-**Updated by:** Phase 6 Knowledge + AI Isolation (repository; production unchanged)
+**Updated by:** Phase 7 Live Coaching + Push + Stories (repository; production unchanged)
 
 ---
 
 ## Current phase
 
-**PHASE 6 — Knowledge + AI Isolation** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
+**PHASE 7 — Live Coaching + Push + Stories** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
 
 ---
 
@@ -19,32 +19,35 @@
 | 3     | #113 | Tenant `org_id` columns + Org #1 backfill |
 | 4     | #114 | RLS tenant isolation CMS/Live/Stories     |
 | 5     | #115 | Edge tenant discipline chat/ingest/push   |
+| 6     | #116 | Knowledge + AI isolation                  |
 
 ---
 
 ## Next step
 
-**PHASE 7+** only after explicit Phase 6 approval — Live Coaching + Push + Stories, then frontend tenant awareness / admin UIs.
+**PHASE 8+** only after explicit Phase 7 approval — Frontend tenant awareness / brand hardcoding removal, then Admin UIs.
 
-Do **not** apply Phase 6 to production without approval.
+Do **not** apply Phase 7 to production without approval.
 
 ---
 
 ## Current architecture stand (facts)
 
-| Area                        | Status                                                        |
-| --------------------------- | ------------------------------------------------------------- |
-| Single Supabase project     | Yes — `shaydtihwicnocjjlnjm`                                  |
-| Organizations + memberships | Yes — seeded **1** org (Chogan) + Team Seyda                  |
-| Org selector                | `x-ascendos-org` + `current_org_id()`                         |
-| Roles                       | Org roles + `platform_admins` / `is_platform_super_admin()`   |
-| RAG knowledge isolation     | Org-scoped; Phase 6 hardens `match_knowledge` + convo history |
-| Knowledge Center CMS        | Org-scoped RLS (Phase 3/4); **not** in coach-chat AI prompts  |
-| Live Coaching / Stories     | Org-scoped RLS (Phase 4); push fan-out org-filtered (Phase 5) |
-| Content / Autopilot / IG    | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10    |
-| Web Push                    | Central VAPID; dispatch membership-filtered                   |
-| Platform Admin UI           | **Missing** (Phase 10)                                        |
-| Team Seyda hardcoding       | AI CORE_RULES neutralized (Phase 6); FE/routes still Phase 8  |
+| Area                        | Status                                                     |
+| --------------------------- | ---------------------------------------------------------- |
+| Single Supabase project     | Yes                                                        |
+| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                           |
+| Org selector                | `x-ascendos-org` + `current_org_id()`                      |
+| Roles                       | Org roles + `platform_admins`                              |
+| RAG / AI context            | Org-scoped (Phase 6)                                       |
+| Knowledge Center CMS        | Org-scoped RLS; not in coach-chat prompts                  |
+| Live Coaching / Outbox      | Org-scoped RLS + push membership filter                    |
+| Ascend Stories              | Org-scoped RLS                                             |
+| coaching-media Storage      | **Private** + signed URLs (Phase 7; migration in repo)     |
+| Content / Autopilot / IG    | Org-scoped; Autopilot feed = 1 image; Manual carousel ≤ 10 |
+| Web Push                    | Central VAPID; send-time org filter (ADR 0008)             |
+| Platform Admin UI           | **Missing** (Phase 10)                                     |
+| Team Seyda hardcoding       | AI CORE_RULES neutralized; FE/routes still Phase 8         |
 
 ---
 
@@ -62,13 +65,12 @@ Do **not** apply Phase 6 to production without approval.
 
 ## Known risks
 
-1. Public `coaching-media` storage still public-read (Storage phase)
+1. Legacy public `media_url` values become inert after private bucket apply (expected)
 2. Frontend org switcher / brand hardcoding (Phase 8+)
 3. Admin UIs missing (Phase 9–10)
 4. Billing not implemented (Phase 11)
 5. No second production organization (Phase 12)
 6. `coach_messages_today` counts across orgs (daily limit; not AI context)
-7. OpenRouter / Gemini credits are platform cost centers
 
 ---
 
@@ -76,21 +78,12 @@ Do **not** apply Phase 6 to production without approval.
 
 | Item                            | State                                      |
 | ------------------------------- | ------------------------------------------ |
-| Production app                  | Live (Cloudflare Pages)                    |
-| This Phase 6 work               | Repository only — production **UNCHANGED** |
+| This Phase 7 work               | Repository only — production **UNCHANGED** |
 | Database                        | **UNCHANGED** by agent                     |
-| Secrets                         | **UNCHANGED**                              |
-| API keys                        | **UNCHANGED**                              |
+| Secrets / API keys / VAPID      | **UNCHANGED**                              |
 | Migrations applied by this work | **NONE** (migration exists in repo only)   |
-| Deploy by this work             | **NONE**                                   |
+| Deploy                          | **NONE**                                   |
 | Merge                           | Requires human approval                    |
-
----
-
-## Database status
-
-- Latest multi-tenant migrations in repo through `20260902000046_phase6_ai_knowledge_isolation.sql`
-- Phase 6 migration: coach convo/message RLS org filter + `match_knowledge` harden
 
 ---
 
@@ -99,23 +92,17 @@ Do **not** apply Phase 6 to production without approval.
 | Phase | Status                                |
 | ----- | ------------------------------------- |
 | 0     | Done (docs)                           |
-| 2–5   | Merged                                |
-| 6     | Implemented in repo — awaiting review |
-| 7–12  | Not started                           |
+| 2–6   | Merged                                |
+| 7     | Implemented in repo — awaiting review |
+| 8–12  | Not started                           |
 
 ---
 
 ## Documentation index
 
-| File                                | Role                              |
-| ----------------------------------- | --------------------------------- |
-| `ASCENDOS_CONSTITUTION.md`          | Binding architecture constitution |
-| `MULTI_TENANT_ARCHITECTURE.md`      | Target architecture               |
-| `SECURITY_MODEL.md`                 | Enforcement + gaps                |
-| `ROLE_MODEL.md`                     | Roles current → target            |
-| `DATA_MODEL.md`                     | Tenant-relevant tables            |
-| `AI_KNOWLEDGE_ISOLATION.md`         | AI / knowledge rules              |
-| `PHASE_5_EDGE_TENANT_DISCIPLINE.md` | Phase 5 report                    |
-| `PHASE_6_AI_KNOWLEDGE_ISOLATION.md` | Phase 6 report                    |
-| `PROJECT_STATE.md`                  | This file                         |
-| `ADR/*.md`                          | Decision records                  |
+| File                                             | Role                    |
+| ------------------------------------------------ | ----------------------- |
+| `PHASE_7_LIVE_COACHING_PUSH_STORIES.md`          | Phase 7 report          |
+| `ADR/0008-user-level-push-org-filter-at-send.md` | Push subscription model |
+| `ADR/0010-private-coaching-media-signed-urls.md` | Storage model           |
+| `PROJECT_STATE.md`                               | This file               |
