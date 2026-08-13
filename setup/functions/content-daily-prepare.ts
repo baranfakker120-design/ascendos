@@ -818,6 +818,7 @@ export type VisionErrorCode =
   | 'AI_PROVIDER_AUTH_ERROR'
   | 'AI_PROVIDER_RATE_LIMIT'
   | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_CREDITS_EXHAUSTED'
   | 'AI_PROVIDER_ERROR'
   | 'missing_openrouter_key';
 
@@ -833,6 +834,60 @@ export type ProviderErrorDetails = {
   /** Non-JSON bodies only; max 1000 chars, already sanitized. */
   body_preview?: string | null;
 };
+
+// ---- inline: _shared/content-generate/safeCopy.ts ----
+/**
+ * Reject UUIDs / request IDs / internal identifiers from public Instagram copy.
+ * Never let file names or asset IDs become hook, caption, CTA, or hashtags.
+ */
+
+/** UUID-shaped token (with dashes) — asset ids, request ids, filenames. */
+export const INTERNAL_UUID_RE =
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+
+const UUID_COMPACT_RE = /^[0-9a-f]{32}$/i;
+const MEDIA_EXT_RE = /\.(jpe?g|png|webp|heic|gif|mp4|mov|webm)$/i;
+
+/** True when the whole string is (or is a file named like) an internal id. */
+export function looksLikeInternalId(value: string | null | undefined): boolean {
+  if (value == null) return false;
+  const s = String(value).trim();
+  if (!s) return false;
+  if (INTERNAL_UUID_RE.test(s) && s.replace(INTERNAL_UUID_RE, '').trim() === '') return true;
+  const base = s.replace(MEDIA_EXT_RE, '').trim();
+  if (INTERNAL_UUID_RE.test(base) && base.replace(INTERNAL_UUID_RE, '').trim() === '') return true;
+  const compact = base.replace(/-/g, '');
+  if (UUID_COMPACT_RE.test(compact)) return true;
+  return false;
+}
+
+/** True when any UUID-shaped token appears inside free text. */
+export function textContainsInternalId(value: string | null | undefined): boolean {
+  if (value == null) return false;
+  return INTERNAL_UUID_RE.test(String(value));
+}
+
+/** First candidate that is non-empty and not an internal id; else null. */
+export function pickSafePublicCopy(
+  ...candidates: Array<string | null | undefined>
+): string | null {
+  for (const c of candidates) {
+    if (c == null) continue;
+    const s = String(c).trim();
+    if (!s) continue;
+    if (looksLikeInternalId(s) || textContainsInternalId(s)) continue;
+    return s;
+  }
+  return null;
+}
+
+/** Drop hashtag tokens that are UUIDs / internal ids. */
+export function filterInternalIdHashtags(tags: readonly string[]): string[] {
+  return tags.filter((t) => {
+    const tag = String(t).trim().replace(/^#/, '');
+    return tag.length > 0 && !looksLikeInternalId(tag) && !textContainsInternalId(tag);
+  });
+}
 
 // ---- inline: _shared/content-generate/parse.ts ----
 export function extractJsonObject(text: string): unknown {
@@ -1000,13 +1055,27 @@ export function parseGeneration(
   const visual = asNullableString(o.visual_summary, 4000);
   if (!visual) throw new Error('missing_visual_summary');
 
-  const hook = asNullableString(o.hook, 280) ?? '';
-  const caption = asNullableString(o.caption, 2200) ?? '';
-  const cta = asNullableString(o.cta, 280) ?? '';
-  if (!hook || !caption) throw new Error('missing_draft_fields');
+  const hookRaw = asNullableString(o.hook, 280) ?? '';
+  const captionRaw = asNullableString(o.caption, 2200) ?? '';
+  const ctaRaw = asNullableString(o.cta, 280) ?? '';
+  if (!hookRaw || !captionRaw) throw new Error('missing_draft_fields');
+  if (
+    looksLikeInternalId(hookRaw) ||
+    looksLikeInternalId(captionRaw) ||
+    textContainsInternalId(hookRaw) ||
+    textContainsInternalId(captionRaw) ||
+    textContainsInternalId(ctaRaw)
+  ) {
+    throw new Error('invalid_ai_public_copy');
+  }
+  const hook = hookRaw;
+  const caption = captionRaw;
+  const cta = looksLikeInternalId(ctaRaw) ? '' : ctaRaw;
 
-  const keywords = asStringArray(o.keywords, 16);
-  const hashtagsRaw = asStringArray(o.hashtags, 18);
+  const keywords = asStringArray(o.keywords, 16).filter(
+    (k) => !looksLikeInternalId(k) && !textContainsInternalId(k)
+  );
+  const hashtagsRaw = filterInternalIdHashtags(asStringArray(o.hashtags, 18));
   const hashtags = enforceExactHashtagCount(hashtagsRaw);
   const slideCount = options?.slideCount ?? 1;
 
@@ -1241,6 +1310,7 @@ export function buildVisionMediaPart(params: {
 export function mapHttpStatusToVisionCode(status: number): VisionErrorCode {
   if (status === 400) return 'AI_PROVIDER_BAD_REQUEST';
   if (status === 401 || status === 403) return 'AI_PROVIDER_AUTH_ERROR';
+  if (status === 402) return 'AI_PROVIDER_CREDITS_EXHAUSTED';
   if (status === 429) return 'AI_PROVIDER_RATE_LIMIT';
   if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
   return 'AI_PROVIDER_ERROR';
@@ -1330,6 +1400,9 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
     if (err.message.includes('401') || err.message.includes('403')) {
       return 'AI_PROVIDER_AUTH_ERROR';
     }
+    if (err.message.includes('402') || /credits|afford/i.test(err.message)) {
+      return 'AI_PROVIDER_CREDITS_EXHAUSTED';
+    }
     if (err.message.includes('429')) return 'AI_PROVIDER_RATE_LIMIT';
     if (err.message.includes('400') || err.message.includes('Bad Request')) {
       return 'AI_PROVIDER_BAD_REQUEST';
@@ -1346,6 +1419,7 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
       msg === 'AI_PROVIDER_AUTH_ERROR' ||
       msg === 'AI_PROVIDER_RATE_LIMIT' ||
       msg === 'AI_PROVIDER_TIMEOUT' ||
+      msg === 'AI_PROVIDER_CREDITS_EXHAUSTED' ||
       msg === 'AI_PROVIDER_ERROR' ||
       msg === 'missing_openrouter_key'
     ) {
@@ -1355,6 +1429,9 @@ export function mapProviderFailureToVisionCode(err: unknown): VisionErrorCode {
       return 'AI_PROVIDER_TIMEOUT';
     }
     if (msg.includes('401') || msg.includes('403')) return 'AI_PROVIDER_AUTH_ERROR';
+    if (msg.includes('402') || /credits|afford/i.test(msg)) {
+      return 'AI_PROVIDER_CREDITS_EXHAUSTED';
+    }
     if (msg.includes('429')) return 'AI_PROVIDER_RATE_LIMIT';
     if (msg.includes('400') || msg.includes('Bad Request')) {
       return 'AI_PROVIDER_BAD_REQUEST';
