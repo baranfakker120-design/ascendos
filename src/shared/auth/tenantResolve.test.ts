@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertClientOrgMatches,
   buildMatchKnowledgeOrgArgs,
+  conversationBelongsToActiveOrg,
   knowledgeContainsForeignMarker,
   pickActiveMembershipFromList,
 } from './tenantResolve';
@@ -77,5 +78,11 @@ describe('AI isolation args', () => {
     const orgAContext = 'Product guide ORG_A_SECRET_MARKER perfume 129';
     expect(knowledgeContainsForeignMarker(orgAContext, 'ORG_B_SECRET_MARKER')).toBe(false);
     expect(knowledgeContainsForeignMarker(orgAContext, 'ORG_A_SECRET_MARKER')).toBe(true);
+  });
+
+  it('Phase 6: conversation org must match active org', () => {
+    expect(conversationBelongsToActiveOrg(orgA, orgA)).toBe(true);
+    expect(conversationBelongsToActiveOrg(orgB, orgA)).toBe(false);
+    expect(conversationBelongsToActiveOrg(null, orgA)).toBe(false);
   });
 });

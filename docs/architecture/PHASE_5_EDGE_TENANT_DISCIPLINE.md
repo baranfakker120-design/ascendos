@@ -43,8 +43,8 @@ Pure mirrors (unit-tested): `src/shared/auth/tenantResolve.ts`
 
 - Frontend org switcher / Team Seyda hardcoding removal (Phase 6+)
 - `/admin` / `/platform-admin` (Phase 7–8)
-- Full removal of Chogan/Team Seyda strings in `_shared/prompts.ts` CORE_RULES (Phase 8 — runtime agents stay org-scoped from DB)
-- coach-chat loading CMS `coach_knowledge_articles` into prompts (currently RAG `knowledge_docs` only; CMS is FE/local + RLS)
+- Full removal of remaining brand/UI hardcoding (Phase 8) — Phase 6 neutralized CORE_RULES + intent Chogan rewrite only
+- coach-chat loading CMS `coach_knowledge_articles` into prompts (still RAG `knowledge_docs` only; CMS is FE + RLS; Phase 6 chose not to wire)
 - Billing / second real organization / Storage path migration
 - Autopilot / Manual Carousel behavior (unchanged)
 

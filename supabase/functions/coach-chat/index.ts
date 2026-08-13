@@ -621,7 +621,13 @@ Deno.serve(async (req) => {
     let history: ChatMessage[] = [];
     let agentKey: string | null = null;
     if (convoId) {
-      const { data: convo } = await db.from('coach_convos').select('*').eq('id', convoId).single();
+      // Phase 6: conversation history must belong to the active org.
+      // Never load Org B messages into an Org A prompt (multi-org users).
+      const { data: convo } = await db.from('coach_convos')
+        .select('*')
+        .eq('id', convoId)
+        .eq('org_id', activeOrgId)
+        .single();
       if (convo) {
         agentKey = convo.agent_key;
         const { data: msgs } = await db.from('coach_messages')
