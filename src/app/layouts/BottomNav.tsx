@@ -4,7 +4,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
-import { AscendLogo, ContactsIcon, TeamSeydaIcon, TodayIcon } from './nav/NavIcons';
+import { AscendLogo, ContactsIcon, TeamIcon, TodayIcon } from './nav/NavIcons';
 import { ProfileStack } from './nav/ProfileStack';
 import { TodayHubMenu } from './nav/TodayHubMenu';
 
@@ -129,7 +129,7 @@ export function BottomNav() {
       case 'coach':
         return <AscendLogo key={key} active={active} burst={burst} />;
       case 'team':
-        return <TeamSeydaIcon key={key} active={active} burst={burst} />;
+        return <TeamIcon key={key} active={active} burst={burst} />;
     }
   };
 

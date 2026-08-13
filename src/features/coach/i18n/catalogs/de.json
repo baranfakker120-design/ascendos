@@ -89,7 +89,7 @@
     "newConsultant": {
       "headline": "Neuer Consultant — Onboarding im Fokus.",
       "situation": "{name} ist seit {days} Tagen registriert — finales Onboarding absichern.",
-      "bullet": "Prüfen: Onboarding gesendet? Austauschgruppe / Nina-Info erreicht?",
+      "bullet": "Prüfen: Onboarding gesendet? Austauschgruppe / Info erreicht?",
       "action": "Onboarding-Link senden und Gruppenzugänge erklären.",
       "why": "Neue Berater brauchen den letzten Aktivierungsschritt nach der Registrierung — sonst entstehen Onboarding-Lücken.",
       "objection": "„Ich schaue es später an.“",
@@ -120,7 +120,7 @@
       "weaknessNoTeam": "Noch kein eigenes Team"
     },
     "message": {
-      "onboarding": "Hey {name}, hier ist dein Onboarding — der letzte Schritt nach der Registrierung: http://waytomoon.netlify.app\nWenn etwas unklar ist, melde dich einfach.",
+      "onboarding": "Hey {name}, hier ist dein Onboarding — der letzte Schritt nach der Registrierung{onboardingUrl}\nWenn etwas unklar ist, melde dich einfach.",
       "reactivation": "Hey {name}, mir ist aufgefallen, dass es eine Weile ruhig war. Kein Druck — wie geht’s dir und kann ich dich irgendwo entlasten?",
       "recognition": "Hey {name}, kurze Nachricht: Deine Aktivität fällt positiv auf. Weiter so — ich sehe das.",
       "checkIn": "Hey {name}, kurze Nachfrage zum nächsten Schritt. Passt dir ein kurzer Call heute oder morgen?"
@@ -133,9 +133,9 @@
     "interested": "Interessiert, aber ohne frischen Touch — nächsten Schritt setzen."
   },
   "onboarding": {
-    "registered": "Registriert — Onboarding (WayToMoon → Onboarding) als letzten Aktivierungsschritt senden.",
+    "registered": "Registriert — Onboarding als letzten Aktivierungsschritt senden.",
     "opened": "App geöffnet — prüfen, ob Onboarding abgeschlossen und Gruppenzugänge klar sind.",
-    "completed": "Aktivität sichtbar — Austauschgruppe und Nina-Informationsgruppe absichern.",
+    "completed": "Aktivität sichtbar — Austauschgruppe und Informationsgruppe absichern.",
     "fullyOnboarded": "Wirkt onboarded — in Leadership-Begleitung überführen.",
     "stuck": "Steckt fest — persönlicher Check-in und Onboarding-Link erneut teilen."
   },
@@ -329,7 +329,7 @@
     },
     "onboarding": {
       "title": "Onboarding",
-      "body": "Hey {name}, hier ist dein Onboarding — der letzte Aktivierungsschritt nach der Registrierung:\nhttp://waytomoon.netlify.app\n\nDarin: Business-Basics, Vergütung, erste Schritte, Team-Erwartungen und der Zugang zur Austauschgruppe sowie zur Nina-Informationsgruppe. Wenn du stecken bleibst, melde dich direkt."
+      "body": "Hey {name}, hier ist dein Onboarding — der letzte Aktivierungsschritt nach der Registrierung\n{onboardingUrl}\n\nDarin: Business-Basics, Vergütung, erste Schritte, Team-Erwartungen und der Zugang zur Austauschgruppe sowie zur Informationsgruppe. Wenn du stecken bleibst, melde dich direkt."
     },
     "zoom_invitation": {
       "title": "Zoom-Einladung",

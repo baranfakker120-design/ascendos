@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
+import { useCoachDisplayName } from '@shared/org/useCoachDisplayName';
 import { DRAFT_SCOPES, usePersistedDraft } from '@shared/offline';
 import { Alert } from '@shared/ui/Alert';
 import { Button } from '@shared/ui/Button';
@@ -70,6 +71,7 @@ function linkifyText(text: string): Array<string | JSX.Element> {
  */
 export function CoachPage() {
   const { locale, t } = useI18n();
+  const coachDisplayName = useCoachDisplayName();
   const coachT = useMemo(() => createCoachTranslator(locale), [locale]);
   const navigate = useNavigate();
 
@@ -649,7 +651,7 @@ export function CoachPage() {
               className="h-10 w-auto"
               aria-hidden
             />
-            <p className="text-lg font-bold">{t('coach.name')}</p>
+            <p className="text-lg font-bold">{coachDisplayName}</p>
             <p className="text-sm text-muted">{t('coach.ws.pickHint')}</p>
             <Button type="button" fullWidth={false} onClick={() => setNewOpen(true)}>
               + {t('coach.ws.new')}

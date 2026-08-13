@@ -120,7 +120,7 @@
       "weaknessNoTeam": "Pas encore d’équipe propre"
     },
     "message": {
-      "onboarding": "Salut {name}, voici ton onboarding — la dernière étape après ton inscription : http://waytomoon.netlify.app\nSi quelque chose n’est pas clair, écris-moi simplement.",
+      "onboarding": "Salut {name}, voici ton onboarding — la dernière étape après ton inscription {onboardingUrl}\nSi quelque chose n’est pas clair, écris-moi simplement.",
       "reactivation": "Salut {name}, j’ai remarqué que c’était calme depuis un moment. Aucune pression — comment vas-tu, et est-ce que je peux t’aider à alléger quelque chose ?",
       "recognition": "Salut {name}, un petit message : ton activité se remarque vraiment. Continue comme ça — je vois tes efforts.",
       "checkIn": "Salut {name}, je reviens rapidement vers toi au sujet de la prochaine étape. Est-ce qu’un court appel aujourd’hui ou demain te conviendrait ?"
@@ -133,9 +133,9 @@
     "interested": "Intéressé, mais sans contact récent — définis la prochaine étape."
   },
   "onboarding": {
-    "registered": "Inscrit — envoie WayToMoon → Onboarding comme dernière étape d’activation.",
+    "registered": "Inscrit — envoie l'onboarding comme dernière étape d'activation.",
     "opened": "Application ouverte — vérifie que l’onboarding est terminé et que l’accès aux groupes est clair.",
-    "completed": "L’activité est visible — confirme l’accès au groupe d’échange et au groupe d’information Nina.",
+    "completed": "L’activité est visible — confirme l’accès au groupe d’échange et au groupe d'information.",
     "fullyOnboarded": "L’onboarding semble terminé — passe à l’accompagnement leadership.",
     "stuck": "La personne est bloquée — fais un point personnel et partage à nouveau le lien d’onboarding."
   },
@@ -329,7 +329,7 @@
     },
     "onboarding": {
       "title": "Onboarding",
-      "body": "Salut {name}, voici ton onboarding — la dernière étape d’activation après ton inscription :\nhttp://waytomoon.netlify.app\n\nTu y trouveras les bases du business, la rémunération, les premières étapes, les attentes de l’équipe, ainsi que l’accès au groupe d’échange et au groupe d’information Nina. Si tu bloques, contacte-moi directement."
+      "body": "Salut {name}, voici ton onboarding — la dernière étape d’activation après ton inscription \n{onboardingUrl}\n\nTu y trouveras les bases du business, la rémunération, les premières étapes, les attentes de l’équipe, ainsi que l’accès au groupe d’échange et au groupe d'information. Si tu bloques, contacte-moi directement."
     },
     "zoom_invitation": {
       "title": "Invitation Zoom",

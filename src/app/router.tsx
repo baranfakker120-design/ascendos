@@ -26,7 +26,7 @@ import { ProfilePage } from '@features/profile/ProfilePage';
 import { SettingsPage } from '@features/settings/SettingsPage';
 import { TeamPage } from '@features/genealogy/TeamPage';
 import { QualificationsPage } from '@features/leadership/QualificationsPage';
-import { TeamSeydaPage } from '@features/team-seyda/TeamSeydaPage';
+import { OrganizationGuidePage } from '@features/team-seyda/TeamSeydaPage';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { PrivacyPolicyPage } from '@features/legal/PrivacyPolicyPage';
@@ -175,7 +175,8 @@ export const router = createBrowserRouter([
               { path: '/coach/person/:membershipId', element: <PersonCoachConversationPage /> },
               { path: '/team', element: <TeamPage /> },
               { path: '/qualifikationen', element: <QualificationsPage /> },
-              { path: '/team-seyda', element: <TeamSeydaPage /> },
+              { path: '/guide', element: <OrganizationGuidePage /> },
+              { path: '/team-seyda', element: <Navigate to="/guide" replace /> },
               { path: '/more', element: <MorePage /> },
               { path: '/mehr', element: <Navigate to="/more" replace /> },
               { path: '/settings', element: <SettingsPage /> },

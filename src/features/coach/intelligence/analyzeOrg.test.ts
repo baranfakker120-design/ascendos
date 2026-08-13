@@ -136,9 +136,19 @@ describe('coach COO intelligence', () => {
   });
 
   it('keeps message drafts sponsor-approved only', () => {
-    const draft = buildMessageDraft('onboarding', { firstName: 'Dogukan' });
+    const draft = buildMessageDraft('onboarding', {
+      firstName: 'Dogukan',
+      onboardingUrl: 'https://test-onboarding.example',
+    });
     expect(draft.requiresSponsorApproval).toBe(true);
-    expect(draft.body).toContain('http://waytomoon.netlify.app');
+    expect(draft.body).toContain('https://test-onboarding.example');
+    expect(draft.body).not.toMatch(/waytomoon\.netlify\.app/i);
+  });
+
+  it('omits onboarding URL when active org has none configured', () => {
+    const draft = buildMessageDraft('onboarding', { firstName: 'Dogukan' });
+    expect(draft.body).not.toMatch(/waytomoon\.netlify\.app/i);
+    expect(draft.body).not.toMatch(/teamseydaguide/i);
   });
 
   it('limits surface insights to high-value items', () => {

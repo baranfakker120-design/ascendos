@@ -120,7 +120,7 @@
       "weaknessNoTeam": "Nie ma jeszcze własnego zespołu"
     },
     "message": {
-      "onboarding": "Cześć {name}, przesyłam Ci onboarding — ostatni krok po rejestracji: http://waytomoon.netlify.app\nJeśli coś będzie niejasne, po prostu daj mi znać.",
+      "onboarding": "Cześć {name}, przesyłam Ci onboarding — ostatni krok po rejestracji{onboardingUrl}\nJeśli coś będzie niejasne, po prostu daj mi znać.",
       "reactivation": "Cześć {name}, widzę, że od pewnego czasu jest u Ciebie ciszej. Bez presji — jak się masz i czy mogę Cię w czymś odciążyć?",
       "recognition": "Cześć {name}, krótka wiadomość: Twoja aktywność naprawdę się wyróżnia. Tak trzymaj — widzę pracę, którą wkładasz w rozwój.",
       "checkIn": "Cześć {name}, krótki check-in w sprawie kolejnego kroku. Czy znajdziesz czas na krótką rozmowę dziś lub jutro?"
@@ -133,9 +133,9 @@
     "interested": "Jest zainteresowanie, ale brakuje świeżego kontaktu — ustal kolejny krok."
   },
   "onboarding": {
-    "registered": "Rejestracja zakończona — wyślij WayToMoon → Onboarding jako ostatni krok aktywacyjny.",
+    "registered": "Rejestracja zakończona — wyślij onboarding jako ostatni krok aktywacyjny.",
     "opened": "Aplikacja została otwarta — sprawdź, czy onboarding jest ukończony i czy dostęp do grup jest jasny.",
-    "completed": "Aktywność jest widoczna — zapewnij dostęp do grupy wymiany i grupy informacyjnej Niny.",
+    "completed": "Aktywność jest widoczna — zapewnij dostęp do grupy wymiany i grupy informacyjnej.",
     "fullyOnboarded": "Onboarding wygląda na ukończony — przejdź do wsparcia w rozwoju przywództwa.",
     "stuck": "Proces się zatrzymał — skontaktuj się osobiście i ponownie udostępnij link do onboardingu."
   },
@@ -329,7 +329,7 @@
     },
     "onboarding": {
       "title": "Onboarding",
-      "body": "Cześć {name}, przesyłam Ci onboarding — ostatni krok aktywacyjny po rejestracji:\nhttp://waytomoon.netlify.app\n\nZnajdziesz tam podstawy biznesu, informacje o wynagrodzeniu, pierwsze kroki, oczekiwania zespołu oraz dostęp do grupy wymiany i grupy informacyjnej Niny. Jeśli coś Cię zatrzyma, skontaktuj się ze mną bezpośrednio."
+      "body": "Cześć {name}, przesyłam Ci onboarding — ostatni krok aktywacyjny po rejestracji\n{onboardingUrl}\n\nZnajdziesz tam podstawy biznesu, informacje o wynagrodzeniu, pierwsze kroki, oczekiwania zespołu oraz dostęp do grupy wymiany i grupy informacyjnej. Jeśli coś Cię zatrzyma, skontaktuj się ze mną bezpośrednio."
     },
     "zoom_invitation": {
       "title": "Zaproszenie na Zoom",

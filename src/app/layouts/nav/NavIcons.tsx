@@ -85,8 +85,8 @@ export function ContactsIcon({ active, burst, className = '' }: NavIconProps) {
   );
 }
 
-/** Team Seyda — three people draw together. */
-export function TeamSeydaIcon({ active, burst, className = '' }: NavIconProps) {
+/** Team tab — genealogy / organization structure. */
+export function TeamIcon({ active, burst, className = '' }: NavIconProps) {
   return (
     <svg
       className={`${base} ${active ? 'text-accent-deep' : 'text-muted'} ${burst ? 'nav-team-burst' : ''} ${className}`}

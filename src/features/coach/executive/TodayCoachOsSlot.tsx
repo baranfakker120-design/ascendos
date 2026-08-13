@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@shared/i18n';
+import { useCoachDisplayName } from '@shared/org/useCoachDisplayName';
 import { Button } from '@shared/ui/Button';
 import { useCoachOrgIntelligence } from '../intelligence';
 import { writePendingSeed } from '../workspace';
@@ -20,6 +21,7 @@ const HORIZONS: SuggestionHorizon[] = ['today', 'week', 'month'];
  */
 export function TodayCoachOsSlot({ dayContext }: { dayContext?: DayCoachContext }) {
   const { t } = useI18n();
+  const coachDisplayName = useCoachDisplayName();
   const navigate = useNavigate();
   const { intelligence, isLoading } = useCoachOrgIntelligence(true);
   const [horizon, setHorizon] = useState<SuggestionHorizon>('today');
@@ -39,7 +41,7 @@ export function TodayCoachOsSlot({ dayContext }: { dayContext?: DayCoachContext 
     <section className="exec-coach" aria-label={t('coach.exec.homeTitle')}>
       <div className="exec-coach__head">
         <div>
-          <p className="exec-coach__eyebrow">{t('coach.name')}</p>
+          <p className="exec-coach__eyebrow">{coachDisplayName}</p>
           <h2 className="exec-coach__title">{t('coach.exec.homeTitle')}</h2>
           <p className="exec-coach__body">
             {dayContext?.isClosed

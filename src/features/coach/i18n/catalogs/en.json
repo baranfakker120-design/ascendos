@@ -120,7 +120,7 @@
       "weaknessNoTeam": "No team of their own yet"
     },
     "message": {
-      "onboarding": "Hey {name}, here is your onboarding — the final step after registration: http://waytomoon.netlify.app\nIf anything is unclear, just let me know.",
+      "onboarding": "Hey {name}, here is your onboarding — the final step after registration{onboardingUrl}\nIf anything is unclear, just let me know.",
       "reactivation": "Hey {name}, I noticed things have been quiet for a while. No pressure — how are you, and is there anything I can help take off your plate?",
       "recognition": "Hey {name}, a quick note: Your activity really stands out. Keep going — I see the work you are putting in.",
       "checkIn": "Hey {name}, a quick check-in about the next step. Would a short call today or tomorrow work for you?"
@@ -133,9 +133,9 @@
     "interested": "Interested, but without recent contact — define the next step."
   },
   "onboarding": {
-    "registered": "Registered — send WayToMoon → Onboarding as the final activation step.",
+    "registered": "Registered — send onboarding as the final activation step.",
     "opened": "App opened — check whether onboarding is complete and group access is clear.",
-    "completed": "Activity is visible — secure access to the exchange group and Nina information group.",
+    "completed": "Activity is visible — secure access to the exchange group and information group.",
     "fullyOnboarded": "Appears fully onboarded — transition into leadership support.",
     "stuck": "Stuck — check in personally and share the onboarding link again."
   },
@@ -329,7 +329,7 @@
     },
     "onboarding": {
       "title": "Onboarding",
-      "body": "Hey {name}, here is your onboarding — the final activation step after registration:\nhttp://waytomoon.netlify.app\n\nIt covers the business basics, compensation, first steps, team expectations, and access to the exchange group and Nina information group. If you get stuck, contact me directly."
+      "body": "Hey {name}, here is your onboarding — the final activation step after registration\n{onboardingUrl}\n\nIt covers the business basics, compensation, first steps, team expectations, and access to the exchange group and information group. If you get stuck, contact me directly."
     },
     "zoom_invitation": {
       "title": "Zoom Invitation",

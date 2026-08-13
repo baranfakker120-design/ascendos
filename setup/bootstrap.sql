@@ -2,8 +2,9 @@
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================
 
-insert into public.organizations (id, name, settings)
+insert into public.organizations (id, name, branding, settings)
 values ('00000000-0000-0000-0000-000000000001', 'Chogan',
+        '{"display_name":"Team Seyda","guideUrl":"https://teamseydaguide.netlify.app","primaryColor":"#2563eb"}'::jsonb,
         '{"coach_daily_message_limit": 50, "content_asset_limit": 25}'::jsonb);
 
 insert into public.teams (id, org_id, name)
@@ -25,7 +26,7 @@ insert into public.external_tools
   (org_id, key, name, description, url, share_event_type, result_event_type, sort_order)
 values
   ('00000000-0000-0000-0000-000000000001', 'waytomoon',
-   'WayToMoon', 'Onboarding für neue Interessenten',
+   'Onboarding', 'Onboarding für neue Interessenten',
    'https://waytomoon.netlify.app',
    'waytomoon_sent', null, 1),
   ('00000000-0000-0000-0000-000000000001', 'presentation',
