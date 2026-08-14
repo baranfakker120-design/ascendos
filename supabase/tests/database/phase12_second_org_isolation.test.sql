@@ -305,12 +305,12 @@ values
    'ee120000-0000-0000-0000-0000000000af', '{}'::uuid[],
    now() + interval '1 day', 'feed', 'feed', 'planned');
 
-insert into public.ap_task_defs (id, org_id, key, title, ap)
+insert into public.ap_task_defs (id, org_id, key, title, ap, category)
 values
   ('ee120000-0000-0000-0000-0000000000bc', 'bb120000-0000-0000-0000-000000000001',
-   'p12_a', 'AP Task A', 10),
+   'p12_a', 'AP Task A', 10, 'other'),
   ('ee120000-0000-0000-0000-0000000000bd', 'bb120000-0000-0000-0000-000000000002',
-   'p12_b', 'AP Task B', 10);
+   'p12_b', 'AP Task B', 10, 'other');
 
 insert into public.usage_events (user_id, org_id, event_type, metadata)
 values
