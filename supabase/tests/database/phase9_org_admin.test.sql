@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(20);
+select plan(19);
 
 set local session_replication_role = replica;
 insert into auth.users (id, email) values
@@ -82,25 +82,6 @@ begin
 end;
 $$;
 
-create or replace function tests.p9_try_update_org_b_branding()
-returns int
-language plpgsql
-security invoker
-set search_path = public
-as $$
-declare
-  n int;
-begin
-  update public.organizations
-  set branding = branding || '{"hack":"1"}'::jsonb
-  where id = 'b9000000-0000-0000-0000-000000000002';
-  get diagnostics n = row_count;
-  return n;
-end;
-$$;
-
-grant execute on function tests.p9_try_update_org_b_branding() to authenticated;
-
 -- TEST A: Org A admin is organization admin
 select tests.authenticate_as('a9000000-0000-0000-0000-00000000000a');
 select tests.select_org('b9000000-0000-0000-0000-000000000001');
@@ -135,10 +116,21 @@ select ok(
 -- Restore A
 select tests.select_org('b9000000-0000-0000-0000-000000000001');
 
--- TEST D: cannot UPDATE Org B branding row
-select is(
-  tests.p9_try_update_org_b_branding(),
-  0,
+-- TEST D: cannot UPDATE Org B branding row (RLS → 0 rows)
+select lives_ok(
+  $$do $body$
+  declare
+    n int;
+  begin
+    update public.organizations
+    set branding = branding || '{"hack":"1"}'::jsonb
+    where id = 'b9000000-0000-0000-0000-000000000002';
+    get diagnostics n = row_count;
+    if n <> 0 then
+      raise exception 'expected 0 updated rows, got %', n;
+    end if;
+  end
+  $body$$$,
   'TEST D: Org A admin cannot UPDATE Org B branding row'
 );
 
