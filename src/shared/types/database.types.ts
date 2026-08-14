@@ -3879,81 +3879,6 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
-      plan_contact_state: {
-        Args: never;
-        Returns: {
-          fit_check_done: boolean;
-          id: string;
-          last_event_at: string;
-          max_rank: number;
-          name: string;
-          next_step: string;
-          next_step_due: string;
-          presentation_sent_at: string;
-          presentation_viewed: boolean;
-          three_way_done: boolean;
-        }[];
-      };
-      plan_signal_fit_check: {
-        Args: { p_date: string };
-        Returns: {
-          contact_id: string;
-          mission_type: string;
-          reason: string;
-          score: number;
-          title: string;
-        }[];
-      };
-      plan_signal_follow_up: {
-        Args: { p_date: string };
-        Returns: {
-          contact_id: string;
-          mission_type: string;
-          reason: string;
-          score: number;
-          title: string;
-        }[];
-      };
-      plan_signal_next_step: {
-        Args: { p_date: string };
-        Returns: {
-          contact_id: string;
-          mission_type: string;
-          reason: string;
-          score: number;
-          title: string;
-        }[];
-      };
-      plan_signal_presentation: {
-        Args: { p_date: string };
-        Returns: {
-          contact_id: string;
-          mission_type: string;
-          reason: string;
-          score: number;
-          title: string;
-        }[];
-      };
-      plan_signal_reactivate: {
-        Args: { p_date: string };
-        Returns: {
-          contact_id: string;
-          mission_type: string;
-          reason: string;
-          score: number;
-          title: string;
-        }[];
-      };
-      rank_for_ap: {
-        Args: { p_ap: number; p_org_id: string };
-        Returns: {
-          frame_asset: string;
-          key: string;
-          label: string;
-          sort_order: number;
-          threshold_ap: number;
-        }[];
-      };
       org_admin_set_membership_role: {
         Args: { p_membership_id: string; p_role: string };
         Returns: {
@@ -4083,6 +4008,81 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      plan_contact_state: {
+        Args: never;
+        Returns: {
+          fit_check_done: boolean;
+          id: string;
+          last_event_at: string;
+          max_rank: number;
+          name: string;
+          next_step: string;
+          next_step_due: string;
+          presentation_sent_at: string;
+          presentation_viewed: boolean;
+          three_way_done: boolean;
+        }[];
+      };
+      plan_signal_fit_check: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_follow_up: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_next_step: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_presentation: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      plan_signal_reactivate: {
+        Args: { p_date: string };
+        Returns: {
+          contact_id: string;
+          mission_type: string;
+          reason: string;
+          score: number;
+          title: string;
+        }[];
+      };
+      rank_for_ap: {
+        Args: { p_ap: number; p_org_id: string };
+        Returns: {
+          frame_asset: string;
+          key: string;
+          label: string;
+          sort_order: number;
+          threshold_ap: number;
+        }[];
       };
       redeem_invite: {
         Args: { invite_code: string };
