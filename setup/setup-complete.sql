@@ -12620,6 +12620,788 @@ comment on function public.org_admin_get_billing() is
 comment on function public.platform_list_billing(text) is
   'Phase 11: platform estimated billing overview. No payments.';
 
+-- ############ 20260908000052_corrective_ap_design_score_mission.sql ############
+-- ============================================================
+-- Corrective 52 (covers production gap from historical migration 23)
+-- AP Design Score: mission_completed scoring
+--
+-- WHY NOT RE-RUN 20260810000023_aaa_ap_game_economy.sql:
+--   Original 23 also UPDATEs ap_rules economy values (pipeline/usage
+--   AP amounts). Production Org#1 rules are currently at AP=0 and must
+--   NOT change without separate human economy approval.
+--
+-- THIS MIGRATION (additive functions ONLY):
+--   1) ap_design_score_mission(text) — IMMUTABLE, mirrors apScoring.ts
+--   2) ap_award_from_event() — supports mission_completed via metadata
+--      while preserving pipeline/usage/correction behavior
+--
+-- OUT OF SCOPE (documented; NOT applied here):
+--   -- OPTIONAL ECONOMY (requires separate Human Approval):
+--   -- UPDATE public.ap_rules SET ap = … for pipeline/usage events
+--   -- INSERT mission_completed base rule / SET ap = 50
+--   -- See original migration 23 sections 1–3.
+--
+-- Does NOT: mutate ledger rows, ranks, memberships AP totals, or rules.
+-- ============================================================
+
+create or replace function public.ap_design_score_mission(p_mission_type text)
+returns int
+language sql
+immutable
+set search_path = public
+as $$
+  select case p_mission_type
+    when 'new_contacts' then 25
+    when 'follow_up_overdue' then 50
+    when 'reactivate_contact' then 50
+    when 'presentation_pending' then 75
+    when 'next_step_due' then 50
+    when 'fit_check_next_step' then 100
+    else 50
+  end;
+$$;
+
+comment on function public.ap_design_score_mission(text) is
+  'Corrective: Game-Design AP for mission types — mirror of apScoring.ts scoreMission. No ap_rules economy writes.';
+
+revoke all on function public.ap_design_score_mission(text) from public, anon;
+grant execute on function public.ap_design_score_mission(text) to authenticated, service_role;
+
+-- Award trigger: keep existing event paths; add mission_completed override.
+create or replace function public.ap_award_from_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_identity    uuid;
+  v_org         uuid;
+  v_event_type  text;
+  v_source_kind text;
+  v_membership  uuid;
+  v_rule        public.ap_rules;
+  v_orig_type   text;
+  v_delta       int;
+  v_mission     text;
+  v_meta        jsonb;
+begin
+  if TG_TABLE_NAME = 'pipeline_events' then
+    v_identity := new.created_by; v_org := new.org_id;
+    v_event_type := new.event_type; v_source_kind := 'pipeline_event';
+    v_meta := coalesce(new.payload, '{}'::jsonb);
+  elsif TG_TABLE_NAME = 'usage_events' then
+    v_identity := new.user_id; v_org := new.org_id;
+    v_event_type := new.event_type; v_source_kind := 'usage_event';
+    v_meta := coalesce(new.metadata, '{}'::jsonb);
+  else
+    return new;
+  end if;
+
+  if v_identity is null or v_org is null then return new; end if;
+
+  select m.id into v_membership
+  from public.memberships m
+  where m.identity_id = v_identity and m.org_id = v_org and m.status = 'active';
+
+  if v_membership is null then return new; end if;
+
+  -- Korrektur: Gegenbuchung
+  if v_source_kind = 'pipeline_event' and v_event_type = 'correction' then
+    v_orig_type := new.payload ->> 'corrected_event_type';
+    if v_orig_type is null then return new; end if;
+
+    select * into v_rule from public.ap_rules r
+    where r.org_id = v_org and r.source_kind = 'pipeline_event'
+      and r.event_type = v_orig_type and r.is_active
+      and r.valid_from <= now()
+      and (r.valid_until is null or r.valid_until > now())
+    limit 1;
+
+    if v_rule.id is null or v_rule.ap = 0 then return new; end if;
+
+    insert into public.ap_ledger
+      (membership_id, delta, reason, rule_id, source_kind, source_event_id, season_id)
+    values (v_membership, -v_rule.ap, 'Korrektur: ' || v_orig_type,
+            v_rule.id, 'correction', new.id, v_rule.season_id)
+    on conflict do nothing;
+    return new;
+  end if;
+
+  select * into v_rule from public.ap_rules r
+  where r.org_id = v_org and r.source_kind = v_source_kind
+    and r.event_type = v_event_type and r.is_active
+    and r.valid_from <= now()
+    and (r.valid_until is null or r.valid_until > now())
+  limit 1;
+
+  if v_rule.id is null then return new; end if;
+
+  v_delta := v_rule.ap;
+
+  -- Missionen: Delta aus Game-Design-Score (nicht pauschal aus Regel)
+  if v_source_kind = 'usage_event' and v_event_type = 'mission_completed' then
+    v_mission := v_meta ->> 'mission_type';
+    if v_mission is not null then
+      v_delta := public.ap_design_score_mission(v_mission);
+    end if;
+  end if;
+
+  if v_delta = 0 then return new; end if;
+
+  insert into public.ap_ledger
+    (membership_id, delta, reason, rule_id, source_kind, source_event_id, season_id)
+  values (v_membership, v_delta, v_event_type,
+          v_rule.id, v_source_kind, new.id, v_rule.season_id)
+  on conflict do nothing;
+
+  return new;
+end;
+$$;
+
+comment on function public.ap_award_from_event() is
+  'Corrective: AP award from pipeline/usage events; mission_completed uses ap_design_score_mission. Does not mutate ap_rules.';
+
+-- ############ 20260909000053_corrective_frame_cosmetics_rpcs.sql ############
+-- ============================================================
+-- Corrective 53 (covers production gap from historical migration 30)
+-- Frame cosmetics RPCs: ensure / list / equip
+--
+-- WHY NOT RE-RUN 20260817000030_sprint6_frame_display_contract.sql:
+--   Original 30 also rewrites get_genealogy_tree, get_qualification_progress,
+--   display_rank_for_ap (already present on production), and — critically —
+--   ap_apply_to_total() with auto-equip behavior.
+--   Auto-equip is OUT OF SCOPE and must not change without approval.
+--
+-- THIS MIGRATION (additive RPCs ONLY):
+--   ensure_role_frame_cosmetics()
+--   list_my_frame_cosmetics()
+--   equip_frame_cosmetic(uuid)
+--
+-- Uses existing tables only: cosmetic_items, membership_cosmetics.
+-- Auth: active_membership_id() only — no client-supplied membership_id.
+-- Does NOT modify ap_apply_to_total().
+-- ============================================================
+
+create or replace function public.ensure_role_frame_cosmetics()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := public.active_membership_id();
+  v_org uuid;
+  v_role text;
+  v_asset text;
+begin
+  if auth.uid() is null or v_mid is null then
+    return;
+  end if;
+
+  -- Bind to active membership only (no forged membership_id parameter).
+  select m.org_id, m.role::text into v_org, v_role
+  from public.memberships m
+  where m.id = v_mid
+    and m.identity_id = auth.uid()
+    and m.status = 'active';
+  if v_org is null then return; end if;
+
+  if v_role = 'super_admin' then
+    v_asset := 'frame-09';
+  elsif v_role = 'developer' then
+    v_asset := 'frame-08';
+  else
+    return;
+  end if;
+
+  insert into public.membership_cosmetics (membership_id, item_id, kind, is_equipped)
+  select v_mid, ci.id, ci.kind, false
+  from public.cosmetic_items ci
+  where ci.org_id = v_org
+    and ci.is_active
+    and ci.kind = 'frame'
+    and ci.asset_path = v_asset
+  on conflict (membership_id, item_id) do nothing;
+end;
+$$;
+
+comment on function public.ensure_role_frame_cosmetics() is
+  'Corrective: unlock role special frames for the caller''s active membership only.';
+
+revoke all on function public.ensure_role_frame_cosmetics() from public, anon;
+grant execute on function public.ensure_role_frame_cosmetics() to authenticated, service_role;
+
+create or replace function public.list_my_frame_cosmetics()
+returns table (
+  item_id uuid,
+  asset_path text,
+  label text,
+  rank_key text,
+  is_equipped boolean,
+  unlocked_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := public.active_membership_id();
+begin
+  if auth.uid() is null or v_mid is null then
+    return;
+  end if;
+
+  -- Confirm membership belongs to caller.
+  if not exists (
+    select 1 from public.memberships m
+    where m.id = v_mid
+      and m.identity_id = auth.uid()
+      and m.status = 'active'
+  ) then
+    return;
+  end if;
+
+  perform public.ensure_role_frame_cosmetics();
+
+  return query
+  select
+    ci.id,
+    ci.asset_path,
+    ci.label,
+    ci.rank_key,
+    mc.is_equipped,
+    mc.unlocked_at
+  from public.membership_cosmetics mc
+  join public.cosmetic_items ci on ci.id = mc.item_id
+  where mc.membership_id = v_mid
+    and ci.kind = 'frame'
+    and ci.is_active
+  order by
+    mc.is_equipped desc,
+    coalesce((
+      select r.threshold_ap from public.ranks r
+      where r.org_id = ci.org_id and r.key = ci.rank_key
+      limit 1
+    ), 0) asc,
+    ci.label;
+end;
+$$;
+
+comment on function public.list_my_frame_cosmetics() is
+  'Corrective: list frame cosmetics for the caller''s active membership only.';
+
+revoke all on function public.list_my_frame_cosmetics() from public, anon;
+grant execute on function public.list_my_frame_cosmetics() to authenticated, service_role;
+
+create or replace function public.equip_frame_cosmetic(p_item_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_mid uuid := public.active_membership_id();
+begin
+  if auth.uid() is null or v_mid is null then
+    raise exception 'not authenticated';
+  end if;
+
+  if not exists (
+    select 1 from public.memberships m
+    where m.id = v_mid
+      and m.identity_id = auth.uid()
+      and m.status = 'active'
+  ) then
+    raise exception 'not authenticated';
+  end if;
+
+  -- Own unlocked frame only (same membership + kind=frame). No cross-org.
+  if not exists (
+    select 1
+    from public.membership_cosmetics mc
+    join public.cosmetic_items ci on ci.id = mc.item_id
+    join public.memberships m on m.id = mc.membership_id
+    where mc.membership_id = v_mid
+      and mc.item_id = p_item_id
+      and mc.kind = 'frame'
+      and ci.kind = 'frame'
+      and ci.org_id = m.org_id
+  ) then
+    raise exception 'frame not unlocked';
+  end if;
+
+  update public.membership_cosmetics
+  set is_equipped = false
+  where membership_id = v_mid and kind = 'frame' and is_equipped;
+
+  update public.membership_cosmetics
+  set is_equipped = true
+  where membership_id = v_mid and item_id = p_item_id;
+end;
+$$;
+
+comment on function public.equip_frame_cosmetic(uuid) is
+  'Corrective: equip an unlocked frame on the caller''s active membership only. No auto-equip.';
+
+revoke all on function public.equip_frame_cosmetic(uuid) from public, anon;
+grant execute on function public.equip_frame_cosmetic(uuid) to authenticated, service_role;
+
+-- ############ 20260910000054_corrective_coach_knowledge_cms.sql ############
+-- ============================================================
+-- Corrective 54 (covers production gap from historical migration 28 CMS)
+-- Coach Knowledge CMS tables — tenant-aware from day one
+--
+-- WHY NOT RE-RUN 20260815000028_sprint_5_1_knowledge_live_coaching.sql:
+--   Original 28 creates CMS WITHOUT org_id and with GLOBAL RLS, plus
+--   live_coaching / push / storage side-effects already present on
+--   production via later migrations (e.g. 41). Re-running would be unsafe.
+--
+-- THIS MIGRATION:
+--   coach_knowledge_articles / versions / change_log
+--   org_id NOT NULL + UNIQUE(org_id, slug)
+--   Phase-4-style tenant RLS (no global approved reads)
+--   is_coach_content_manager() (CREATE OR REPLACE; idempotent)
+--
+-- Does NOT: create live_coaching, push, storage buckets, or seed Org#1 CMS rows.
+-- ============================================================
+
+-- ---------------------------------------------------------------------------
+-- Helper: SuperAdmin OR Developer may manage coach content (membership-scoped)
+-- ---------------------------------------------------------------------------
+create or replace function public.is_coach_content_manager()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (
+      select m.role in ('super_admin', 'developer')
+      from public.memberships m
+      where m.id = public.active_membership_id()
+    ),
+    false
+  );
+$$;
+
+revoke all on function public.is_coach_content_manager() from public;
+grant execute on function public.is_coach_content_manager() to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- Articles (org-scoped)
+-- ---------------------------------------------------------------------------
+create table if not exists public.coach_knowledge_articles (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null
+    references public.organizations (id) on delete restrict
+    default coalesce(
+      public.current_org_id(),
+      '00000000-0000-0000-0000-000000000001'::uuid
+    ),
+  title text not null,
+  slug text not null,
+  body_markdown text not null default '',
+  body_html text not null default '',
+  category text not null default 'Allgemein',
+  tags text[] not null default '{}',
+  status text not null default 'draft'
+    check (status in ('draft', 'needs_review', 'approved', 'archived')),
+  contradiction_flags jsonb not null default '[]'::jsonb,
+  contradiction_summary text,
+  active boolean not null default false,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  approved_by uuid references public.profiles(id) on delete set null,
+  approved_at timestamptz,
+  current_version int not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint coach_knowledge_active_requires_approved
+    check (not active or status = 'approved'),
+  constraint coach_knowledge_articles_org_slug_key unique (org_id, slug)
+);
+
+-- Harden environments where an older table existed without org_id
+alter table public.coach_knowledge_articles
+  add column if not exists org_id uuid;
+
+-- Do NOT backfill foreign/Org#1 CMS data here. Only set NOT NULL when safe.
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'coach_knowledge_articles'
+      and column_name = 'org_id'
+      and is_nullable = 'YES'
+  ) and not exists (
+    select 1 from public.coach_knowledge_articles where org_id is null
+  ) then
+    alter table public.coach_knowledge_articles
+      alter column org_id set not null;
+  end if;
+end
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'coach_knowledge_articles_org_id_fkey'
+  ) then
+    alter table public.coach_knowledge_articles
+      add constraint coach_knowledge_articles_org_id_fkey
+      foreign key (org_id) references public.organizations (id)
+      on delete restrict;
+  end if;
+end
+$$;
+
+alter table public.coach_knowledge_articles
+  alter column org_id set default coalesce(
+    public.current_org_id(),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  );
+
+-- Prefer per-org slug uniqueness (drop legacy global unique if present)
+alter table public.coach_knowledge_articles
+  drop constraint if exists coach_knowledge_articles_slug_key;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'coach_knowledge_articles_org_slug_key'
+  ) then
+    alter table public.coach_knowledge_articles
+      add constraint coach_knowledge_articles_org_slug_key
+      unique (org_id, slug);
+  end if;
+end
+$$;
+
+create index if not exists coach_knowledge_articles_org_id_idx
+  on public.coach_knowledge_articles (org_id);
+create index if not exists coach_knowledge_articles_status_idx
+  on public.coach_knowledge_articles (status, active);
+create index if not exists coach_knowledge_articles_category_idx
+  on public.coach_knowledge_articles (category);
+create index if not exists coach_knowledge_articles_tags_gin
+  on public.coach_knowledge_articles using gin (tags);
+create index if not exists coach_knowledge_articles_search_idx
+  on public.coach_knowledge_articles
+  using gin (to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(body_markdown, '')));
+
+drop trigger if exists coach_knowledge_articles_set_updated_at
+  on public.coach_knowledge_articles;
+create trigger coach_knowledge_articles_set_updated_at
+before update on public.coach_knowledge_articles
+for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- Versions (org via article_id)
+-- ---------------------------------------------------------------------------
+create table if not exists public.coach_knowledge_versions (
+  id uuid primary key default gen_random_uuid(),
+  article_id uuid not null
+    references public.coach_knowledge_articles(id) on delete cascade,
+  version int not null,
+  title text not null,
+  body_markdown text not null,
+  body_html text not null default '',
+  category text not null,
+  tags text[] not null default '{}',
+  status text not null,
+  change_summary text,
+  contradiction_flags jsonb not null default '[]'::jsonb,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (article_id, version)
+);
+
+create index if not exists coach_knowledge_versions_article_idx
+  on public.coach_knowledge_versions (article_id, version desc);
+
+-- ---------------------------------------------------------------------------
+-- Change log (org via article_id)
+-- ---------------------------------------------------------------------------
+create table if not exists public.coach_knowledge_change_log (
+  id uuid primary key default gen_random_uuid(),
+  article_id uuid not null
+    references public.coach_knowledge_articles(id) on delete cascade,
+  version int,
+  action text not null,
+  detail text,
+  actor_id uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists coach_knowledge_change_log_article_idx
+  on public.coach_knowledge_change_log (article_id, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- RLS — tenant-aware (Phase 4 contract); no global CMS policies
+-- ---------------------------------------------------------------------------
+alter table public.coach_knowledge_articles enable row level security;
+alter table public.coach_knowledge_versions enable row level security;
+alter table public.coach_knowledge_change_log enable row level security;
+
+drop policy if exists "coach_knowledge_articles_select" on public.coach_knowledge_articles;
+create policy "coach_knowledge_articles_select"
+on public.coach_knowledge_articles for select to authenticated
+using (
+  org_id = public.current_org_id()
+  and public.active_membership_id() is not null
+  and (
+    public.is_coach_content_manager()
+    or (active = true and status = 'approved')
+  )
+);
+
+drop policy if exists "coach_knowledge_articles_write" on public.coach_knowledge_articles;
+create policy "coach_knowledge_articles_write"
+on public.coach_knowledge_articles for all to authenticated
+using (
+  public.is_coach_content_manager()
+  and org_id = public.current_org_id()
+  and public.active_membership_id() is not null
+)
+with check (
+  public.is_coach_content_manager()
+  and org_id = public.current_org_id()
+  and public.active_membership_id() is not null
+);
+
+drop policy if exists "coach_knowledge_versions_select" on public.coach_knowledge_versions;
+create policy "coach_knowledge_versions_select"
+on public.coach_knowledge_versions for select to authenticated
+using (
+  public.active_membership_id() is not null
+  and exists (
+    select 1
+    from public.coach_knowledge_articles a
+    where a.id = article_id
+      and a.org_id = public.current_org_id()
+      and (
+        public.is_coach_content_manager()
+        or (a.active = true and a.status = 'approved')
+      )
+  )
+);
+
+drop policy if exists "coach_knowledge_versions_write" on public.coach_knowledge_versions;
+create policy "coach_knowledge_versions_write"
+on public.coach_knowledge_versions for all to authenticated
+using (
+  public.is_coach_content_manager()
+  and public.active_membership_id() is not null
+  and exists (
+    select 1
+    from public.coach_knowledge_articles a
+    where a.id = article_id
+      and a.org_id = public.current_org_id()
+  )
+)
+with check (
+  public.is_coach_content_manager()
+  and public.active_membership_id() is not null
+  and exists (
+    select 1
+    from public.coach_knowledge_articles a
+    where a.id = article_id
+      and a.org_id = public.current_org_id()
+  )
+);
+
+drop policy if exists "coach_knowledge_change_log_select" on public.coach_knowledge_change_log;
+create policy "coach_knowledge_change_log_select"
+on public.coach_knowledge_change_log for select to authenticated
+using (
+  public.is_coach_content_manager()
+  and public.active_membership_id() is not null
+  and exists (
+    select 1
+    from public.coach_knowledge_articles a
+    where a.id = article_id
+      and a.org_id = public.current_org_id()
+  )
+);
+
+drop policy if exists "coach_knowledge_change_log_write" on public.coach_knowledge_change_log;
+create policy "coach_knowledge_change_log_write"
+on public.coach_knowledge_change_log for all to authenticated
+using (
+  public.is_coach_content_manager()
+  and public.active_membership_id() is not null
+  and exists (
+    select 1
+    from public.coach_knowledge_articles a
+    where a.id = article_id
+      and a.org_id = public.current_org_id()
+  )
+)
+with check (
+  public.is_coach_content_manager()
+  and public.active_membership_id() is not null
+  and exists (
+    select 1
+    from public.coach_knowledge_articles a
+    where a.id = article_id
+      and a.org_id = public.current_org_id()
+  )
+);
+
+-- ############ 20260911000055_corrective_ascend_stories.sql ############
+-- ============================================================
+-- Corrective 55 (covers production gap from historical migration 29)
+-- Ascend Stories — tenant-aware from day one
+--
+-- WHY NOT RE-RUN 20260816000029_sprint_5_2_ascend_stories.sql:
+--   Original 29 creates stories WITHOUT org_id and with GLOBAL RLS
+--   (any authenticated user could read all orgs' active stories).
+--
+-- THIS MIGRATION:
+--   ascend_stories with org_id NOT NULL + FK + indexes + updated_at
+--   Phase-4-style tenant RLS (no global stories policy)
+--
+-- Does NOT: seed Org#1 stories or touch live_coaching / CMS / storage.
+-- ============================================================
+
+create table if not exists public.ascend_stories (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null
+    references public.organizations (id) on delete restrict
+    default coalesce(
+      public.current_org_id(),
+      '00000000-0000-0000-0000-000000000001'::uuid
+    ),
+  story_type text not null
+    check (story_type in (
+      'achievements',
+      'onboarding',
+      'presentations',
+      'zoom',
+      'qualifications',
+      'customers',
+      'partners',
+      'coach_highlights',
+      'admin'
+    )),
+  media_kind text not null default 'text'
+    check (media_kind in ('text', 'image', 'video', 'voice')),
+  title text not null,
+  body text not null,
+  author_label text not null default 'Ascend',
+  subject_name text,
+  subject_membership_id uuid,
+  media_path text,
+  media_url text,
+  tone text not null default 'celebrate'
+    check (tone in ('motivate', 'celebrate', 'inspire')),
+  source text not null default 'admin'
+    check (source in ('coach', 'admin', 'system')),
+  active boolean not null default true,
+  published_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint ascend_stories_expires_after_publish
+    check (expires_at > published_at)
+);
+
+-- Harden if an older table existed without org_id
+alter table public.ascend_stories
+  add column if not exists org_id uuid;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'ascend_stories'
+      and column_name = 'org_id'
+      and is_nullable = 'YES'
+  ) and not exists (
+    select 1 from public.ascend_stories where org_id is null
+  ) then
+    alter table public.ascend_stories
+      alter column org_id set not null;
+  end if;
+end
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'ascend_stories_org_id_fkey'
+  ) then
+    alter table public.ascend_stories
+      add constraint ascend_stories_org_id_fkey
+      foreign key (org_id) references public.organizations (id)
+      on delete restrict;
+  end if;
+end
+$$;
+
+alter table public.ascend_stories
+  alter column org_id set default coalesce(
+    public.current_org_id(),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  );
+
+create index if not exists ascend_stories_org_id_idx
+  on public.ascend_stories (org_id);
+create index if not exists ascend_stories_active_expires_idx
+  on public.ascend_stories (active, expires_at desc);
+create index if not exists ascend_stories_org_active_expires_idx
+  on public.ascend_stories (org_id, active, expires_at desc);
+create index if not exists ascend_stories_type_idx
+  on public.ascend_stories (story_type);
+create index if not exists ascend_stories_published_idx
+  on public.ascend_stories (published_at desc);
+
+drop trigger if exists ascend_stories_set_updated_at on public.ascend_stories;
+create trigger ascend_stories_set_updated_at
+before update on public.ascend_stories
+for each row execute function public.set_updated_at();
+
+alter table public.ascend_stories enable row level security;
+
+-- Tenant-aware: no global stories policy
+drop policy if exists "ascend_stories_select" on public.ascend_stories;
+create policy "ascend_stories_select"
+on public.ascend_stories for select to authenticated
+using (
+  org_id = public.current_org_id()
+  and public.active_membership_id() is not null
+  and (
+    public.is_coach_content_manager()
+    or (active = true and expires_at > now())
+  )
+);
+
+drop policy if exists "ascend_stories_write" on public.ascend_stories;
+create policy "ascend_stories_write"
+on public.ascend_stories for all to authenticated
+using (
+  public.is_coach_content_manager()
+  and org_id = public.current_org_id()
+  and public.active_membership_id() is not null
+)
+with check (
+  public.is_coach_content_manager()
+  and org_id = public.current_org_id()
+  and public.active_membership_id() is not null
+);
+
 -- ============================================================
 -- PRODUKTIONS-BOOTSTRAP: Chogan · Team Seyda · Inhalte · Codes
 -- ============================================================
