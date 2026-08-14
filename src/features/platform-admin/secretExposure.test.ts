@@ -54,4 +54,17 @@ describe('Phase 10 — secret exposure (platform-admin + FE src)', () => {
       expect(migration.includes(key)).toBe(false);
     }
   });
+
+  it('phase 11 billing migration never embeds secrets', () => {
+    const migration = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20260907000051_phase11_billing_usage.sql'),
+      'utf8'
+    );
+    expect(migration).toMatch(/'modeled'/);
+    expect(migration).toMatch(/base_price_cents/);
+    for (const key of FORBIDDEN) {
+      expect(migration.includes(key)).toBe(false);
+    }
+    expect(migration.toLowerCase().includes('stripe')).toBe(false);
+  });
 });
