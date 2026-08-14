@@ -3723,40 +3723,6 @@ export type Database = {
           invite_expires_at: string;
         }[];
       };
-      org_admin_update_branding: {
-        Args: { p_branding: Json };
-        Returns: Database['public']['Tables']['organizations']['Row'];
-      };
-      org_admin_upsert_external_tool: {
-        Args: {
-          p_key: string;
-          p_name: string;
-          p_url: string;
-          p_description?: string | null;
-          p_share_event_type?: string | null;
-          p_result_event_type?: string | null;
-          p_sort_order?: number;
-          p_is_active?: boolean;
-        };
-        Returns: Database['public']['Tables']['external_tools']['Row'];
-      };
-      org_admin_set_membership_role: {
-        Args: { p_membership_id: string; p_role: string };
-        Returns: Database['public']['Tables']['memberships']['Row'];
-      };
-      org_admin_set_membership_status: {
-        Args: { p_membership_id: string; p_status: string };
-        Returns: Database['public']['Tables']['memberships']['Row'];
-      };
-      org_admin_update_agent: {
-        Args: {
-          p_agent_key: string;
-          p_name?: string | null;
-          p_system_prompt?: string | null;
-          p_is_active?: boolean | null;
-        };
-        Returns: Database['public']['Tables']['agents']['Row'];
-      };
       current_org_id: { Args: never; Returns: string };
       current_team_id: { Args: never; Returns: string };
       current_user_role: { Args: never; Returns: string };
@@ -3987,6 +3953,136 @@ export type Database = {
           sort_order: number;
           threshold_ap: number;
         }[];
+      };
+      org_admin_set_membership_role: {
+        Args: { p_membership_id: string; p_role: string };
+        Returns: {
+          ap_total: number;
+          country: string | null;
+          created_at: string;
+          goals: Json;
+          id: string;
+          identity_id: string;
+          joined_at: string;
+          last_app_opened_at: string | null;
+          left_at: string | null;
+          org_id: string;
+          role: string;
+          sponsor_membership_id: string | null;
+          status: string;
+          streak_days: number;
+          streak_updated_on: string | null;
+          team_id: string;
+          team_leader_qualified_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'memberships';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      org_admin_set_membership_status: {
+        Args: { p_membership_id: string; p_status: string };
+        Returns: {
+          ap_total: number;
+          country: string | null;
+          created_at: string;
+          goals: Json;
+          id: string;
+          identity_id: string;
+          joined_at: string;
+          last_app_opened_at: string | null;
+          left_at: string | null;
+          org_id: string;
+          role: string;
+          sponsor_membership_id: string | null;
+          status: string;
+          streak_days: number;
+          streak_updated_on: string | null;
+          team_id: string;
+          team_leader_qualified_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'memberships';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      org_admin_update_agent: {
+        Args: {
+          p_agent_key: string;
+          p_is_active?: boolean;
+          p_name?: string;
+          p_system_prompt?: string;
+        };
+        Returns: {
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          key: string;
+          model: string;
+          name: string;
+          org_id: string;
+          retrieval_categories: string[];
+          system_prompt: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'agents';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      org_admin_update_branding: {
+        Args: { p_branding: Json };
+        Returns: {
+          branding: Json;
+          created_at: string;
+          id: string;
+          name: string;
+          settings: Json;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'organizations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      org_admin_upsert_external_tool: {
+        Args: {
+          p_description?: string;
+          p_is_active?: boolean;
+          p_key: string;
+          p_name: string;
+          p_result_event_type?: string;
+          p_share_event_type?: string;
+          p_sort_order?: number;
+          p_url: string;
+        };
+        Returns: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          is_active: boolean;
+          key: string;
+          name: string;
+          org_id: string;
+          result_event_type: string | null;
+          share_event_type: string;
+          sort_order: number;
+          url: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'external_tools';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       redeem_invite: {
         Args: { invite_code: string };

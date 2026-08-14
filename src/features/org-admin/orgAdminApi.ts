@@ -126,7 +126,7 @@ export function useUpsertOrgTool() {
         p_key: input.key,
         p_name: input.name,
         p_url: input.url,
-        p_description: input.description ?? null,
+        p_description: input.description,
         p_sort_order: input.sort_order ?? 100,
         p_is_active: input.is_active ?? true,
       });
@@ -188,9 +188,9 @@ export function useUpdateOrgAgent() {
     }) => {
       const { data, error } = await supabase.rpc('org_admin_update_agent', {
         p_agent_key: input.key,
-        p_name: input.name ?? null,
-        p_system_prompt: input.system_prompt ?? null,
-        p_is_active: input.is_active ?? null,
+        p_name: input.name,
+        p_system_prompt: input.system_prompt,
+        p_is_active: input.is_active,
       });
       if (error) throw error;
       return data;
