@@ -18,7 +18,7 @@ insert into auth.users (id, email) values
   ('aa120000-0000-0000-0000-0000000000a2', 'p12-member-a@test.local'),
   ('aa120000-0000-0000-0000-0000000000b2', 'p12-member-b@test.local'),
   ('aa120000-0000-0000-0000-0000000000ab', 'p12-multi@test.local'),
-  ('aa120000-0000-0000-0000-0000000000p1', 'p12-platform@test.local');
+  ('aa120000-0000-0000-0000-0000000000f1', 'p12-platform@test.local');
 set local session_replication_role = origin;
 
 -- Org A = test stand-in for existing tenant (not mutating real Org #1 rows)
@@ -59,7 +59,7 @@ values
    'berater', 'P12B', 'Mem', 'p12bmem'),
   ('aa120000-0000-0000-0000-0000000000ab', 'bb120000-0000-0000-0000-000000000001',
    'cc120000-0000-0000-0000-000000000001', null, 'super_admin', 'P12', 'Multi', 'p12multi'),
-  ('aa120000-0000-0000-0000-0000000000p1', 'bb120000-0000-0000-0000-000000000001',
+  ('aa120000-0000-0000-0000-0000000000f1', 'bb120000-0000-0000-0000-000000000001',
    'cc120000-0000-0000-0000-000000000001', null, 'berater', 'P12', 'Plat', 'p12plat');
 
 set local session_replication_role = replica;
@@ -83,7 +83,7 @@ values
   ('dd120000-0000-0000-0000-0000000000bb', 'aa120000-0000-0000-0000-0000000000ab',
    'bb120000-0000-0000-0000-000000000002', 'cc120000-0000-0000-0000-000000000002',
    'berater', 'active'),
-  ('dd120000-0000-0000-0000-0000000000p1', 'aa120000-0000-0000-0000-0000000000p1',
+  ('dd120000-0000-0000-0000-0000000000f1', 'aa120000-0000-0000-0000-0000000000f1',
    'bb120000-0000-0000-0000-000000000001', 'cc120000-0000-0000-0000-000000000001',
    'berater', 'active');
 set local session_replication_role = origin;
@@ -121,7 +121,7 @@ select set_config('request.jwt.claims', '', true);
 select set_config('request.headers', '', true);
 
 insert into public.platform_admins (identity_id, notes)
-values ('aa120000-0000-0000-0000-0000000000p1', 'p12 platform');
+values ('aa120000-0000-0000-0000-0000000000f1', 'p12 platform');
 
 select public.ensure_org_billing('bb120000-0000-0000-0000-000000000001');
 select public.ensure_org_billing('bb120000-0000-0000-0000-000000000002');
@@ -248,12 +248,12 @@ insert into public.content_assets
   (id, org_id, owner_membership_id, created_by, scope, media_kind, storage_path,
    file_name, mime_type, byte_size, title)
 values
-  ('ee120000-0000-0000-0000-0000000000a1', 'bb120000-0000-0000-0000-000000000001',
+  ('ee120000-0000-0000-0000-0000000000ae', 'bb120000-0000-0000-0000-000000000001',
    'dd120000-0000-0000-0000-0000000000a1', 'aa120000-0000-0000-0000-0000000000a1',
    'central', 'image',
    'bb120000-0000-0000-0000-000000000001/asset-a.jpg',
    'asset-a.jpg', 'image/jpeg', 1024, 'Asset A'),
-  ('ee120000-0000-0000-0000-0000000000a2', 'bb120000-0000-0000-0000-000000000002',
+  ('ee120000-0000-0000-0000-0000000000af', 'bb120000-0000-0000-0000-000000000002',
    'dd120000-0000-0000-0000-0000000000b1', 'aa120000-0000-0000-0000-0000000000b1',
    'central', 'image',
    'bb120000-0000-0000-0000-000000000002/asset-b.jpg',
@@ -262,9 +262,9 @@ values
 insert into public.content_instagram_connections
   (id, org_id, membership_id, ig_username, status, token_ref)
 values
-  ('ee120000-0000-0000-0000-0000000000i1', 'bb120000-0000-0000-0000-000000000001',
+  ('ee120000-0000-0000-0000-0000000000b3', 'bb120000-0000-0000-0000-000000000001',
    'dd120000-0000-0000-0000-0000000000a1', 'ig_a_test', 'connected', 'vault:org-a-token'),
-  ('ee120000-0000-0000-0000-0000000000i2', 'bb120000-0000-0000-0000-000000000002',
+  ('ee120000-0000-0000-0000-0000000000b4', 'bb120000-0000-0000-0000-000000000002',
    'dd120000-0000-0000-0000-0000000000b1', 'ig_b_test', 'connected', 'vault:org-b-token');
 
 insert into public.content_facebook_business_connections
@@ -278,37 +278,37 @@ values
 insert into public.content_autopilot_settings
   (id, org_id, membership_id, enabled)
 values
-  ('ee120000-0000-0000-0000-0000000000s1', 'bb120000-0000-0000-0000-000000000001',
+  ('ee120000-0000-0000-0000-0000000000b5', 'bb120000-0000-0000-0000-000000000001',
    'dd120000-0000-0000-0000-0000000000a1', false),
-  ('ee120000-0000-0000-0000-0000000000s2', 'bb120000-0000-0000-0000-000000000002',
+  ('ee120000-0000-0000-0000-0000000000b6', 'bb120000-0000-0000-0000-000000000002',
    'dd120000-0000-0000-0000-0000000000b1', false);
 
 insert into public.content_autopilot_plans
   (id, org_id, membership_id, period_start, period_end, status)
 values
-  ('ee120000-0000-0000-0000-0000000000p1', 'bb120000-0000-0000-0000-000000000001',
+  ('ee120000-0000-0000-0000-0000000000b7', 'bb120000-0000-0000-0000-000000000001',
    'dd120000-0000-0000-0000-0000000000a1', current_date, current_date + 6, 'active'),
-  ('ee120000-0000-0000-0000-0000000000p2', 'bb120000-0000-0000-0000-000000000002',
+  ('ee120000-0000-0000-0000-0000000000b8', 'bb120000-0000-0000-0000-000000000002',
    'dd120000-0000-0000-0000-0000000000b1', current_date, current_date + 6, 'active');
 
 insert into public.content_autopilot_slots
   (id, org_id, membership_id, plan_id, asset_id, carousel_asset_ids,
    planned_for, slot_kind, content_format, status)
 values
-  ('ee120000-0000-0000-0000-0000000000l1', 'bb120000-0000-0000-0000-000000000001',
-   'dd120000-0000-0000-0000-0000000000a1', 'ee120000-0000-0000-0000-0000000000p1',
-   'ee120000-0000-0000-0000-0000000000a1', '{}'::uuid[],
+  ('ee120000-0000-0000-0000-0000000000b9', 'bb120000-0000-0000-0000-000000000001',
+   'dd120000-0000-0000-0000-0000000000a1', 'ee120000-0000-0000-0000-0000000000b7',
+   'ee120000-0000-0000-0000-0000000000ae', '{}'::uuid[],
    now() + interval '1 day', 'feed', 'feed', 'planned'),
-  ('ee120000-0000-0000-0000-0000000000l2', 'bb120000-0000-0000-0000-000000000002',
-   'dd120000-0000-0000-0000-0000000000b1', 'ee120000-0000-0000-0000-0000000000p2',
-   'ee120000-0000-0000-0000-0000000000a2', '{}'::uuid[],
+  ('ee120000-0000-0000-0000-0000000000ba', 'bb120000-0000-0000-0000-000000000002',
+   'dd120000-0000-0000-0000-0000000000b1', 'ee120000-0000-0000-0000-0000000000b8',
+   'ee120000-0000-0000-0000-0000000000af', '{}'::uuid[],
    now() + interval '1 day', 'feed', 'feed', 'planned');
 
 insert into public.ap_task_defs (id, org_id, key, title, ap)
 values
-  ('ee120000-0000-0000-0000-0000000000t1', 'bb120000-0000-0000-0000-000000000001',
+  ('ee120000-0000-0000-0000-0000000000bc', 'bb120000-0000-0000-0000-000000000001',
    'p12_a', 'AP Task A', 10),
-  ('ee120000-0000-0000-0000-0000000000t2', 'bb120000-0000-0000-0000-000000000002',
+  ('ee120000-0000-0000-0000-0000000000bd', 'bb120000-0000-0000-0000-000000000002',
    'p12_b', 'AP Task B', 10);
 
 insert into public.usage_events (user_id, org_id, event_type, metadata)
@@ -684,13 +684,13 @@ select is(
 );
 select is(
   (select count(*)::int from public.content_autopilot_settings
-   where id = 'ee120000-0000-0000-0000-0000000000s2'),
+   where id = 'ee120000-0000-0000-0000-0000000000b6'),
   0, 'Org A does not see Autopilot settings B'
 );
 select is(
   (select cardinality(carousel_asset_ids)::int
    from public.content_autopilot_slots
-   where id = 'ee120000-0000-0000-0000-0000000000l1'),
+   where id = 'ee120000-0000-0000-0000-0000000000b9'),
   0, 'Org A Autopilot slot has empty carousel_asset_ids (1 image)'
 );
 
@@ -712,7 +712,7 @@ select is(
 select is(
   (select cardinality(carousel_asset_ids)::int
    from public.content_autopilot_slots
-   where id = 'ee120000-0000-0000-0000-0000000000l2'),
+   where id = 'ee120000-0000-0000-0000-0000000000ba'),
   0, 'Org B Autopilot slot has empty carousel_asset_ids (1 image)'
 );
 select is(
@@ -772,7 +772,7 @@ select is(
 );
 
 -- Seat counts separate (platform admin may read both orgs)
-select tests.authenticate_as('aa120000-0000-0000-0000-0000000000p1');
+select tests.authenticate_as('aa120000-0000-0000-0000-0000000000f1');
 select is(
   public.billing_count_active_seats('bb120000-0000-0000-0000-000000000001')
     <> public.billing_count_active_seats('bb120000-0000-0000-0000-000000000002'),
@@ -811,7 +811,7 @@ select tests.select_org('bb120000-0000-0000-0000-000000000001');
 select is(public.is_platform_super_admin(), false, 'Member is NOT platform admin');
 select is(public.is_organization_admin(), false, 'Member is NOT org admin');
 
-select tests.authenticate_as('aa120000-0000-0000-0000-0000000000p1');
+select tests.authenticate_as('aa120000-0000-0000-0000-0000000000f1');
 select is(public.is_platform_super_admin(), true, 'Platform Admin recognized');
 select ok(
   (select count(*)::int from public.platform_list_organizations()) >= 2,
@@ -843,7 +843,7 @@ select throws_ok(
 );
 
 -- Platform create Org B-style fixture stays free of Seyda defaults (test-only)
-select tests.authenticate_as('aa120000-0000-0000-0000-0000000000p1');
+select tests.authenticate_as('aa120000-0000-0000-0000-0000000000f1');
 select lives_ok(
   $$ select public.platform_create_organization(
        'AscendOS Isolation Test Org CI',
