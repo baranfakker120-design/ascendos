@@ -139,6 +139,10 @@ select ok(
   ),
   'TEST D: org row exists active'
 );
+-- Assert Main Team outside RLS (platform admin has no membership in new org).
+reset role;
+select set_config('request.jwt.claims', '', true);
+select set_config('request.headers', '', true);
 select ok(
   exists (
     select 1 from public.teams t
@@ -154,6 +158,7 @@ select ok(
   ) = 'P10 Test Tenant',
   'TEST D: neutral branding display_name'
 );
+select tests.authenticate_as('aa100000-0000-0000-0000-00000000000a');
 
 -- TEST E: Org Admin create DENY
 select tests.authenticate_as('aa100000-0000-0000-0000-00000000000c');
@@ -296,6 +301,8 @@ select lives_ok(
     )$$,
   'Org admin invite created for Org A'
 );
+reset role;
+select set_config('request.jwt.claims', '', true);
 select ok(
   exists (
     select 1 from public.invites

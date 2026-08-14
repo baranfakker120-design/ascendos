@@ -57,6 +57,8 @@ create policy organizations_select_platform on public.organizations
   using (public.is_platform_super_admin());
 
 -- ---------- Inactive orgs: no normal active membership ----------
+-- Preserve Fall 4: multiple active memberships without x-ascendos-org → NULL
+-- (never guess via profiles.org_id mirror).
 create or replace function public.active_membership_id()
 returns uuid
 language plpgsql
@@ -69,7 +71,6 @@ declare
   v_selektor uuid;
   v_treffer  uuid;
   v_anzahl   int;
-  v_mirror   uuid;
 begin
   if v_uid is null then
     return null;
@@ -111,31 +112,13 @@ begin
     return v_treffer;
   end if;
 
-  if v_anzahl < 1 then
-    return null;
-  end if;
-
-  select p.org_id into v_mirror from public.profiles p where p.id = v_uid;
-
-  if v_mirror is not null then
-    select m.id into v_treffer
-    from public.memberships m
-    join public.organizations o on o.id = m.org_id
-    where m.identity_id = v_uid
-      and m.org_id = v_mirror
-      and m.status = 'active'
-      and o.status = 'active';
-    if v_treffer is not null then
-      return v_treffer;
-    end if;
-  end if;
-
+  -- Fall 4: zero or multiple active memberships in active orgs, no selector → reject.
   return null;
 end;
 $$;
 
 comment on function public.active_membership_id() is
-  'Validated active membership in an active organization. Inactive orgs are excluded from normal tenant resolution.';
+  'Validated active membership in an active organization. Selector preferred; single auto-resolves; multi without header returns null (Fall 4). Inactive orgs excluded.';
 
 -- ---------- usage_events: platform audit types ----------
 alter table public.usage_events drop constraint if exists usage_events_event_type_check;

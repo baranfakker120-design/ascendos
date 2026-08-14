@@ -4081,15 +4081,15 @@ export type Database = {
       platform_list_platform_admins: {
         Args: never;
         Returns: {
-          first_name: string;
+          first_name: string | null;
           granted_at: string;
           id: string;
           identity_id: string;
           is_active: boolean;
-          last_name: string;
-          notes: string;
-          revoked_at: string;
-          username: string;
+          last_name: string | null;
+          notes: string | null;
+          revoked_at: string | null;
+          username: string | null;
         }[];
       };
       platform_revoke_platform_admin: {

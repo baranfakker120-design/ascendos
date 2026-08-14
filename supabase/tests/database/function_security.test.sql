@@ -465,7 +465,7 @@ select is(
    where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef
      and pg_get_function_arguments(p.oid) like '%uuid%'
      and pg_get_functiondef(p.oid) !~
-         'auth\.uid|is_super_admin|current_org_id|is_ancestor_of'),
+         'auth\.uid|is_super_admin|is_platform_super_admin|is_organization_admin|current_org_id|is_ancestor_of'),
   0,
   'J1 Keine SECURITY DEFINER Funktion mit uuid-Parameter ohne Aufruferpruefung'
 );
