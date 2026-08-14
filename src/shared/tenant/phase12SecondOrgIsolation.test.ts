@@ -60,9 +60,9 @@ describe('Phase 12 — second org identity', () => {
       })
     ).toBe(false);
     for (const marker of FORBIDDEN_ORG_B_FALLBACKS) {
-      expect(
-        assertNoForeignOrgFallback(ORG_B_ID, `https://x.test/${marker}`, [marker])
-      ).toBe(false);
+      expect(assertNoForeignOrgFallback(ORG_B_ID, `https://x.test/${marker}`, [marker])).toBe(
+        false
+      );
     }
   });
 

@@ -11,10 +11,10 @@
 
 Prove AscendOS supports two fully isolated organizations end-to-end in **test/CI**, without creating a second production organization.
 
-| Org | Identity |
-| --- | --- |
-| A | Existing Org #1 / Team Seyda (preserved; tests use fixtures + seed check) |
-| B | `AscendOS Isolation Test Org` / branding `Isolation Test Org` (CI fixtures only) |
+| Org | Identity                                                                         |
+| --- | -------------------------------------------------------------------------------- |
+| A   | Existing Org #1 / Team Seyda (preserved; tests use fixtures + seed check)        |
+| B   | `AscendOS Isolation Test Org` / branding `Isolation Test Org` (CI fixtures only) |
 
 ---
 
@@ -28,11 +28,11 @@ Even when all tests are green: stop. Human approval required before any producti
 
 ## What was added
 
-| Asset | Role |
-| --- | --- |
-| `supabase/tests/database/phase12_second_org_isolation.test.sql` | Full A↔B RLS / RPC / marker isolation (pgTAP) |
-| `src/shared/tenant/phase12SecondOrgIsolation.ts` | Pure readiness helpers + markers |
-| `src/shared/tenant/phase12SecondOrgIsolation.test.ts` | Unit coverage (resolution, branding, push, autopilot) |
+| Asset                                                           | Role                                                  |
+| --------------------------------------------------------------- | ----------------------------------------------------- |
+| `supabase/tests/database/phase12_second_org_isolation.test.sql` | Full A↔B RLS / RPC / marker isolation (pgTAP)         |
+| `src/shared/tenant/phase12SecondOrgIsolation.ts`                | Pure readiness helpers + markers                      |
+| `src/shared/tenant/phase12SecondOrgIsolation.test.ts`           | Unit coverage (resolution, branding, push, autopilot) |
 
 No schema migration. Isolation surface comes from Phases 2–11.
 
@@ -67,12 +67,12 @@ Unchanged:
 
 ## Production
 
-| Item | State |
-| --- | --- |
-| Production database | UNCHANGED |
-| Production Org B | NOT CREATED |
-| Secrets / API keys / VAPID / Meta / AI | UNCHANGED |
-| Deploy / merge by agent | NO |
+| Item                                   | State       |
+| -------------------------------------- | ----------- |
+| Production database                    | UNCHANGED   |
+| Production Org B                       | NOT CREATED |
+| Secrets / API keys / VAPID / Meta / AI | UNCHANGED   |
+| Deploy / merge by agent                | NO          |
 
 ---
 

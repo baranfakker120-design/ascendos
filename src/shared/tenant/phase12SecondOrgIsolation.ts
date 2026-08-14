@@ -4,7 +4,10 @@
  * Does NOT create a production organization.
  */
 
-import { knowledgeContainsForeignMarker, pickActiveMembershipFromList } from '../auth/tenantResolve';
+import {
+  knowledgeContainsForeignMarker,
+  pickActiveMembershipFromList,
+} from '../auth/tenantResolve';
 
 export const ORG_A_SECRET_MARKER = 'ORG_A_SECRET_MARKER';
 export const ORG_B_SECRET_MARKER = 'ORG_B_SECRET_MARKER';

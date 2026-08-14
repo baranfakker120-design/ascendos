@@ -83,19 +83,19 @@ Do **not** apply unpaid migrations to production without approval.
 
 ## Migration status (multi-tenant program)
 
-| Phase | Status                                |
-| ----- | ------------------------------------- |
-| 0     | Done (docs)                           |
-| 2–11  | Merged                                |
+| Phase | Status                                                     |
+| ----- | ---------------------------------------------------------- |
+| 0     | Done (docs)                                                |
+| 2–11  | Merged                                                     |
 | 12    | Implemented in repo — **MIGRATION: NONE**; awaiting review |
-| 13+   | Not started                           |
+| 13+   | Not started                                                |
 
 ---
 
 ## Documentation index
 
-| File                                  | Role            |
-| ------------------------------------- | --------------- |
-| `PHASE_11_BILLING_USAGE.md`           | Phase 11 report |
-| `PHASE_12_SECOND_ORG_ISOLATION.md`    | Phase 12 report |
-| `PROJECT_STATE.md`                    | This file       |
+| File                               | Role            |
+| ---------------------------------- | --------------- |
+| `PHASE_11_BILLING_USAGE.md`        | Phase 11 report |
+| `PHASE_12_SECOND_ORG_ISOLATION.md` | Phase 12 report |
+| `PROJECT_STATE.md`                 | This file       |
