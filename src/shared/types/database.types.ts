@@ -3909,7 +3909,10 @@ export type Database = {
         Returns: number;
       };
       ap_recalculate: { Args: { p_membership_id: string }; Returns: number };
-      billing_count_active_seats: { Args: { p_org_id: string }; Returns: number };
+      billing_count_active_seats: {
+        Args: { p_org_id: string };
+        Returns: number;
+      };
       billing_estimate_monthly_cents: {
         Args: {
           p_active_seats: number;
@@ -4448,7 +4451,6 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
-      refresh_org_billing_seats: { Args: { p_org_id: string }; Returns: number };
       redeem_invite: {
         Args: { invite_code: string };
         Returns: {
@@ -4457,6 +4459,7 @@ export type Database = {
           org_name: string;
         }[];
       };
+      refresh_org_billing_seats: { Args: { p_org_id: string }; Returns: number };
       toggle_leadership_favorite: {
         Args: { p_target_membership: string };
         Returns: boolean;
