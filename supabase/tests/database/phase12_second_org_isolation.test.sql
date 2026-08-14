@@ -244,18 +244,19 @@ values
   ('ee120000-0000-0000-0000-000000000094', 'ee120000-0000-0000-0000-000000000092',
    'new_contacts', 'Plan B', 'ORG_B_SECRET_MARKER', 1, 1);
 
+-- personal scope avoids content_central_forbidden trigger during seed
 insert into public.content_assets
   (id, org_id, owner_membership_id, created_by, scope, media_kind, storage_path,
    file_name, mime_type, byte_size, title)
 values
   ('ee120000-0000-0000-0000-0000000000ae', 'bb120000-0000-0000-0000-000000000001',
    'dd120000-0000-0000-0000-0000000000a1', 'aa120000-0000-0000-0000-0000000000a1',
-   'central', 'image',
+   'personal', 'image',
    'bb120000-0000-0000-0000-000000000001/asset-a.jpg',
    'asset-a.jpg', 'image/jpeg', 1024, 'Asset A'),
   ('ee120000-0000-0000-0000-0000000000af', 'bb120000-0000-0000-0000-000000000002',
    'dd120000-0000-0000-0000-0000000000b1', 'aa120000-0000-0000-0000-0000000000b1',
-   'central', 'image',
+   'personal', 'image',
    'bb120000-0000-0000-0000-000000000002/asset-b.jpg',
    'asset-b.jpg', 'image/jpeg', 1024, 'Asset B');
 
