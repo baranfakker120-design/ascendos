@@ -219,7 +219,9 @@
     "orgGuideGeneric": "Organization guide",
     "orgGuideSub": "Guide for the active organization",
     "orgAdmin": "Organization Admin",
-    "orgAdminSub": "Manage branding, members, tools for this organization"
+    "orgAdminSub": "Manage branding, members, tools for this organization",
+    "platformAdmin": "Platform Admin",
+    "platformAdminSub": "Manage organizations and the platform"
   },
   "pipeline": {
     "phase": {
@@ -1475,6 +1477,113 @@
       "invites": "No invites yet.",
       "tools": "No tools configured.",
       "coach": "No coach configured."
+    }
+  },
+  "platformAdmin": {
+    "eyebrow": "Platform",
+    "title": "Platform Admin",
+    "subtitle": "Manage AscendOS platform and organizations.",
+    "navLabel": "Platform areas",
+    "loading": "Loading…",
+    "deniedTitle": "No platform permission.",
+    "deniedBody": "This area is only available to Platform Super Admins.",
+    "backMore": "Back to More",
+    "backOrgs": "Back to organizations",
+    "notFoundTitle": "Organization not found.",
+    "notFoundBody": "The organization does not exist or is not visible.",
+    "createFailed": "Organization could not be created.",
+    "nav": {
+      "overview": "Overview",
+      "organizations": "Organizations",
+      "admins": "Platform Admins",
+      "usage": "Usage",
+      "settings": "Settings"
+    },
+    "dash": {
+      "orgs": "Organizations",
+      "orgsBody": "Create, open, activate and deactivate",
+      "admins": "Platform Admins",
+      "adminsBody": "List, add, and revoke platform admins",
+      "usage": "Usage",
+      "usageBody": "Aggregated platform usage",
+      "settings": "Platform Settings",
+      "settingsBody": "Safe metadata — never secrets",
+      "statOrgs": "Active organizations",
+      "statAdmins": "Active platform admins",
+      "statEvents": "Usage events",
+      "scopeNote": "Platform actions are break-glass. Server and RLS remain the security boundary."
+    },
+    "orgs": {
+      "create": "Create organization",
+      "name": "Organization name",
+      "displayName": "Display name",
+      "website": "Website (optional)",
+      "support": "Support (optional)",
+      "logo": "Logo URL (optional)",
+      "submit": "Create organization",
+      "colName": "Name",
+      "colDisplay": "Display name",
+      "colStatus": "Status",
+      "colMembers": "Members",
+      "colCreated": "Created",
+      "colActions": "Actions",
+      "open": "Open",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate",
+      "empty": "No organizations yet.",
+      "inviteAdmin": "Invite org admin",
+      "inviteCreated": "Invite code"
+    },
+    "detail": {
+      "members": "Members",
+      "teams": "Teams",
+      "tools": "Tools",
+      "agents": "Coach agents",
+      "knowledge": "Knowledge",
+      "live": "Live coaching",
+      "stories": "Stories",
+      "content": "Content assets",
+      "instagram": "Instagram connections",
+      "usage": "Usage events",
+      "branding": "Branding",
+      "brandingYes": "Branding configured",
+      "brandingNo": "Neutral branding"
+    },
+    "admins": {
+      "addTitle": "Add platform admin",
+      "addHint": "Existing auth identities only. No automatic grants.",
+      "identityId": "Identity UUID",
+      "notes": "Notes (optional)",
+      "add": "Add",
+      "revoke": "Revoke",
+      "failed": "Action failed.",
+      "colName": "Name",
+      "colId": "Identity",
+      "colStatus": "Status",
+      "colGranted": "Granted",
+      "colActions": "Actions"
+    },
+    "usage": {
+      "hint": "Aggregated usage_events across all organizations.",
+      "total": "Total events",
+      "coach": "Coach messages",
+      "appOpens": "App opens",
+      "plans": "Plans committed",
+      "byOrg": "By organization",
+      "orgId": "Org ID",
+      "events": "Events",
+      "empty": "No usage data.",
+      "billingNote": "Billing (Phase 11) is not implemented here."
+    },
+    "settings": {
+      "hint": "Safe metadata only. Secret values are never shown.",
+      "supabase": "Supabase",
+      "ai": "AI provider",
+      "instagram": "Instagram",
+      "push": "Push",
+      "billing": "Billing",
+      "secretsTitle": "Secrets",
+      "secretsBody": "API keys and secrets are not shown here and cannot be changed."
     }
   }
 }

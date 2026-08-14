@@ -2815,6 +2815,7 @@ export type Database = {
           id: string;
           name: string;
           settings: Json;
+          status: string;
         };
         Insert: {
           branding?: Json;
@@ -2822,6 +2823,7 @@ export type Database = {
           id?: string;
           name: string;
           settings?: Json;
+          status?: string;
         };
         Update: {
           branding?: Json;
@@ -2829,6 +2831,7 @@ export type Database = {
           id?: string;
           name?: string;
           settings?: Json;
+          status?: string;
         };
         Relationships: [];
       };
@@ -3970,6 +3973,7 @@ export type Database = {
           id: string;
           name: string;
           settings: Json;
+          status: string;
         };
         SetofOptions: {
           from: '*';
@@ -4009,6 +4013,123 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      platform_add_platform_admin: {
+        Args: { p_identity_id: string; p_notes?: string };
+        Returns: {
+          created_at: string;
+          granted_at: string;
+          granted_by: string | null;
+          id: string;
+          identity_id: string;
+          is_active: boolean;
+          notes: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'platform_admins';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      platform_config_status: { Args: never; Returns: Json };
+      platform_create_org_admin_invite: {
+        Args: { p_invite_role?: string; p_org_id: string };
+        Returns: {
+          invite_code: string;
+          invite_expires_at: string;
+        }[];
+      };
+      platform_create_organization: {
+        Args: {
+          p_admin_identity_id?: string;
+          p_display_name?: string;
+          p_logo_url?: string;
+          p_name: string;
+          p_support_url?: string;
+          p_website?: string;
+        };
+        Returns: {
+          branding: Json;
+          created_at: string;
+          id: string;
+          name: string;
+          settings: Json;
+          status: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'organizations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      platform_get_organization: { Args: { p_org_id: string }; Returns: Json };
+      platform_list_organizations: {
+        Args: never;
+        Returns: {
+          created_at: string;
+          display_name: string;
+          id: string;
+          member_count: number;
+          name: string;
+          status: string;
+          team_count: number;
+        }[];
+      };
+      platform_list_platform_admins: {
+        Args: never;
+        Returns: {
+          first_name: string;
+          granted_at: string;
+          id: string;
+          identity_id: string;
+          is_active: boolean;
+          last_name: string;
+          notes: string;
+          revoked_at: string;
+          username: string;
+        }[];
+      };
+      platform_revoke_platform_admin: {
+        Args: { p_identity_id: string };
+        Returns: {
+          created_at: string;
+          granted_at: string;
+          granted_by: string | null;
+          id: string;
+          identity_id: string;
+          is_active: boolean;
+          notes: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'platform_admins';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      platform_set_organization_status: {
+        Args: { p_org_id: string; p_status: string };
+        Returns: {
+          branding: Json;
+          created_at: string;
+          id: string;
+          name: string;
+          settings: Json;
+          status: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'organizations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      platform_usage_overview: { Args: never; Returns: Json };
       plan_contact_state: {
         Args: never;
         Returns: {

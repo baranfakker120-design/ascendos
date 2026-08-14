@@ -21,6 +21,7 @@ export function MorePage() {
     profile,
     isSuperAdmin,
     isOrganizationAdmin,
+    isPlatformSuperAdmin,
     canManageCoachContent,
     membership,
     needsOrgSelection,
@@ -109,6 +110,20 @@ export function MorePage() {
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('more.title')}</h1>
       </header>
+
+      {isPlatformSuperAdmin ? (
+        <Link to="/platform-admin" className="block">
+          <Card className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">{t('more.platformAdmin')}</p>
+              <p className="mt-0.5 text-sm text-muted">{t('more.platformAdminSub')}</p>
+            </div>
+            <span className="text-primary" aria-hidden>
+              →
+            </span>
+          </Card>
+        </Link>
+      ) : null}
 
       {isOrganizationAdmin ? (
         <Link to="/admin" className="block">
