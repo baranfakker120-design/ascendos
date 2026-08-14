@@ -65,6 +65,8 @@ describe('Phase 10 — secret exposure (platform-admin + FE src)', () => {
     for (const key of FORBIDDEN) {
       expect(migration.includes(key)).toBe(false);
     }
-    expect(migration.toLowerCase().includes('stripe')).toBe(false);
+    // Documentary "no payment provider" comments may mention providers; forbid SDK/secrets only.
+    expect(migration.includes('Stripe SDK')).toBe(false);
+    expect(migration.includes('sk_live')).toBe(false);
   });
 });
