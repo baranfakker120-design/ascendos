@@ -18,6 +18,7 @@ const LINKS = [
   { to: '/admin/content', title: 'orgAdmin.dash.content', body: 'orgAdmin.dash.contentBody' },
   { to: '/admin/live-coaching', title: 'orgAdmin.dash.live', body: 'orgAdmin.dash.liveBody' },
   { to: '/admin/stories', title: 'orgAdmin.dash.stories', body: 'orgAdmin.dash.storiesBody' },
+  { to: '/admin/billing', title: 'orgAdmin.dash.billing', body: 'orgAdmin.dash.billingBody' },
 ] as const;
 
 export function OrgAdminDashboardPage() {

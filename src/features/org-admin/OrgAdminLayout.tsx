@@ -14,6 +14,7 @@ const NAV = [
   { to: '/admin/content', end: false, key: 'orgAdmin.nav.content' },
   { to: '/admin/live-coaching', end: false, key: 'orgAdmin.nav.live' },
   { to: '/admin/stories', end: false, key: 'orgAdmin.nav.stories' },
+  { to: '/admin/billing', end: false, key: 'orgAdmin.nav.billing' },
 ] as const;
 
 export function OrgAdminLayout() {

@@ -21,6 +21,11 @@ const LINKS = [
     body: 'platformAdmin.dash.usageBody',
   },
   {
+    to: '/platform-admin/billing',
+    title: 'platformAdmin.dash.billing',
+    body: 'platformAdmin.dash.billingBody',
+  },
+  {
     to: '/platform-admin/settings',
     title: 'platformAdmin.dash.settings',
     body: 'platformAdmin.dash.settingsBody',

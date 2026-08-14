@@ -473,6 +473,33 @@ export type Database = {
           },
         ];
       };
+      billing_config: {
+        Row: {
+          base_price_cents: number;
+          currency: string;
+          id: number;
+          plan_key: string;
+          seat_price_cents: number;
+          updated_at: string;
+        };
+        Insert: {
+          base_price_cents?: number;
+          currency?: string;
+          id?: number;
+          plan_key?: string;
+          seat_price_cents?: number;
+          updated_at?: string;
+        };
+        Update: {
+          base_price_cents?: number;
+          currency?: string;
+          id?: number;
+          plan_key?: string;
+          seat_price_cents?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       coach_convos: {
         Row: {
           agent_key: string | null;
@@ -2835,6 +2862,192 @@ export type Database = {
         };
         Relationships: [];
       };
+      org_billing_accounts: {
+        Row: {
+          billing_email: string | null;
+          created_at: string;
+          currency: string;
+          id: string;
+          organization_id: string;
+          provider_customer_id: string | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          billing_email?: string | null;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          organization_id: string;
+          provider_customer_id?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          billing_email?: string | null;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          organization_id?: string;
+          provider_customer_id?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'org_billing_accounts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: true;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      org_invoices: {
+        Row: {
+          created_at: string;
+          currency: string;
+          id: string;
+          organization_id: string;
+          period_end: string | null;
+          period_start: string | null;
+          status: string;
+          subtotal_cents: number;
+          total_cents: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          organization_id: string;
+          period_end?: string | null;
+          period_start?: string | null;
+          status?: string;
+          subtotal_cents?: number;
+          total_cents?: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          organization_id?: string;
+          period_end?: string | null;
+          period_start?: string | null;
+          status?: string;
+          subtotal_cents?: number;
+          total_cents?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'org_invoices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      org_subscription_items: {
+        Row: {
+          created_at: string;
+          id: string;
+          item_type: string;
+          organization_id: string;
+          quantity: number;
+          subscription_id: string;
+          unit_price_cents: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          item_type: string;
+          organization_id: string;
+          quantity: number;
+          subscription_id: string;
+          unit_price_cents: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          item_type?: string;
+          organization_id?: string;
+          quantity?: number;
+          subscription_id?: string;
+          unit_price_cents?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'org_subscription_items_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'org_subscription_items_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'org_subscriptions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      org_subscriptions: {
+        Row: {
+          base_price_cents: number;
+          created_at: string;
+          currency: string;
+          current_period_end: string;
+          current_period_start: string;
+          id: string;
+          organization_id: string;
+          plan_key: string;
+          seat_price_cents: number;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          base_price_cents: number;
+          created_at?: string;
+          currency?: string;
+          current_period_end?: string;
+          current_period_start?: string;
+          id?: string;
+          organization_id: string;
+          plan_key?: string;
+          seat_price_cents: number;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          base_price_cents?: number;
+          created_at?: string;
+          currency?: string;
+          current_period_end?: string;
+          current_period_start?: string;
+          id?: string;
+          organization_id?: string;
+          plan_key?: string;
+          seat_price_cents?: number;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'org_subscriptions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: true;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       payouts: {
         Row: {
           amount_cents: number;
@@ -3696,6 +3909,16 @@ export type Database = {
         Returns: number;
       };
       ap_recalculate: { Args: { p_membership_id: string }; Returns: number };
+      billing_count_active_seats: { Args: { p_org_id: string }; Returns: number };
+      billing_estimate_monthly_cents: {
+        Args: {
+          p_active_seats: number;
+          p_base_price_cents?: number;
+          p_seat_price_cents?: number;
+        };
+        Returns: number;
+      };
+      billing_get_config: { Args: never; Returns: Json };
       check_achievements: { Args: never; Returns: string[] };
       coach_messages_today: { Args: { p_user: string }; Returns: number };
       commit_daily_plan: { Args: { p_plan_id: string }; Returns: undefined };
@@ -3739,6 +3962,7 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
+      ensure_org_billing: { Args: { p_org_id: string }; Returns: undefined };
       ensure_role_frame_cosmetics: { Args: never; Returns: undefined };
       equip_frame_cosmetic: { Args: { p_item_id: string }; Returns: undefined };
       evaluate_team_leader_qualification: {
@@ -3882,6 +4106,8 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
+      org_admin_get_billing: { Args: never; Returns: Json };
+      org_admin_get_usage: { Args: never; Returns: Json };
       org_admin_set_membership_role: {
         Args: { p_membership_id: string; p_role: string };
         Returns: {
@@ -4131,6 +4357,23 @@ export type Database = {
         };
       };
       platform_get_organization: { Args: { p_org_id: string }; Returns: Json };
+      platform_list_billing: {
+        Args: { p_status?: string };
+        Returns: {
+          active_seats: number;
+          base_price_cents: number;
+          billing_status: string;
+          currency: string;
+          display_name: string;
+          estimated_monthly_cents: number;
+          organization_id: string;
+          organization_name: string;
+          plan_key: string;
+          seat_price_cents: number;
+          seat_total_cents: number;
+          subscription_status: string;
+        }[];
+      };
       platform_list_organizations: {
         Args: never;
         Returns: {
@@ -4205,6 +4448,7 @@ export type Database = {
           threshold_ap: number;
         }[];
       };
+      refresh_org_billing_seats: { Args: { p_org_id: string }; Returns: number };
       redeem_invite: {
         Args: { invite_code: string };
         Returns: {
