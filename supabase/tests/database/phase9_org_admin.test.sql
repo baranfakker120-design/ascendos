@@ -118,7 +118,7 @@ select tests.select_org('b9000000-0000-0000-0000-000000000001');
 
 -- TEST D: cannot UPDATE Org B branding row (RLS → 0 rows)
 select lives_ok(
-  $$do $body$
+  $sql$do $body$
   declare
     n int;
   begin
@@ -130,7 +130,7 @@ select lives_ok(
       raise exception 'expected 0 updated rows, got %', n;
     end if;
   end
-  $body$$$,
+  $body$;$sql$,
   'TEST D: Org A admin cannot UPDATE Org B branding row'
 );
 
@@ -226,7 +226,10 @@ select throws_ok(
   'ADR 0007: organizations.name cannot be changed'
 );
 
--- Org1 seed continuity
+-- Org1 seed continuity (bypass RLS — members only see current_org_id)
+reset role;
+select set_config('request.jwt.claims', '', true);
+select set_config('request.headers', '', true);
 select ok(
   exists (
     select 1 from public.organizations
