@@ -2835,33 +2835,6 @@ export type Database = {
           },
         ];
       };
-      organizations: {
-        Row: {
-          branding: Json;
-          created_at: string;
-          id: string;
-          name: string;
-          settings: Json;
-          status: string;
-        };
-        Insert: {
-          branding?: Json;
-          created_at?: string;
-          id?: string;
-          name: string;
-          settings?: Json;
-          status?: string;
-        };
-        Update: {
-          branding?: Json;
-          created_at?: string;
-          id?: string;
-          name?: string;
-          settings?: Json;
-          status?: string;
-        };
-        Relationships: [];
-      };
       org_billing_accounts: {
         Row: {
           billing_email: string | null;
@@ -3047,6 +3020,33 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      organizations: {
+        Row: {
+          branding: Json;
+          created_at: string;
+          id: string;
+          name: string;
+          settings: Json;
+          status: string;
+        };
+        Insert: {
+          branding?: Json;
+          created_at?: string;
+          id?: string;
+          name: string;
+          settings?: Json;
+          status?: string;
+        };
+        Update: {
+          branding?: Json;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          settings?: Json;
+          status?: string;
+        };
+        Relationships: [];
       };
       payouts: {
         Row: {
