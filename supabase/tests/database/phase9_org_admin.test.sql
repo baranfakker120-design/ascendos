@@ -82,6 +82,25 @@ begin
 end;
 $$;
 
+create or replace function tests.p9_try_update_org_b_branding()
+returns int
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  n int;
+begin
+  update public.organizations
+  set branding = branding || '{"hack":"1"}'::jsonb
+  where id = 'b9000000-0000-0000-0000-000000000002';
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+
+grant execute on function tests.p9_try_update_org_b_branding() to authenticated;
+
 -- TEST A: Org A admin is organization admin
 select tests.authenticate_as('a9000000-0000-0000-0000-00000000000a');
 select tests.select_org('b9000000-0000-0000-0000-000000000001');
