@@ -217,7 +217,9 @@
     "new": "+ Yeni",
     "orgGuide": "{name} Rehberi",
     "orgGuideGeneric": "Organizasyon rehberi",
-    "orgGuideSub": "Aktif organizasyon rehberi"
+    "orgGuideSub": "Aktif organizasyon rehberi",
+    "orgAdmin": "Organizasyon Admin",
+    "orgAdminSub": "Bu organizasyonun branding, üyelerini ve araçlarını yönet"
   },
   "pipeline": {
     "phase": {
@@ -1337,5 +1339,142 @@
     "loadHint": "Yeni sekmede aç ve sonra geri dön.",
     "notConfigured": "Henüz rehber yapılandırılmadı.",
     "notConfiguredHint": "Aktif organizasyonun henüz bir rehber bağlantısı yok."
+  },
+  "orgAdmin": {
+    "eyebrow": "Organization",
+    "title": "Organization Admin",
+    "navLabel": "Admin sections",
+    "activeOrg": "Active organization: {name}",
+    "activeOrgGeneric": "Active organization",
+    "notSet": "Not set",
+    "saved": "Saved.",
+    "saveFailed": "Could not save.",
+    "loadFailed": "Could not load data.",
+    "unavailable": "Not available for your role yet.",
+    "back": "Back to admin",
+    "backMore": "Back to More",
+    "forbiddenTitle": "No permission for this area.",
+    "forbiddenBody": "Organization Admin is only available for admins of the active organization.",
+    "platformDeniedTitle": "No permission for this area.",
+    "platformDeniedBody": "Platform Admin is not available here. Organization admins cannot open platform administration.",
+    "nav": {
+      "dashboard": "Dashboard",
+      "organization": "Organization",
+      "members": "Members",
+      "branding": "Branding",
+      "tools": "Tools",
+      "coach": "Coach",
+      "knowledge": "Knowledge",
+      "content": "Content",
+      "live": "Live Coaching",
+      "stories": "Stories"
+    },
+    "dash": {
+      "organization": "Organization",
+      "organizationBody": "Name, display name, website, support",
+      "members": "Members",
+      "membersBody": "Roles, status, invites",
+      "branding": "Branding",
+      "brandingBody": "Display name, logo, colors, coach label",
+      "tools": "Tools / Links",
+      "toolsBody": "Guide, onboarding, presentation, fit check",
+      "coach": "Coach",
+      "coachBody": "Display name and agent personas",
+      "knowledge": "Knowledge",
+      "knowledgeBody": "Org knowledge surfaces",
+      "content": "Content",
+      "contentBody": "Existing content assistant",
+      "live": "Live Coaching",
+      "liveBody": "Org live events",
+      "stories": "Stories",
+      "storiesBody": "Org stories",
+      "roleLine": "Your role in this organization: {role}",
+      "scopeNote": "All changes apply only to the active organization. Server and RLS remain the security boundary.",
+      "contentGateHint": "Some content tools require additional editor permissions."
+    },
+    "org": {
+      "internalName": "Internal name",
+      "internalNameHint": "organizations.name is fixed for this org identity (not branding).",
+      "displayName": "Display name",
+      "website": "Website",
+      "support": "Support",
+      "guide": "Guide URL",
+      "coach": "Coach display name"
+    },
+    "branding": {
+      "hint": "Updates branding for the active organization only. organizations.name is never changed.",
+      "displayName": "Display name",
+      "appDisplayName": "App display name",
+      "logoUrl": "Logo URL",
+      "primaryColor": "Primary color",
+      "website": "Website",
+      "support": "Support URL",
+      "guideUrl": "Guide URL",
+      "coachDisplayName": "Coach display name",
+      "preview": "Preview",
+      "coachFallback": "Platform coach name"
+    },
+    "members": {
+      "inviteTitle": "Invite",
+      "inviteHint": "Invites are always bound to the active organization.",
+      "inviteRole": "Invite role",
+      "createInvite": "Create invite",
+      "listTitle": "Members",
+      "role": "Role",
+      "status": "Status",
+      "invitesTitle": "Recent invites",
+      "used": "used"
+    },
+    "tools": {
+      "addTitle": "Add or update tool",
+      "hint": "Tools are stored in external_tools for the active organization. No Team Seyda fallbacks.",
+      "key": "Key",
+      "name": "Name",
+      "url": "URL",
+      "description": "Description",
+      "save": "Save tool",
+      "listTitle": "Configured tools",
+      "active": "Active",
+      "inactive": "Inactive",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "coach": {
+      "displayTitle": "Coach display name",
+      "displayHint": "Shown in the app chrome. Never falls back to Seyda.",
+      "agentsTitle": "Agents",
+      "agentsHint": "Org-scoped personas only. AI providers and API keys stay central.",
+      "agentName": "Agent name",
+      "prompt": "System prompt"
+    },
+    "knowledge": {
+      "title": "Knowledge",
+      "body": "Open existing org-scoped knowledge tools. No global knowledge list.",
+      "openCms": "Open Knowledge Center",
+      "openRag": "Open RAG ingest"
+    },
+    "content": {
+      "title": "Content",
+      "body": "Uses the existing content assistant for this organization.",
+      "autopilotNote": "Autopilot (1 image) and Manual Carousel (max 10) are unchanged.",
+      "open": "Open Content Assistant"
+    },
+    "live": {
+      "title": "Live Coaching",
+      "body": "Manage live coaching for the active organization only.",
+      "open": "Open Live Coaching"
+    },
+    "stories": {
+      "title": "Stories",
+      "body": "Manage Ascend Stories for the active organization only.",
+      "open": "Open Stories"
+    },
+    "empty": {
+      "organization": "No organization loaded.",
+      "members": "No members found.",
+      "invites": "No invites yet.",
+      "tools": "No tools configured.",
+      "coach": "No coach configured."
+    }
   }
 }

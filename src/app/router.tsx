@@ -27,6 +27,21 @@ import { SettingsPage } from '@features/settings/SettingsPage';
 import { TeamPage } from '@features/genealogy/TeamPage';
 import { QualificationsPage } from '@features/leadership/QualificationsPage';
 import { OrganizationGuidePage } from '@features/team-seyda/TeamSeydaPage';
+import {
+  OrgAdminLayout,
+  OrgAdminDashboardPage,
+  OrgAdminOrganizationPage,
+  OrgAdminBrandingPage,
+  OrgAdminMembersPage,
+  OrgAdminToolsPage,
+  OrgAdminCoachPage,
+  OrgAdminKnowledgeHubPage,
+  OrgAdminContentHubPage,
+  OrgAdminLiveHubPage,
+  OrgAdminStoriesHubPage,
+  PlatformAdminDeniedPage,
+  OrgAdminForbiddenPage,
+} from '@features/org-admin';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { PrivacyPolicyPage } from '@features/legal/PrivacyPolicyPage';
@@ -132,6 +147,15 @@ function RequireCoachContentManager() {
   return <Outlet />;
 }
 
+/** Phase 9 — ORGANIZATION_ADMIN for active org (UX gate; RLS/RPC enforce). */
+function RequireOrganizationAdmin() {
+  const { session, isOrganizationAdmin } = useAuth();
+  if (session === undefined) return <FullScreenSpinner />;
+  if (session === null) return <Navigate to="/login" replace />;
+  if (!isOrganizationAdmin) return <OrgAdminForbiddenPage />;
+  return <Outlet />;
+}
+
 /** Nur ohne Session erreichbar; eingeloggte Nutzer -> App. */
 function RequireGuest() {
   const { session } = useAuth();
@@ -183,6 +207,31 @@ export const router = createBrowserRouter([
               { path: '/profil', element: <ProfilePage /> },
               { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
               { path: '/hilfe/installation', element: <InstallGuidePage /> },
+              {
+                path: '/platform-admin',
+                element: <PlatformAdminDeniedPage />,
+              },
+              {
+                element: <RequireOrganizationAdmin />,
+                children: [
+                  {
+                    path: '/admin',
+                    element: <OrgAdminLayout />,
+                    children: [
+                      { index: true, element: <OrgAdminDashboardPage /> },
+                      { path: 'organization', element: <OrgAdminOrganizationPage /> },
+                      { path: 'members', element: <OrgAdminMembersPage /> },
+                      { path: 'branding', element: <OrgAdminBrandingPage /> },
+                      { path: 'tools', element: <OrgAdminToolsPage /> },
+                      { path: 'coach', element: <OrgAdminCoachPage /> },
+                      { path: 'knowledge', element: <OrgAdminKnowledgeHubPage /> },
+                      { path: 'content', element: <OrgAdminContentHubPage /> },
+                      { path: 'live-coaching', element: <OrgAdminLiveHubPage /> },
+                      { path: 'stories', element: <OrgAdminStoriesHubPage /> },
+                    ],
+                  },
+                ],
+              },
               {
                 element: <RequireSuperAdmin />,
                 children: [{ path: '/wissen', element: <KnowledgePage /> }],
