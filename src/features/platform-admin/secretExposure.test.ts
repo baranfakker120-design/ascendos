@@ -32,23 +32,26 @@ describe('Phase 10 — secret exposure (platform-admin + FE src)', () => {
     for (const file of files) {
       const text = readFileSync(file, 'utf8');
       for (const key of FORBIDDEN) {
-        // Allow documentation comments that say "never show X" only if not assigning values.
         expect(text.includes(`${key}=`), `${file} must not assign ${key}`).toBe(false);
         expect(text.includes(`"${key}"`), `${file} must not stringify ${key} as config`).toBe(
           false
         );
+        expect(text.includes(key), `${file} must not mention ${key}`).toBe(false);
       }
     }
   });
 
-  it('platform settings UI only exposes configured/connected metadata', () => {
-    const page = readFileSync(
-      join(process.cwd(), 'src/features/platform-admin/PlatformSettingsPage.tsx'),
+  it('platform config RPC returns metadata only (migration)', () => {
+    const migration = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20260906000050_phase10_platform_admin.sql'),
       'utf8'
     );
-    expect(page).toMatch(/configured|connected|not_implemented/);
+    expect(migration).toMatch(/platform_config_status/);
+    expect(migration).toMatch(/'configured'/);
+    expect(migration).toMatch(/'connected'/);
+    expect(migration).toMatch(/'not_implemented'/);
     for (const key of FORBIDDEN) {
-      expect(page.includes(key)).toBe(false);
+      expect(migration.includes(key)).toBe(false);
     }
   });
 });

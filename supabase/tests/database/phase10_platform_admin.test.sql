@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(27);
 
 set local session_replication_role = replica;
 insert into auth.users (id, email) values

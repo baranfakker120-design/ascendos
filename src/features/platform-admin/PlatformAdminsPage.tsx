@@ -3,11 +3,7 @@ import { useI18n } from '@shared/i18n';
 import { Card } from '@shared/ui/Card';
 import { Button } from '@shared/ui/Button';
 import { useAuth } from '@shared/auth/AuthProvider';
-import {
-  usePlatformAdmins,
-  useAddPlatformAdmin,
-  useRevokePlatformAdmin,
-} from './platformAdminApi';
+import { usePlatformAdmins, useAddPlatformAdmin, useRevokePlatformAdmin } from './platformAdminApi';
 
 export function PlatformAdminsPage() {
   const { t } = useI18n();
@@ -109,7 +105,9 @@ export function PlatformAdminsPage() {
             })}
           </tbody>
         </table>
-        {list.isLoading ? <p className="platform-admin__muted">{t('platformAdmin.loading')}</p> : null}
+        {list.isLoading ? (
+          <p className="platform-admin__muted">{t('platformAdmin.loading')}</p>
+        ) : null}
       </Card>
     </div>
   );

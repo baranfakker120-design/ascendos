@@ -16,9 +16,9 @@ Organization Admin (`/admin`) remains org-scoped and cannot access platform cont
 
 ## Authority
 
-| Gate | Source |
-| ---- | ------ |
-| Platform | `platform_admins` / `is_platform_super_admin()` |
+| Gate      | Source                                                      |
+| --------- | ----------------------------------------------------------- |
+| Platform  | `platform_admins` / `is_platform_super_admin()`             |
 | Org admin | `memberships.role` ∈ {`super_admin`,`admin`} for active org |
 
 Never: `is_super_admin()`, `profiles.role`, or FE flags alone.
@@ -27,17 +27,17 @@ Never: `is_super_admin()`, `profiles.role`, or FE flags alone.
 
 ## Features
 
-| Area | Status |
-| ---- | ------ |
-| Organization list | PASS — platform RPC |
-| Create organization | PASS — atomic org + neutral branding + Main Team |
-| Deactivate / reactivate | PASS — no hard delete |
-| Organization detail | PASS — counts + branding status |
-| Org-admin invite | PASS — invite bound to target `org_id` |
-| Platform admins list/add/revoke | PASS — last-admin protection |
-| Usage overview | PASS — aggregated `usage_events` |
-| Platform settings | PASS — metadata only (`configured` / `connected`) |
-| Billing | NOT IMPLEMENTED (Phase 11) |
+| Area                            | Status                                            |
+| ------------------------------- | ------------------------------------------------- |
+| Organization list               | PASS — platform RPC                               |
+| Create organization             | PASS — atomic org + neutral branding + Main Team  |
+| Deactivate / reactivate         | PASS — no hard delete                             |
+| Organization detail             | PASS — counts + branding status                   |
+| Org-admin invite                | PASS — invite bound to target `org_id`            |
+| Platform admins list/add/revoke | PASS — last-admin protection                      |
+| Usage overview                  | PASS — aggregated `usage_events`                  |
+| Platform settings               | PASS — metadata only (`configured` / `connected`) |
+| Billing                         | NOT IMPLEMENTED (Phase 11)                        |
 
 ---
 

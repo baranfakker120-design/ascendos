@@ -79,11 +79,7 @@ export function PlatformOrganizationsPage() {
             </div>
             <div className="platform-admin__field">
               <label htmlFor="pa-org-web">{t('platformAdmin.orgs.website')}</label>
-              <input
-                id="pa-org-web"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-              />
+              <input id="pa-org-web" value={website} onChange={(e) => setWebsite(e.target.value)} />
             </div>
             <div className="platform-admin__field">
               <label htmlFor="pa-org-support">{t('platformAdmin.orgs.support')}</label>
@@ -111,9 +107,7 @@ export function PlatformOrganizationsPage() {
         </Card>
       ) : null}
 
-      {list.isError ? (
-        <p className="text-sm text-danger">{(list.error as Error).message}</p>
-      ) : null}
+      {list.isError ? <p className="text-sm text-danger">{(list.error as Error).message}</p> : null}
 
       <Card className="overflow-x-auto">
         <table className="platform-admin__table">
@@ -177,7 +171,9 @@ export function PlatformOrganizationsPage() {
             ))}
           </tbody>
         </table>
-        {list.isLoading ? <p className="platform-admin__muted">{t('platformAdmin.loading')}</p> : null}
+        {list.isLoading ? (
+          <p className="platform-admin__muted">{t('platformAdmin.loading')}</p>
+        ) : null}
         {!list.isLoading && (list.data ?? []).length === 0 ? (
           <p className="platform-admin__muted">{t('platformAdmin.orgs.empty')}</p>
         ) : null}

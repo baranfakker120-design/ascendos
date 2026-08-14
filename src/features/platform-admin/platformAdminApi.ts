@@ -85,7 +85,7 @@ export function usePlatformOrganization(orgId: string | undefined, enabled: bool
         p_org_id: orgId!,
       });
       if (error) throw new Error(rpcErrorMessage(error));
-      return data as PlatformOrgDetail;
+      return data as unknown as PlatformOrgDetail;
     },
   });
 }
@@ -103,11 +103,11 @@ export function useCreateOrganization() {
     }) => {
       const { data, error } = await supabase.rpc('platform_create_organization', {
         p_name: input.name,
-        p_display_name: input.displayName || null,
-        p_website: input.website || null,
-        p_support_url: input.supportUrl || null,
-        p_logo_url: input.logoUrl || null,
-        p_admin_identity_id: input.adminIdentityId || null,
+        p_display_name: input.displayName || undefined,
+        p_website: input.website || undefined,
+        p_support_url: input.supportUrl || undefined,
+        p_logo_url: input.logoUrl || undefined,
+        p_admin_identity_id: input.adminIdentityId || undefined,
       });
       if (error) throw new Error(rpcErrorMessage(error));
       return data as { id: string; name: string; status: string };
@@ -168,7 +168,7 @@ export function useAddPlatformAdmin() {
     mutationFn: async (input: { identityId: string; notes?: string }) => {
       const { data, error } = await supabase.rpc('platform_add_platform_admin', {
         p_identity_id: input.identityId,
-        p_notes: input.notes || null,
+        p_notes: input.notes || undefined,
       });
       if (error) throw new Error(rpcErrorMessage(error));
       return data;

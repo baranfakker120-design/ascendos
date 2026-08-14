@@ -36,16 +36,16 @@ Do **not** apply Phase 10 migration to production without approval.
 
 ## Current architecture stand (facts)
 
-| Area                        | Status                                                     |
-| --------------------------- | ---------------------------------------------------------- |
-| Single Supabase project     | Yes                                                        |
-| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                           |
-| Org selector                | `x-ascendos-org` + `current_org_id()`                      |
-| Roles                       | Org roles + `platform_admins`                              |
-| Org Admin UI                | **`/admin`** (Phase 9) — active org only                   |
-| Platform Admin UI           | **`/platform-admin`** (Phase 10) — `PLATFORM_SUPER_ADMIN`  |
-| Frontend branding / tools   | Org-scoped (Phase 8)                                       |
-| Autopilot / Manual carousel | Unchanged (1 image / ≤10)                                  |
+| Area                        | Status                                                    |
+| --------------------------- | --------------------------------------------------------- |
+| Single Supabase project     | Yes                                                       |
+| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                          |
+| Org selector                | `x-ascendos-org` + `current_org_id()`                     |
+| Roles                       | Org roles + `platform_admins`                             |
+| Org Admin UI                | **`/admin`** (Phase 9) — active org only                  |
+| Platform Admin UI           | **`/platform-admin`** (Phase 10) — `PLATFORM_SUPER_ADMIN` |
+| Frontend branding / tools   | Org-scoped (Phase 8)                                      |
+| Autopilot / Manual carousel | Unchanged (1 image / ≤10)                                 |
 
 ---
 
