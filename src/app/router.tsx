@@ -39,9 +39,18 @@ import {
   OrgAdminContentHubPage,
   OrgAdminLiveHubPage,
   OrgAdminStoriesHubPage,
-  PlatformAdminDeniedPage,
   OrgAdminForbiddenPage,
 } from '@features/org-admin';
+import {
+  PlatformAdminLayout,
+  PlatformAdminOverviewPage,
+  PlatformOrganizationsPage,
+  PlatformOrganizationDetailPage,
+  PlatformAdminsPage,
+  PlatformUsagePage,
+  PlatformSettingsPage,
+  PlatformAdminDeniedPage,
+} from '@features/platform-admin';
 import { LoginPage } from '@features/auth/LoginPage';
 import { RegisterPage } from '@features/auth/RegisterPage';
 import { PrivacyPolicyPage } from '@features/legal/PrivacyPolicyPage';
@@ -156,6 +165,15 @@ function RequireOrganizationAdmin() {
   return <Outlet />;
 }
 
+/** Phase 10 — PLATFORM_SUPER_ADMIN via platform_admins (UX gate; RLS/RPC enforce). */
+function RequirePlatformSuperAdmin() {
+  const { session, isPlatformSuperAdmin } = useAuth();
+  if (session === undefined) return <FullScreenSpinner />;
+  if (session === null) return <Navigate to="/login" replace />;
+  if (!isPlatformSuperAdmin) return <PlatformAdminDeniedPage />;
+  return <Outlet />;
+}
+
 /** Nur ohne Session erreichbar; eingeloggte Nutzer -> App. */
 function RequireGuest() {
   const { session } = useAuth();
@@ -208,8 +226,24 @@ export const router = createBrowserRouter([
               { path: '/profil/bearbeiten', element: <ProfileEditPage /> },
               { path: '/hilfe/installation', element: <InstallGuidePage /> },
               {
-                path: '/platform-admin',
-                element: <PlatformAdminDeniedPage />,
+                element: <RequirePlatformSuperAdmin />,
+                children: [
+                  {
+                    path: '/platform-admin',
+                    element: <PlatformAdminLayout />,
+                    children: [
+                      { index: true, element: <PlatformAdminOverviewPage /> },
+                      { path: 'organizations', element: <PlatformOrganizationsPage /> },
+                      {
+                        path: 'organizations/:orgId',
+                        element: <PlatformOrganizationDetailPage />,
+                      },
+                      { path: 'admins', element: <PlatformAdminsPage /> },
+                      { path: 'usage', element: <PlatformUsagePage /> },
+                      { path: 'settings', element: <PlatformSettingsPage /> },
+                    ],
+                  },
+                ],
               },
               {
                 element: <RequireOrganizationAdmin />,

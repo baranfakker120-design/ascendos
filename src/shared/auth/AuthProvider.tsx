@@ -12,6 +12,7 @@ import { setActiveOrg, supabase } from '@shared/api/supabase';
 import type { Membership, Profile } from '@shared/types/domain';
 import { canManageCoachContent } from './coachContentAuthority';
 import { isOrganizationAdminRole } from './organizationAdminAuthority';
+import { isPlatformSuperAdminFlag } from './platformAdminAuthority';
 import {
   isSuperAdminRole,
   pickActiveMembership,
@@ -25,6 +26,7 @@ import {
  * Session + membership-backed authorization.
  * Canonical role: memberships.role (active membership).
  * profiles.role is display mirror only — never used for gates.
+ * Platform admin: is_platform_super_admin() / platform_admins only.
  */
 interface AuthState {
   /** undefined = wird noch geladen, null = nicht eingeloggt */
@@ -39,6 +41,8 @@ interface AuthState {
   isSuperAdmin: boolean;
   /** Phase 9 — org admin for active membership (super_admin|admin). Not platform. */
   isOrganizationAdmin: boolean;
+  /** Phase 10 — platform_admins / is_platform_super_admin(). Not org role. */
+  isPlatformSuperAdmin: boolean;
   /** Sprint 5.1 — Knowledge Center & Live Coaching editors. */
   canManageCoachContent: boolean;
   /** Mehrere Orgs → Nutzer muss wählen / gespeicherte Wahl gilt. */
@@ -93,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [membership, setMembership] = useState<Membership | null>(null);
+  const [isPlatformSuperAdmin, setIsPlatformSuperAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
@@ -104,12 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadAuth = useCallback(async (userId: string, trackOpen: boolean) => {
-    const [profileRow, membershipRows] = await Promise.all([
+    const [profileRow, membershipRows, platformFlag] = await Promise.all([
       fetchProfile(userId),
       fetchActiveMemberships(userId),
+      supabase.rpc('is_platform_super_admin').then(({ data }) => Boolean(data)),
     ]);
     setProfile(profileRow);
     setMemberships(membershipRows);
+    setIsPlatformSuperAdmin(isPlatformSuperAdminFlag(platformFlag));
 
     const { membership: active } = applyOrgSelection(
       userId,
@@ -137,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       setMemberships([]);
       setMembership(null);
+      setIsPlatformSuperAdmin(false);
       setActiveOrg(null);
       setAuthReady(session === null);
       return;
@@ -171,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       setMemberships([]);
       setMembership(null);
+      setIsPlatformSuperAdmin(false);
       setActiveOrg(null);
       return;
     }
@@ -197,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       isSuperAdmin,
       isOrganizationAdmin,
+      isPlatformSuperAdmin,
       canManageCoachContent: coachContentManager,
       needsOrgSelection,
       setActiveOrganization,
@@ -212,6 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       isSuperAdmin,
       isOrganizationAdmin,
+      isPlatformSuperAdmin,
       coachContentManager,
       needsOrgSelection,
       setActiveOrganization,

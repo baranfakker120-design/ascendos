@@ -10,6 +10,5 @@ export {
   OrgAdminContentHubPage,
   OrgAdminLiveHubPage,
   OrgAdminStoriesHubPage,
-  PlatformAdminDeniedPage,
   OrgAdminForbiddenPage,
 } from './OrgAdminHubPages';

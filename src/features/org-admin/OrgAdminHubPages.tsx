@@ -87,19 +87,6 @@ export function OrgAdminStoriesHubPage() {
   );
 }
 
-export function PlatformAdminDeniedPage() {
-  const { t } = useI18n();
-  return (
-    <Card className="space-y-2">
-      <p className="font-semibold">{t('orgAdmin.platformDeniedTitle')}</p>
-      <p className="text-sm text-muted">{t('orgAdmin.platformDeniedBody')}</p>
-      <ButtonLink to="/more" variant="secondary">
-        {t('orgAdmin.backMore')}
-      </ButtonLink>
-    </Card>
-  );
-}
-
 export function OrgAdminForbiddenPage() {
   const { t } = useI18n();
   return (

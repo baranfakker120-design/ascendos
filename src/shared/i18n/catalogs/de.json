@@ -219,7 +219,9 @@
     "orgGuideGeneric": "Organisations-Guide",
     "orgGuideSub": "Guide der aktiven Organisation",
     "orgAdmin": "Organisations-Admin",
-    "orgAdminSub": "Branding, Mitglieder und Tools dieser Organisation verwalten"
+    "orgAdminSub": "Branding, Mitglieder und Tools dieser Organisation verwalten",
+    "platformAdmin": "Platform Admin",
+    "platformAdminSub": "Organisationen und Plattform verwalten"
   },
   "pipeline": {
     "phase": {
@@ -1475,6 +1477,113 @@
       "invites": "Noch keine Einladungen.",
       "tools": "Keine Tools konfiguriert.",
       "coach": "Kein Coach konfiguriert."
+    }
+  },
+  "platformAdmin": {
+    "eyebrow": "Plattform",
+    "title": "Platform Admin",
+    "subtitle": "AscendOS-Plattform und Organisationen verwalten.",
+    "navLabel": "Platform-Bereiche",
+    "loading": "Laden…",
+    "deniedTitle": "Keine Plattformberechtigung.",
+    "deniedBody": "Dieser Bereich ist nur für Platform Super Admins verfügbar.",
+    "backMore": "Zurück zu Mehr",
+    "backOrgs": "Zurück zu Organisationen",
+    "notFoundTitle": "Organisation nicht gefunden.",
+    "notFoundBody": "Die Organisation existiert nicht oder ist nicht sichtbar.",
+    "createFailed": "Organisation konnte nicht erstellt werden.",
+    "nav": {
+      "overview": "Übersicht",
+      "organizations": "Organisationen",
+      "admins": "Platform Admins",
+      "usage": "Usage",
+      "settings": "Einstellungen"
+    },
+    "dash": {
+      "orgs": "Organisationen",
+      "orgsBody": "Anlegen, öffnen, aktivieren und deaktivieren",
+      "admins": "Platform Admins",
+      "adminsBody": "Platform-Admins listen, hinzufügen, entziehen",
+      "usage": "Usage",
+      "usageBody": "Aggregierte Plattform-Nutzung",
+      "settings": "Platform Settings",
+      "settingsBody": "Sichere Metadaten — keine Secrets",
+      "statOrgs": "Aktive Organisationen",
+      "statAdmins": "Aktive Platform Admins",
+      "statEvents": "Usage-Events",
+      "scopeNote": "Platform-Aktionen sind Break-Glass. Server und RLS bleiben die Sicherheitsgrenze."
+    },
+    "orgs": {
+      "create": "Neue Organisation erstellen",
+      "name": "Organisationsname",
+      "displayName": "Anzeigename",
+      "website": "Website (optional)",
+      "support": "Support (optional)",
+      "logo": "Logo-URL (optional)",
+      "submit": "Organisation erstellen",
+      "colName": "Name",
+      "colDisplay": "Anzeigename",
+      "colStatus": "Status",
+      "colMembers": "Mitglieder",
+      "colCreated": "Erstellt",
+      "colActions": "Aktionen",
+      "open": "Öffnen",
+      "deactivate": "Deaktivieren",
+      "reactivate": "Reaktivieren",
+      "empty": "Noch keine Organisationen.",
+      "inviteAdmin": "Org-Admin einladen",
+      "inviteCreated": "Einladungscode"
+    },
+    "detail": {
+      "members": "Mitglieder",
+      "teams": "Teams",
+      "tools": "Tools",
+      "agents": "Coach-Agents",
+      "knowledge": "Knowledge",
+      "live": "Live Coaching",
+      "stories": "Stories",
+      "content": "Content Assets",
+      "instagram": "Instagram Connections",
+      "usage": "Usage Events",
+      "branding": "Branding",
+      "brandingYes": "Branding konfiguriert",
+      "brandingNo": "Neutrales Branding"
+    },
+    "admins": {
+      "addTitle": "Platform Admin hinzufügen",
+      "addHint": "Nur bestehende Auth-Identitäten. Keine automatische Vergabe.",
+      "identityId": "Identity UUID",
+      "notes": "Notiz (optional)",
+      "add": "Hinzufügen",
+      "revoke": "Entziehen",
+      "failed": "Aktion fehlgeschlagen.",
+      "colName": "Name",
+      "colId": "Identity",
+      "colStatus": "Status",
+      "colGranted": "Gewährt",
+      "colActions": "Aktionen"
+    },
+    "usage": {
+      "hint": "Aggregierte usage_events über alle Organisationen.",
+      "total": "Gesamt-Events",
+      "coach": "Coach-Nachrichten",
+      "appOpens": "App-Öffnungen",
+      "plans": "Pläne committed",
+      "byOrg": "Pro Organisation",
+      "orgId": "Org ID",
+      "events": "Events",
+      "empty": "Keine Usage-Daten.",
+      "billingNote": "Billing (Phase 11) ist hier nicht implementiert."
+    },
+    "settings": {
+      "hint": "Nur sichere Metadaten. Secret Values werden niemals angezeigt.",
+      "supabase": "Supabase",
+      "ai": "AI Provider",
+      "instagram": "Instagram",
+      "push": "Push",
+      "billing": "Billing",
+      "secretsTitle": "Secrets",
+      "secretsBody": "API Keys und Secrets werden hier nicht angezeigt und können nicht geändert werden."
     }
   }
 }
