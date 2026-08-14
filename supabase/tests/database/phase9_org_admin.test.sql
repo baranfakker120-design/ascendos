@@ -116,17 +116,26 @@ select ok(
 -- Restore A
 select tests.select_org('b9000000-0000-0000-0000-000000000001');
 
+create or replace function tests.p9_try_update_org_b_branding()
+returns int
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  n int;
+begin
+  update public.organizations
+  set branding = branding || '{"hack":"1"}'::jsonb
+  where id = 'b9000000-0000-0000-0000-000000000002';
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+
 -- TEST D: cannot UPDATE Org B branding row
 select is(
-  (
-    with u as (
-      update public.organizations
-      set branding = branding || '{"hack":"1"}'::jsonb
-      where id = 'b9000000-0000-0000-0000-000000000002'
-      returning id
-    )
-    select count(*)::int from u
-  ),
+  tests.p9_try_update_org_b_branding(),
   0,
   'TEST D: Org A admin cannot UPDATE Org B branding row'
 );
