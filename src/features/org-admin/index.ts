@@ -5,6 +5,7 @@ export { OrgAdminBrandingPage } from './OrgAdminBrandingPage';
 export { OrgAdminMembersPage } from './OrgAdminMembersPage';
 export { OrgAdminToolsPage } from './OrgAdminToolsPage';
 export { OrgAdminCoachPage } from './OrgAdminCoachPage';
+export { OrgAdminBillingPage } from './OrgAdminBillingPage';
 export {
   OrgAdminKnowledgeHubPage,
   OrgAdminContentHubPage,

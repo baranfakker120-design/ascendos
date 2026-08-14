@@ -1369,7 +1369,8 @@
       "knowledge": "Knowledge",
       "content": "Content",
       "live": "Live Coaching",
-      "stories": "Stories"
+      "stories": "Stories",
+      "billing": "Billing"
     },
     "dash": {
       "organization": "Organisation",
@@ -1392,7 +1393,9 @@
       "storiesBody": "Org-Stories",
       "roleLine": "Deine Rolle in dieser Organisation: {role}",
       "scopeNote": "Alle Änderungen gelten nur für die aktive Organisation. Server und RLS bleiben die Sicherheitsgrenze.",
-      "contentGateHint": "Einige Content-Tools brauchen zusätzliche Editor-Rechte."
+      "contentGateHint": "Einige Content-Tools brauchen zusätzliche Editor-Rechte.",
+      "billing": "Billing",
+      "billingBody": "Plan, Seats und geschätzter Monatsbetrag"
     },
     "org": {
       "internalName": "Interner Name",
@@ -1477,6 +1480,24 @@
       "invites": "Noch keine Einladungen.",
       "tools": "Keine Tools konfiguriert.",
       "coach": "Kein Coach konfiguriert."
+    },
+    "billing": {
+      "title": "Billing",
+      "hint": "Geschätzte Monatsgebühr für die aktive Organisation. Server zählt aktive Memberships.",
+      "loading": "Laden…",
+      "plan": "Plan",
+      "base": "Organisation (Base)",
+      "seats": "Aktive Mitglieder",
+      "seatFee": "Mitglieder (Seats)",
+      "estimated": "Geschätzt / Monat",
+      "status": "Billing Status",
+      "email": "Billing E-Mail",
+      "paymentNote": "Zahlungsabwicklung wird später integriert.",
+      "usageTitle": "Usage (eigene Organisation)",
+      "usageTotal": "Events gesamt",
+      "usageCoach": "Coach-Nachrichten",
+      "usageOpens": "App-Öffnungen",
+      "usagePlans": "Pläne committed"
     }
   },
   "platformAdmin": {
@@ -1497,7 +1518,8 @@
       "organizations": "Organisationen",
       "admins": "Platform Admins",
       "usage": "Usage",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "billing": "Billing"
     },
     "dash": {
       "orgs": "Organisationen",
@@ -1511,7 +1533,9 @@
       "statOrgs": "Aktive Organisationen",
       "statAdmins": "Aktive Platform Admins",
       "statEvents": "Usage-Events",
-      "scopeNote": "Platform-Aktionen sind Break-Glass. Server und RLS bleiben die Sicherheitsgrenze."
+      "scopeNote": "Platform-Aktionen sind Break-Glass. Server und RLS bleiben die Sicherheitsgrenze.",
+      "billing": "Billing",
+      "billingBody": "Geschätzte Gebühren aller Organisationen"
     },
     "orgs": {
       "create": "Neue Organisation erstellen",
@@ -1584,6 +1608,22 @@
       "billing": "Billing",
       "secretsTitle": "Secrets",
       "secretsBody": "API Keys und Secrets werden hier nicht angezeigt und können nicht geändert werden."
+    },
+    "billing": {
+      "hint": "Geschätzte Platform-Billing-Übersicht. Keine Zahlungen in Phase 11.",
+      "filter": "Status",
+      "filterAll": "Alle",
+      "statOrgs": "Organisationen",
+      "statSeats": "Aktive Seats",
+      "statEstimated": "Geschätzt gesamt",
+      "colOrg": "Organisation",
+      "colMembers": "Members",
+      "colBase": "Base",
+      "colSeats": "Seats",
+      "colEstimated": "Estimated",
+      "colStatus": "Status",
+      "empty": "Keine Billing-Daten.",
+      "paymentNote": "Zahlungsabwicklung wird später integriert. Kein Stripe."
     }
   }
 }

@@ -1,13 +1,13 @@
 # PROJECT_STATE — AscendOS Multi-Tenant
 
 **Last updated:** 2026-08-14  
-**Updated by:** Phase 10 Platform Admin Panel (repository; production unchanged)
+**Updated by:** Phase 11 Billing + Usage Architecture (repository; production unchanged)
 
 ---
 
 ## Current phase
 
-**PHASE 10 — Platform Admin Panel** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
+**PHASE 11 — Billing + Usage Architecture** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
 
 ---
 
@@ -23,29 +23,30 @@
 | 7     | #117 | Live coaching + push + stories + media    |
 | 8     | #118 | Frontend tenant awareness                 |
 | 9     | #119 | Organization Admin `/admin`               |
+| 10    | #120 | Platform Admin `/platform-admin`          |
 
 ---
 
 ## Next step
 
-**PHASE 11+** only after explicit Phase 10 approval — Billing, second production org.
+**PHASE 12+** only after explicit Phase 11 approval — second production organization / payment provider later.
 
-Do **not** apply Phase 10 migration to production without approval.
+Do **not** apply Phase 11 migration to production without approval.
 
 ---
 
 ## Current architecture stand (facts)
 
-| Area                        | Status                                                    |
-| --------------------------- | --------------------------------------------------------- |
-| Single Supabase project     | Yes                                                       |
-| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                          |
-| Org selector                | `x-ascendos-org` + `current_org_id()`                     |
-| Roles                       | Org roles + `platform_admins`                             |
-| Org Admin UI                | **`/admin`** (Phase 9) — active org only                  |
-| Platform Admin UI           | **`/platform-admin`** (Phase 10) — `PLATFORM_SUPER_ADMIN` |
-| Frontend branding / tools   | Org-scoped (Phase 8)                                      |
-| Autopilot / Manual carousel | Unchanged (1 image / ≤10)                                 |
+| Area                        | Status                                                   |
+| --------------------------- | -------------------------------------------------------- |
+| Single Supabase project     | Yes                                                      |
+| Organizations + memberships | Yes — seeded Org #1 + Team Seyda                         |
+| Org selector                | `x-ascendos-org` + `current_org_id()`                    |
+| Roles                       | Org roles + `platform_admins`                            |
+| Org Admin UI                | **`/admin`** including **Billing** (Phase 11)            |
+| Platform Admin UI           | **`/platform-admin`** including **Billing** (Phase 11)   |
+| Billing                     | Estimated €20+€2 model (cents); **no Stripe / payments** |
+| Autopilot / Manual carousel | Unchanged (1 image / ≤10)                                |
 
 ---
 
@@ -65,12 +66,12 @@ Do **not** apply Phase 10 migration to production without approval.
 
 | Item                            | State                                      |
 | ------------------------------- | ------------------------------------------ |
-| This Phase 10 work              | Repository only — production **UNCHANGED** |
+| This Phase 11 work              | Repository only — production **UNCHANGED** |
 | Database                        | **UNCHANGED** by agent                     |
 | Secrets / API keys / VAPID      | **UNCHANGED**                              |
 | Migrations applied by this work | **NONE** (migration exists in repo only)   |
 | Deploy                          | **NONE**                                   |
-| Merge                           | Requires human approval                    |
+| Stripe / payments               | **NOT IMPLEMENTED**                        |
 | Second production org           | **NOT CREATED**                            |
 
 ---
@@ -80,17 +81,16 @@ Do **not** apply Phase 10 migration to production without approval.
 | Phase | Status                                |
 | ----- | ------------------------------------- |
 | 0     | Done (docs)                           |
-| 2–9   | Merged                                |
-| 10    | Implemented in repo — awaiting review |
-| 11–12 | Not started                           |
+| 2–10  | Merged                                |
+| 11    | Implemented in repo — awaiting review |
+| 12+   | Not started                           |
 
 ---
 
 ## Documentation index
 
-| File                                   | Role            |
-| -------------------------------------- | --------------- |
-| `PHASE_8_FRONTEND_TENANT_AWARENESS.md` | Phase 8 report  |
-| `PHASE_9_ORGANIZATION_ADMIN.md`        | Phase 9 report  |
-| `PHASE_10_PLATFORM_ADMIN.md`           | Phase 10 report |
-| `PROJECT_STATE.md`                     | This file       |
+| File                         | Role            |
+| ---------------------------- | --------------- |
+| `PHASE_10_PLATFORM_ADMIN.md` | Phase 10 report |
+| `PHASE_11_BILLING_USAGE.md`  | Phase 11 report |
+| `PROJECT_STATE.md`           | This file       |

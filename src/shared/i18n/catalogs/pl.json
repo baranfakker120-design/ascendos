@@ -1369,7 +1369,8 @@
       "knowledge": "Knowledge",
       "content": "Content",
       "live": "Live Coaching",
-      "stories": "Stories"
+      "stories": "Stories",
+      "billing": "Billing"
     },
     "dash": {
       "organization": "Organization",
@@ -1392,7 +1393,9 @@
       "storiesBody": "Org stories",
       "roleLine": "Your role in this organization: {role}",
       "scopeNote": "All changes apply only to the active organization. Server and RLS remain the security boundary.",
-      "contentGateHint": "Some content tools require additional editor permissions."
+      "contentGateHint": "Some content tools require additional editor permissions.",
+      "billing": "Billing",
+      "billingBody": "Plan, seats, and estimated monthly total"
     },
     "org": {
       "internalName": "Internal name",
@@ -1477,6 +1480,24 @@
       "invites": "No invites yet.",
       "tools": "No tools configured.",
       "coach": "No coach configured."
+    },
+    "billing": {
+      "title": "Billing",
+      "hint": "Estimated monthly fee for the active organization. The server counts active memberships.",
+      "loading": "Loading…",
+      "plan": "Plan",
+      "base": "Organization (base)",
+      "seats": "Active members",
+      "seatFee": "Members (seats)",
+      "estimated": "Estimated / month",
+      "status": "Billing status",
+      "email": "Billing email",
+      "paymentNote": "Payment processing will be integrated later.",
+      "usageTitle": "Usage (this organization)",
+      "usageTotal": "Total events",
+      "usageCoach": "Coach messages",
+      "usageOpens": "App opens",
+      "usagePlans": "Plans committed"
     }
   },
   "platformAdmin": {
@@ -1497,7 +1518,8 @@
       "organizations": "Organizations",
       "admins": "Platform Admins",
       "usage": "Usage",
-      "settings": "Settings"
+      "settings": "Settings",
+      "billing": "Billing"
     },
     "dash": {
       "orgs": "Organizations",
@@ -1511,7 +1533,9 @@
       "statOrgs": "Active organizations",
       "statAdmins": "Active platform admins",
       "statEvents": "Usage events",
-      "scopeNote": "Platform actions are break-glass. Server and RLS remain the security boundary."
+      "scopeNote": "Platform actions are break-glass. Server and RLS remain the security boundary.",
+      "billing": "Billing",
+      "billingBody": "Estimated fees across organizations"
     },
     "orgs": {
       "create": "Create organization",
@@ -1584,6 +1608,22 @@
       "billing": "Billing",
       "secretsTitle": "Secrets",
       "secretsBody": "API keys and secrets are not shown here and cannot be changed."
+    },
+    "billing": {
+      "hint": "Estimated platform billing overview. No payments in Phase 11.",
+      "filter": "Status",
+      "filterAll": "All",
+      "statOrgs": "Organizations",
+      "statSeats": "Active seats",
+      "statEstimated": "Estimated total",
+      "colOrg": "Organization",
+      "colMembers": "Members",
+      "colBase": "Base",
+      "colSeats": "Seats",
+      "colEstimated": "Estimated",
+      "colStatus": "Status",
+      "empty": "No billing data.",
+      "paymentNote": "Payment processing will be integrated later. No Stripe."
     }
   }
 }

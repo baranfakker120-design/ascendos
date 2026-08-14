@@ -4,5 +4,6 @@ export { PlatformOrganizationsPage } from './PlatformOrganizationsPage';
 export { PlatformOrganizationDetailPage } from './PlatformOrganizationDetailPage';
 export { PlatformAdminsPage } from './PlatformAdminsPage';
 export { PlatformUsagePage } from './PlatformUsagePage';
+export { PlatformBillingPage } from './PlatformBillingPage';
 export { PlatformSettingsPage } from './PlatformSettingsPage';
 export { PlatformAdminDeniedPage } from './PlatformAdminDeniedPage';

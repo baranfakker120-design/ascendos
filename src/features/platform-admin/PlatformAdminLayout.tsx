@@ -7,6 +7,7 @@ const NAV = [
   { to: '/platform-admin/organizations', end: false, key: 'platformAdmin.nav.organizations' },
   { to: '/platform-admin/admins', end: false, key: 'platformAdmin.nav.admins' },
   { to: '/platform-admin/usage', end: false, key: 'platformAdmin.nav.usage' },
+  { to: '/platform-admin/billing', end: false, key: 'platformAdmin.nav.billing' },
   { to: '/platform-admin/settings', end: false, key: 'platformAdmin.nav.settings' },
 ] as const;
 
