@@ -330,6 +330,17 @@ declare
   v_sub public.org_subscriptions;
   v_seats integer;
 begin
+  -- F1 audit: JWT callers must be platform or matching org admin.
+  -- auth.uid() null allows owner/bootstrap paths (migrations).
+  if auth.uid() is not null
+     and not public.is_platform_super_admin()
+     and not (
+       public.is_organization_admin()
+       and p_org_id is not distinct from public.current_org_id()
+     ) then
+    raise exception 'AscendOS: Keine Plattformberechtigung.' using errcode = '42501';
+  end if;
+
   if p_org_id is null then
     raise exception 'AscendOS: Organisation oder Ressource nicht gefunden.';
   end if;
@@ -375,7 +386,7 @@ end;
 $$;
 
 revoke all on function public.ensure_org_billing(uuid) from public, anon;
-grant execute on function public.ensure_org_billing(uuid) to service_role;
+grant execute on function public.ensure_org_billing(uuid) to authenticated, service_role;
 
 -- Refresh seat quantity snapshot from authoritative membership COUNT.
 create or replace function public.refresh_org_billing_seats(p_org_id uuid)
@@ -387,8 +398,15 @@ as $$
 declare
   v_seats integer;
 begin
-  if p_org_id is null then
-    raise exception 'AscendOS: Organisation oder Ressource nicht gefunden.';
+  -- F1 audit: JWT callers must be platform or matching org admin.
+  -- auth.uid() null allows owner/bootstrap paths (migrations).
+  if auth.uid() is not null
+     and not public.is_platform_super_admin()
+     and not (
+       public.is_organization_admin()
+       and p_org_id is not distinct from public.current_org_id()
+     ) then
+    raise exception 'AscendOS: Keine Plattformberechtigung.' using errcode = '42501';
   end if;
 
   perform public.ensure_org_billing(p_org_id);
@@ -411,37 +429,10 @@ end;
 $$;
 
 revoke all on function public.refresh_org_billing_seats(uuid) from public, anon;
-grant execute on function public.refresh_org_billing_seats(uuid) to service_role;
+grant execute on function public.refresh_org_billing_seats(uuid) to authenticated, service_role;
 
--- Keep seat snapshot in sync when membership status/org changes.
-create or replace function public.memberships_refresh_billing_seats()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if tg_op = 'INSERT' then
-    perform public.refresh_org_billing_seats(new.org_id);
-    return new;
-  elsif tg_op = 'DELETE' then
-    perform public.refresh_org_billing_seats(old.org_id);
-    return old;
-  else
-    perform public.refresh_org_billing_seats(new.org_id);
-    if old.org_id is distinct from new.org_id then
-      perform public.refresh_org_billing_seats(old.org_id);
-    end if;
-    return new;
-  end if;
-end;
-$$;
-
-drop trigger if exists memberships_refresh_billing_seats on public.memberships;
-create trigger memberships_refresh_billing_seats
-  after insert or update of status, org_id or delete
-  on public.memberships
-  for each row execute function public.memberships_refresh_billing_seats();
+-- Seat quantity is refreshed on billing reads / org create.
+-- No membership trigger: COUNT(active memberships) remains authoritative in RPCs.
 
 -- Org-admin billing snapshot (active org only).
 create or replace function public.org_admin_get_billing()
@@ -708,6 +699,7 @@ revoke all on function public.platform_config_status() from public, anon;
 grant execute on function public.platform_config_status() to authenticated, service_role;
 
 -- Improve usage attribution: prefer current_org_id(), else profile mirror.
+-- Never break callers (invalid event_type / missing org → swallow).
 create or replace function public.track_usage(
   p_user uuid,
   p_event text,
@@ -721,24 +713,27 @@ as $$
 declare
   v_org uuid;
 begin
-  if auth.uid() is null then
-    return;
-  end if;
-  if p_user is distinct from auth.uid() and not public.is_super_admin() then
+  if auth.uid() is not null
+     and p_user is distinct from auth.uid()
+     and not public.is_super_admin() then
     raise warning 'AscendOS: track_usage fuer fremden Nutzer abgewiesen, nichts geschrieben.';
     return;
   end if;
 
-  v_org := public.current_org_id();
-  if v_org is null then
-    select p.org_id into v_org from public.profiles p where p.id = p_user;
-  end if;
-  if v_org is null then
-    return;
-  end if;
+  begin
+    v_org := public.current_org_id();
+    if v_org is null then
+      select p.org_id into v_org from public.profiles p where p.id = p_user;
+    end if;
+    if v_org is null then
+      return;
+    end if;
 
-  insert into public.usage_events (user_id, org_id, event_type, metadata)
-  values (p_user, v_org, p_event, coalesce(p_meta, '{}'::jsonb));
+    insert into public.usage_events (user_id, org_id, event_type, metadata)
+    values (p_user, v_org, p_event, coalesce(p_meta, '{}'::jsonb));
+  exception when others then
+    null; -- Tracking darf nie eine Kernfunktion brechen
+  end;
 end;
 $$;
 
