@@ -17,7 +17,14 @@ import type { FirstlineProgress } from '@shared/types/domain';
  * System preferences live on Settings.
  */
 export function MorePage() {
-  const { profile, isSuperAdmin, canManageCoachContent, membership, needsOrgSelection } = useAuth();
+  const {
+    profile,
+    isSuperAdmin,
+    isOrganizationAdmin,
+    canManageCoachContent,
+    membership,
+    needsOrgSelection,
+  } = useAuth();
   const { profile: orgProfile } = useActiveOrganizationProfile();
   const { t } = useI18n();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -102,6 +109,20 @@ export function MorePage() {
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('more.title')}</h1>
       </header>
+
+      {isOrganizationAdmin ? (
+        <Link to="/admin" className="block">
+          <Card className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">{t('more.orgAdmin')}</p>
+              <p className="mt-0.5 text-sm text-muted">{t('more.orgAdminSub')}</p>
+            </div>
+            <span className="text-primary" aria-hidden>
+              →
+            </span>
+          </Card>
+        </Link>
+      ) : null}
 
       <Link to="/team" className="block">
         <Card className="flex items-center justify-between">

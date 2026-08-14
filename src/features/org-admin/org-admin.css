@@ -1,0 +1,106 @@
+.org-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.org-admin__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b7280);
+}
+
+.org-admin__title {
+  margin: 0.25rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.org-admin__sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-muted, #6b7280);
+}
+
+.org-admin__nav {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.org-admin__nav-link {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line, #e5e7eb);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-muted, #6b7280);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.org-admin__nav-link--active {
+  color: var(--color-ink, #111827);
+  border-color: var(--color-ink, #111827);
+  background: var(--color-surface, #fff);
+}
+
+.org-admin__body {
+  min-width: 0;
+}
+
+.org-admin__grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .org-admin__grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.org-admin__card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.org-admin__muted {
+  font-size: 0.875rem;
+  color: var(--color-muted, #6b7280);
+}
+
+.org-admin__member {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-line, #e5e7eb);
+}
+
+.org-admin__member:last-child {
+  border-bottom: none;
+}
+
+.org-admin__member-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.org-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
