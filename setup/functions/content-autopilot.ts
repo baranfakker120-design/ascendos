@@ -770,6 +770,7 @@ export interface AutopilotEligibleAsset {
   theme: string | null;
   keywords: string[] | null;
   suggested_formats: string[] | null;
+  aspect_ratio: string | null;
   analysis_status: string | null;
   last_used_at: string | null;
   usage_count: number;
@@ -791,6 +792,44 @@ export interface ScoredCandidate {
   reasons: string[];
 }
 
+// ---- inline: _shared/content-autopilot/formatAspect.ts ----
+/**
+ * Hard story vs feed aspect gates for Autopilot (edge mirror of client formatAspect).
+ */
+
+export const AUTOPILOT_STORY_ASPECT = '9:16' as const;
+export const AUTOPILOT_FEED_ASPECTS = ['1:1', '4:5'] as const;
+
+const FEED_BLOCKED = new Set(['9:16', '16:9']);
+const STORY_BLOCKED = new Set(['1:1', '4:5', '1.91:1', '16:9']);
+
+export function aspectFitsAutopilotSlot(
+  slotKind: 'feed' | 'story',
+  aspectRatio: string | null | undefined,
+  suggestedFormats: string[] | null | undefined
+): boolean {
+  const aspect = aspectRatio?.trim().replace(/\s+/g, '') || null;
+  const formats = (suggestedFormats ?? []).map((f) => f.toLowerCase());
+
+  if (slotKind === 'story') {
+    if (aspect === AUTOPILOT_STORY_ASPECT) return true;
+    if (aspect && STORY_BLOCKED.has(aspect)) return false;
+    if (!aspect) {
+      if (formats.length === 0) return true;
+      return formats.includes('story');
+    }
+    return formats.includes('story');
+  }
+
+  if (aspect && (AUTOPILOT_FEED_ASPECTS as readonly string[]).includes(aspect)) return true;
+  if (aspect && FEED_BLOCKED.has(aspect)) return false;
+  if (!aspect) {
+    if (formats.length === 0) return true;
+    return formats.includes('feed') || formats.includes('carousel');
+  }
+  return formats.includes('feed') || formats.includes('carousel');
+}
+
 // ---- inline: _shared/content-autopilot/eligibility.ts ----
 /**
  * Gate eligibility (10-asset gate): images AND videos count.
@@ -808,15 +847,17 @@ export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean
   return true;
 }
 
-/** Feed / Carousel pool — images only. Never video/reel/feed-video. */
+/** Feed / Carousel pool — images only + feed aspect gate. Never video/reel/feed-video. */
 export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
-  return asset.media_kind === 'image';
+  if (asset.media_kind !== 'image') return false;
+  return aspectFitsAutopilotSlot('feed', asset.aspect_ratio, asset.suggested_formats);
 }
 
-/** Story pool — image story OR video story. */
+/** Story pool — image/video story + story aspect gate. */
 export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
-  return isEligibleAutopilotAsset(asset);
+  if (!isEligibleAutopilotAsset(asset)) return false;
+  return aspectFitsAutopilotSlot('story', asset.aspect_ratio, asset.suggested_formats);
 }
 
 export function isEligibleForSlotKind(
@@ -2915,7 +2956,7 @@ async function loadEligibleAssets(
   const { data, error } = await db
     .from('content_assets')
     .select(
-      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
+      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, aspect_ratio, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
     )
     .eq('org_id', orgId)
     .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);
