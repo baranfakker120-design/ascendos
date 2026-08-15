@@ -238,7 +238,7 @@ describe('radar startpoint — no old posts', () => {
           external_id: `c${i}`,
           source: 'chogan',
           content_type: 'POST',
-          published_at: `2026-08-15T1${i}:00:00.000Z`,
+          published_at: `2026-08-15T16:0${i}:00.000Z`,
         })
       ),
       item({
