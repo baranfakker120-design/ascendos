@@ -9,6 +9,11 @@ import {
   useKnowledgePdfPages,
   useKnowledgePdfPipeline,
 } from './knowledgePdfApi';
+import {
+  clearLastPdfExtractDiagnostic,
+  formatPdfExtractDiagnosticForUi,
+  getLastPdfExtractDiagnostic,
+} from './pdf/pdfExtractDiagnostic';
 import type { CategoryValue } from '@features/knowledge/knowledgeApi';
 
 const RAG_CATEGORY: CategoryValue = 'schulung';
@@ -21,6 +26,7 @@ export function KnowledgePdfPanel() {
   const pages = useKnowledgePdfPages(selectedId);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [diagnosticText, setDiagnosticText] = useState<string | null>(null);
   const [category, setCategory] = useState(KNOWLEDGE_CATEGORIES[0] as string);
 
   const selected = docs.find((d) => d.id === selectedId) ?? null;
@@ -30,6 +36,8 @@ export function KnowledgePdfPanel() {
     e.target.value = '';
     if (!file) return;
     setError(null);
+    setDiagnosticText(null);
+    clearLastPdfExtractDiagnostic();
     setMessage(t('knowledge.pdfStatusUploading'));
     try {
       const result = await processPdf.mutateAsync(file);
@@ -46,6 +54,8 @@ export function KnowledgePdfPanel() {
       const msg = err instanceof Error ? err.message : t('knowledge.importFailed');
       setError(msg === 'VISION_FAILED' ? t('knowledge.pdfVisionFailed') : msg);
       setMessage(null);
+      const report = getLastPdfExtractDiagnostic();
+      setDiagnosticText(report ? formatPdfExtractDiagnosticForUi(report) : null);
     }
   };
 
@@ -102,7 +112,21 @@ export function KnowledgePdfPanel() {
 
       <Alert tone="info">{t('knowledge.pdfCmsRagSeparation')}</Alert>
       {message ? <Alert tone="info">{message}</Alert> : null}
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <div className="space-y-2">
+          <Alert tone="error">{error}</Alert>
+          {diagnosticText ? (
+            <details className="rounded-xl border border-line bg-bg px-3 py-2 text-xs text-muted">
+              <summary className="cursor-pointer font-medium text-fg">
+                {t('knowledge.pdfDebugDetails')}
+              </summary>
+              <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-snug text-fg">
+                {diagnosticText}
+              </pre>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
 
       {isPending ? <p className="text-sm text-muted">{t('common.loading')}</p> : null}
 
