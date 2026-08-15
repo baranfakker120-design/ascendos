@@ -7,3 +7,23 @@ export {
   type TeamSeydaRadarIdea,
   type TeamSeydaRadarSource,
 } from './teamSeydaRadar';
+export {
+  assertStartpointUnchangedByPoll,
+  coachARadarIndicator,
+  countUnresolvedRadarHits,
+  createRadarStartpoint,
+  decideRadarItemAgainstStartpoint,
+  dedupeRadarItemsForUser,
+  filterNewRadarItems,
+  pauseRadar,
+  radarItemDedupeKey,
+  reactivateRadarWithNewStart,
+  resumeRadar,
+  selectRadarHitsForUser,
+  type CoachARadarIndicator,
+  type RadarContentType,
+  type RadarPublishedItem,
+  type RadarSourceKey,
+  type RadarStartpointDecision,
+  type RadarUserStartpoint,
+} from './radarStartpoint';
