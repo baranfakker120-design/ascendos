@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { supabase } from '@shared/api/supabase';
 import type { Json } from '@shared/types/database.types';
 import { rememberApprovedArticle } from '@features/coach/intelligence/approvedKnowledge';
@@ -25,8 +26,11 @@ function slugify(title: string): string {
 }
 
 export function useKnowledgeArticles(search = '') {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['coach-knowledge-articles', search],
+    queryKey: ['coach-knowledge-articles', orgId, search],
+    enabled: Boolean(orgId),
     queryFn: async (): Promise<CoachKnowledgeArticle[]> => {
       const { data, error } = await supabase
         .from('coach_knowledge_articles')
@@ -45,10 +49,13 @@ export function useKnowledgeArticles(search = '') {
   });
 }
 
-/** Approved + active only — what Coach may learn from. */
+/** Approved + active only — CMS rows marked for coach-facing use (not RAG ingest). */
 export function useApprovedCoachKnowledge() {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['coach-knowledge-approved'],
+    queryKey: ['coach-knowledge-approved', orgId],
+    enabled: Boolean(orgId),
     queryFn: async (): Promise<CoachKnowledgeArticle[]> => {
       const { data, error } = await supabase
         .from('coach_knowledge_articles')
@@ -63,9 +70,11 @@ export function useApprovedCoachKnowledge() {
 }
 
 export function useKnowledgeVersions(articleId: string | null) {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['coach-knowledge-versions', articleId],
-    enabled: !!articleId,
+    queryKey: ['coach-knowledge-versions', orgId, articleId],
+    enabled: Boolean(orgId) && !!articleId,
     queryFn: async (): Promise<CoachKnowledgeVersion[]> => {
       const { data, error } = await supabase
         .from('coach_knowledge_versions')
@@ -79,9 +88,11 @@ export function useKnowledgeVersions(articleId: string | null) {
 }
 
 export function useKnowledgeChangeLog(articleId: string | null) {
+  const { membership } = useAuth();
+  const orgId = membership?.org_id ?? null;
   return useQuery({
-    queryKey: ['coach-knowledge-changelog', articleId],
-    enabled: !!articleId,
+    queryKey: ['coach-knowledge-changelog', orgId, articleId],
+    enabled: Boolean(orgId) && !!articleId,
     queryFn: async (): Promise<CoachKnowledgeChangeLog[]> => {
       const { data, error } = await supabase
         .from('coach_knowledge_change_log')

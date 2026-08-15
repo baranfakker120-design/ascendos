@@ -68,14 +68,29 @@ describe('autopilot selection — score / category / usage / format', () => {
     const withFeed = scoreAutopilotCandidate({
       ...baseParams,
       slotKind: 'feed',
-      asset: asset({ id: 'f1', suggested_formats: ['feed'] }),
+      asset: asset({ id: 'f1', suggested_formats: ['feed'], aspect_ratio: '1:1' }),
     });
-    const noFeed = scoreAutopilotCandidate({
+    const weakFeed = scoreAutopilotCandidate({
       ...baseParams,
       slotKind: 'feed',
-      asset: asset({ id: 'f2', suggested_formats: ['story'] }),
+      asset: asset({
+        id: 'f2',
+        suggested_formats: ['story'],
+        aspect_ratio: '1:1',
+      }),
     });
-    expect(withFeed!.score).toBeGreaterThan(noFeed!.score);
+    expect(withFeed).not.toBeNull();
+    expect(weakFeed).not.toBeNull();
+    expect(withFeed!.score).toBeGreaterThan(weakFeed!.score);
+  });
+
+  it('rejects feed candidates that only suggest story without feed aspect', () => {
+    const rejected = scoreAutopilotCandidate({
+      ...baseParams,
+      slotKind: 'feed',
+      asset: asset({ id: 'f3', suggested_formats: ['story'] }),
+    });
+    expect(rejected).toBeNull();
   });
 
   it('allows video for story scoring but never for feed', () => {

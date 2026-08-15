@@ -4,6 +4,8 @@ export const AUTOPILOT_MIN_ELIGIBLE_ASSETS = 10;
 export const AUTOPILOT_MAX_FEED_PER_DAY = 3;
 export const AUTOPILOT_MAX_STORIES_PER_DAY = 3;
 
+import { aspectFitsAutopilotSlot } from './formatAspect';
+
 export interface AutopilotEligibleAsset {
   id: string;
   scope: string;
@@ -11,6 +13,8 @@ export interface AutopilotEligibleAsset {
   mime_type: string | null;
   storage_path: string | null;
   analysis_status: string | null;
+  aspect_ratio?: string | null;
+  suggested_formats?: string[] | null;
 }
 
 /** Gate pool: images + videos. */
@@ -22,14 +26,16 @@ export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean
   return true;
 }
 
-/** Feed/Carousel pool: images only. */
+/** Feed/Carousel pool: images only + feed aspect gate. */
 export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
-  return isEligibleAutopilotAsset(asset) && asset.media_kind === 'image';
+  if (!isEligibleAutopilotAsset(asset) || asset.media_kind !== 'image') return false;
+  return aspectFitsAutopilotSlot('feed', asset.aspect_ratio, asset.suggested_formats);
 }
 
-/** Story pool: image or video. */
+/** Story pool: image or video + story aspect gate. */
 export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
-  return isEligibleAutopilotAsset(asset);
+  if (!isEligibleAutopilotAsset(asset)) return false;
+  return aspectFitsAutopilotSlot('story', asset.aspect_ratio, asset.suggested_formats);
 }
 
 export function isEligibleForSlotKind(

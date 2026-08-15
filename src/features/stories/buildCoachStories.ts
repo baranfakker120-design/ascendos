@@ -313,6 +313,7 @@ export function toStoryCardFromRow(row: {
   body: string;
   author_label: string;
   subject_name: string | null;
+  media_path?: string | null;
   media_url: string | null;
   tone: StoryCard['tone'];
   source: StoryCard['source'];
@@ -327,6 +328,7 @@ export function toStoryCardFromRow(row: {
     body: row.body,
     authorLabel: row.author_label,
     subjectName: row.subject_name,
+    mediaPath: row.media_path ?? null,
     mediaUrl: row.media_url,
     tone: row.tone,
     source: row.source,

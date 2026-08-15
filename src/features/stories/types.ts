@@ -52,6 +52,8 @@ export interface StoryCard {
   body: string;
   authorLabel: string;
   subjectName: string | null;
+  /** Private storage path — resolve via signed URL. */
+  mediaPath?: string | null;
   mediaUrl: string | null;
   tone: StoryTone;
   source: StorySource;
