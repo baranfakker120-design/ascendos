@@ -17,7 +17,11 @@ import {
   canRetryKnowledgePdf,
   nextKnowledgePdfStatus,
   shouldAutoEnableCoachRag,
+  buildKnowledgePdfExtractionFailureUpdate,
+  formatKnowledgePdfExtractionError,
 } from './pipelineStatus';
+import { PDFJS_LEGACY_MODULE, PDFJS_LEGACY_WORKER_MODULE } from '@shared/pdf/pdfjsLegacy';
+import { summarizeExtractStats, type ExtractedPdfPage } from './extractPages';
 
 describe('knowledge PDF classification + cost gate', () => {
   it('classifies text / scanned / mixed / image-heavy', () => {
@@ -171,5 +175,88 @@ describe('knowledge PDF review + coach RAG separation', () => {
     expect(shouldAutoEnableCoachRag('ready_for_review')).toBe(false);
     expect(shouldAutoEnableCoachRag('approved')).toBe(false);
     expect(canRetryKnowledgePdf('vision_failed')).toBe(true);
+  });
+});
+
+describe('pdfjs legacy iOS/Safari compatibility wiring', () => {
+  it('uses matching legacy module + legacy worker (no modern mix)', () => {
+    expect(PDFJS_LEGACY_MODULE).toBe('pdfjs-dist/legacy/build/pdf.mjs');
+    expect(PDFJS_LEGACY_WORKER_MODULE).toBe('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
+    expect(PDFJS_LEGACY_MODULE.includes('/legacy/')).toBe(true);
+    expect(PDFJS_LEGACY_WORKER_MODULE.includes('/legacy/')).toBe(true);
+    expect(PDFJS_LEGACY_MODULE.includes('/build/pdf.mjs')).toBe(true);
+    expect(
+      PDFJS_LEGACY_MODULE.includes('/build/pdf.mjs') && !PDFJS_LEGACY_MODULE.includes('legacy')
+        ? false
+        : true
+    ).toBe(true);
+    // Modern path must not be selected
+    expect(PDFJS_LEGACY_MODULE).not.toBe('pdfjs-dist');
+    expect(PDFJS_LEGACY_WORKER_MODULE).not.toContain('pdfjs-dist/build/pdf.worker');
+  });
+});
+
+describe('knowledge PDF extraction failure persistence', () => {
+  it('maps Safari TypeError to failed status + error_message (not extracting)', () => {
+    const update = buildKnowledgePdfExtractionFailureUpdate(
+      new TypeError("undefined is not a function (near '...n of e...')"),
+      'user-1'
+    );
+    expect(update.status).toBe('failed');
+    expect(update.page_count).toBe(0);
+    expect(update.text_page_count).toBe(0);
+    expect(update.vision_page_count).toBe(0);
+    expect(update.table_count).toBe(0);
+    expect(update.error_message.length).toBeGreaterThan(10);
+    expect(update.status).not.toBe('extracting');
+    expect(canRetryKnowledgePdf(update.status)).toBe(true);
+  });
+
+  it('persists plain extraction errors verbatim (truncated)', () => {
+    const msg = 'PDF konnte nicht gelesen werden: boom';
+    expect(formatKnowledgePdfExtractionError(new Error(msg))).toBe(msg);
+    const update = buildKnowledgePdfExtractionFailureUpdate(new Error(msg), null);
+    expect(update.error_message).toBe(msg);
+    expect(update.updated_by).toBeNull();
+  });
+});
+
+describe('post-extract vision path gates (text vs scan/image)', () => {
+  it('text pages skip vision; scanned/mixed/image reach vision path', () => {
+    const textPage: ExtractedPdfPage = {
+      page_number: 1,
+      page_type: 'TEXT',
+      extracted_text: 'Hello '.repeat(40),
+      image_detected: false,
+      image_count: 0,
+      visionImageDataUrl: null,
+      needsVision: false,
+    };
+    const scanPage: ExtractedPdfPage = {
+      page_number: 2,
+      page_type: 'SCANNED',
+      extracted_text: '',
+      image_detected: true,
+      image_count: 1,
+      visionImageDataUrl: 'data:image/jpeg;base64,xx',
+      needsVision: true,
+    };
+    const imagePage: ExtractedPdfPage = {
+      page_number: 3,
+      page_type: classifyKnowledgePdfPage({ textLength: 20, imageCount: 3 }),
+      extracted_text: 'x',
+      image_detected: true,
+      image_count: 3,
+      visionImageDataUrl: 'data:image/jpeg;base64,yy',
+      needsVision: pageNeedsVision('IMAGE_HEAVY'),
+    };
+    expect(textPage.needsVision).toBe(false);
+    expect(pageNeedsVision(scanPage.page_type)).toBe(true);
+    expect(imagePage.page_type).toBe('IMAGE_HEAVY');
+    expect(imagePage.needsVision).toBe(true);
+    const stats = summarizeExtractStats([textPage, scanPage, imagePage]);
+    expect(stats.page_count).toBe(3);
+    expect(stats.text_page_count).toBe(1);
+    expect(stats.vision_page_count).toBe(2);
   });
 });

@@ -73,12 +73,12 @@ export function normalizeText(raw: string): string {
 }
 
 async function extractPdf(file: File): Promise<ExtractResult> {
+  // Legacy pdfjs build: iOS/Safari needs Promise.withResolvers polyfill
+  // shipped in pdfjs-dist/legacy (modern build throws TypeError on WebKit).
   let pdfjs: typeof import('pdfjs-dist');
   try {
-    pdfjs = await import('pdfjs-dist');
-    // Vite liefert den Worker als eigene Asset-URL aus.
-    const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+    const { loadPdfjsLegacy } = await import('@shared/pdf/pdfjsLegacy');
+    pdfjs = await loadPdfjsLegacy();
   } catch (e) {
     throw new ExtractError(
       `PDF-Parser konnte nicht geladen werden: ${e instanceof Error ? e.message : 'unbekannt'}`,
@@ -107,26 +107,30 @@ async function extractPdf(file: File): Promise<ExtractResult> {
     throw new ExtractError(`PDF konnte nicht gelesen werden: ${msg}`, 'parser');
   }
 
-  const parts: string[] = [];
-  for (let page = 1; page <= doc.numPages; page++) {
-    const content = await (await doc.getPage(page)).getTextContent();
-    parts.push(content.items.map((item) => ('str' in item ? item.str : '')).join(' '));
-  }
-  const pages = doc.numPages;
-  await loadingTask.destroy();
+  try {
+    const parts: string[] = [];
+    for (let page = 1; page <= doc.numPages; page++) {
+      const content = await (await doc.getPage(page)).getTextContent();
+      const items = Array.isArray(content?.items) ? content.items : [];
+      parts.push(items.map((item) => ('str' in item ? item.str : '')).join(' '));
+    }
+    const pages = doc.numPages;
 
-  const text = normalizeText(parts.join('\n\n'));
-  if (text.length < 40) {
-    // Typischer Fall: ein Scan ohne OCR-Textlayer. Ohne diese Prüfung
-    // entstünde ein leeres Dokument, das der Coach später als Wissen
-    // behandelt.
-    throw new ExtractError(
-      `Kein Text gefunden (${pages} Seiten). Vermutlich ein Scan ohne Texterkennung — ` +
-        'bitte vorher per OCR durchsuchbar machen.',
-      'empty'
-    );
+    const text = normalizeText(parts.join('\n\n'));
+    if (text.length < 40) {
+      // Typischer Fall: ein Scan ohne OCR-Textlayer. Ohne diese Prüfung
+      // entstünde ein leeres Dokument, das der Coach später als Wissen
+      // behandelt.
+      throw new ExtractError(
+        `Kein Text gefunden (${pages} Seiten). Vermutlich ein Scan ohne Texterkennung — ` +
+          'bitte vorher per OCR durchsuchbar machen.',
+        'empty'
+      );
+    }
+    return { text, pages };
+  } finally {
+    await loadingTask.destroy();
   }
-  return { text, pages };
 }
 
 async function extractDocx(file: File): Promise<ExtractResult> {
