@@ -20,6 +20,8 @@ function asset(
     media_kind: string;
     storage_path: string | null;
     analysis_status: string | null;
+    aspect_ratio: string | null;
+    suggested_formats: string[] | null;
   }>
 ) {
   return {
@@ -29,6 +31,8 @@ function asset(
     mime_type: 'image/jpeg',
     storage_path: 'org/u/a/original.jpg',
     analysis_status: 'ready',
+    aspect_ratio: null as string | null,
+    suggested_formats: null as string[] | null,
     ...partial,
   };
 }
@@ -64,6 +68,13 @@ describe('autopilot eligibility V2 — gate vs feed vs story pools', () => {
     expect(isEligibleForSlotKind(vid, 'feed')).toBe(false);
     expect(isEligibleForSlotKind(vid, 'story')).toBe(true);
     expect(isEligibleForSlotKind(img, 'feed')).toBe(true);
+  });
+
+  it('hard-rejects wrong aspect for story vs feed', () => {
+    expect(isEligibleAutopilotStoryAsset(asset({ aspect_ratio: '1:1' }))).toBe(false);
+    expect(isEligibleAutopilotStoryAsset(asset({ aspect_ratio: '9:16' }))).toBe(true);
+    expect(isEligibleAutopilotFeedAsset(asset({ aspect_ratio: '9:16' }))).toBe(false);
+    expect(isEligibleAutopilotFeedAsset(asset({ aspect_ratio: '4:5' }))).toBe(true);
   });
 
   it('gate pool != feed pool when videos present', () => {

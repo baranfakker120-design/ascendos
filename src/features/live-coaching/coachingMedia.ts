@@ -18,6 +18,24 @@ export function buildCoachingMediaObjectPath(
   return `${safeOrg}/${actorId ?? 'anon'}/${nowMs}-${rand}.${ext}`;
 }
 
+/** Ascend Stories media — additive path: {org_id}/stories/{actor}/{file} */
+export const STORY_MEDIA_ASPECT = '9:16' as const;
+export const STORY_MEDIA_WIDTH = 1080;
+export const STORY_MEDIA_HEIGHT = 1920;
+
+export function buildStoryMediaObjectPath(
+  orgId: string,
+  actorId: string | null,
+  fileName: string,
+  nowMs = Date.now(),
+  rand = Math.random().toString(36).slice(2)
+): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() || 'bin';
+  const safeOrg = orgId.trim();
+  if (!safeOrg) throw new Error('org_required');
+  return `${safeOrg}/stories/${actorId ?? 'anon'}/${nowMs}-${rand}.${ext}`;
+}
+
 /** First path segment must equal the server-resolved org. */
 export function coachingMediaPathBelongsToOrg(objectPath: string, orgId: string): boolean {
   const folder = objectPath.split('/')[0] ?? '';

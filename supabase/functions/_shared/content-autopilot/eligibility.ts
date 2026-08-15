@@ -1,3 +1,4 @@
+import { aspectFitsAutopilotSlot } from './formatAspect.ts';
 import {
   AUTOPILOT_MIN_ELIGIBLE_ASSETS,
   type AutopilotEligibleAsset,
@@ -20,15 +21,17 @@ export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean
   return true;
 }
 
-/** Feed / Carousel pool — images only. Never video/reel/feed-video. */
+/** Feed / Carousel pool — images only + feed aspect gate. Never video/reel/feed-video. */
 export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
-  return asset.media_kind === 'image';
+  if (asset.media_kind !== 'image') return false;
+  return aspectFitsAutopilotSlot('feed', asset.aspect_ratio, asset.suggested_formats);
 }
 
-/** Story pool — image story OR video story. */
+/** Story pool — image/video story + story aspect gate. */
 export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
-  return isEligibleAutopilotAsset(asset);
+  if (!isEligibleAutopilotAsset(asset)) return false;
+  return aspectFitsAutopilotSlot('story', asset.aspect_ratio, asset.suggested_formats);
 }
 
 export function isEligibleForSlotKind(

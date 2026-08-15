@@ -67,7 +67,7 @@ async function loadEligibleAssets(
   const { data, error } = await db
     .from('content_assets')
     .select(
-      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
+      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, aspect_ratio, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
     )
     .eq('org_id', orgId)
     .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);

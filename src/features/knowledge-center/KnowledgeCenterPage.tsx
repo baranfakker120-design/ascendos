@@ -138,6 +138,8 @@ export function KnowledgeCenterPage() {
         <p className="mt-1 text-sm text-muted">{t('knowledge.centerBody')}</p>
       </header>
 
+      <Alert tone="info">{`${t('knowledge.cmsLabel')} — ${t('knowledge.cmsVsRag')}`}</Alert>
+
       <Input
         label={t('knowledge.search')}
         hideLabel
@@ -147,7 +149,7 @@ export function KnowledgeCenterPage() {
       />
 
       {isPending ? <p className="text-sm text-muted">{t('common.loading')}</p> : null}
-      {isError ? <Alert tone="error">{t('knowledge.centerTitle')}</Alert> : null}
+      {isError ? <Alert tone="error">{t('knowledge.loadFailed')}</Alert> : null}
       {message ? <Alert tone="info">{message}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
 

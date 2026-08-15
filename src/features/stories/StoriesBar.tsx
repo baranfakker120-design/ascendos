@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useI18n, type MessageKey } from '@shared/i18n';
+import { useCoachingMediaUrl } from '@features/live-coaching/useCoachingMediaUrl';
 import type { StoryCard } from './types';
 import './ascend-stories.css';
 
@@ -29,6 +30,39 @@ function initials(title: string): string {
   if (parts.length === 0) return 'A';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+}
+
+function StoryRingAvatar({ story }: { story: StoryCard }) {
+  const signed = useCoachingMediaUrl(story.mediaPath, story.mediaUrl);
+  const showImage = Boolean(signed) && (story.mediaKind === 'image' || Boolean(story.mediaPath));
+  return (
+    <div className="ascend-stories__avatar">
+      {showImage && signed ? (
+        <img src={signed} alt="" />
+      ) : (
+        initials(story.subjectName || story.title)
+      )}
+    </div>
+  );
+}
+
+function StoryViewerBody({ story }: { story: StoryCard }) {
+  const signed = useCoachingMediaUrl(story.mediaPath, story.mediaUrl);
+  const hasMedia = Boolean(signed) && (story.mediaKind === 'image' || Boolean(story.mediaPath));
+  return (
+    <>
+      {hasMedia && signed ? (
+        <div className="ascend-stories__media" aria-hidden>
+          <img src={signed} alt="" className="ascend-stories__media-img" />
+        </div>
+      ) : null}
+      <div className="ascend-stories__body">
+        <h2 className="ascend-stories__headline">{story.title}</h2>
+        <p className="ascend-stories__text">{story.body}</p>
+        <p className="ascend-stories__tone">{story.tone}</p>
+      </div>
+    </>
+  );
 }
 
 interface Props {
@@ -100,13 +134,7 @@ export function StoriesBar({ stories }: Props) {
               aria-label={t('stories.openAria', { title: story.title })}
             >
               <div className={ringClass}>
-                <div className="ascend-stories__avatar">
-                  {story.mediaUrl && story.mediaKind === 'image' ? (
-                    <img src={story.mediaUrl} alt="" />
-                  ) : (
-                    initials(story.subjectName || story.title)
-                  )}
-                </div>
+                <StoryRingAvatar story={story} />
               </div>
               <p className="ascend-stories__label">{story.title}</p>
             </button>
@@ -169,11 +197,7 @@ export function StoriesBar({ stories }: Props) {
               }
             />
           </div>
-          <div className="ascend-stories__body">
-            <h2 className="ascend-stories__headline">{current.title}</h2>
-            <p className="ascend-stories__text">{current.body}</p>
-            <p className="ascend-stories__tone">{current.tone}</p>
-          </div>
+          <StoryViewerBody story={current} />
         </div>
       ) : null}
     </section>

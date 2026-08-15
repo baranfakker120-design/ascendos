@@ -28,6 +28,7 @@ export interface AutopilotEligibleAsset {
   theme: string | null;
   keywords: string[] | null;
   suggested_formats: string[] | null;
+  aspect_ratio: string | null;
   analysis_status: string | null;
   last_used_at: string | null;
   usage_count: number;

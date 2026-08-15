@@ -297,7 +297,21 @@
     "publishedHint": "Story veröffentlicht — 24 Stunden sichtbar. Motivate · Celebrate · Inspire.",
     "publishFailed": "Veröffentlichen fehlgeschlagen.",
     "author": "Autor",
-    "subjectOptional": "Betreff (optional)"
+    "subjectOptional": "Betreff (optional)",
+    "publishing": "Wird veröffentlicht…",
+    "mediaLabel": "Story-Medium (9:16)",
+    "mediaHint": "Optionales Instagram-Story-Bild · {ratio}. Privat unter deiner Organisation gespeichert.",
+    "mediaPick": "Bild wählen",
+    "mediaPreview": "Vorschau",
+    "mediaAspectOk": "Sieht nach 9:16 aus — gut für Stories.",
+    "mediaAspectWarn": "Nicht 9:16 — Upload trotzdem möglich (Cover im Viewer).",
+    "mediaClear": "Bild entfernen",
+    "mediaAttached": "Medium",
+    "musicLabel": "Musikvorschlag (optional)",
+    "musicHint": "AscendOS kann Instagram-Musik nicht per API setzen. Track danach manuell in Instagram hinzufügen.",
+    "musicTrack": "Songtitel",
+    "musicArtist": "Künstler",
+    "musicMood": "Stimmung (optional)"
   },
   "contacts": {
     "title": "Kontakte",
@@ -1047,7 +1061,10 @@
     "emptyArticles": "Noch keine Artikel.",
     "preview": "Vorschau",
     "emptyBody": "_Leer_",
-    "changeHistory": "Änderungsverlauf"
+    "changeHistory": "Änderungsverlauf",
+    "cmsLabel": "Knowledge Center = CMS",
+    "cmsVsRag": "Das ist Organisations-CMS-Wissen. Coach-RAG (/wissen Ingest) ist getrennt und wird beim Freigeben hier nicht automatisch aktualisiert.",
+    "loadFailed": "Knowledge-Artikel konnten nicht geladen werden."
   },
   "firstLaunch": {
     "brandName": "AscendOS",

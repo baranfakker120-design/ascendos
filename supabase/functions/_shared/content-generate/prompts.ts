@@ -70,8 +70,29 @@ export function buildUserPrompt(params: {
   aspectRatio: string | null;
   locale: string;
 }): string {
+  const formatRules =
+    params.format === 'story'
+      ? [
+          'HARD FORMAT: Instagram STORY only.',
+          'Canvas target: 1080×1920 (9:16 vertical).',
+          'Write for a full-bleed vertical story — short hook, large readable text, no feed carousel layout.',
+          'content_type MUST be "story".',
+        ]
+      : params.format === 'reel'
+        ? [
+            'HARD FORMAT: Instagram REEL.',
+            'Prefer vertical 9:16 motion-friendly framing.',
+            'content_type MUST be "reel".',
+          ]
+        : [
+            'HARD FORMAT: Instagram FEED post.',
+            'Canvas targets: 1080×1080 (1:1) or 1080×1350 (4:5). Never story 9:16 layout.',
+            'content_type MUST be "feed".',
+          ];
+
   return [
     `Requested content format: ${params.format}`,
+    ...formatRules,
     `Media kind: ${params.mediaKind}`,
     `Aspect ratio hint: ${params.aspectRatio ?? 'unknown'}`,
     `Asset title (may be wrong — trust the media first): ${params.title ?? ''}`,

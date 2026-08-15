@@ -297,7 +297,21 @@
     "publishedHint": "Relacja opublikowana — będzie widoczna przez 24 godziny. Motywuj · Świętuj · Inspiruj.",
     "publishFailed": "Publikacja nie powiodła się.",
     "author": "Autor",
-    "subjectOptional": "Temat (opcjonalnie)"
+    "subjectOptional": "Temat (opcjonalnie)",
+    "publishing": "Publishing…",
+    "mediaLabel": "Story media (9:16)",
+    "mediaHint": "Optional Instagram Story image · {ratio}. Stored privately under your org.",
+    "mediaPick": "Choose image",
+    "mediaPreview": "Preview",
+    "mediaAspectOk": "Looks like 9:16 — good for Stories.",
+    "mediaAspectWarn": "Not 9:16 — image will still upload (cover crop in viewer).",
+    "mediaClear": "Remove image",
+    "mediaAttached": "media",
+    "musicLabel": "Music suggestion (optional)",
+    "musicHint": "AscendOS cannot attach Instagram music via API. Add the track manually in Instagram after publishing.",
+    "musicTrack": "Track name",
+    "musicArtist": "Artist",
+    "musicMood": "Mood (optional)"
   },
   "contacts": {
     "title": "Kontakty",
@@ -1047,7 +1061,10 @@
     "emptyArticles": "Nie ma jeszcze artykułów.",
     "preview": "Podgląd",
     "emptyBody": "_Brak treści_",
-    "changeHistory": "Historia zmian"
+    "changeHistory": "Historia zmian",
+    "cmsLabel": "Knowledge Center = CMS",
+    "cmsVsRag": "This is organization CMS knowledge. Coach RAG (/wissen ingest) is separate and is not auto-updated when you approve articles here.",
+    "loadFailed": "Could not load knowledge articles."
   },
   "firstLaunch": {
     "brandName": "AscendOS",

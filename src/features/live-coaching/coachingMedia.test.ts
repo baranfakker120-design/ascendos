@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCoachingMediaObjectPath,
+  buildStoryMediaObjectPath,
   coachingMediaPathBelongsToOrg,
   resolveDispatchOrgId,
 } from './coachingMedia';
@@ -17,8 +18,15 @@ describe('Phase 7 — coaching media path boundary', () => {
     expect(coachingMediaPathBelongsToOrg(path, orgB)).toBe(false);
   });
 
+  it('builds {org_id}/stories/… paths for Ascend Stories media', () => {
+    const path = buildStoryMediaObjectPath(orgA, 'user-1', 'story.png', 2000, 'xyz');
+    expect(path).toBe(`${orgA}/stories/user-1/2000-xyz.png`);
+    expect(coachingMediaPathBelongsToOrg(path, orgA)).toBe(true);
+  });
+
   it('rejects empty org', () => {
     expect(() => buildCoachingMediaObjectPath('', 'u', 'a.png')).toThrow('org_required');
+    expect(() => buildStoryMediaObjectPath('', 'u', 'a.png')).toThrow('org_required');
   });
 
   it('legacy user paths are not treated as org-folder owned', () => {
