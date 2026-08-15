@@ -2382,6 +2382,214 @@ export type Database = {
           },
         ];
       };
+      knowledge_pdf_documents: {
+        Row: {
+          article_id: string | null;
+          coach_rag_enabled: boolean;
+          created_at: string;
+          created_by: string | null;
+          error_message: string | null;
+          id: string;
+          image_page_count: number;
+          org_id: string;
+          page_count: number;
+          rag_doc_id: string | null;
+          source_filename: string;
+          status: string;
+          storage_path: string;
+          table_count: number;
+          text_page_count: number;
+          title: string;
+          updated_at: string;
+          updated_by: string | null;
+          vision_page_count: number;
+        };
+        Insert: {
+          article_id?: string | null;
+          coach_rag_enabled?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          error_message?: string | null;
+          id?: string;
+          image_page_count?: number;
+          org_id?: string;
+          page_count?: number;
+          rag_doc_id?: string | null;
+          source_filename: string;
+          status?: string;
+          storage_path: string;
+          table_count?: number;
+          text_page_count?: number;
+          title?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          vision_page_count?: number;
+        };
+        Update: {
+          article_id?: string | null;
+          coach_rag_enabled?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          error_message?: string | null;
+          id?: string;
+          image_page_count?: number;
+          org_id?: string;
+          page_count?: number;
+          rag_doc_id?: string | null;
+          source_filename?: string;
+          status?: string;
+          storage_path?: string;
+          table_count?: number;
+          text_page_count?: number;
+          title?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          vision_page_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'knowledge_pdf_documents_article_id_fkey';
+            columns: ['article_id'];
+            isOneToOne: false;
+            referencedRelation: 'coach_knowledge_articles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_rag_doc_id_fkey';
+            columns: ['rag_doc_id'];
+            isOneToOne: false;
+            referencedRelation: 'knowledge_docs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      knowledge_pdf_pages: {
+        Row: {
+          created_at: string;
+          document_id: string;
+          error_message: string | null;
+          extracted_text: string;
+          id: string;
+          image_detected: boolean;
+          important_terms: Json;
+          key_facts: Json;
+          needs_review: boolean;
+          org_id: string;
+          page_number: number;
+          page_type: string;
+          section: string | null;
+          table_data: Json;
+          updated_at: string;
+          vision_confidence: string | null;
+          vision_used: boolean;
+          visual_summary: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          document_id: string;
+          error_message?: string | null;
+          extracted_text?: string;
+          id?: string;
+          image_detected?: boolean;
+          important_terms?: Json;
+          key_facts?: Json;
+          needs_review?: boolean;
+          org_id?: string;
+          page_number: number;
+          page_type: string;
+          section?: string | null;
+          table_data?: Json;
+          updated_at?: string;
+          vision_confidence?: string | null;
+          vision_used?: boolean;
+          visual_summary?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          document_id?: string;
+          error_message?: string | null;
+          extracted_text?: string;
+          id?: string;
+          image_detected?: boolean;
+          important_terms?: Json;
+          key_facts?: Json;
+          needs_review?: boolean;
+          org_id?: string;
+          page_number?: number;
+          page_type?: string;
+          section?: string | null;
+          table_data?: Json;
+          updated_at?: string;
+          vision_confidence?: string | null;
+          vision_used?: boolean;
+          visual_summary?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'knowledge_pdf_pages_document_id_fkey';
+            columns: ['document_id'];
+            isOneToOne: false;
+            referencedRelation: 'knowledge_pdf_documents';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_pages_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       leadership_favorites: {
         Row: {
           created_at: string;

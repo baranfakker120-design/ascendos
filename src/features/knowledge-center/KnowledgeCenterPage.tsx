@@ -18,6 +18,7 @@ import {
   useKnowledgeMutations,
   useKnowledgeVersions,
 } from './knowledgeCenterApi';
+import { KnowledgePdfPanel } from './KnowledgePdfPanel';
 import { KNOWLEDGE_CATEGORIES, type CoachKnowledgeArticle } from './types';
 
 export function KnowledgeCenterPage() {
@@ -139,6 +140,8 @@ export function KnowledgeCenterPage() {
       </header>
 
       <Alert tone="info">{`${t('knowledge.cmsLabel')} — ${t('knowledge.cmsVsRag')}`}</Alert>
+
+      <KnowledgePdfPanel />
 
       <Input
         label={t('knowledge.search')}
