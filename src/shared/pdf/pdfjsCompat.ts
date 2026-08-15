@@ -17,6 +17,7 @@ import {
   type PdfjsLegacyApi,
 } from './pdfjsLegacy';
 import { ensurePdfPromiseCompat } from './promiseCompat';
+import { ensureReadableStreamAsyncIterator } from './readableStreamAsyncIteratorCompat';
 import { resolvePdfWorkerModeFromNavigator, type PdfWorkerMode } from './pdfRuntimeEnv';
 
 export type { PdfWorkerMode, PdfjsLegacyApi };
@@ -29,6 +30,11 @@ export {
   hasPromiseWithResolvers,
   hasPromiseTry,
 } from './promiseCompat';
+export {
+  ensureReadableStreamAsyncIterator,
+  hasReadableStreamAsyncIterator,
+  shouldInstallReadableStreamAsyncIterator,
+} from './readableStreamAsyncIteratorCompat';
 
 export interface PdfjsCompatLoadResult {
   pdfjs: PdfjsLegacyApi;
@@ -85,8 +91,11 @@ export async function loadPdfjsCompat(options?: {
   if (!pdfjsCompatPromise) {
     const forcedMode = options?.workerMode;
     pdfjsCompatPromise = (async () => {
-      // 1) Polyfills BEFORE dynamic pdfjs import/evaluation.
+      // 1) Compat shims BEFORE dynamic pdfjs import/evaluation.
+      //    ReadableStream async-iterator is required for getTextContent()'s
+      //    `for await (... of streamTextContent())` on Safari/WebKit.
       const poly = ensurePdfPromiseCompat();
+      ensureReadableStreamAsyncIterator();
 
       // 2) Dynamic imports only (no static pdfjs side effects above).
       const pdfjs = (await import('pdfjs-dist/legacy/build/pdf.mjs')) as PdfjsLegacyApi;
