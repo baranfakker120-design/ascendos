@@ -31,3 +31,8 @@ export {
   openPdfDocumentWithCompat,
   resolvePdfWorkerMode,
 } from '@shared/pdf/pdfjsCompat';
+export {
+  getLastPdfExtractDiagnostic,
+  clearLastPdfExtractDiagnostic,
+  formatPdfExtractDiagnosticForUi,
+} from './pdfExtractDiagnostic';

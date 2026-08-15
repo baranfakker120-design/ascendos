@@ -1086,7 +1086,8 @@
     "pdfEnableCoachRag": "Enable for Coach (RAG)",
     "pdfPageLine": "Page {n}: {type} · vision {vision}",
     "pdfVisionYes": "yes",
-    "pdfVisionNo": "no"
+    "pdfVisionNo": "no",
+    "pdfDebugDetails": "Debug Details"
   },
   "firstLaunch": {
     "brandName": "AscendOS",

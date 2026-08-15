@@ -4,9 +4,20 @@
  *
  * Uses pdfjs compatibility layer: Promise shims before dynamic legacy import,
  * iOS main-thread worker fallback, desktop module worker.
+ *
+ * Temporary: on failure, stores a session-only technical diagnostic report
+ * (see pdfExtractDiagnostic.ts) for the Knowledge Center debug disclosure.
  */
 
-import { openPdfDocumentWithCompat } from '@shared/pdf/pdfjsCompat';
+import { loadPdfjsCompat } from '@shared/pdf/pdfjsCompat';
+import {
+  buildPdfExtractDiagnosticReport,
+  capturePdfExtractRuntimeSnapshot,
+  clearLastPdfExtractDiagnostic,
+  setLastPdfExtractDiagnostic,
+  type PdfExtractPdfjsSnapshot,
+  type PdfExtractStage,
+} from './pdfExtractDiagnostic';
 import {
   classifyKnowledgePdfPage,
   pageNeedsVision,
@@ -54,58 +65,97 @@ export async function extractKnowledgePdfPages(file: File): Promise<{
   pages: ExtractedPdfPage[];
   pageCount: number;
 }> {
-  const buffer = await file.arrayBuffer();
-  const { loadingTask } = await openPdfDocumentWithCompat(buffer);
-  const doc = await loadingTask.promise;
-  const pages: ExtractedPdfPage[] = [];
+  clearLastPdfExtractDiagnostic();
+  let stage: PdfExtractStage = 'init';
+  let pdfjsSnap: Partial<PdfExtractPdfjsSnapshot> = {
+    selectedMode: 'pdfjs-dist/legacy',
+    typeofGetDocument: 'unknown',
+  };
+
+  const fail = (error: unknown): never => {
+    setLastPdfExtractDiagnostic(
+      buildPdfExtractDiagnosticReport({
+        stage,
+        runtime: capturePdfExtractRuntimeSnapshot(),
+        pdfjs: pdfjsSnap,
+        error,
+      })
+    );
+    throw error;
+  };
 
   try {
-    for (let n = 1; n <= doc.numPages; n++) {
-      const page = await doc.getPage(n);
-      const content = await page.getTextContent();
-      const items = Array.isArray(content?.items) ? content.items : [];
-      const text = items
-        .map((item) => ('str' in item ? item.str : ''))
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      let imageCount = 0;
-      try {
-        const ops = await page.getOperatorList();
-        imageCount = countImageOps(ops);
-      } catch {
-        imageCount = 0;
-      }
+    stage = 'arrayBuffer';
+    const buffer = await file.arrayBuffer();
 
-      const page_type = classifyKnowledgePdfPage({
-        textLength: text.length,
-        imageCount,
-      });
-      const needsVision = pageNeedsVision(page_type);
-      let visionImageDataUrl: string | null = null;
-      if (needsVision) {
+    stage = 'loadPdfjs';
+    const loaded = await loadPdfjsCompat();
+    pdfjsSnap = {
+      selectedMode: 'pdfjs-dist/legacy',
+      pdfjsVersion: (loaded.pdfjs as { version?: string }).version ?? null,
+      workerMode: loaded.workerMode,
+      workerSrc: loaded.pdfjs.GlobalWorkerOptions?.workerSrc ?? null,
+      typeofGetDocument: typeof loaded.pdfjs.getDocument,
+      withResolversPolyfilled: loaded.withResolversPolyfilled,
+      tryPolyfilled: loaded.tryPolyfilled,
+    };
+
+    stage = 'getDocument';
+    const loadingTask = loaded.pdfjs.getDocument({ data: new Uint8Array(buffer) });
+    const doc = await loadingTask.promise;
+    const pages: ExtractedPdfPage[] = [];
+
+    try {
+      stage = 'pageExtract';
+      for (let n = 1; n <= doc.numPages; n++) {
+        const page = await doc.getPage(n);
+        const content = await page.getTextContent();
+        const items = Array.isArray(content?.items) ? content.items : [];
+        const text = items
+          .map((item) => ('str' in item ? item.str : ''))
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        let imageCount = 0;
         try {
-          visionImageDataUrl = await renderPageJpeg(page);
+          const ops = await page.getOperatorList();
+          imageCount = countImageOps(ops);
         } catch {
-          visionImageDataUrl = null;
+          imageCount = 0;
         }
+
+        const page_type = classifyKnowledgePdfPage({
+          textLength: text.length,
+          imageCount,
+        });
+        const needsVision = pageNeedsVision(page_type);
+        let visionImageDataUrl: string | null = null;
+        if (needsVision) {
+          try {
+            visionImageDataUrl = await renderPageJpeg(page);
+          } catch {
+            visionImageDataUrl = null;
+          }
+        }
+
+        pages.push({
+          page_number: n,
+          page_type,
+          extracted_text: text,
+          image_detected: imageCount > 0 || page_type !== 'TEXT',
+          image_count: imageCount,
+          visionImageDataUrl,
+          needsVision,
+        });
       }
-
-      pages.push({
-        page_number: n,
-        page_type,
-        extracted_text: text,
-        image_detected: imageCount > 0 || page_type !== 'TEXT',
-        image_count: imageCount,
-        visionImageDataUrl,
-        needsVision,
-      });
+    } finally {
+      await loadingTask.destroy();
     }
-  } finally {
-    await loadingTask.destroy();
-  }
 
-  return { pages, pageCount: doc.numPages };
+    return { pages, pageCount: doc.numPages };
+  } catch (error) {
+    return fail(error);
+  }
 }
 
 export function summarizeExtractStats(pages: ExtractedPdfPage[]) {
