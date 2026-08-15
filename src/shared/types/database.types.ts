@@ -3745,45 +3745,6 @@ export type Database = {
           },
         ];
       };
-      teams: {
-        Row: {
-          created_at: string;
-          id: string;
-          name: string;
-          org_id: string;
-          parent_team_id: string | null;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          name: string;
-          org_id: string;
-          parent_team_id?: string | null;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          name?: string;
-          org_id?: string;
-          parent_team_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'teams_org_id_fkey';
-            columns: ['org_id'];
-            isOneToOne: false;
-            referencedRelation: 'organizations';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'teams_parent_team_id_fkey';
-            columns: ['parent_team_id'];
-            isOneToOne: false;
-            referencedRelation: 'teams';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       team_radar_items: {
         Row: {
           canonical_url: string | null;
@@ -3913,6 +3874,45 @@ export type Database = {
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      teams: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          parent_team_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          parent_team_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          parent_team_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'teams_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'teams_parent_team_id_fkey';
+            columns: ['parent_team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
             referencedColumns: ['id'];
           },
         ];
