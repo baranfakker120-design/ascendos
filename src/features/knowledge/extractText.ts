@@ -73,12 +73,13 @@ export function normalizeText(raw: string): string {
 }
 
 async function extractPdf(file: File): Promise<ExtractResult> {
-  // Legacy pdfjs build: iOS/Safari needs Promise.withResolvers polyfill
-  // shipped in pdfjs-dist/legacy (modern build throws TypeError on WebKit).
-  let pdfjs: typeof import('pdfjs-dist');
+  // Compatibility layer: Promise shims BEFORE dynamic legacy import,
+  // then iOS main-thread worker / desktop module worker.
+  let loadingTask: ReturnType<(typeof import('pdfjs-dist'))['getDocument']>;
   try {
-    const { loadPdfjsLegacy } = await import('@shared/pdf/pdfjsLegacy');
-    pdfjs = await loadPdfjsLegacy();
+    const { openPdfDocumentWithCompat } = await import('@shared/pdf/pdfjsCompat');
+    const buffer = await file.arrayBuffer();
+    ({ loadingTask } = await openPdfDocumentWithCompat(buffer));
   } catch (e) {
     throw new ExtractError(
       `PDF-Parser konnte nicht geladen werden: ${e instanceof Error ? e.message : 'unbekannt'}`,
@@ -86,7 +87,6 @@ async function extractPdf(file: File): Promise<ExtractResult> {
     );
   }
 
-  const buffer = await file.arrayBuffer();
   // getDocument() erzeugt nur den Ladeauftrag und liest noch nichts.
   // Fehler im Dokument treten erst beim Auflösen von .promise auf,
   // deshalb steht nur das im try-Block.
@@ -95,7 +95,6 @@ async function extractPdf(file: File): Promise<ExtractResult> {
   // PDFDocumentLoadingTask, nicht auf PDFDocumentProxy. Auf dem Proxy
   // war es früher ein Alias und ist entfernt. Der Proxy hat nur
   // cleanup(), und das gibt den Worker nicht frei.
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
   let doc;
   try {
     doc = await loadingTask.promise;
