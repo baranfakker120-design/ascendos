@@ -26,3 +26,8 @@ export {
   buildKnowledgePdfExtractionFailureUpdate,
 } from './pipelineStatus';
 export { PDFJS_LEGACY_MODULE, PDFJS_LEGACY_WORKER_MODULE } from '@shared/pdf/pdfjsLegacy';
+export {
+  loadPdfjsCompat,
+  openPdfDocumentWithCompat,
+  resolvePdfWorkerMode,
+} from '@shared/pdf/pdfjsCompat';

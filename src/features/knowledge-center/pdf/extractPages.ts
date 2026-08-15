@@ -2,10 +2,11 @@
  * Browser PDF page extract + classification signals (ADR-style client work).
  * Vision images are produced only for pages that pass the cost gate.
  *
- * Uses pdfjs-dist LEGACY build for iOS/Safari (Promise.withResolvers polyfill).
+ * Uses pdfjs compatibility layer: Promise shims before dynamic legacy import,
+ * iOS main-thread worker fallback, desktop module worker.
  */
 
-import { loadPdfjsLegacy } from '@shared/pdf/pdfjsLegacy';
+import { openPdfDocumentWithCompat } from '@shared/pdf/pdfjsCompat';
 import {
   classifyKnowledgePdfPage,
   pageNeedsVision,
@@ -53,9 +54,8 @@ export async function extractKnowledgePdfPages(file: File): Promise<{
   pages: ExtractedPdfPage[];
   pageCount: number;
 }> {
-  const pdfjs = await loadPdfjsLegacy();
   const buffer = await file.arrayBuffer();
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
+  const { loadingTask } = await openPdfDocumentWithCompat(buffer);
   const doc = await loadingTask.promise;
   const pages: ExtractedPdfPage[] = [];
 
