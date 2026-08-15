@@ -146,7 +146,7 @@ select throws_ok(
     set radar_started_at = now()
     where user_id = 'aa570000-0000-0000-0000-0000000000a1'
   $$,
-  'check_violation',
+  '23514',
   'radar_started_at is immutable after activation',
   'poll rewrite of radar_started_at is denied'
 );
