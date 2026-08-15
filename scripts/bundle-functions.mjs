@@ -35,6 +35,7 @@ const FUNCTIONS = [
   'meta-data-deletion',
   'instagram-webhook',
   'coaching-push-dispatch',
+  'knowledge-pdf-vision',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
