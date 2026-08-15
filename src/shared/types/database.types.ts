@@ -3745,6 +3745,139 @@ export type Database = {
           },
         ];
       };
+      team_radar_items: {
+        Row: {
+          canonical_url: string | null;
+          content_type: string;
+          created_at: string;
+          detected_at: string;
+          external_id: string;
+          id: string;
+          org_id: string;
+          published_at: string;
+          resolved_at: string | null;
+          source: string;
+          user_id: string;
+        };
+        Insert: {
+          canonical_url?: string | null;
+          content_type: string;
+          created_at?: string;
+          detected_at?: string;
+          external_id: string;
+          id?: string;
+          org_id?: string;
+          published_at: string;
+          resolved_at?: string | null;
+          source: string;
+          user_id: string;
+        };
+        Update: {
+          canonical_url?: string | null;
+          content_type?: string;
+          created_at?: string;
+          detected_at?: string;
+          external_id?: string;
+          id?: string;
+          org_id?: string;
+          published_at?: string;
+          resolved_at?: string | null;
+          source?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'team_radar_items_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'team_radar_items_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'team_radar_items_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'team_radar_items_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      team_radar_user_state: {
+        Row: {
+          created_at: string;
+          enabled: boolean;
+          id: string;
+          org_id: string;
+          paused: boolean;
+          radar_started_at: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          org_id?: string;
+          paused?: boolean;
+          radar_started_at: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          org_id?: string;
+          paused?: boolean;
+          radar_started_at?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'team_radar_user_state_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'team_radar_user_state_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'team_radar_user_state_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'team_radar_user_state_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       teams: {
         Row: {
           created_at: string;
