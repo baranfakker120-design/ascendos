@@ -1,8 +1,11 @@
 /**
  * Browser PDF page extract + classification signals (ADR-style client work).
  * Vision images are produced only for pages that pass the cost gate.
+ *
+ * Uses pdfjs-dist LEGACY build for iOS/Safari (Promise.withResolvers polyfill).
  */
 
+import { loadPdfjsLegacy } from '@shared/pdf/pdfjsLegacy';
 import {
   classifyKnowledgePdfPage,
   pageNeedsVision,
@@ -18,13 +21,6 @@ export interface ExtractedPdfPage {
   /** JPEG data URL for vision — only when needsVision. */
   visionImageDataUrl: string | null;
   needsVision: boolean;
-}
-
-async function loadPdfjs() {
-  const pdfjs = await import('pdfjs-dist');
-  const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-  return pdfjs;
 }
 
 function countImageOps(ops: { fnArray: number[] } | null | undefined): number {
@@ -57,54 +53,58 @@ export async function extractKnowledgePdfPages(file: File): Promise<{
   pages: ExtractedPdfPage[];
   pageCount: number;
 }> {
-  const pdfjs = await loadPdfjs();
+  const pdfjs = await loadPdfjsLegacy();
   const buffer = await file.arrayBuffer();
   const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
   const doc = await loadingTask.promise;
   const pages: ExtractedPdfPage[] = [];
 
-  for (let n = 1; n <= doc.numPages; n++) {
-    const page = await doc.getPage(n);
-    const content = await page.getTextContent();
-    const text = content.items
-      .map((item) => ('str' in item ? item.str : ''))
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    let imageCount = 0;
-    try {
-      const ops = await page.getOperatorList();
-      imageCount = countImageOps(ops);
-    } catch {
-      imageCount = 0;
-    }
-
-    const page_type = classifyKnowledgePdfPage({
-      textLength: text.length,
-      imageCount,
-    });
-    const needsVision = pageNeedsVision(page_type);
-    let visionImageDataUrl: string | null = null;
-    if (needsVision) {
+  try {
+    for (let n = 1; n <= doc.numPages; n++) {
+      const page = await doc.getPage(n);
+      const content = await page.getTextContent();
+      const items = Array.isArray(content?.items) ? content.items : [];
+      const text = items
+        .map((item) => ('str' in item ? item.str : ''))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      let imageCount = 0;
       try {
-        visionImageDataUrl = await renderPageJpeg(page);
+        const ops = await page.getOperatorList();
+        imageCount = countImageOps(ops);
       } catch {
-        visionImageDataUrl = null;
+        imageCount = 0;
       }
-    }
 
-    pages.push({
-      page_number: n,
-      page_type,
-      extracted_text: text,
-      image_detected: imageCount > 0 || page_type !== 'TEXT',
-      image_count: imageCount,
-      visionImageDataUrl,
-      needsVision,
-    });
+      const page_type = classifyKnowledgePdfPage({
+        textLength: text.length,
+        imageCount,
+      });
+      const needsVision = pageNeedsVision(page_type);
+      let visionImageDataUrl: string | null = null;
+      if (needsVision) {
+        try {
+          visionImageDataUrl = await renderPageJpeg(page);
+        } catch {
+          visionImageDataUrl = null;
+        }
+      }
+
+      pages.push({
+        page_number: n,
+        page_type,
+        extracted_text: text,
+        image_detected: imageCount > 0 || page_type !== 'TEXT',
+        image_count: imageCount,
+        visionImageDataUrl,
+        needsVision,
+      });
+    }
+  } finally {
+    await loadingTask.destroy();
   }
 
-  await loadingTask.destroy();
   return { pages, pageCount: doc.numPages };
 }
 

@@ -18,6 +18,7 @@ import {
 } from './pdf/knowledgePdfStorage';
 import { pagesToReviewMarkdown, type KnowledgePdfPageChunkSource } from './pdf/semanticChunk';
 import { parseKnowledgePdfVisionResult } from './pdf/visionSchema';
+import { buildKnowledgePdfExtractionFailureUpdate } from './pdf/pipelineStatus';
 import type { KnowledgePdfDocument, KnowledgePdfPage } from './pdf/types';
 
 async function createSignedKnowledgePdfUrl(path: string, expiresSec = 3600): Promise<string> {
@@ -142,7 +143,15 @@ export function useKnowledgePdfPipeline() {
       if (docErr || !doc) throw docErr ?? new Error('document_create_failed');
       const document = doc as KnowledgePdfDocument;
 
-      const { pages, pageCount } = await extractKnowledgePdfPages(file);
+      let pages;
+      let pageCount: number;
+      try {
+        ({ pages, pageCount } = await extractKnowledgePdfPages(file));
+      } catch (extractErr) {
+        const failure = buildKnowledgePdfExtractionFailureUpdate(extractErr, profile?.id ?? null);
+        await supabase.from('knowledge_pdf_documents').update(failure).eq('id', document.id);
+        throw extractErr instanceof Error ? extractErr : new Error(failure.error_message);
+      }
       const stats = summarizeExtractStats(pages);
 
       await supabase
@@ -286,6 +295,7 @@ export function useKnowledgePdfPipeline() {
       return { documentId: document.id, ...stats, table_count: tableCount };
     },
     onSuccess: () => void invalidate(),
+    onError: () => void invalidate(),
   });
 
   const approveToCms = useMutation({
