@@ -36,6 +36,7 @@ const FUNCTIONS = [
   'instagram-webhook',
   'coaching-push-dispatch',
   'knowledge-pdf-vision',
+  'radar-discovery-test',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;
