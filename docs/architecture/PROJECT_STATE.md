@@ -35,9 +35,9 @@ Phase 12 second-org isolation tests remain in repo from prior work.
 
 **Human decision only:**
 
-1. Review/merge Phase 13 PR  
-2. Apply migration `20260916000060_glossily_readiness_foundation.sql` when approved  
-3. **Do not** create production Org B / Glossily without explicit approval  
+1. Review/merge Phase 13 PR
+2. Apply migration `20260916000060_glossily_readiness_foundation.sql` when approved
+3. **Do not** create production Org B / Glossily without explicit approval
 
 ---
 
@@ -85,9 +85,9 @@ Phase 12 second-org isolation tests remain in repo from prior work.
 
 ## Documentation index
 
-| File                               | Role            |
-| ---------------------------------- | --------------- |
-| `PHASE_13_GLOSSILY_READINESS.md`   | Phase 13 report |
-| `ADR/0011-knowledge-operating-model.md` | CMS vs RAG |
-| `ADR/0012-org-special-features.md` | Team Seyda / Radar classes |
-| `PROJECT_STATE.md`                 | This file       |
+| File                                    | Role                       |
+| --------------------------------------- | -------------------------- |
+| `PHASE_13_GLOSSILY_READINESS.md`        | Phase 13 report            |
+| `ADR/0011-knowledge-operating-model.md` | CMS vs RAG                 |
+| `ADR/0012-org-special-features.md`      | Team Seyda / Radar classes |
+| `PROJECT_STATE.md`                      | This file                  |

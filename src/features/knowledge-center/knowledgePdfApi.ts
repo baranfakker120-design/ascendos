@@ -19,10 +19,7 @@ import {
 import { pagesToReviewMarkdown, type KnowledgePdfPageChunkSource } from './pdf/semanticChunk';
 import { parseKnowledgePdfVisionResult } from './pdf/visionSchema';
 import { sha256HexOfBlob, normalizePdfFilename } from './pdf/contentHash';
-import {
-  decideKnowledgePdfFastScan,
-  type FastScanMatch,
-} from './pdf/fastScan';
+import { decideKnowledgePdfFastScan, type FastScanMatch } from './pdf/fastScan';
 import { resolveKnowledgeSyncStatus } from './pdf/knowledgeSyncStatus';
 import { buildKnowledgePdfExtractionFailureUpdate } from './pdf/pipelineStatus';
 import type { KnowledgePdfDocument, KnowledgePdfPage } from './pdf/types';

@@ -8,11 +8,7 @@
  * Pure decision helpers; DB lookup stays in the API layer.
  */
 
-export type FastScanResult =
-  | 'new'
-  | 'exact_duplicate'
-  | 'possible_version'
-  | 'conflict_review';
+export type FastScanResult = 'new' | 'exact_duplicate' | 'possible_version' | 'conflict_review';
 
 export type FastScanMatch = {
   id: string;

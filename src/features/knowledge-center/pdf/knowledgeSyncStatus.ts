@@ -7,11 +7,7 @@
  */
 
 export type KnowledgeSyncState =
-  | 'cms_only'
-  | 'rag_only'
-  | 'synced'
-  | 'cms_draft_rag_pending'
-  | 'disconnected';
+  'cms_only' | 'rag_only' | 'synced' | 'cms_draft_rag_pending' | 'disconnected';
 
 export type KnowledgeSyncInput = {
   /** CMS article id if present */

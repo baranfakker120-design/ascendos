@@ -10,23 +10,23 @@ Some AscendOS surfaces still mention Team Seyda, Chogan, or Essence Tribe. Multi
 
 ## Decision classes
 
-| Class | Meaning |
-| ----- | ------- |
-| **A** | Make organization-neutral (config / branding / tools) |
-| **B** | Legitimate org-specific feature (data of Org #1) |
-| **C** | Historical legacy (folder names, redirects) — leave until cleanup wave |
+| Class | Meaning                                                                     |
+| ----- | --------------------------------------------------------------------------- |
+| **A** | Make organization-neutral (config / branding / tools)                       |
+| **B** | Legitimate org-specific feature (data of Org #1)                            |
+| **C** | Historical legacy (folder names, redirects) — leave until cleanup wave      |
 | **D** | Product gate Org #1 only for now — must not become the multi-tenant pattern |
 
 ## Catalog (current)
 
-| Location | Class | Notes |
-| -------- | ----- | ----- |
-| `team-seyda-radar/*`, Radar migration CHECK, radar cron | **D** | Stays Org #1 only; do not generify now; do not remove gates |
-| Seed org name Chogan / branding Team Seyda | **B** | Org #1 data, not platform code |
-| `organizations.branding` / `external_tools` | **A** | Already org config |
-| CORE_RULES / FE URL audits | **A** | Already scrubbed; keep audits |
-| Folder `features/team-seyda/`, route `/team-seyda` → `/guide` | **C** | Compatibility alias |
-| Essence Tribe / Chogan labels inside Radar config | **D** | Only returned when `isTeamSeydaRadarOrg` |
+| Location                                                      | Class | Notes                                                       |
+| ------------------------------------------------------------- | ----- | ----------------------------------------------------------- |
+| `team-seyda-radar/*`, Radar migration CHECK, radar cron       | **D** | Stays Org #1 only; do not generify now; do not remove gates |
+| Seed org name Chogan / branding Team Seyda                    | **B** | Org #1 data, not platform code                              |
+| `organizations.branding` / `external_tools`                   | **A** | Already org config                                          |
+| CORE_RULES / FE URL audits                                    | **A** | Already scrubbed; keep audits                               |
+| Folder `features/team-seyda/`, route `/team-seyda` → `/guide` | **C** | Compatibility alias                                         |
+| Essence Tribe / Chogan labels inside Radar config             | **D** | Only returned when `isTeamSeydaRadarOrg`                    |
 
 ## Consequences
 
