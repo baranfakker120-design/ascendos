@@ -33,11 +33,7 @@ describe('RADAR startpoint gate (server-side)', () => {
 describe('RADAR deduplication partition', () => {
   it('TEST 3: existing external_id is duplicate, not fresh', () => {
     const { fresh, duplicates } = partitionNewVsDuplicate(
-      [
-        { external_id: 'a' },
-        { external_id: 'b' },
-        { external_id: 'c' },
-      ],
+      [{ external_id: 'a' }, { external_id: 'b' }, { external_id: 'c' }],
       new Set(['b'])
     );
     expect(fresh.map((i) => i.external_id)).toEqual(['a', 'c']);
