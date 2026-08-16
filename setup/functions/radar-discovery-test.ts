@@ -102,21 +102,117 @@ export function mapMediaToContentType(
   return 'POST';
 }
 
+// ---- inline: _shared/radar/metaFetchPolicy.ts ----
+/**
+ * Meta HTTP error classification + retry policy for RADAR Discovery.
+ * Keep in sync with src/features/team-seyda-radar/radarMetaFetchPolicy.ts
+ *
+ * No auto token refresh. Cron must not tight-loop on auth failures.
+ */
+
+export type MetaErrorKind =
+  | 'ok'
+  | 'meta_auth_error'
+  | 'meta_forbidden'
+  | 'meta_rate_limited'
+  | 'meta_server_error'
+  | 'meta_timeout'
+  | 'meta_network_error'
+  | 'meta_client_error'
+  | 'meta_invalid_json'
+  | 'business_discovery_empty'
+  | 'unknown';
+
+export type MetaRetryDecision = 'do_not_retry' | 'retry_with_backoff' | 'defer_to_next_hour';
+
+/** Max additional attempts after the first try within a single target fetch. */
+export const META_MAX_RETRIES = 2;
+
+/** Base backoff for 5xx / timeout retries (ms). Jitter applied by caller. */
+export const META_RETRY_BASE_MS = 400;
+
+/** Single limited backoff for 429 before deferring to next hourly cron. */
+export const META_RATE_LIMIT_BACKOFF_MS = 1200;
+
+export function classifyMetaHttpStatus(httpStatus: number): MetaErrorKind {
+  if (httpStatus === 0) return 'meta_network_error';
+  if (httpStatus === 401) return 'meta_auth_error';
+  if (httpStatus === 403) return 'meta_forbidden';
+  if (httpStatus === 429) return 'meta_rate_limited';
+  if (httpStatus >= 500 && httpStatus <= 599) return 'meta_server_error';
+  if (httpStatus >= 400 && httpStatus <= 499) return 'meta_client_error';
+  if (httpStatus >= 200 && httpStatus < 300) return 'ok';
+  return 'unknown';
+}
+
+/**
+ * Decide retry behavior for a Meta failure.
+ * attemptIndex: 0 = first failure after initial request.
+ */
+export function decideMetaRetry(
+  kind: MetaErrorKind,
+  attemptIndex: number
+): MetaRetryDecision {
+  if (kind === 'meta_auth_error' || kind === 'meta_forbidden' || kind === 'meta_client_error') {
+    return 'do_not_retry';
+  }
+  if (kind === 'meta_rate_limited') {
+    // One limited backoff at most, then wait for next hourly cron.
+    return attemptIndex === 0 ? 'retry_with_backoff' : 'defer_to_next_hour';
+  }
+  if (
+    kind === 'meta_server_error' ||
+    kind === 'meta_timeout' ||
+    kind === 'meta_network_error'
+  ) {
+    return attemptIndex < META_MAX_RETRIES ? 'retry_with_backoff' : 'defer_to_next_hour';
+  }
+  return 'do_not_retry';
+}
+
+/** Deterministic backoff ms (tests); production adds jitter via `withJitter`. */
+export function metaBackoffMs(kind: MetaErrorKind, attemptIndex: number): number {
+  if (kind === 'meta_rate_limited') return META_RATE_LIMIT_BACKOFF_MS;
+  return META_RETRY_BASE_MS * 2 ** Math.max(0, attemptIndex);
+}
+
+export function withJitter(baseMs: number, random01: number = Math.random()): number {
+  const r = Math.min(1, Math.max(0, random01));
+  // ±25% jitter
+  return Math.round(baseMs * (0.75 + r * 0.5));
+}
+
+export function errorKindFromFetchFailure(opts: {
+  httpStatus: number;
+  timedOut?: boolean;
+  networkError?: boolean;
+  invalidJson?: boolean;
+  emptyDiscovery?: boolean;
+}): MetaErrorKind {
+  if (opts.timedOut) return 'meta_timeout';
+  if (opts.networkError) return 'meta_network_error';
+  if (opts.invalidJson) return 'meta_invalid_json';
+  if (opts.emptyDiscovery) return 'business_discovery_empty';
+  return classifyMetaHttpStatus(opts.httpStatus);
+}
+
 // ---- inline: _shared/radar/index.ts ----
 
 
 /**
- * radar-discovery-test — RADAR Business Discovery → team_radar_items (manual invoke).
+ * radar-discovery-test — RADAR Business Discovery → team_radar_items.
  *
  * Hard rules:
  * - Reads RADAR_META_ACCESS_TOKEN server-side only (never returns/logs it).
  * - Writes only to team_radar_items (Org #1), deduped by (org_id,user_id,source,external_id).
  * - Filters published_at >= per-user radar_started_at.
  * - Does NOT download media / republish.
- * - Does NOT schedule Cron or enable polling.
+ * - Does NOT enable continuous polling.
+ * - Does NOT auto-refresh Meta tokens.
  * - Does NOT touch Instagram Login / publish (instagram-oauth, instagram-publish).
  *
- * Auth: CRON_SECRET via x-cron-secret or Authorization Bearer (manual invoke only).
+ * Schedule: hourly via pg_cron + pg_net (job `radar-discovery-hourly`).
+ * Auth: CRON_SECRET via x-cron-secret or Authorization Bearer.
  */
 
 
@@ -125,6 +221,7 @@ const RADAR_QUERY_IG_USER_ID = '17841436455645169';
 
 const GRAPH_VERSION = 'v21.0';
 const GRAPH_HOST = 'https://graph.facebook.com';
+const META_FETCH_TIMEOUT_MS = 25_000;
 
 const TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
   { username: 'chogangroupofficial', source: 'chogan' },
@@ -156,6 +253,8 @@ interface TargetResult {
   duplicates: number;
   inserted: number;
   error?: string;
+  error_kind?: MetaErrorKind;
+  attempts?: number;
 }
 
 function authorizeCron(req: Request): Response | null {
@@ -224,20 +323,50 @@ function normalizeMetaMedia(
   };
 }
 
-async function fetchDiscoveryMedia(
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchDiscoveryMediaOnce(
   accessToken: string,
   username: string
-): Promise<{ ok: boolean; media: MetaMedia[]; httpStatus: number; error?: string }> {
+): Promise<{
+  ok: boolean;
+  media: MetaMedia[];
+  httpStatus: number;
+  error?: string;
+  kind: MetaErrorKind;
+}> {
   const fields = `business_discovery.username(${username}){username,media{id,caption,media_type,permalink,timestamp}}`;
   const url = new URL(`${GRAPH_HOST}/${GRAPH_VERSION}/${RADAR_QUERY_IG_USER_ID}`);
   url.searchParams.set('fields', fields);
   url.searchParams.set('access_token', accessToken);
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), META_FETCH_TIMEOUT_MS);
+
   let res: Response;
   try {
-    res = await fetch(url.toString(), { method: 'GET' });
-  } catch {
-    return { ok: false, media: [], httpStatus: 0, error: 'meta_network_error' };
+    res = await fetch(url.toString(), { method: 'GET', signal: controller.signal });
+  } catch (e) {
+    clearTimeout(timer);
+    const aborted =
+      (e instanceof DOMException && e.name === 'AbortError') ||
+      (e instanceof Error && e.name === 'AbortError');
+    const kind = errorKindFromFetchFailure({
+      httpStatus: 0,
+      timedOut: aborted,
+      networkError: !aborted,
+    });
+    return {
+      ok: false,
+      media: [],
+      httpStatus: 0,
+      error: kind,
+      kind,
+    };
+  } finally {
+    clearTimeout(timer);
   }
 
   let bodyText = '';
@@ -254,15 +383,18 @@ async function fetchDiscoveryMedia(
   try {
     parsed = JSON.parse(bodyText) as typeof parsed;
   } catch {
-    return { ok: false, media: [], httpStatus: res.status, error: 'meta_invalid_json' };
+    const kind = errorKindFromFetchFailure({ httpStatus: res.status, invalidJson: true });
+    return { ok: false, media: [], httpStatus: res.status, error: kind, kind };
   }
 
   if (!res.ok || parsed.error) {
+    const kind = classifyFromMetaResponse(res.status, parsed.error?.code);
     return {
       ok: false,
       media: [],
       httpStatus: res.status,
-      error: sanitizeMetaMessage(parsed.error?.message) ?? 'meta_error',
+      error: sanitizeMetaMessage(parsed.error?.message) ?? kind,
+      kind,
     };
   }
 
@@ -270,9 +402,49 @@ async function fetchDiscoveryMedia(
   const media = Array.isArray(data) ? data : [];
   const verified = typeof parsed.business_discovery?.username === 'string';
   if (!verified) {
-    return { ok: false, media: [], httpStatus: res.status, error: 'business_discovery_empty' };
+    const kind = errorKindFromFetchFailure({ httpStatus: res.status, emptyDiscovery: true });
+    return { ok: false, media: [], httpStatus: res.status, error: kind, kind };
   }
-  return { ok: true, media, httpStatus: res.status };
+  return { ok: true, media, httpStatus: res.status, kind: 'ok' };
+}
+
+/** Prefer HTTP status; Meta OAuthException codes sometimes arrive with 400. */
+function classifyFromMetaResponse(httpStatus: number, metaCode: number | undefined): MetaErrorKind {
+  if (httpStatus === 401 || metaCode === 190) return 'meta_auth_error';
+  if (httpStatus === 403 || metaCode === 10 || metaCode === 200) return 'meta_forbidden';
+  if (httpStatus === 429 || metaCode === 4 || metaCode === 17 || metaCode === 32) {
+    return 'meta_rate_limited';
+  }
+  return errorKindFromFetchFailure({ httpStatus });
+}
+
+async function fetchDiscoveryMedia(
+  accessToken: string,
+  username: string
+): Promise<{
+  ok: boolean;
+  media: MetaMedia[];
+  httpStatus: number;
+  error?: string;
+  kind: MetaErrorKind;
+  attempts: number;
+}> {
+  let attempt = 0;
+  let last = await fetchDiscoveryMediaOnce(accessToken, username);
+  if (last.ok) return { ...last, attempts: 1 };
+
+  // attemptIndex 0 = first failure; allow limited retries per policy.
+  while (true) {
+    const decision = decideMetaRetry(last.kind, attempt);
+    if (decision !== 'retry_with_backoff') {
+      return { ...last, attempts: attempt + 1 };
+    }
+    const wait = withJitter(metaBackoffMs(last.kind, attempt));
+    await sleep(wait);
+    attempt += 1;
+    last = await fetchDiscoveryMediaOnce(accessToken, username);
+    if (last.ok) return { ...last, attempts: attempt + 1 };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -384,10 +556,11 @@ Deno.serve(async (req) => {
     let newItems = 0;
     let duplicates = 0;
     let inserted = 0;
+    let authHardFail = false;
 
     for (const target of TARGETS) {
-      const discovered = await fetchDiscoveryMedia(token, target.username);
-      if (!discovered.ok) {
+      // One target may fail without abandoning the other (unless token is dead).
+      if (authHardFail) {
         targetResults.push({
           username: target.username,
           success: false,
@@ -395,7 +568,35 @@ Deno.serve(async (req) => {
           new_items: 0,
           duplicates: 0,
           inserted: 0,
-          error: discovered.error ?? 'discovery_failed',
+          error: 'meta_auth_error',
+          error_kind: 'meta_auth_error',
+          attempts: 0,
+        });
+        continue;
+      }
+
+      const discovered = await fetchDiscoveryMedia(token, target.username);
+      if (!discovered.ok) {
+        if (discovered.kind === 'meta_auth_error') authHardFail = true;
+        console.error(
+          'radar_discovery_target_fail',
+          JSON.stringify({
+            username: target.username,
+            kind: discovered.kind,
+            httpStatus: discovered.httpStatus,
+            attempts: discovered.attempts,
+          })
+        );
+        targetResults.push({
+          username: target.username,
+          success: false,
+          items_found: 0,
+          new_items: 0,
+          duplicates: 0,
+          inserted: 0,
+          error: discovered.error ?? discovered.kind,
+          error_kind: discovered.kind,
+          attempts: discovered.attempts,
         });
         continue;
       }
@@ -416,6 +617,7 @@ Deno.serve(async (req) => {
           duplicates: 0,
           inserted: 0,
           error: 'no_active_radar_users',
+          attempts: discovered.attempts,
         });
         continue;
       }
@@ -497,12 +699,13 @@ Deno.serve(async (req) => {
         new_items: Math.max(0, targetNew),
         duplicates: targetDup,
         inserted: targetIns,
+        attempts: discovered.attempts,
         ...(targetError ? { error: targetError } : {}),
       });
     }
 
     const anySuccess = targetResults.some((t) => t.success);
-    return json({
+    const summary = {
       success: anySuccess,
       targets: TARGETS.length,
       items_found: itemsFound,
@@ -513,7 +716,24 @@ Deno.serve(async (req) => {
       active_radar_users: activeUsers.length,
       target_results: targetResults,
       timestamp: new Date().toISOString(),
-    });
+      ...(authHardFail ? { error: 'meta_auth_error' } : {}),
+    };
+
+    // Safe stats only — never log tokens or Meta payloads.
+    console.log(
+      'radar_discovery_run',
+      JSON.stringify({
+        targets: summary.targets,
+        items_found: summary.items_found,
+        new_items: summary.new_items,
+        duplicates: summary.duplicates,
+        inserted: summary.inserted,
+        success: summary.success,
+        auth_hard_fail: authHardFail,
+      })
+    );
+
+    return json(summary);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'internal';
     const safe = sanitizeMetaMessage(msg) ?? 'internal';
