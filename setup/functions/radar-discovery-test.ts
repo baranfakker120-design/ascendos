@@ -26,6 +26,85 @@ export function json(body: unknown, status = 200): Response {
   });
 }
 
+// ---- inline: _shared/radar/insertGate.ts ----
+/**
+ * Pure RADAR insert gates for Edge Discovery (Deno).
+ * Keep in sync with src/features/team-seyda-radar/radarInsertGate.ts
+ */
+
+export const TEAM_SEYDA_ORG_ID = '00000000-0000-0000-0000-000000000001';
+
+export type RadarSource = 'chogan' | 'essence_tribe';
+export type RadarContentType = 'POST' | 'REEL';
+
+export interface RadarNormalizedItem {
+  source: RadarSource;
+  external_id: string;
+  content_type: RadarContentType;
+  published_at: string;
+  canonical_url: string;
+}
+
+/** Server-side startpoint: published_at >= radar_started_at (inclusive). */
+export function isOnOrAfterRadarStartpoint(
+  publishedAtIso: string,
+  radarStartedAtIso: string
+): boolean {
+  const publishedMs = Date.parse(publishedAtIso);
+  const startedMs = Date.parse(radarStartedAtIso);
+  if (!Number.isFinite(publishedMs) || !Number.isFinite(startedMs)) return false;
+  return publishedMs >= startedMs;
+}
+
+export function filterItemsByRadarStartpoint<T extends { published_at: string }>(
+  items: readonly T[],
+  radarStartedAtIso: string
+): T[] {
+  return items.filter((item) => isOnOrAfterRadarStartpoint(item.published_at, radarStartedAtIso));
+}
+
+export function partitionNewVsDuplicate<T extends { external_id: string }>(
+  candidates: readonly T[],
+  existingExternalIds: ReadonlySet<string>
+): { fresh: T[]; duplicates: T[] } {
+  const fresh: T[] = [];
+  const duplicates: T[] = [];
+  for (const item of candidates) {
+    if (existingExternalIds.has(item.external_id)) duplicates.push(item);
+    else fresh.push(item);
+  }
+  return { fresh, duplicates };
+}
+
+/**
+ * Discovery writes are Org #1 only. Client/body org ids are ignored unless forged.
+ */
+export function resolveRadarWriteOrgId(clientOrgId: unknown): string | null {
+  if (clientOrgId == null || clientOrgId === '') return TEAM_SEYDA_ORG_ID;
+  if (typeof clientOrgId !== 'string') return null;
+  if (clientOrgId === TEAM_SEYDA_ORG_ID) return TEAM_SEYDA_ORG_ID;
+  return null;
+}
+
+export function mapUsernameToSource(username: string): RadarSource | null {
+  if (username === 'chogangroupofficial') return 'chogan';
+  if (username === 'essencetribe.network') return 'essence_tribe';
+  return null;
+}
+
+export function mapMediaToContentType(
+  mediaType: string | undefined,
+  permalink: string | undefined
+): RadarContentType {
+  const p = (permalink ?? '').toLowerCase();
+  if (p.includes('/reel/')) return 'REEL';
+  if ((mediaType ?? '').toUpperCase() === 'VIDEO') return 'REEL';
+  return 'POST';
+}
+
+// ---- inline: _shared/radar/index.ts ----
+
+
 /**
  * radar-discovery-test — RADAR Business Discovery → team_radar_items (manual invoke).
  *
@@ -41,16 +120,11 @@ export function json(body: unknown, status = 200): Response {
  */
 
 
-const TEAM_SEYDA_ORG_ID = '00000000-0000-0000-0000-000000000001';
-
 /** Verified Ascendos Page → @bybarfum Instagram professional account (query identity). */
 const RADAR_QUERY_IG_USER_ID = '17841436455645169';
 
 const GRAPH_VERSION = 'v21.0';
 const GRAPH_HOST = 'https://graph.facebook.com';
-
-type RadarSource = 'chogan' | 'essence_tribe';
-type RadarContentType = 'POST' | 'REEL';
 
 const TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
   { username: 'chogangroupofficial', source: 'chogan' },
@@ -126,11 +200,7 @@ function sanitizeMetaMessage(raw: unknown): string | null {
 }
 
 function mapContentType(mediaType: string | undefined, permalink: string | undefined): RadarContentType {
-  const p = (permalink ?? '').toLowerCase();
-  if (p.includes('/reel/')) return 'REEL';
-  const t = (mediaType ?? '').toUpperCase();
-  if (t === 'VIDEO') return 'REEL';
-  return 'POST';
+  return mapMediaToContentType(mediaType, permalink);
 }
 
 function normalizeMetaMedia(
@@ -215,6 +285,33 @@ Deno.serve(async (req) => {
 
   const denied = authorizeCron(req);
   if (denied) return denied;
+
+  // Optional body.org_id is hard-gated to Org #1; forged orgs are rejected.
+  let clientOrgId: unknown = null;
+  if (req.method === 'POST') {
+    try {
+      const body = (await req.json()) as { organization_id?: unknown; org_id?: unknown };
+      clientOrgId = body.organization_id ?? body.org_id ?? null;
+    } catch {
+      clientOrgId = null;
+    }
+  }
+  const writeOrgId = resolveRadarWriteOrgId(clientOrgId);
+  if (!writeOrgId) {
+    return json(
+      {
+        success: false,
+        targets: TARGETS.length,
+        items_found: 0,
+        new_items: 0,
+        duplicates: 0,
+        inserted: 0,
+        database_write: false,
+        error: 'organisation_mismatch',
+      },
+      403
+    );
+  }
 
   const token = Deno.env.get('RADAR_META_ACCESS_TOKEN')?.trim() ?? '';
   if (!token) {
@@ -331,15 +428,15 @@ Deno.serve(async (req) => {
 
       for (const user of activeUsers) {
         if (targetFailed) break;
-        const startedAt = new Date(user.radar_started_at).getTime();
-        const eligible = normalized.filter((n) => new Date(n.published_at).getTime() >= startedAt);
+        // Server-side startpoint: published_at >= radar_started_at (not FE-only).
+        const eligible = filterItemsByRadarStartpoint(normalized, user.radar_started_at);
         if (eligible.length === 0) continue;
 
         const externalIds = eligible.map((e) => e.external_id);
         const { data: existingRows, error: existErr } = await db
           .from('team_radar_items')
           .select('external_id')
-          .eq('org_id', TEAM_SEYDA_ORG_ID)
+          .eq('org_id', writeOrgId)
           .eq('user_id', user.user_id)
           .eq('source', target.source)
           .in('external_id', externalIds);
@@ -354,8 +451,8 @@ Deno.serve(async (req) => {
         const existing = new Set(
           (existingRows ?? []).map((r: { external_id: string }) => r.external_id)
         );
-        const toInsert = eligible.filter((e) => !existing.has(e.external_id));
-        const dupCount = eligible.length - toInsert.length;
+        const { fresh: toInsert, duplicates: dups } = partitionNewVsDuplicate(eligible, existing);
+        const dupCount = dups.length;
         targetDup += dupCount;
         duplicates += dupCount;
         targetNew += toInsert.length;
@@ -364,7 +461,7 @@ Deno.serve(async (req) => {
         if (toInsert.length === 0) continue;
 
         const rows = toInsert.map((e) => ({
-          org_id: TEAM_SEYDA_ORG_ID,
+          org_id: writeOrgId,
           user_id: user.user_id,
           source: e.source,
           external_id: e.external_id,

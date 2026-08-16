@@ -14,17 +14,21 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
-
-const TEAM_SEYDA_ORG_ID = '00000000-0000-0000-0000-000000000001';
+import {
+  TEAM_SEYDA_ORG_ID,
+  filterItemsByRadarStartpoint,
+  mapMediaToContentType,
+  partitionNewVsDuplicate,
+  resolveRadarWriteOrgId,
+  type RadarContentType,
+  type RadarSource,
+} from '../_shared/radar/index.ts';
 
 /** Verified Ascendos Page → @bybarfum Instagram professional account (query identity). */
 const RADAR_QUERY_IG_USER_ID = '17841436455645169';
 
 const GRAPH_VERSION = 'v21.0';
 const GRAPH_HOST = 'https://graph.facebook.com';
-
-type RadarSource = 'chogan' | 'essence_tribe';
-type RadarContentType = 'POST' | 'REEL';
 
 const TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
   { username: 'chogangroupofficial', source: 'chogan' },
@@ -100,11 +104,7 @@ function sanitizeMetaMessage(raw: unknown): string | null {
 }
 
 function mapContentType(mediaType: string | undefined, permalink: string | undefined): RadarContentType {
-  const p = (permalink ?? '').toLowerCase();
-  if (p.includes('/reel/')) return 'REEL';
-  const t = (mediaType ?? '').toUpperCase();
-  if (t === 'VIDEO') return 'REEL';
-  return 'POST';
+  return mapMediaToContentType(mediaType, permalink);
 }
 
 function normalizeMetaMedia(
@@ -190,6 +190,33 @@ Deno.serve(async (req) => {
   const denied = authorizeCron(req);
   if (denied) return denied;
 
+  // Optional body.org_id is hard-gated to Org #1; forged orgs are rejected.
+  let clientOrgId: unknown = null;
+  if (req.method === 'POST') {
+    try {
+      const body = (await req.json()) as { organization_id?: unknown; org_id?: unknown };
+      clientOrgId = body.organization_id ?? body.org_id ?? null;
+    } catch {
+      clientOrgId = null;
+    }
+  }
+  const writeOrgId = resolveRadarWriteOrgId(clientOrgId);
+  if (!writeOrgId) {
+    return json(
+      {
+        success: false,
+        targets: TARGETS.length,
+        items_found: 0,
+        new_items: 0,
+        duplicates: 0,
+        inserted: 0,
+        database_write: false,
+        error: 'organisation_mismatch',
+      },
+      403
+    );
+  }
+
   const token = Deno.env.get('RADAR_META_ACCESS_TOKEN')?.trim() ?? '';
   if (!token) {
     return json(
@@ -230,7 +257,7 @@ Deno.serve(async (req) => {
     const { data: userStates, error: stateErr } = await db
       .from('team_radar_user_state')
       .select('user_id, radar_started_at, enabled, paused')
-      .eq('org_id', TEAM_SEYDA_ORG_ID)
+      .eq('org_id', writeOrgId)
       .eq('enabled', true)
       .eq('paused', false);
 
@@ -305,15 +332,15 @@ Deno.serve(async (req) => {
 
       for (const user of activeUsers) {
         if (targetFailed) break;
-        const startedAt = new Date(user.radar_started_at).getTime();
-        const eligible = normalized.filter((n) => new Date(n.published_at).getTime() >= startedAt);
+        // Server-side startpoint: published_at >= radar_started_at (not FE-only).
+        const eligible = filterItemsByRadarStartpoint(normalized, user.radar_started_at);
         if (eligible.length === 0) continue;
 
         const externalIds = eligible.map((e) => e.external_id);
         const { data: existingRows, error: existErr } = await db
           .from('team_radar_items')
           .select('external_id')
-          .eq('org_id', TEAM_SEYDA_ORG_ID)
+          .eq('org_id', writeOrgId)
           .eq('user_id', user.user_id)
           .eq('source', target.source)
           .in('external_id', externalIds);
@@ -328,8 +355,8 @@ Deno.serve(async (req) => {
         const existing = new Set(
           (existingRows ?? []).map((r: { external_id: string }) => r.external_id)
         );
-        const toInsert = eligible.filter((e) => !existing.has(e.external_id));
-        const dupCount = eligible.length - toInsert.length;
+        const { fresh: toInsert, duplicates: dups } = partitionNewVsDuplicate(eligible, existing);
+        const dupCount = dups.length;
         targetDup += dupCount;
         duplicates += dupCount;
         targetNew += toInsert.length;
@@ -338,7 +365,7 @@ Deno.serve(async (req) => {
         if (toInsert.length === 0) continue;
 
         const rows = toInsert.map((e) => ({
-          org_id: TEAM_SEYDA_ORG_ID,
+          org_id: writeOrgId,
           user_id: user.user_id,
           source: e.source,
           external_id: e.external_id,

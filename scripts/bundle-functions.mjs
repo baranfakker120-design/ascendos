@@ -105,6 +105,7 @@ const SHARED_GROUPS = [
   'instagram-publish',
   'meta',
   'coaching-push',
+  'radar',
 ];
 
 const DECL_RE =
