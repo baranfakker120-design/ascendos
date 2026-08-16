@@ -15,7 +15,6 @@
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import {
-  TEAM_SEYDA_ORG_ID,
   filterItemsByRadarStartpoint,
   mapMediaToContentType,
   partitionNewVsDuplicate,

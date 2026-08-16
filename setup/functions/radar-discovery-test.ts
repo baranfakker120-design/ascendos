@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
     const { data: userStates, error: stateErr } = await db
       .from('team_radar_user_state')
       .select('user_id, radar_started_at, enabled, paused')
-      .eq('org_id', TEAM_SEYDA_ORG_ID)
+      .eq('org_id', writeOrgId)
       .eq('enabled', true)
       .eq('paused', false);
 
