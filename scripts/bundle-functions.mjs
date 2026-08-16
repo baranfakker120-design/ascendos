@@ -37,6 +37,7 @@ const FUNCTIONS = [
   'coaching-push-dispatch',
   'knowledge-pdf-vision',
   'radar-discovery-test',
+  'account-deletion-purge',
 ];
 
 const SHARED_RE = /^\.\.\/_shared\/(.+)$/;

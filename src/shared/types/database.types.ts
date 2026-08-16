@@ -3508,9 +3508,12 @@ export type Database = {
       };
       profiles: {
         Row: {
+          account_status: string;
           avatar_url: string | null;
           country: string | null;
           created_at: string;
+          deletion_requested_at: string | null;
+          deletion_scheduled_for: string | null;
           first_name: string;
           goals: Json;
           id: string;
@@ -3525,9 +3528,12 @@ export type Database = {
           username: string;
         };
         Insert: {
+          account_status?: string;
           avatar_url?: string | null;
           country?: string | null;
           created_at?: string;
+          deletion_requested_at?: string | null;
+          deletion_scheduled_for?: string | null;
           first_name: string;
           goals?: Json;
           id: string;
@@ -3542,9 +3548,12 @@ export type Database = {
           username: string;
         };
         Update: {
+          account_status?: string;
           avatar_url?: string | null;
           country?: string | null;
           created_at?: string;
+          deletion_requested_at?: string | null;
+          deletion_scheduled_for?: string | null;
           first_name?: string;
           goals?: Json;
           id?: string;
@@ -4293,9 +4302,22 @@ export type Database = {
           invite_expires_at: string;
         }[];
       };
+      cancel_account_deletion: { Args: never; Returns: Json };
       current_org_id: { Args: never; Returns: string };
       current_team_id: { Args: never; Returns: string };
       current_user_role: { Args: never; Returns: string };
+      finalize_account_deletion: {
+        Args: { p_user_id: string };
+        Returns: Json;
+      };
+      list_due_account_deletions: {
+        Args: { p_limit?: number };
+        Returns: {
+          deletion_scheduled_for: string;
+          user_id: string;
+        }[];
+      };
+      request_account_deletion: { Args: never; Returns: Json };
       display_rank_for_ap: {
         Args: { p_ap: number; p_org: string; p_team_leader_qualified?: boolean };
         Returns: {
