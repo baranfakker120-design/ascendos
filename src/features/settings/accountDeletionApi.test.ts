@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysUntilDeletion } from './accountDeletionApi';
+import { daysUntilDeletion } from './accountDeletionMath';
 
 describe('daysUntilDeletion', () => {
   it('returns 0 when missing or past', () => {

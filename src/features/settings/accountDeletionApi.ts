@@ -1,9 +1,6 @@
-/**
- * Client helpers for 14-day account deletion (no password storage).
- * Password re-check uses Supabase Auth signInWithPassword only.
- */
-
 import { supabase } from '@shared/api/supabase';
+
+export { daysUntilDeletion } from './accountDeletionMath';
 
 export type DeletionScheduleResult = {
   ok: boolean;
@@ -46,17 +43,4 @@ export async function cancelAccountDeletion(): Promise<
   const { data, error } = await supabase.rpc('cancel_account_deletion');
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: data as DeletionCancelResult };
-}
-
-/** Whole days remaining until scheduled deletion (ceil). Min 0. */
-export function daysUntilDeletion(
-  scheduledForIso: string | null | undefined,
-  now = new Date()
-): number {
-  if (!scheduledForIso) return 0;
-  const due = Date.parse(scheduledForIso);
-  if (!Number.isFinite(due)) return 0;
-  const ms = due - now.getTime();
-  if (ms <= 0) return 0;
-  return Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
 }

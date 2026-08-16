@@ -2,20 +2,27 @@
 begin;
 select plan(8);
 
--- Ensure helper extensions for tests
 create extension if not exists pgtap;
-
--- Fixture note: uses existing test helpers if present; otherwise lightweight stubs.
--- We only assert function presence and profiles_public filter semantics via SQL.
 
 select has_function('public', 'request_account_deletion', array[]::text[]);
 select has_function('public', 'cancel_account_deletion', array[]::text[]);
 select has_function('public', 'finalize_account_deletion', array['uuid']);
 select has_function('public', 'list_due_account_deletions', array['integer']);
 
-select has_column('public', 'profiles', 'account_status');
-select has_column('public', 'profiles', 'deletion_requested_at');
-select has_column('public', 'profiles', 'deletion_scheduled_for');
+-- pgTAP has_column(schema, table, column, description) — 4-arg form required
+select has_column('public', 'profiles', 'account_status', 'account_status column');
+select has_column(
+  'public',
+  'profiles',
+  'deletion_requested_at',
+  'deletion_requested_at column'
+);
+select has_column(
+  'public',
+  'profiles',
+  'deletion_scheduled_for',
+  'deletion_scheduled_for column'
+);
 
 select ok(
   exists (
