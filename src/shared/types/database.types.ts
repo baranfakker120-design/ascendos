@@ -174,7 +174,21 @@ export type Database = {
             foreignKeyName: 'ai_usage_events_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
+            referencedRelation: 'firstline_journey_progress';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'ai_usage_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ai_usage_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
             referencedColumns: ['id'];
           },
         ];
@@ -2548,6 +2562,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'knowledge_pdf_documents_duplicate_of_id_fkey';
+            columns: ['duplicate_of_id'];
+            isOneToOne: false;
+            referencedRelation: 'knowledge_pdf_documents';
+            referencedColumns: ['id'];
+          },
+          {
             foreignKeyName: 'knowledge_pdf_documents_org_id_fkey';
             columns: ['org_id'];
             isOneToOne: false;
@@ -2559,13 +2580,6 @@ export type Database = {
             columns: ['rag_doc_id'];
             isOneToOne: false;
             referencedRelation: 'knowledge_docs';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'knowledge_pdf_documents_duplicate_of_id_fkey';
-            columns: ['duplicate_of_id'];
-            isOneToOne: false;
-            referencedRelation: 'knowledge_pdf_documents';
             referencedColumns: ['id'];
           },
           {
