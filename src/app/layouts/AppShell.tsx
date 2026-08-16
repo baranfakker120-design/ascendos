@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { FirstLaunchGate } from '@features/first-launch';
+import { PendingDeletionBanner } from '@features/settings/PendingDeletionBanner';
 import { OrgSwitcher } from '@shared/auth/OrgSwitcher';
 import { SyncStatusIndicator } from '@shared/offline';
 import { BottomNav } from './BottomNav';
@@ -56,6 +57,7 @@ export function AppShell() {
             : 'min-h-0 flex-1 overflow-x-clip overflow-y-auto px-4 pb-[var(--app-nav-clearance)] pt-2 [scrollbar-gutter:stable]'
         }
       >
+        {!fill ? <PendingDeletionBanner /> : null}
         <Outlet />
       </main>
       {personCoach ? null : <BottomNav />}

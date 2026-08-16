@@ -11,6 +11,7 @@ import {
   ensureNotificationPermission,
   notificationPermissionState,
 } from '@features/live-coaching/notifications';
+import { DeleteAccountFlow } from './DeleteAccountFlow';
 
 /**
  * Premium Settings — clean system preferences only.
@@ -19,6 +20,7 @@ import {
 export function SettingsPage() {
   const { signOut } = useAuth();
   const { locale, setLocale, t } = useI18n();
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteHint, setDeleteHint] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushHint, setPushHint] = useState<string | null>(null);
@@ -40,12 +42,6 @@ export function SettingsPage() {
     const ok = await ensureNotificationPermission();
     setPushEnabled(ok);
     setPushHint(ok ? t('settings.pushActive') : t('settings.pushDenied'));
-  };
-
-  const requestDelete = () => {
-    const ok = window.confirm(t('settings.deleteConfirm'));
-    if (!ok) return;
-    setDeleteHint(t('settings.deleteHint'));
   };
 
   return (
@@ -174,12 +170,18 @@ export function SettingsPage() {
           <Button type="button" variant="secondary" onClick={() => void signOut()}>
             {t('settings.logout')}
           </Button>
-          <Button type="button" variant="danger" onClick={requestDelete}>
+          <Button type="button" variant="danger" onClick={() => setDeleteOpen(true)}>
             {t('settings.deleteAccount')}
           </Button>
           {deleteHint ? <Alert tone="info">{deleteHint}</Alert> : null}
         </div>
       </Card>
+
+      <DeleteAccountFlow
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onScheduled={() => setDeleteHint(t('settings.deleteScheduledHint'))}
+      />
     </div>
   );
 }

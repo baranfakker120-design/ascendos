@@ -3508,9 +3508,12 @@ export type Database = {
       };
       profiles: {
         Row: {
+          account_status: string;
           avatar_url: string | null;
           country: string | null;
           created_at: string;
+          deletion_requested_at: string | null;
+          deletion_scheduled_for: string | null;
           first_name: string;
           goals: Json;
           id: string;
@@ -3525,9 +3528,12 @@ export type Database = {
           username: string;
         };
         Insert: {
+          account_status?: string;
           avatar_url?: string | null;
           country?: string | null;
           created_at?: string;
+          deletion_requested_at?: string | null;
+          deletion_scheduled_for?: string | null;
           first_name: string;
           goals?: Json;
           id: string;
@@ -3542,9 +3548,12 @@ export type Database = {
           username: string;
         };
         Update: {
+          account_status?: string;
           avatar_url?: string | null;
           country?: string | null;
           created_at?: string;
+          deletion_requested_at?: string | null;
+          deletion_scheduled_for?: string | null;
           first_name?: string;
           goals?: Json;
           id?: string;
@@ -4263,6 +4272,7 @@ export type Database = {
         Returns: number;
       };
       billing_get_config: { Args: never; Returns: Json };
+      cancel_account_deletion: { Args: never; Returns: Json };
       check_achievements: { Args: never; Returns: string[] };
       coach_messages_today: { Args: { p_user: string }; Returns: number };
       commit_daily_plan: { Args: { p_plan_id: string }; Returns: undefined };
@@ -4314,6 +4324,7 @@ export type Database = {
         Returns: boolean;
       };
       event_phase_rank: { Args: { p_event_type: string }; Returns: number };
+      finalize_account_deletion: { Args: { p_user_id: string }; Returns: Json };
       generate_daily_plan: { Args: { p_date: string }; Returns: string };
       get_downline: {
         Args: { root_user_id: string };
@@ -4414,6 +4425,13 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      list_due_account_deletions: {
+        Args: { p_limit?: number };
+        Returns: {
+          deletion_scheduled_for: string;
+          user_id: string;
+        }[];
       };
       list_my_frame_cosmetics: {
         Args: never;
@@ -4801,6 +4819,7 @@ export type Database = {
         }[];
       };
       refresh_org_billing_seats: { Args: { p_org_id: string }; Returns: number };
+      request_account_deletion: { Args: never; Returns: Json };
       toggle_leadership_favorite: {
         Args: { p_target_membership: string };
         Returns: boolean;
