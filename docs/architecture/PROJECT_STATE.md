@@ -1,13 +1,13 @@
 # PROJECT_STATE — AscendOS Multi-Tenant
 
-**Last updated:** 2026-08-14  
-**Updated by:** Phase 12 Second Organization + Full Tenant Isolation (repository; production unchanged)
+**Last updated:** 2026-08-16  
+**Updated by:** Phase 13 Glossily Readiness Foundation (repository; production unchanged)
 
 ---
 
 ## Current phase
 
-**PHASE 12 — Second Organization + Full Tenant Isolation** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
+**PHASE 13 — Glossily Readiness Foundation** — **IMPLEMENTED IN REPO** (awaiting human review; not merged/deployed by agent)
 
 ---
 
@@ -25,16 +25,19 @@
 | 9     | #119 | Organization Admin `/admin`               |
 | 10    | #120 | Platform Admin `/platform-admin`          |
 | 11    | #121 | Billing + usage (€20/org + €2/seat)       |
+| —     | #133 | Account deletion 14-day reactivation      |
+
+Phase 12 second-org isolation tests remain in repo from prior work.
 
 ---
 
 ## Next step
 
-**Human decision only:** whether to create a **second production organization**.
+**Human decision only:**
 
-Do **not** create production Org B without explicit approval.
-
-Do **not** apply unpaid migrations to production without approval.
+1. Review/merge Phase 13 PR  
+2. Apply migration `20260916000060_glossily_readiness_foundation.sql` when approved  
+3. **Do not** create production Org B / Glossily without explicit approval  
 
 ---
 
@@ -44,13 +47,13 @@ Do **not** apply unpaid migrations to production without approval.
 | --------------------------- | -------------------------------------------------------- |
 | Single Supabase project     | Yes                                                      |
 | Organizations + memberships | Yes — seeded Org #1 + Team Seyda                         |
-| Org selector                | `x-ascendos-org` + `current_org_id()`                    |
+| Org selector                | `x-ascendos-org` + `current_org_id()` + cache clear      |
 | Roles                       | Org roles + `platform_admins`                            |
-| Org Admin UI                | **`/admin`** including Billing                           |
-| Platform Admin UI           | **`/platform-admin`** including Billing                  |
+| Knowledge Fast Scan         | SHA-256 duplicate / version hints                        |
+| AI usage ledger             | `ai_usage_events` (coach-chat wired)                     |
 | Billing                     | Estimated €20+€2 model (cents); **no Stripe / payments** |
-| Second org isolation tests  | **Phase 12 pgTAP + unit** (CI fixtures only)             |
-| Autopilot / Manual carousel | Unchanged (1 image / ≤10)                                |
+| Second production org       | **NOT CREATED**                                          |
+| Radar                       | Org #1 only (unchanged)                                  |
 
 ---
 
@@ -71,24 +74,12 @@ Do **not** apply unpaid migrations to production without approval.
 
 | Item                            | State                                      |
 | ------------------------------- | ------------------------------------------ |
-| This Phase 12 work              | Repository only — production **UNCHANGED** |
+| This Phase 13 work              | Repository only — production **UNCHANGED** |
 | Database                        | **UNCHANGED** by agent                     |
 | Secrets / API keys / VAPID      | **UNCHANGED**                              |
 | Migrations applied by this work | **NONE**                                   |
 | Deploy                          | **NONE**                                   |
-| Stripe / payments               | **NOT IMPLEMENTED**                        |
-| Second production org           | **NOT CREATED**                            |
-
----
-
-## Migration status (multi-tenant program)
-
-| Phase | Status                                                     |
-| ----- | ---------------------------------------------------------- |
-| 0     | Done (docs)                                                |
-| 2–11  | Merged                                                     |
-| 12    | Implemented in repo — **MIGRATION: NONE**; awaiting review |
-| 13+   | Not started                                                |
+| Glossily / Org B                | **NOT CREATED**                            |
 
 ---
 
@@ -96,6 +87,7 @@ Do **not** apply unpaid migrations to production without approval.
 
 | File                               | Role            |
 | ---------------------------------- | --------------- |
-| `PHASE_11_BILLING_USAGE.md`        | Phase 11 report |
-| `PHASE_12_SECOND_ORG_ISOLATION.md` | Phase 12 report |
+| `PHASE_13_GLOSSILY_READINESS.md`   | Phase 13 report |
+| `ADR/0011-knowledge-operating-model.md` | CMS vs RAG |
+| `ADR/0012-org-special-features.md` | Team Seyda / Radar classes |
 | `PROJECT_STATE.md`                 | This file       |

@@ -119,6 +119,66 @@ export type Database = {
           },
         ];
       };
+      ai_usage_events: {
+        Row: {
+          created_at: string;
+          estimated_cost_micros: number | null;
+          feature: string;
+          id: string;
+          input_tokens: number;
+          metadata: Json;
+          model: string | null;
+          org_id: string;
+          output_tokens: number;
+          provider: string | null;
+          request_id: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          estimated_cost_micros?: number | null;
+          feature: string;
+          id?: string;
+          input_tokens?: number;
+          metadata?: Json;
+          model?: string | null;
+          org_id: string;
+          output_tokens?: number;
+          provider?: string | null;
+          request_id?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          estimated_cost_micros?: number | null;
+          feature?: string;
+          id?: string;
+          input_tokens?: number;
+          metadata?: Json;
+          model?: string | null;
+          org_id?: string;
+          output_tokens?: number;
+          provider?: string | null;
+          request_id?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ai_usage_events_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ai_usage_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       ap_ledger: {
         Row: {
           created_at: string;
@@ -2385,10 +2445,14 @@ export type Database = {
       knowledge_pdf_documents: {
         Row: {
           article_id: string | null;
+          byte_size: number | null;
           coach_rag_enabled: boolean;
+          content_sha256: string | null;
           created_at: string;
           created_by: string | null;
+          duplicate_of_id: string | null;
           error_message: string | null;
+          fast_scan_result: string | null;
           id: string;
           image_page_count: number;
           org_id: string;
@@ -2406,10 +2470,14 @@ export type Database = {
         };
         Insert: {
           article_id?: string | null;
+          byte_size?: number | null;
           coach_rag_enabled?: boolean;
+          content_sha256?: string | null;
           created_at?: string;
           created_by?: string | null;
+          duplicate_of_id?: string | null;
           error_message?: string | null;
+          fast_scan_result?: string | null;
           id?: string;
           image_page_count?: number;
           org_id?: string;
@@ -2427,10 +2495,14 @@ export type Database = {
         };
         Update: {
           article_id?: string | null;
+          byte_size?: number | null;
           coach_rag_enabled?: boolean;
+          content_sha256?: string | null;
           created_at?: string;
           created_by?: string | null;
+          duplicate_of_id?: string | null;
           error_message?: string | null;
+          fast_scan_result?: string | null;
           id?: string;
           image_page_count?: number;
           org_id?: string;
@@ -2487,6 +2559,13 @@ export type Database = {
             columns: ['rag_doc_id'];
             isOneToOne: false;
             referencedRelation: 'knowledge_docs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'knowledge_pdf_documents_duplicate_of_id_fkey';
+            columns: ['duplicate_of_id'];
+            isOneToOne: false;
+            referencedRelation: 'knowledge_pdf_documents';
             referencedColumns: ['id'];
           },
           {

@@ -18,8 +18,26 @@ import {
 } from './pdf/knowledgePdfStorage';
 import { pagesToReviewMarkdown, type KnowledgePdfPageChunkSource } from './pdf/semanticChunk';
 import { parseKnowledgePdfVisionResult } from './pdf/visionSchema';
+import { sha256HexOfBlob, normalizePdfFilename } from './pdf/contentHash';
+import {
+  decideKnowledgePdfFastScan,
+  type FastScanMatch,
+} from './pdf/fastScan';
+import { resolveKnowledgeSyncStatus } from './pdf/knowledgeSyncStatus';
 import { buildKnowledgePdfExtractionFailureUpdate } from './pdf/pipelineStatus';
 import type { KnowledgePdfDocument, KnowledgePdfPage } from './pdf/types';
+
+export type ProcessPdfResult = {
+  documentId: string;
+  page_count: number;
+  text_page_count: number;
+  vision_page_count: number;
+  image_page_count: number;
+  table_count: number;
+  fast_scan_result: string;
+  skipped_deep_analysis: boolean;
+  sync: ReturnType<typeof resolveKnowledgeSyncStatus>;
+};
 
 async function createSignedKnowledgePdfUrl(path: string, expiresSec = 3600): Promise<string> {
   const { data, error } = await supabase.storage
@@ -107,7 +125,7 @@ export function useKnowledgePdfPipeline() {
   };
 
   const processPdf = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (file: File): Promise<ProcessPdfResult> => {
       if (!activeOrgId) throw new Error('org_required');
       if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
         throw new Error('pdf_required');
@@ -115,6 +133,68 @@ export function useKnowledgePdfPipeline() {
 
       const orgCheck = assertKnowledgePdfOrgMatch(activeOrgId, activeOrgId);
       if (!orgCheck.ok) throw new Error('organisation_mismatch');
+
+      // Phase A — Fast Scan (hash + org-local duplicate / version hints)
+      const contentSha256 = await sha256HexOfBlob(file);
+      const byteSize = file.size;
+
+      const { data: hashRows, error: hashErr } = await supabase
+        .from('knowledge_pdf_documents')
+        .select('id, source_filename, content_sha256, status, title')
+        .eq('org_id', activeOrgId)
+        .eq('content_sha256', contentSha256)
+        .not('status', 'in', '("failed","archived","uploading")')
+        .limit(1);
+      if (hashErr) throw hashErr;
+      const exactHashMatch = (hashRows?.[0] as FastScanMatch | undefined) ?? null;
+
+      const { data: nameRows, error: nameErr } = await supabase
+        .from('knowledge_pdf_documents')
+        .select('id, source_filename, content_sha256, status, title')
+        .eq('org_id', activeOrgId)
+        .ilike('source_filename', file.name)
+        .not('status', 'in', '("failed","archived","uploading")')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      if (nameErr) throw nameErr;
+      const sameFilenameMatch = (nameRows?.[0] as FastScanMatch | undefined) ?? null;
+
+      const fastScan = decideKnowledgePdfFastScan({
+        contentSha256,
+        sourceFilename: normalizePdfFilename(file.name),
+        exactHashMatch,
+        sameFilenameMatch:
+          sameFilenameMatch &&
+          normalizePdfFilename(sameFilenameMatch.source_filename) ===
+            normalizePdfFilename(file.name)
+            ? sameFilenameMatch
+            : null,
+      });
+
+      if (fastScan.skipDeepAnalysis && fastScan.matchId) {
+        const { data: existing, error: existingErr } = await supabase
+          .from('knowledge_pdf_documents')
+          .select('*')
+          .eq('id', fastScan.matchId)
+          .single();
+        if (existingErr || !existing) throw existingErr ?? new Error('duplicate_lookup_failed');
+        const existingDoc = existing as KnowledgePdfDocument;
+        return {
+          documentId: existingDoc.id,
+          page_count: existingDoc.page_count,
+          text_page_count: existingDoc.text_page_count,
+          vision_page_count: existingDoc.vision_page_count,
+          image_page_count: existingDoc.image_page_count,
+          table_count: existingDoc.table_count,
+          fast_scan_result: 'exact_duplicate',
+          skipped_deep_analysis: true,
+          sync: resolveKnowledgeSyncStatus({
+            articleId: existingDoc.article_id,
+            ragDocId: existingDoc.rag_doc_id,
+            coachRagEnabled: existingDoc.coach_rag_enabled,
+          }),
+        };
+      }
 
       const storagePath = buildKnowledgePdfObjectPath(activeOrgId, profile?.id ?? null, file.name);
       if (!knowledgePdfPathBelongsToOrg(storagePath, activeOrgId)) {
@@ -135,6 +215,10 @@ export function useKnowledgePdfPipeline() {
           storage_path: storagePath,
           title,
           status: 'extracting',
+          content_sha256: contentSha256,
+          byte_size: byteSize,
+          fast_scan_result: fastScan.result,
+          duplicate_of_id: fastScan.matchId,
           created_by: profile?.id ?? null,
           updated_by: profile?.id ?? null,
         })
@@ -292,7 +376,18 @@ export function useKnowledgePdfPipeline() {
         })
         .eq('id', document.id);
 
-      return { documentId: document.id, ...stats, table_count: tableCount };
+      return {
+        documentId: document.id,
+        ...stats,
+        table_count: tableCount,
+        fast_scan_result: fastScan.result,
+        skipped_deep_analysis: false,
+        sync: resolveKnowledgeSyncStatus({
+          articleId: document.article_id,
+          ragDocId: document.rag_doc_id,
+          coachRagEnabled: document.coach_rag_enabled,
+        }),
+      };
     },
     onSuccess: () => void invalidate(),
     onError: () => void invalidate(),

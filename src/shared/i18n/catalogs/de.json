@@ -1112,7 +1112,9 @@
     "pdfPageLine": "Seite {n}: {type} · Vision {vision}",
     "pdfVisionYes": "ja",
     "pdfVisionNo": "nein",
-    "pdfDebugDetails": "Technische Details"
+    "pdfDebugDetails": "Technische Details",
+    "pdfExactDuplicateHint": "Identische Datei bereits vorhanden — erneute KI-Analyse übersprungen. Bestehendes Dokument geöffnet.",
+    "pdfPossibleVersionHint": "Mögliche neue Version erkannt — {pages} Seiten analysiert ({text} Text, {vision} Vision, {tables} Tabellen). Bitte vor Freigabe prüfen."
   },
   "firstLaunch": {
     "brandName": "AscendOS",
