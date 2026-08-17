@@ -1,8 +1,12 @@
 /** Instagram Content Autopilot V1 — shared contracts (no Facebook). */
 
+export {
+  AUTOPILOT_MAX_FEED_PER_DAY,
+  AUTOPILOT_DEFAULT_STORIES_PER_DAY,
+  AUTOPILOT_STORY_COUNT_MAX as AUTOPILOT_MAX_STORIES_PER_DAY,
+} from './publishingMode.ts';
+
 export const AUTOPILOT_MIN_ELIGIBLE_ASSETS = 10;
-export const AUTOPILOT_MAX_FEED_PER_DAY = 3;
-export const AUTOPILOT_MAX_STORIES_PER_DAY = 3;
 export const AUTOPILOT_DEFAULT_MAX_RETRIES = 3;
 export const AUTOPILOT_ASSET_COOLDOWN_DAYS = 3;
 

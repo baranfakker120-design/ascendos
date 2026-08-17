@@ -1,4 +1,17 @@
 export * from './types.ts';
+export {
+  AUTOPILOT_DEFAULT_PUBLISHING_MODE,
+  AUTOPILOT_DEFAULT_STORIES_PER_DAY,
+  AUTOPILOT_PUBLISHING_MODES,
+  AUTOPILOT_STORY_COUNT_MAX,
+  AUTOPILOT_STORY_COUNT_MIN,
+  MARKED_STORIES_API,
+  clampAutopilotFeedCount,
+  clampAutopilotStoryCount,
+  isMarkedStoriesManualFallback,
+  parseAutopilotPublishingMode,
+  resolveAutopilotSlotCaps,
+} from './publishingMode.ts';
 export * from './eligibility.ts';
 export * from './signals.ts';
 export * from './timing.ts';

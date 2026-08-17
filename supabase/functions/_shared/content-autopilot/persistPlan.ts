@@ -8,10 +8,10 @@
 
 import {
   AUTOPILOT_MAX_FEED_PER_DAY,
-  AUTOPILOT_MAX_STORIES_PER_DAY,
   type AutopilotEligibleAsset,
   type AutopilotHistoryItem,
 } from './types.ts';
+import { resolveAutopilotSlotCaps, parseAutopilotPublishingMode } from './publishingMode.ts';
 import { buildAutopilotWeekPlan } from './planner.ts';
 import { selectExactFiveHashtags, extractAutopilotKeywords } from './optimize.ts';
 import { pickSafePublicCopy } from '../content-generate/safeCopy.ts';
@@ -148,13 +148,26 @@ export async function buildAndInsertAutopilotPlan(
   assets: readonly AutopilotEligibleAsset[],
   history: readonly AutopilotHistoryItem[]
 ): Promise<{ planId: string; slotCount: number; skipped: number }> {
+  const { data: settingsRow } = await db
+    .from('content_autopilot_settings')
+    .select('publishing_mode, max_feed_per_day, max_stories_per_day')
+    .eq('org_id', membership.org_id)
+    .eq('membership_id', membership.id)
+    .maybeSingle();
+
+  const caps = resolveAutopilotSlotCaps({
+    publishingMode: settingsRow?.publishing_mode,
+    maxFeedPerDay: settingsRow?.max_feed_per_day ?? AUTOPILOT_MAX_FEED_PER_DAY,
+    maxStoriesPerDay: settingsRow?.max_stories_per_day,
+  });
+
   const planned = buildAutopilotWeekPlan({
     periodStart,
     periodEnd,
     assets,
     history,
-    maxFeedPerDay: AUTOPILOT_MAX_FEED_PER_DAY,
-    maxStoriesPerDay: AUTOPILOT_MAX_STORIES_PER_DAY,
+    maxFeedPerDay: caps.maxFeedPerDay,
+    maxStoriesPerDay: caps.maxStoriesPerDay,
   });
 
   const { data: activePlans } = await db
@@ -185,6 +198,11 @@ export async function buildAndInsertAutopilotPlan(
     .single();
   if (planErr) throw planErr;
 
+  const slotPerformance = {
+    publishing_mode: parseAutopilotPublishingMode(settingsRow?.publishing_mode),
+    manual_publish_required: !caps.autoPublish,
+  };
+
   let slotCount = 0;
   let skipped = 0;
   for (const s of planned) {
@@ -204,6 +222,7 @@ export async function buildAndInsertAutopilotPlan(
         selection_reason: s.selectionReason,
         status: 'skipped',
         error_message: s.skipReason ?? 'no_suitable_asset',
+        performance_json: slotPerformance,
       });
       continue;
     }
@@ -233,6 +252,7 @@ export async function buildAndInsertAutopilotPlan(
         selection_reason: s.selectionReason,
         status: 'skipped',
         error_message: 'draft_create_failed',
+        performance_json: slotPerformance,
       });
       continue;
     }
@@ -251,6 +271,7 @@ export async function buildAndInsertAutopilotPlan(
       category: s.category,
       selection_reason: s.selectionReason,
       status: 'ready',
+      performance_json: slotPerformance,
     });
     if (slotErr) {
       skipped += 1;

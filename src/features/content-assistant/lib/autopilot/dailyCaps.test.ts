@@ -1,33 +1,37 @@
 import { describe, expect, it } from 'vitest';
+import { feedTimesForCount, storyTimesForCount } from './timing';
+import { resolveAutopilotSlotCaps } from './publishingMode';
 
-/**
- * Mirror of edge planner caps — ensures V1 never schedules >3 feed or >3 stories / day.
- */
-function countKinds(
-  slots: Array<{ day: string; kind: 'feed' | 'story' }>
-): Record<string, { feed: number; story: number }> {
-  const out: Record<string, { feed: number; story: number }> = {};
-  for (const s of slots) {
-    out[s.day] ??= { feed: 0, story: 0 };
-    out[s.day][s.kind] += 1;
-  }
-  return out;
-}
+describe('autopilot daily caps with publishing modes', () => {
+  it('stories mode schedules exactly N story times and 0 feed', () => {
+    for (const n of [2, 4, 6, 10]) {
+      const caps = resolveAutopilotSlotCaps({
+        publishingMode: 'stories',
+        maxFeedPerDay: 3,
+        maxStoriesPerDay: n,
+      });
+      expect(storyTimesForCount(caps.maxStoriesPerDay)).toHaveLength(n);
+      expect(feedTimesForCount(caps.maxFeedPerDay)).toHaveLength(0);
+    }
+  });
 
-describe('autopilot daily caps', () => {
-  it('never exceeds 3 feed + 3 stories per day in a sample plan shape', () => {
-    const timesFeed = ['09:30', '13:00', '19:00'];
-    const timesStory = ['08:15', '12:30', '17:45'];
-    const days = ['2026-08-10', '2026-08-11'];
-    const slots: Array<{ day: string; kind: 'feed' | 'story' }> = [];
-    for (const day of days) {
-      for (let i = 0; i < timesStory.length; i += 1) slots.push({ day, kind: 'story' });
-      for (let i = 0; i < timesFeed.length; i += 1) slots.push({ day, kind: 'feed' });
-    }
-    const counts = countKinds(slots);
-    for (const day of days) {
-      expect(counts[day].feed).toBeLessThanOrEqual(3);
-      expect(counts[day].story).toBeLessThanOrEqual(3);
-    }
+  it('feed mode schedules feed only', () => {
+    const caps = resolveAutopilotSlotCaps({
+      publishingMode: 'feed',
+      maxFeedPerDay: 3,
+      maxStoriesPerDay: 8,
+    });
+    expect(feedTimesForCount(caps.maxFeedPerDay)).toHaveLength(3);
+    expect(storyTimesForCount(caps.maxStoriesPerDay)).toHaveLength(0);
+  });
+
+  it('full mode can keep legacy 3+3', () => {
+    const caps = resolveAutopilotSlotCaps({
+      publishingMode: 'full',
+      maxFeedPerDay: 3,
+      maxStoriesPerDay: 3,
+    });
+    expect(feedTimesForCount(caps.maxFeedPerDay)).toHaveLength(3);
+    expect(storyTimesForCount(caps.maxStoriesPerDay)).toHaveLength(3);
   });
 });

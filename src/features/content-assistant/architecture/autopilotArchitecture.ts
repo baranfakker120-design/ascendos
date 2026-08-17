@@ -8,7 +8,8 @@ export const AUTOPILOT_JOB = {
   edgeCron: 'content-autopilot-run',
   minEligibleAssets: 10,
   maxFeedPerDay: 3,
-  maxStoriesPerDay: 3,
+  maxStoriesPerDay: 10,
+  defaultStoriesPerDay: 4,
   timezoneDefault: 'Europe/Berlin',
   tables: ['content_autopilot_settings', 'content_autopilot_plans', 'content_autopilot_slots'],
 } as const;

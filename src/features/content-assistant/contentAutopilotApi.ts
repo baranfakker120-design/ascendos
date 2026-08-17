@@ -9,6 +9,7 @@ export interface AutopilotSettings {
   timezone: string;
   max_feed_per_day: number;
   max_stories_per_day: number;
+  publishing_mode?: 'stories' | 'feed' | 'full' | 'marked_stories';
   min_eligible_assets: number;
   consent_confirmed_at: string | null;
   last_activated_at: string | null;
@@ -42,6 +43,8 @@ export interface AutopilotState {
     total: number;
     maxFeedPerDay: number;
     maxStoriesPerDay: number;
+    publishingMode?: string;
+    markedStoriesManual?: boolean;
     reason?: string;
   };
   plan: {
@@ -144,6 +147,13 @@ export function useContentAutopilot() {
     },
     onSuccess: invalidate,
   });
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (patch: { publishingMode?: string; maxStoriesPerDay?: number }) => {
+      await invokeAutopilot('update_settings', patch);
+      return invokeAutopilot('get_state');
+    },
+    onSuccess: invalidate,
+  });
 
   return {
     stateQuery,
@@ -152,5 +162,6 @@ export function useContentAutopilot() {
     resumeMutation,
     deactivateMutation,
     replanMutation,
+    updateSettingsMutation,
   };
 }

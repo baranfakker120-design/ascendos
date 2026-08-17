@@ -1241,6 +1241,7 @@ export type Database = {
           min_eligible_assets: number;
           org_id: string;
           paused: boolean;
+          publishing_mode: string;
           timezone: string;
           updated_at: string;
         };
@@ -1257,6 +1258,7 @@ export type Database = {
           min_eligible_assets?: number;
           org_id: string;
           paused?: boolean;
+          publishing_mode?: string;
           timezone?: string;
           updated_at?: string;
         };
@@ -1273,6 +1275,7 @@ export type Database = {
           min_eligible_assets?: number;
           org_id?: string;
           paused?: boolean;
+          publishing_mode?: string;
           timezone?: string;
           updated_at?: string;
         };
