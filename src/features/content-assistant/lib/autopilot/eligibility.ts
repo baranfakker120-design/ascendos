@@ -18,6 +18,8 @@ export interface AutopilotEligibleAsset {
   analysis_status: string | null;
   aspect_ratio?: string | null;
   suggested_formats?: string[] | null;
+  width_px?: number | null;
+  height_px?: number | null;
 }
 
 /** Gate pool: images + videos. */
@@ -29,16 +31,28 @@ export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean
   return true;
 }
 
-/** Feed/Carousel pool: images only + feed aspect gate. */
+/** Feed/Carousel pool: images only + feed aspect gate (Safe-Reject). */
 export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset) || asset.media_kind !== 'image') return false;
-  return aspectFitsAutopilotSlot('feed', asset.aspect_ratio, asset.suggested_formats);
+  return aspectFitsAutopilotSlot(
+    'feed',
+    asset.aspect_ratio,
+    asset.suggested_formats,
+    asset.width_px,
+    asset.height_px
+  );
 }
 
-/** Story pool: image or video + story aspect gate. */
+/** Story pool: image or video + story aspect gate (Safe-Reject). */
 export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
-  return aspectFitsAutopilotSlot('story', asset.aspect_ratio, asset.suggested_formats);
+  return aspectFitsAutopilotSlot(
+    'story',
+    asset.aspect_ratio,
+    asset.suggested_formats,
+    asset.width_px,
+    asset.height_px
+  );
 }
 
 export function isEligibleForSlotKind(

@@ -6,6 +6,7 @@ import {
   type ScoredCandidate,
 } from './types.ts';
 import { isEligibleForSlotKind } from './eligibility.ts';
+import { mediaFormatScoreDelta } from './formatAspect.ts';
 import {
   inferCategoryFromAsset,
   preferredCategoriesForSlot,
@@ -103,6 +104,17 @@ export function scoreAutopilotCandidate(params: {
   const formats = asset.suggested_formats ?? [];
   if (slotKind === 'story' && formats.includes('story')) score += 8;
   if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('carousel'))) score += 8;
+
+  // Metadata format intelligence (aspect / resolution / crop risk) — no Vision.
+  const media = mediaFormatScoreDelta({
+    slotKind,
+    aspectRatio: asset.aspect_ratio,
+    suggestedFormats: asset.suggested_formats,
+    widthPx: asset.width_px,
+    heightPx: asset.height_px,
+  });
+  score += media.delta;
+  reasons.push(...media.reasons);
 
   if (asset.scope === 'personal') score += 2;
 

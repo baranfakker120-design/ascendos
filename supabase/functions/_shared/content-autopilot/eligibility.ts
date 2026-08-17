@@ -21,17 +21,29 @@ export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean
   return true;
 }
 
-/** Feed / Carousel pool — images only + feed aspect gate. Never video/reel/feed-video. */
+/** Feed / Carousel pool — images only + feed aspect gate (Safe-Reject). Never video. */
 export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
   if (asset.media_kind !== 'image') return false;
-  return aspectFitsAutopilotSlot('feed', asset.aspect_ratio, asset.suggested_formats);
+  return aspectFitsAutopilotSlot(
+    'feed',
+    asset.aspect_ratio,
+    asset.suggested_formats,
+    asset.width_px,
+    asset.height_px
+  );
 }
 
-/** Story pool — image/video story + story aspect gate. */
+/** Story pool — image/video story + story aspect gate (Safe-Reject). */
 export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
-  return aspectFitsAutopilotSlot('story', asset.aspect_ratio, asset.suggested_formats);
+  return aspectFitsAutopilotSlot(
+    'story',
+    asset.aspect_ratio,
+    asset.suggested_formats,
+    asset.width_px,
+    asset.height_px
+  );
 }
 
 export function isEligibleForSlotKind(

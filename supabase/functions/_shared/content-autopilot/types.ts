@@ -33,6 +33,8 @@ export interface AutopilotEligibleAsset {
   keywords: string[] | null;
   suggested_formats: string[] | null;
   aspect_ratio: string | null;
+  width_px?: number | null;
+  height_px?: number | null;
   analysis_status: string | null;
   last_used_at: string | null;
   usage_count: number;

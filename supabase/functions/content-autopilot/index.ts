@@ -8,6 +8,7 @@
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import {
+  AUTOPILOT_ELIGIBLE_ASSET_SELECT,
   AUTOPILOT_MAX_FEED_PER_DAY,
   AUTOPILOT_MAX_STORIES_PER_DAY,
   AUTOPILOT_MIN_ELIGIBLE_ASSETS,
@@ -69,9 +70,7 @@ async function loadEligibleAssets(
 ): Promise<AutopilotEligibleAsset[]> {
   const { data, error } = await db
     .from('content_assets')
-    .select(
-      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, aspect_ratio, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
-    )
+    .select(AUTOPILOT_ELIGIBLE_ASSET_SELECT)
     .eq('org_id', orgId)
     .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);
   if (error) throw error;

@@ -887,6 +887,8 @@ export interface AutopilotEligibleAsset {
   keywords: string[] | null;
   suggested_formats: string[] | null;
   aspect_ratio: string | null;
+  width_px?: number | null;
+  height_px?: number | null;
   analysis_status: string | null;
   last_used_at: string | null;
   usage_count: number;
@@ -910,40 +912,453 @@ export interface ScoredCandidate {
 
 // ---- inline: _shared/content-autopilot/formatAspect.ts ----
 /**
- * Hard story vs feed aspect gates for Autopilot (edge mirror of client formatAspect).
+ * Hard story vs feed aspect gates + metadata crop-risk (Safe-Reject).
+ * Edge mirror of client formatAspect. No Autopilot crop / Vision / ImageScript.
  */
 
 export const AUTOPILOT_STORY_ASPECT = '9:16' as const;
 export const AUTOPILOT_FEED_ASPECTS = ['1:1', '4:5'] as const;
+export const AUTOPILOT_PREFERRED_FEED_ASPECT = '4:5' as const;
 
-const FEED_BLOCKED = new Set(['9:16', '16:9']);
+export const AUTOPILOT_STORY_CANVAS = { width: 1080, height: 1920 } as const;
+export const AUTOPILOT_FEED_CANVAS = {
+  '1:1': { width: 1080, height: 1080 },
+  '4:5': { width: 1080, height: 1350 },
+} as const;
+
+/** Half-canvas floor — below this, Meta-quality risk is too high (Safe-Reject). */
+export const AUTOPILOT_STORY_MIN_PX = { width: 540, height: 960 } as const;
+export const AUTOPILOT_FEED_MIN_PX = { width: 540, height: 540 } as const;
+
+export type AutopilotSlotKindAspect = 'feed' | 'story';
+export type AutopilotCropRisk = 'none' | 'low' | 'medium' | 'high';
+
+export type MediaCompatibility = {
+  compatible: boolean;
+  sourceRatio: string | null;
+  targetRatio: string;
+  width: number | null;
+  height: number | null;
+  cropRisk: AutopilotCropRisk;
+  reason: string;
+};
+
+export type AssetNotCompatibleDetail = {
+  code: 'asset_not_compatible';
+  source_ratio: string | null;
+  target_ratio: string;
+  width: number | null;
+  height: number | null;
+  crop_risk: AutopilotCropRisk;
+  reason: string;
+};
+
+export type InsufficientStoryAssetsDetail = {
+  code: 'insufficient_story_assets';
+  requested: number;
+  eligible: number;
+  target: typeof AUTOPILOT_STORY_ASPECT;
+  reason: string;
+};
+
+const FEED_BLOCKED = new Set(['9:16', '16:9', '1.91:1']);
 const STORY_BLOCKED = new Set(['1:1', '4:5', '1.91:1', '16:9']);
 
-export function aspectFitsAutopilotSlot(
-  slotKind: 'feed' | 'story',
-  aspectRatio: string | null | undefined,
-  suggestedFormats: string[] | null | undefined
-): boolean {
-  const aspect = aspectRatio?.trim().replace(/\s+/g, '') || null;
-  const formats = (suggestedFormats ?? []).map((f) => f.toLowerCase());
+/** Shared select list — User-Activate and Cron must stay identical. */
+export const AUTOPILOT_ELIGIBLE_ASSET_SELECT =
+  'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, aspect_ratio, width_px, height_px, analysis_status, last_used_at, usage_count, created_at, owner_membership_id' as const;
 
-  if (slotKind === 'story') {
-    if (aspect === AUTOPILOT_STORY_ASPECT) return true;
-    if (aspect && STORY_BLOCKED.has(aspect)) return false;
-    if (!aspect) {
-      if (formats.length === 0) return true;
-      return formats.includes('story');
+export function normalizeAspectToken(aspect: string | null | undefined): string | null {
+  if (!aspect) return null;
+  const token = aspect.trim().replace(/\s+/g, '');
+  return token || null;
+}
+
+export function targetAspectForSlot(slotKind: AutopilotSlotKindAspect): string {
+  return slotKind === 'story' ? AUTOPILOT_STORY_ASPECT : AUTOPILOT_PREFERRED_FEED_ASPECT;
+}
+
+function asPositiveInt(n: unknown): number | null {
+  const v = typeof n === 'number' ? n : Number(n);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return Math.round(v);
+}
+
+/** Height/width — >1 portrait, <1 landscape. */
+export function portraitRatio(
+  widthPx: number | null | undefined,
+  heightPx: number | null | undefined
+): number | null {
+  const w = asPositiveInt(widthPx);
+  const h = asPositiveInt(heightPx);
+  if (!w || !h) return null;
+  return h / w;
+}
+
+/**
+ * Safe-Reject crop risk from metadata only (no Vision, no pixel crop).
+ * medium/high → not compatible for Autopilot (no automatic crop).
+ */
+export function assessMediaCompatibility(params: {
+  slotKind: AutopilotSlotKindAspect;
+  aspectRatio?: string | null;
+  suggestedFormats?: string[] | null;
+  widthPx?: number | null;
+  heightPx?: number | null;
+}): MediaCompatibility {
+  const aspect = normalizeAspectToken(params.aspectRatio);
+  const formats = (params.suggestedFormats ?? []).map((f) => String(f).toLowerCase());
+  const width = asPositiveInt(params.widthPx);
+  const height = asPositiveInt(params.heightPx);
+  const targetRatio = targetAspectForSlot(params.slotKind);
+  const pr = portraitRatio(width, height);
+
+  const base = {
+    sourceRatio: aspect,
+    targetRatio,
+    width,
+    height,
+  };
+
+  if (params.slotKind === 'story') {
+    if (aspect && STORY_BLOCKED.has(aspect)) {
+      return {
+        ...base,
+        compatible: false,
+        cropRisk: 'high',
+        reason: `story_blocked_aspect_${aspect}`,
+      };
     }
-    return formats.includes('story');
+    if (width != null && height != null) {
+      if (width < AUTOPILOT_STORY_MIN_PX.width || height < AUTOPILOT_STORY_MIN_PX.height) {
+        return {
+          ...base,
+          compatible: false,
+          cropRisk: 'high',
+          reason: 'story_resolution_too_low',
+        };
+      }
+      if (pr != null && pr < 1.45) {
+        return {
+          ...base,
+          compatible: false,
+          cropRisk: 'high',
+          reason: 'story_not_portrait_enough_for_9_16',
+        };
+      }
+    }
+    if (aspect === AUTOPILOT_STORY_ASPECT) {
+      return {
+        ...base,
+        compatible: true,
+        cropRisk: 'none',
+        reason: 'exact_9_16',
+      };
+    }
+    if (pr != null && pr >= 1.65 && pr <= 1.9) {
+      return {
+        ...base,
+        compatible: true,
+        cropRisk: 'low',
+        reason: 'portrait_near_9_16',
+      };
+    }
+    if (!aspect) {
+      if (formats.includes('story')) {
+        return {
+          ...base,
+          compatible: true,
+          cropRisk: 'low',
+          reason: 'unknown_aspect_suggested_story',
+        };
+      }
+      if (formats.length === 0) {
+        // Backward-compatible soft allow when metadata never written.
+        return {
+          ...base,
+          compatible: true,
+          cropRisk: 'medium',
+          reason: 'unknown_aspect_legacy_soft_allow',
+        };
+      }
+      return {
+        ...base,
+        compatible: false,
+        cropRisk: 'high',
+        reason: 'unknown_aspect_not_suggested_story',
+      };
+    }
+    // Known "other" / unexpected token: only near-9:16 dims survive (handled above).
+    if (formats.includes('story') && pr != null && pr >= 1.55) {
+      return {
+        ...base,
+        compatible: true,
+        cropRisk: 'low',
+        reason: 'other_portrait_suggested_story',
+      };
+    }
+    return {
+      ...base,
+      compatible: false,
+      cropRisk: 'high',
+      reason: 'story_unsafe_without_crop',
+    };
   }
 
-  if (aspect && (AUTOPILOT_FEED_ASPECTS as readonly string[]).includes(aspect)) return true;
-  if (aspect && FEED_BLOCKED.has(aspect)) return false;
-  if (!aspect) {
-    if (formats.length === 0) return true;
-    return formats.includes('feed') || formats.includes('carousel');
+  // feed
+  if (aspect && FEED_BLOCKED.has(aspect)) {
+    return {
+      ...base,
+      compatible: false,
+      cropRisk: 'high',
+      reason: `feed_blocked_aspect_${aspect}`,
+    };
   }
-  return formats.includes('feed') || formats.includes('carousel');
+  if (width != null && height != null) {
+    if (width < AUTOPILOT_FEED_MIN_PX.width || height < AUTOPILOT_FEED_MIN_PX.height) {
+      return {
+        ...base,
+        compatible: false,
+        cropRisk: 'high',
+        reason: 'feed_resolution_too_low',
+      };
+    }
+    if (pr != null && pr >= 1.65) {
+      return {
+        ...base,
+        compatible: false,
+        cropRisk: 'high',
+        reason: 'feed_too_tall_9_16ish',
+      };
+    }
+    if (pr != null && pr > 0 && pr < 0.75) {
+      return {
+        ...base,
+        compatible: false,
+        cropRisk: 'high',
+        reason: 'feed_landscape_unsafe_crop',
+      };
+    }
+  }
+  if (aspect === '4:5') {
+    return { ...base, compatible: true, cropRisk: 'none', reason: 'exact_4_5' };
+  }
+  if (aspect === '1:1') {
+    return { ...base, compatible: true, cropRisk: 'low', reason: 'exact_1_1_feed_ok' };
+  }
+  if (pr != null && pr >= 1.15 && pr <= 1.35) {
+    return { ...base, compatible: true, cropRisk: 'low', reason: 'portrait_near_4_5' };
+  }
+  if (pr != null && pr >= 0.92 && pr <= 1.08) {
+    return { ...base, compatible: true, cropRisk: 'low', reason: 'near_square_feed_ok' };
+  }
+  if (!aspect) {
+    if (formats.includes('feed') || formats.includes('carousel')) {
+      return {
+        ...base,
+        compatible: true,
+        cropRisk: 'low',
+        reason: 'unknown_aspect_suggested_feed',
+      };
+    }
+    if (formats.length === 0) {
+      return {
+        ...base,
+        compatible: true,
+        cropRisk: 'medium',
+        reason: 'unknown_aspect_legacy_soft_allow',
+      };
+    }
+    return {
+      ...base,
+      compatible: false,
+      cropRisk: 'high',
+      reason: 'unknown_aspect_not_suggested_feed',
+    };
+  }
+  if (
+    (formats.includes('feed') || formats.includes('carousel')) &&
+    pr != null &&
+    pr >= 0.9 &&
+    pr <= 1.4
+  ) {
+    return {
+      ...base,
+      compatible: true,
+      cropRisk: 'low',
+      reason: 'other_feedish_suggested_feed',
+    };
+  }
+  return {
+    ...base,
+    compatible: false,
+    cropRisk: 'high',
+    reason: 'feed_unsafe_without_crop',
+  };
+}
+
+/**
+ * Safe-Reject gate: medium crop risk is only allowed for legacy soft-allow
+ * (unknown aspect, empty formats) so existing libraries are not orphaned.
+ * All other medium/high → reject (no Autopilot crop).
+ */
+export function aspectFitsAutopilotSlot(
+  slotKind: AutopilotSlotKindAspect,
+  aspectRatio: string | null | undefined,
+  suggestedFormats: string[] | null | undefined,
+  widthPx?: number | null,
+  heightPx?: number | null
+): boolean {
+  const fit = assessMediaCompatibility({
+    slotKind,
+    aspectRatio,
+    suggestedFormats,
+    widthPx,
+    heightPx,
+  });
+  if (!fit.compatible) return false;
+  if (fit.cropRisk === 'high') return false;
+  if (fit.cropRisk === 'medium' && fit.reason !== 'unknown_aspect_legacy_soft_allow') {
+    return false;
+  }
+  return true;
+}
+
+export function buildAssetNotCompatibleDetail(params: {
+  slotKind: AutopilotSlotKindAspect;
+  aspectRatio?: string | null;
+  suggestedFormats?: string[] | null;
+  widthPx?: number | null;
+  heightPx?: number | null;
+}): AssetNotCompatibleDetail {
+  const fit = assessMediaCompatibility(params);
+  return {
+    code: 'asset_not_compatible',
+    source_ratio: fit.sourceRatio,
+    target_ratio: fit.targetRatio,
+    width: fit.width,
+    height: fit.height,
+    crop_risk: fit.cropRisk,
+    reason: fit.reason,
+  };
+}
+
+export function buildInsufficientStoryAssetsDetail(params: {
+  requested: number;
+  eligible: number;
+}): InsufficientStoryAssetsDetail {
+  return {
+    code: 'insufficient_story_assets',
+    requested: params.requested,
+    eligible: params.eligible,
+    target: AUTOPILOT_STORY_ASPECT,
+    reason:
+      params.eligible < params.requested
+        ? `Only ${params.eligible} story-safe asset(s) for ${params.requested} requested 9:16 slot(s); refusing to force unsafe crops.`
+        : 'No remaining story-safe assets for this slot without reuse/unsafe crop.',
+  };
+}
+
+/** Score deltas from metadata format fit (applied after eligibility). */
+export function mediaFormatScoreDelta(params: {
+  slotKind: AutopilotSlotKindAspect;
+  aspectRatio?: string | null;
+  suggestedFormats?: string[] | null;
+  widthPx?: number | null;
+  heightPx?: number | null;
+}): { delta: number; reasons: string[] } {
+  const fit = assessMediaCompatibility(params);
+  const reasons: string[] = [];
+  let delta = 0;
+  const aspect = normalizeAspectToken(params.aspectRatio);
+  const width = asPositiveInt(params.widthPx);
+  const height = asPositiveInt(params.heightPx);
+
+  if (params.slotKind === 'story') {
+    if (aspect === AUTOPILOT_STORY_ASPECT || fit.reason === 'exact_9_16') {
+      delta += 28;
+      reasons.push('Exaktes 9:16 Story-Format.');
+    } else if (fit.cropRisk === 'low') {
+      delta += 10;
+      reasons.push('Portrait nahe 9:16 (Safe-Reject Crop).');
+    } else if (fit.reason === 'unknown_aspect_legacy_soft_allow') {
+      delta -= 8;
+      reasons.push('Unbekanntes Aspect — Legacy-Soft-Allow, niedriger priorisiert.');
+    }
+    if (
+      width != null &&
+      height != null &&
+      width >= AUTOPILOT_STORY_CANVAS.width &&
+      height >= AUTOPILOT_STORY_CANVAS.height
+    ) {
+      delta += 12;
+      reasons.push('Story-Auflösung ≥ 1080×1920.');
+    } else if (
+      width != null &&
+      height != null &&
+      width >= AUTOPILOT_STORY_MIN_PX.width &&
+      height >= AUTOPILOT_STORY_MIN_PX.height
+    ) {
+      delta += 4;
+      reasons.push('Story-Auflösung ausreichend.');
+    }
+  } else {
+    if (aspect === '4:5' || fit.reason === 'exact_4_5') {
+      delta += 28;
+      reasons.push('Exaktes 4:5 Feed-Format (bevorzugt).');
+    } else if (aspect === '1:1' || fit.reason === 'exact_1_1_feed_ok') {
+      delta += 14;
+      reasons.push('1:1 Feed zulässig, 4:5 bevorzugt.');
+    } else if (fit.cropRisk === 'low') {
+      delta += 8;
+      reasons.push('Feed-nahe Proportionen.');
+    } else if (fit.reason === 'unknown_aspect_legacy_soft_allow') {
+      delta -= 8;
+      reasons.push('Unbekanntes Aspect — Legacy-Soft-Allow, niedriger priorisiert.');
+    }
+    const feedCanvas = AUTOPILOT_FEED_CANVAS['4:5'];
+    if (
+      width != null &&
+      height != null &&
+      width >= feedCanvas.width &&
+      height >= feedCanvas.height
+    ) {
+      delta += 12;
+      reasons.push('Feed-Auflösung ≥ 1080×1350.');
+    } else if (
+      width != null &&
+      height != null &&
+      width >= AUTOPILOT_FEED_MIN_PX.width &&
+      height >= AUTOPILOT_FEED_MIN_PX.height
+    ) {
+      delta += 4;
+      reasons.push('Feed-Auflösung ausreichend.');
+    }
+  }
+
+  if (fit.cropRisk === 'none') {
+    delta += 8;
+    reasons.push('Kein Crop-Risiko.');
+  } else if (fit.cropRisk === 'low') {
+    delta += 3;
+  }
+
+  return { delta, reasons };
+}
+
+export function canvasForAutopilotSlot(
+  slotKind: AutopilotSlotKindAspect,
+  preferredFeedAspect: '1:1' | '4:5' = '4:5'
+): { width: number; height: number; aspect: string } {
+  if (slotKind === 'story') {
+    return {
+      width: AUTOPILOT_STORY_CANVAS.width,
+      height: AUTOPILOT_STORY_CANVAS.height,
+      aspect: AUTOPILOT_STORY_ASPECT,
+    };
+  }
+  const canvas = AUTOPILOT_FEED_CANVAS[preferredFeedAspect];
+  return { width: canvas.width, height: canvas.height, aspect: preferredFeedAspect };
 }
 
 // ---- inline: _shared/content-autopilot/eligibility.ts ----
@@ -963,17 +1378,29 @@ export function isEligibleAutopilotAsset(asset: AutopilotEligibleAsset): boolean
   return true;
 }
 
-/** Feed / Carousel pool — images only + feed aspect gate. Never video/reel/feed-video. */
+/** Feed / Carousel pool — images only + feed aspect gate (Safe-Reject). Never video. */
 export function isEligibleAutopilotFeedAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
   if (asset.media_kind !== 'image') return false;
-  return aspectFitsAutopilotSlot('feed', asset.aspect_ratio, asset.suggested_formats);
+  return aspectFitsAutopilotSlot(
+    'feed',
+    asset.aspect_ratio,
+    asset.suggested_formats,
+    asset.width_px,
+    asset.height_px
+  );
 }
 
-/** Story pool — image/video story + story aspect gate. */
+/** Story pool — image/video story + story aspect gate (Safe-Reject). */
 export function isEligibleAutopilotStoryAsset(asset: AutopilotEligibleAsset): boolean {
   if (!isEligibleAutopilotAsset(asset)) return false;
-  return aspectFitsAutopilotSlot('story', asset.aspect_ratio, asset.suggested_formats);
+  return aspectFitsAutopilotSlot(
+    'story',
+    asset.aspect_ratio,
+    asset.suggested_formats,
+    asset.width_px,
+    asset.height_px
+  );
 }
 
 export function isEligibleForSlotKind(
@@ -1286,6 +1713,17 @@ export function scoreAutopilotCandidate(params: {
   const formats = asset.suggested_formats ?? [];
   if (slotKind === 'story' && formats.includes('story')) score += 8;
   if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('carousel'))) score += 8;
+
+  // Metadata format intelligence (aspect / resolution / crop risk) — no Vision.
+  const media = mediaFormatScoreDelta({
+    slotKind,
+    aspectRatio: asset.aspect_ratio,
+    suggestedFormats: asset.suggested_formats,
+    widthPx: asset.width_px,
+    heightPx: asset.height_px,
+  });
+  score += media.delta;
+  reasons.push(...media.reasons);
 
   if (asset.scope === 'personal') score += 2;
 
@@ -2309,6 +2747,8 @@ export interface PlannedSlotDraft {
   selectionReason: string;
   status: 'planned' | 'skipped';
   skipReason?: string;
+  /** Structured skip payload (insufficient_story_assets / asset_not_compatible). */
+  skipDetail?: Record<string, unknown>;
 }
 
 /** Autopilot V2: feed is always image feed; story is always story (image or video). Never reel. */
@@ -2319,10 +2759,83 @@ export function resolveAutopilotFormat(
   return slotKind === 'story' ? 'story' : 'feed';
 }
 
+function explainFeedSkip(
+  assets: readonly AutopilotEligibleAsset[],
+  reserved: ReadonlySet<string>
+): { skipReason: string; skipDetail?: Record<string, unknown>; selectionReason: string } {
+  const leftover = assets.filter((a) => !reserved.has(a.id));
+  const incompatible = leftover.find((a) => !isEligibleAutopilotFeedAsset(a) && a.media_kind === 'image');
+  if (incompatible) {
+    const detail = buildAssetNotCompatibleDetail({
+      slotKind: 'feed',
+      aspectRatio: incompatible.aspect_ratio,
+      suggestedFormats: incompatible.suggested_formats,
+      widthPx: incompatible.width_px,
+      heightPx: incompatible.height_px,
+    });
+    return {
+      skipReason: 'asset_not_compatible',
+      skipDetail: detail,
+      selectionReason: `asset_not_compatible: ${detail.reason} (source=${detail.source_ratio ?? 'unknown'} → ${detail.target_ratio})`,
+    };
+  }
+  return {
+    skipReason: 'no_suitable_asset',
+    selectionReason: 'Kein ausreichend neuer und geeigneter Feed-Content verfügbar.',
+  };
+}
+
+function explainStorySkip(params: {
+  assets: readonly AutopilotEligibleAsset[];
+  reserved: ReadonlySet<string>;
+  requestedStoriesPerDay: number;
+  eligibleStoryTotal: number;
+}): { skipReason: string; skipDetail?: Record<string, unknown>; selectionReason: string } {
+  const remainingEligible = params.assets.filter(
+    (a) => !params.reserved.has(a.id) && countEligibleStoryAssets([a]) === 1
+  ).length;
+
+  if (
+    params.eligibleStoryTotal < params.requestedStoriesPerDay ||
+    remainingEligible === 0
+  ) {
+    const detail = buildInsufficientStoryAssetsDetail({
+      requested: params.requestedStoriesPerDay,
+      eligible: params.eligibleStoryTotal,
+    });
+    return {
+      skipReason: 'insufficient_story_assets',
+      skipDetail: detail,
+      selectionReason: `insufficient_story_assets: requested=${detail.requested} eligible=${detail.eligible} target=${detail.target}`,
+    };
+  }
+
+  const leftover = params.assets.find((a) => !params.reserved.has(a.id));
+  if (leftover) {
+    const detail = buildAssetNotCompatibleDetail({
+      slotKind: 'story',
+      aspectRatio: leftover.aspect_ratio,
+      suggestedFormats: leftover.suggested_formats,
+      widthPx: leftover.width_px,
+      heightPx: leftover.height_px,
+    });
+    return {
+      skipReason: 'asset_not_compatible',
+      skipDetail: detail,
+      selectionReason: `asset_not_compatible: ${detail.reason} (source=${detail.source_ratio ?? 'unknown'} → ${detail.target_ratio})`,
+    };
+  }
+
+  return {
+    skipReason: 'no_suitable_asset',
+    selectionReason: 'Kein ausreichend neuer und geeigneter Story-Content verfügbar.',
+  };
+}
+
 /**
  * Build a week of slots.
  * Feed: ALWAYS exactly 1 image (never carousel). Never reel.
- * Stories: image or video story.
+ * Stories: image or video story — only Safe-Reject-compatible assets.
  * Caps come from publishing mode (stories/feed/full/marked_stories).
  */
 export function buildAutopilotWeekPlan(params: {
@@ -2346,6 +2859,7 @@ export function buildAutopilotWeekPlan(params: {
   const reserved = new Set<string>();
   const history = [...params.history];
   const slots: PlannedSlotDraft[] = [];
+  const eligibleStoryTotal = countEligibleStoryAssets(params.assets);
 
   for (const dateYmd of enumerateDatesInclusive(params.periodStart, params.periodEnd)) {
     const offset = berlinUtcOffsetHours(dateYmd);
@@ -2378,6 +2892,7 @@ export function buildAutopilotWeekPlan(params: {
         });
 
         if (!bundle) {
+          const explained = explainFeedSkip(params.assets, reserved);
           slots.push({
             plannedFor,
             slotKind: kind,
@@ -2386,9 +2901,10 @@ export function buildAutopilotWeekPlan(params: {
             carouselAssetIds: [],
             theme: null,
             category: 'none',
-            selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
+            selectionReason: explained.selectionReason,
             status: 'skipped',
-            skipReason: 'no_suitable_asset',
+            skipReason: explained.skipReason,
+            skipDetail: explained.skipDetail,
           });
           continue;
         }
@@ -2419,7 +2935,7 @@ export function buildAutopilotWeekPlan(params: {
         continue;
       }
 
-      // Story — image or video story (never reel)
+      // Story — image or video story (never reel); never force unsafe crops.
       const best = selectBestAutopilotAsset({
         assets: params.assets,
         slotKind: kind,
@@ -2431,6 +2947,12 @@ export function buildAutopilotWeekPlan(params: {
       });
 
       if (!best) {
+        const explained = explainStorySkip({
+          assets: params.assets,
+          reserved,
+          requestedStoriesPerDay: maxStories,
+          eligibleStoryTotal,
+        });
         slots.push({
           plannedFor,
           slotKind: kind,
@@ -2439,9 +2961,10 @@ export function buildAutopilotWeekPlan(params: {
           carouselAssetIds: [],
           theme: null,
           category: 'none',
-          selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
+          selectionReason: explained.selectionReason,
           status: 'skipped',
-          skipReason: 'no_suitable_asset',
+          skipReason: explained.skipReason,
+          skipDetail: explained.skipDetail,
         });
         continue;
       }
@@ -2688,7 +3211,10 @@ export async function buildAndInsertAutopilotPlan(
         selection_reason: s.selectionReason,
         status: 'skipped',
         error_message: s.skipReason ?? 'no_suitable_asset',
-        performance_json: slotPerformance,
+        performance_json: {
+          ...slotPerformance,
+          ...(s.skipDetail ? { skip_detail: s.skipDetail } : {}),
+        },
       });
       continue;
     }
@@ -4564,9 +5090,7 @@ async function loadEligibleAssets(
 ): Promise<AutopilotEligibleAsset[]> {
   const { data, error } = await admin
     .from('content_assets')
-    .select(
-      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
-    )
+    .select(AUTOPILOT_ELIGIBLE_ASSET_SELECT)
     .eq('org_id', orgId)
     .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);
   if (error) throw error;

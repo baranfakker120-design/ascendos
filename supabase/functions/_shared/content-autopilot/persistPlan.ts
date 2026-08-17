@@ -222,7 +222,10 @@ export async function buildAndInsertAutopilotPlan(
         selection_reason: s.selectionReason,
         status: 'skipped',
         error_message: s.skipReason ?? 'no_suitable_asset',
-        performance_json: slotPerformance,
+        performance_json: {
+          ...slotPerformance,
+          ...(s.skipDetail ? { skip_detail: s.skipDetail } : {}),
+        },
       });
       continue;
     }
