@@ -9,9 +9,14 @@ export {
   clampAutopilotFeedCount,
   clampAutopilotStoryCount,
   clampUserStoryCount,
+  extractPublishingPrefsFromBody,
   isMarkedStoriesManualFallback,
+  normalizeAutopilotRequestBody,
   parseAutopilotPublishingMode,
+  parseAutopilotPublishingModeOrNull,
+  readStoredPublishingMode,
   resolveAutopilotSlotCaps,
+  resolvePublishingPrefsPatch,
 } from './publishingMode.ts';
 export * from './formatAspect.ts';
 export * from './eligibility.ts';

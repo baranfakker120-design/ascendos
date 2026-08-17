@@ -9,10 +9,11 @@ import {
   AUTOPILOT_STORY_COUNT_MIN,
   clampUserStoryCount,
   parseAutopilotPublishingMode,
+  parseAutopilotPublishingModeOrNull,
   type AutopilotPublishingMode,
 } from './publishingMode';
 
-export { clampUserStoryCount };
+export { clampUserStoryCount, parseAutopilotPublishingModeOrNull };
 
 export type AutopilotStartPrefs = {
   publishingMode: AutopilotPublishingMode;
@@ -38,6 +39,115 @@ export function buildAutopilotStartPayload(draft: AutopilotStartPrefs): Autopilo
     publishingMode: parseAutopilotPublishingMode(draft.publishingMode),
     maxStoriesPerDay: clampUserStoryCount(draft.maxStoriesPerDay),
   };
+}
+
+/** Wire format for content-autopilot invoke — camelCase + snake_case, never drop the mode. */
+export function toAutopilotInvokeBody(
+  action: string,
+  prefs?: { publishingMode?: string; maxStoriesPerDay?: number }
+): Record<string, unknown> {
+  const body: Record<string, unknown> = { action };
+  if (!prefs) return body;
+  if (typeof prefs.publishingMode === 'string' && prefs.publishingMode) {
+    body.publishingMode = prefs.publishingMode;
+    body.publishing_mode = prefs.publishingMode;
+  }
+  if (prefs.maxStoriesPerDay !== undefined) {
+    body.maxStoriesPerDay = prefs.maxStoriesPerDay;
+    body.max_stories_per_day = prefs.maxStoriesPerDay;
+  }
+  return body;
+}
+
+export function selectDisplayedPublishingMode(
+  draftMode: AutopilotPublishingMode | null,
+  storedMode: unknown,
+  eligibilityMode?: unknown
+): AutopilotPublishingMode {
+  if (draftMode) return draftMode;
+  return (
+    parseAutopilotPublishingModeOrNull(storedMode) ?? parseAutopilotPublishingMode(eligibilityMode)
+  );
+}
+
+export function selectDisplayedStoryCount(
+  draftStories: number | null,
+  storedStories: unknown,
+  eligibilityStories?: unknown
+): number {
+  if (draftStories != null) return draftStories;
+  if (storedStories != null && storedStories !== '') return resolveStoredStoryCount(storedStories);
+  return resolveStoredStoryCount(eligibilityStories);
+}
+
+export function rehydrateAutopilotDraft(params: {
+  dirty: boolean;
+  draftMode: AutopilotPublishingMode | null;
+  draftStories: number | null;
+  storedMode: unknown;
+  storedStories: unknown;
+}): { mode: AutopilotPublishingMode | null; stories: number | null } {
+  if (params.dirty) {
+    return { mode: params.draftMode, stories: params.draftStories };
+  }
+  const stored = parseAutopilotPublishingModeOrNull(params.storedMode);
+  return {
+    mode: stored ?? params.draftMode,
+    stories:
+      params.storedStories == null || params.storedStories === ''
+        ? params.draftStories
+        : resolveStoredStoryCount(params.storedStories),
+  };
+}
+
+export function startPrefsPersistedInSettings(
+  request: AutopilotStartPrefs,
+  settings: { publishing_mode?: unknown; max_stories_per_day?: unknown } | null | undefined
+): boolean {
+  const mode = parseAutopilotPublishingModeOrNull(settings?.publishing_mode);
+  if (mode !== request.publishingMode) return false;
+  if (settings?.max_stories_per_day == null || settings.max_stories_per_day === '') return false;
+  return resolveStoredStoryCount(settings.max_stories_per_day) === request.maxStoriesPerDay;
+}
+
+export type AutopilotStateSlice = {
+  settings?: { publishing_mode?: unknown; max_stories_per_day?: unknown } | null;
+  eligibility?: { publishingMode?: unknown; maxStoriesPerDay?: unknown };
+  slots?: unknown;
+};
+
+export function isFullAutopilotState(payload: unknown): payload is AutopilotStateSlice {
+  if (!payload || typeof payload !== 'object') return false;
+  const row = payload as AutopilotStateSlice;
+  return Boolean(row.settings) && Boolean(row.eligibility);
+}
+
+/**
+ * Activate write-result wins over a subsequent get_state that still has stale `full`.
+ * Does not invent stories — only copies publishing_mode / count that the mutation returned.
+ */
+export function mergeActivateWithGetState<T extends AutopilotStateSlice>(
+  activated: AutopilotStateSlice,
+  fetched: T
+): T {
+  const fromActivate = activated.settings;
+  if (!fromActivate?.publishing_mode && fromActivate?.max_stories_per_day == null) {
+    return fetched;
+  }
+  const mergedSettings = {
+    ...(fetched.settings ?? {}),
+    ...fromActivate,
+  };
+  const eligibility = fetched.eligibility
+    ? {
+        ...fetched.eligibility,
+        ...(fromActivate.publishing_mode ? { publishingMode: fromActivate.publishing_mode } : {}),
+        ...(fromActivate.max_stories_per_day != null
+          ? { maxStoriesPerDay: fromActivate.max_stories_per_day }
+          : {}),
+      }
+    : fetched.eligibility;
+  return { ...fetched, settings: mergedSettings, eligibility };
 }
 
 export type AutopilotErrorI18nKey =

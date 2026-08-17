@@ -10,15 +10,17 @@ import {
   AUTOPILOT_PUBLISHING_MODES,
   AUTOPILOT_STORY_COUNT_MAX,
   AUTOPILOT_STORY_COUNT_MIN,
-  parseAutopilotPublishingMode,
   type AutopilotPublishingMode,
 } from './lib/autopilot/publishingMode';
 import {
   buildAutopilotStartPayload,
   clampUserStoryCount,
   mapAutopilotActionError,
-  resolveStoredStoryCount,
+  rehydrateAutopilotDraft,
+  selectDisplayedPublishingMode,
+  selectDisplayedStoryCount,
   showsStoryCountControl,
+  startPrefsPersistedInSettings,
 } from './lib/autopilot/startFlow';
 
 function statusLabel(status: string, t: (key: string) => string): string {
@@ -128,21 +130,34 @@ export function AutopilotPanel() {
   const enabled = Boolean(state?.settings?.enabled);
   const paused = Boolean(state?.settings?.paused);
   const active = enabled && !paused;
-  const serverMode = parseAutopilotPublishingMode(
-    state?.settings?.publishing_mode ?? state?.eligibility?.publishingMode
-  );
-  const serverStories = resolveStoredStoryCount(
-    state?.settings?.max_stories_per_day ?? state?.eligibility?.maxStoriesPerDay
-  );
+  const storedMode = state?.settings?.publishing_mode;
+  const storedStories = state?.settings?.max_stories_per_day;
 
   useEffect(() => {
     if (!state || draftDirty) return;
-    setDraftMode(serverMode);
-    setDraftStories(serverStories);
-  }, [state, draftDirty, serverMode, serverStories]);
+    const next = rehydrateAutopilotDraft({
+      dirty: false,
+      draftMode,
+      draftStories,
+      storedMode,
+      storedStories,
+    });
+    setDraftMode(next.mode);
+    setDraftStories(next.stories);
+    // draftMode/draftStories are write targets; rehydrate from stored server values only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, draftDirty, storedMode, storedStories]);
 
-  const publishingMode = draftMode ?? serverMode;
-  const storyCount = draftStories ?? serverStories;
+  const publishingMode = selectDisplayedPublishingMode(
+    draftMode,
+    storedMode,
+    state?.eligibility?.publishingMode
+  );
+  const storyCount = selectDisplayedStoryCount(
+    draftStories,
+    storedStories,
+    state?.eligibility?.maxStoriesPerDay
+  );
   const showStoryCount = showsStoryCountControl(publishingMode);
   const markedManual = publishingMode === 'marked_stories';
   const startPrefs = buildAutopilotStartPayload({
@@ -154,6 +169,27 @@ export function AutopilotPanel() {
     setActionError(null);
     try {
       await fn();
+      setDraftDirty(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      setActionError(t(mapAutopilotActionError(msg)));
+    }
+  };
+
+  const runStart = async (
+    fn: () => Promise<{
+      settings?: { publishing_mode?: unknown; max_stories_per_day?: unknown } | null;
+    }>
+  ) => {
+    setActionError(null);
+    try {
+      const data = await fn();
+      if (!startPrefsPersistedInSettings(startPrefs, data.settings)) {
+        setActionError(t('contentAssistant.autopilotActionFailed'));
+        return;
+      }
+      setDraftMode(startPrefs.publishingMode);
+      setDraftStories(startPrefs.maxStoriesPerDay);
       setDraftDirty(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
@@ -366,7 +402,7 @@ export function AutopilotPanel() {
             fullWidth={false}
             disabled={activateMutation.isPending || resumeMutation.isPending}
             onClick={() =>
-              void run(() =>
+              void runStart(() =>
                 paused
                   ? resumeMutation.mutateAsync(startPrefs)
                   : activateMutation.mutateAsync(startPrefs)
@@ -397,7 +433,7 @@ export function AutopilotPanel() {
               variant="ghost"
               fullWidth={false}
               disabled={replanMutation.isPending}
-              onClick={() => void run(() => replanMutation.mutateAsync(startPrefs))}
+              onClick={() => void runStart(() => replanMutation.mutateAsync(startPrefs))}
             >
               {t('contentAssistant.autopilotReplan')}
             </Button>

@@ -9,16 +9,15 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import {
   AUTOPILOT_ELIGIBLE_ASSET_SELECT,
-  AUTOPILOT_MAX_FEED_PER_DAY,
-  AUTOPILOT_MAX_STORIES_PER_DAY,
   AUTOPILOT_MIN_ELIGIBLE_ASSETS,
   buildAndInsertAutopilotPlan,
   canActivateAutopilotForMode,
-  clampUserStoryCount,
   countByScope,
   enumerateDatesInclusive,
+  normalizeAutopilotRequestBody,
   parseAutopilotPublishingMode,
   resolveAutopilotSlotCaps,
+  resolvePublishingPrefsPatch,
   type AutopilotEligibleAsset,
   type AutopilotHistoryItem,
 } from '../_shared/content-autopilot/index.ts';
@@ -175,30 +174,132 @@ async function applyPublishingPrefs(
   db: SupabaseClient,
   membership: AutopilotMembershipRow,
   settings: Record<string, unknown>,
-  body: { publishingMode?: string; maxStoriesPerDay?: number }
-): Promise<Record<string, unknown>> {
-  const nextMode = parseAutopilotPublishingMode(body.publishingMode ?? settings.publishing_mode);
-  const patch: Record<string, unknown> = { publishing_mode: nextMode };
-  if (body.maxStoriesPerDay !== undefined) {
-    patch.max_stories_per_day = clampUserStoryCount(
-      body.maxStoriesPerDay,
-      Number(settings.max_stories_per_day) || 4
-    );
+  body: unknown,
+  requireMode = false
+): Promise<
+  | { ok: true; settings: Record<string, unknown> }
+  | { ok: false; error: 'publishing_mode_required' }
+> {
+  const resolved = resolvePublishingPrefsPatch({
+    body,
+    storedMode: settings.publishing_mode,
+    storedStories: settings.max_stories_per_day,
+    requireMode,
+  });
+  if (!resolved.ok) return resolved;
+  if (resolved.skip) {
+    return {
+      ok: true,
+      settings: {
+        ...settings,
+        publishing_mode: resolved.patch.publishing_mode,
+        ...(resolved.patch.max_stories_per_day !== undefined
+          ? { max_stories_per_day: resolved.patch.max_stories_per_day }
+          : {}),
+      },
+    };
   }
-  const sameMode = nextMode === parseAutopilotPublishingMode(settings.publishing_mode);
-  const sameStories =
-    body.maxStoriesPerDay === undefined ||
-    Number(patch.max_stories_per_day) === Number(settings.max_stories_per_day);
-  if (sameMode && sameStories) return settings;
   const { data, error } = await db
     .from('content_autopilot_settings')
-    .update(patch)
+    .update(resolved.patch)
     .eq('org_id', membership.org_id)
     .eq('membership_id', membership.id)
     .select('*')
     .single();
   if (error) throw error;
-  return data as Record<string, unknown>;
+  return { ok: true, settings: data as Record<string, unknown> };
+}
+
+async function buildAutopilotStatePayload(
+  db: SupabaseClient,
+  membership: AutopilotMembershipRow,
+  settings: Record<string, unknown>,
+  extras: {
+    connected: boolean;
+    igStatus: 'ok' | 'instagram_not_connected' | 'instagram_expired';
+    gate: ReturnType<typeof canActivateAutopilotForMode>;
+    scopeCounts: ReturnType<typeof countByScope>;
+    publishingMode: ReturnType<typeof parseAutopilotPublishingMode>;
+    caps: ReturnType<typeof resolveAutopilotSlotCaps>;
+  }
+): Promise<Record<string, unknown>> {
+  const { data: plan } = await db
+    .from('content_autopilot_plans')
+    .select('id, period_start, period_end, status, summary, created_at')
+    .eq('membership_id', membership.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let slots: unknown[] = [];
+  if (plan?.id) {
+    const { data: slotRows } = await db
+      .from('content_autopilot_slots')
+      .select(
+        'id, draft_id, asset_id, planned_for, slot_kind, content_format, theme, category, selection_reason, status, error_message, published_at, retry_count'
+      )
+      .eq('plan_id', plan.id)
+      .order('planned_for', { ascending: true });
+    slots = slotRows ?? [];
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const weekSlots = (slots as Array<Record<string, unknown>>) ?? [];
+  const stats = {
+    feedPlanned: weekSlots.filter((s) => s.slot_kind === 'feed' && s.status !== 'cancelled').length,
+    feedPublished: weekSlots.filter((s) => s.slot_kind === 'feed' && s.status === 'published')
+      .length,
+    storiesPlanned: weekSlots.filter((s) => s.slot_kind === 'story' && s.status !== 'cancelled')
+      .length,
+    storiesPublished: weekSlots.filter((s) => s.slot_kind === 'story' && s.status === 'published')
+      .length,
+    skipped: weekSlots.filter((s) => s.status === 'skipped').length,
+    failed: weekSlots.filter((s) => s.status === 'failed').length,
+    todayFeed: weekSlots.filter(
+      (s) =>
+        s.slot_kind === 'feed' &&
+        String(s.planned_for).startsWith(today) &&
+        s.status !== 'cancelled' &&
+        s.status !== 'skipped'
+    ).length,
+    todayStories: weekSlots.filter(
+      (s) =>
+        s.slot_kind === 'story' &&
+        String(s.planned_for).startsWith(today) &&
+        s.status !== 'cancelled' &&
+        s.status !== 'skipped'
+    ).length,
+  };
+
+  const next = weekSlots.find(
+    (s) =>
+      (s.status === 'ready' || s.status === 'planned') &&
+      new Date(String(s.planned_for)).getTime() >= Date.now() - 60_000
+  );
+
+  return {
+    ok: true,
+    settings,
+    instagramConnected: extras.connected,
+    instagramStatus: extras.igStatus,
+    eligibility: {
+      ...extras.gate,
+      ...extras.scopeCounts,
+      minRequired: AUTOPILOT_MIN_ELIGIBLE_ASSETS,
+      maxFeedPerDay: extras.caps.maxFeedPerDay,
+      maxStoriesPerDay: extras.caps.maxStoriesPerDay,
+      publishingMode: extras.publishingMode,
+      markedStoriesManual: extras.publishingMode === 'marked_stories',
+    },
+    plan: plan ?? null,
+    slots,
+    stats,
+    nextSlot: next ?? null,
+    datesInPeriod: plan
+      ? enumerateDatesInclusive(String(plan.period_start), String(plan.period_end))
+      : [],
+  };
 }
 
 Deno.serve(async (req) => {
@@ -211,16 +312,10 @@ Deno.serve(async (req) => {
     const resolved = await resolveMembership(db, req);
     if (resolved instanceof Response) return resolved;
     const { membership } = resolved;
-    const body = (await req.json().catch(() => ({}))) as {
-      action?: string;
-      periodStart?: string;
-      periodEnd?: string;
-      publishingMode?: string;
-      maxStoriesPerDay?: number;
-    };
+    const body = normalizeAutopilotRequestBody(await req.json().catch(() => ({})));
     const action = String(body.action ?? 'get_state');
 
-    const settings = await ensureSettings(db, membership);
+    let settings = await ensureSettings(db, membership);
     const assets = await loadEligibleAssets(db, membership.org_id, membership.id);
     const scopeCounts = countByScope(assets);
     let publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
@@ -237,102 +332,42 @@ Deno.serve(async (req) => {
     const igStatus = await classifyIgConnection(db, membership);
     const connected = igStatus === 'ok';
 
+    const stateExtras = () => ({
+      connected,
+      igStatus,
+      gate,
+      scopeCounts,
+      publishingMode,
+      caps,
+    });
+
     if (action === 'get_state') {
-      const { data: plan } = await db
-        .from('content_autopilot_plans')
-        .select('id, period_start, period_end, status, summary, created_at')
-        .eq('membership_id', membership.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let slots: unknown[] = [];
-      if (plan?.id) {
-        const { data: slotRows } = await db
-          .from('content_autopilot_slots')
-          .select(
-            'id, draft_id, asset_id, planned_for, slot_kind, content_format, theme, category, selection_reason, status, error_message, published_at, retry_count'
-          )
-          .eq('plan_id', plan.id)
-          .order('planned_for', { ascending: true });
-        slots = slotRows ?? [];
-      }
-
-      const today = new Date().toISOString().slice(0, 10);
-      const weekSlots = (slots as Array<Record<string, unknown>>) ?? [];
-      const stats = {
-        feedPlanned: weekSlots.filter((s) => s.slot_kind === 'feed' && s.status !== 'cancelled')
-          .length,
-        feedPublished: weekSlots.filter(
-          (s) => s.slot_kind === 'feed' && s.status === 'published'
-        ).length,
-        storiesPlanned: weekSlots.filter(
-          (s) => s.slot_kind === 'story' && s.status !== 'cancelled'
-        ).length,
-        storiesPublished: weekSlots.filter(
-          (s) => s.slot_kind === 'story' && s.status === 'published'
-        ).length,
-        skipped: weekSlots.filter((s) => s.status === 'skipped').length,
-        failed: weekSlots.filter((s) => s.status === 'failed').length,
-        todayFeed: weekSlots.filter(
-          (s) =>
-            s.slot_kind === 'feed' &&
-            String(s.planned_for).startsWith(today) &&
-            s.status !== 'cancelled' &&
-            s.status !== 'skipped'
-        ).length,
-        todayStories: weekSlots.filter(
-          (s) =>
-            s.slot_kind === 'story' &&
-            String(s.planned_for).startsWith(today) &&
-            s.status !== 'cancelled' &&
-            s.status !== 'skipped'
-        ).length,
-      };
-
-      const next = weekSlots.find(
-        (s) =>
-          (s.status === 'ready' || s.status === 'planned') &&
-          new Date(String(s.planned_for)).getTime() >= Date.now() - 60_000
-      );
-
-      return json({
-        ok: true,
-        settings,
-        instagramConnected: connected,
-        instagramStatus: igStatus,
-        eligibility: {
-          ...gate,
-          ...scopeCounts,
-          minRequired: AUTOPILOT_MIN_ELIGIBLE_ASSETS,
-          maxFeedPerDay: caps.maxFeedPerDay,
-          maxStoriesPerDay: caps.maxStoriesPerDay,
-          publishingMode,
-          markedStoriesManual: publishingMode === 'marked_stories',
-        },
-        plan: plan ?? null,
-        slots,
-        stats,
-        nextSlot: next ?? null,
-        datesInPeriod: plan
-          ? enumerateDatesInclusive(String(plan.period_start), String(plan.period_end))
-          : [],
-      });
+      return json(await buildAutopilotStatePayload(db, membership, settings, stateExtras()));
     }
 
     if (action === 'update_settings') {
-      const data = await applyPublishingPrefs(db, membership, settings, body);
-      return json({ ok: true, settings: data });
+      const applied = await applyPublishingPrefs(db, membership, settings, body, false);
+      if (!applied.ok) return json({ ok: false, error: applied.error }, 400);
+      settings = applied.settings;
+      publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
+      caps = resolveAutopilotSlotCaps({
+        publishingMode,
+        maxFeedPerDay: settings.max_feed_per_day,
+        maxStoriesPerDay: settings.max_stories_per_day,
+      });
+      gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+      return json(await buildAutopilotStatePayload(db, membership, settings, stateExtras()));
     }
 
     if (action === 'activate') {
-      const nextSettings = await applyPublishingPrefs(db, membership, settings, body);
-      publishingMode = parseAutopilotPublishingMode(nextSettings.publishing_mode);
+      const applied = await applyPublishingPrefs(db, membership, settings, body, true);
+      if (!applied.ok) return json({ ok: false, error: applied.error }, 400);
+      settings = applied.settings;
+      publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
       caps = resolveAutopilotSlotCaps({
         publishingMode,
-        maxFeedPerDay: nextSettings.max_feed_per_day,
-        maxStoriesPerDay: nextSettings.max_stories_per_day,
+        maxFeedPerDay: settings.max_feed_per_day,
+        maxStoriesPerDay: settings.max_stories_per_day,
       });
       gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
       if (igStatus !== 'ok') {
@@ -375,10 +410,10 @@ Deno.serve(async (req) => {
         .select('*')
         .single();
       if (setErr) throw setErr;
-
+      settings = updatedSettings as Record<string, unknown>;
+      const payload = await buildAutopilotStatePayload(db, membership, settings, stateExtras());
       return json({
-        ok: true,
-        settings: updatedSettings,
+        ...payload,
         planId: built.planId,
         slotCount: built.slotCount,
         skipped: built.skipped,
@@ -397,8 +432,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'resume') {
-      const nextSettings = await applyPublishingPrefs(db, membership, settings, body);
-      publishingMode = parseAutopilotPublishingMode(nextSettings.publishing_mode);
+      const applied = await applyPublishingPrefs(db, membership, settings, body, false);
+      if (!applied.ok) return json({ ok: false, error: applied.error }, 400);
+      settings = applied.settings;
+      publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
+      caps = resolveAutopilotSlotCaps({
+        publishingMode,
+        maxFeedPerDay: settings.max_feed_per_day,
+        maxStoriesPerDay: settings.max_stories_per_day,
+      });
       gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
       if (igStatus !== 'ok') return json({ ok: false, error: igStatus }, 400);
       if (!gate.ok) return json({ ok: false, error: 'below_min_assets', count: gate.count }, 400);
@@ -409,7 +451,8 @@ Deno.serve(async (req) => {
         .select('*')
         .single();
       if (error) throw error;
-      return json({ ok: true, settings: data });
+      settings = data as Record<string, unknown>;
+      return json(await buildAutopilotStatePayload(db, membership, settings, stateExtras()));
     }
 
     if (action === 'deactivate') {
@@ -437,8 +480,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'replan') {
-      const nextSettings = await applyPublishingPrefs(db, membership, settings, body);
-      publishingMode = parseAutopilotPublishingMode(nextSettings.publishing_mode);
+      const applied = await applyPublishingPrefs(db, membership, settings, body, false);
+      if (!applied.ok) return json({ ok: false, error: applied.error }, 400);
+      settings = applied.settings;
+      publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
+      caps = resolveAutopilotSlotCaps({
+        publishingMode,
+        maxFeedPerDay: settings.max_feed_per_day,
+        maxStoriesPerDay: settings.max_stories_per_day,
+      });
       gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
       if (igStatus !== 'ok') return json({ ok: false, error: igStatus }, 400);
       if (!gate.ok) return json({ ok: false, error: 'below_min_assets', count: gate.count }, 400);
@@ -454,8 +504,9 @@ Deno.serve(async (req) => {
         assets,
         history
       );
+      const payload = await buildAutopilotStatePayload(db, membership, settings, stateExtras());
       return json({
-        ok: true,
+        ...payload,
         planId: built.planId,
         slotCount: built.slotCount,
         skipped: built.skipped,

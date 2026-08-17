@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useAuth } from '@shared/auth/AuthProvider';
+import {
+  isFullAutopilotState,
+  mergeActivateWithGetState,
+  toAutopilotInvokeBody,
+} from './lib/autopilot/startFlow';
 
 export interface AutopilotSettings {
   id: string;
@@ -71,7 +76,10 @@ export interface AutopilotState {
 
 async function invokeAutopilot(action: string, extra?: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('content-autopilot', {
-    body: { action, ...extra },
+    body: toAutopilotInvokeBody(
+      action,
+      extra as { publishingMode?: string; maxStoriesPerDay?: number } | undefined
+    ),
   });
   if (error) {
     const ctx = error as { context?: Response; message?: string };
@@ -113,11 +121,21 @@ export function useContentAutopilot() {
     await qc.invalidateQueries({ queryKey: ['content-assets'] });
   };
 
+  const persistThenState = async (
+    action: 'activate' | 'resume' | 'replan' | 'update_settings',
+    prefs?: { publishingMode?: string; maxStoriesPerDay?: number }
+  ) => {
+    const written = await invokeAutopilot(action, prefs);
+    if (isFullAutopilotState(written) && written.settings?.publishing_mode) {
+      return written as AutopilotState;
+    }
+    const fetched = (await invokeAutopilot('get_state')) as AutopilotState;
+    return mergeActivateWithGetState(written, fetched) as AutopilotState;
+  };
+
   const activateMutation = useMutation({
-    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) => {
-      await invokeAutopilot('activate', prefs);
-      return invokeAutopilot('get_state');
-    },
+    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) =>
+      persistThenState('activate', prefs),
     onSuccess: applyState,
   });
   const pauseMutation = useMutation({
@@ -128,10 +146,8 @@ export function useContentAutopilot() {
     onSuccess: applyState,
   });
   const resumeMutation = useMutation({
-    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) => {
-      await invokeAutopilot('resume', prefs);
-      return invokeAutopilot('get_state');
-    },
+    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) =>
+      persistThenState('resume', prefs),
     onSuccess: applyState,
   });
   const deactivateMutation = useMutation({
@@ -142,17 +158,13 @@ export function useContentAutopilot() {
     onSuccess: applyState,
   });
   const replanMutation = useMutation({
-    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) => {
-      await invokeAutopilot('replan', prefs);
-      return invokeAutopilot('get_state');
-    },
+    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) =>
+      persistThenState('replan', prefs),
     onSuccess: applyState,
   });
   const updateSettingsMutation = useMutation({
-    mutationFn: async (patch: { publishingMode?: string; maxStoriesPerDay?: number }) => {
-      await invokeAutopilot('update_settings', patch);
-      return invokeAutopilot('get_state');
-    },
+    mutationFn: async (patch: { publishingMode?: string; maxStoriesPerDay?: number }) =>
+      persistThenState('update_settings', patch),
     onSuccess: applyState,
   });
 

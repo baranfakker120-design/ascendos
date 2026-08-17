@@ -7,7 +7,10 @@ import {
   clampAutopilotStoryCount,
   isMarkedStoriesManualFallback,
   parseAutopilotPublishingMode,
+  parseAutopilotPublishingModeOrNull,
   resolveAutopilotSlotCaps,
+  resolvePublishingPrefsPatch,
+  extractPublishingPrefsFromBody,
 } from './publishingMode';
 
 describe('autopilot publishing modes', () => {
@@ -15,6 +18,27 @@ describe('autopilot publishing modes', () => {
     expect(parseAutopilotPublishingMode(undefined)).toBe('full');
     expect(parseAutopilotPublishingMode(null)).toBe(AUTOPILOT_DEFAULT_PUBLISHING_MODE);
     expect(parseAutopilotPublishingMode('stories')).toBe('stories');
+    expect(parseAutopilotPublishingModeOrNull(undefined)).toBeNull();
+    expect(parseAutopilotPublishingModeOrNull('stories')).toBe('stories');
+    expect(parseAutopilotPublishingModeOrNull('full')).toBe('full');
+  });
+
+  it('extracts request prefs without inventing full', () => {
+    expect(extractPublishingPrefsFromBody({ publishingMode: 'stories' })).toEqual({
+      publishingMode: 'stories',
+    });
+    expect(extractPublishingPrefsFromBody({ action: 'activate' })).toEqual({});
+    const patch = resolvePublishingPrefsPatch({
+      body: { publishingMode: 'stories', maxStoriesPerDay: 6 },
+      storedMode: 'full',
+      storedStories: 4,
+      requireMode: true,
+    });
+    expect(patch).toMatchObject({
+      ok: true,
+      skip: false,
+      patch: { publishing_mode: 'stories', max_stories_per_day: 6 },
+    });
   });
 
   it('Nur Stories: no feed slots, keeps story count', () => {
