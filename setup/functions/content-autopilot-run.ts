@@ -780,7 +780,9 @@ export const MARKED_STORIES_API = {
   behavior: 'manual_fallback',
 } as const;
 
-export function parseAutopilotPublishingMode(raw: unknown): AutopilotPublishingMode {
+export function parseAutopilotPublishingModeOrNull(
+  raw: unknown
+): AutopilotPublishingMode | null {
   if (
     raw === 'stories' ||
     raw === 'feed' ||
@@ -789,7 +791,99 @@ export function parseAutopilotPublishingMode(raw: unknown): AutopilotPublishingM
   ) {
     return raw;
   }
-  return AUTOPILOT_DEFAULT_PUBLISHING_MODE;
+  return null;
+}
+
+export function parseAutopilotPublishingMode(raw: unknown): AutopilotPublishingMode {
+  return parseAutopilotPublishingModeOrNull(raw) ?? AUTOPILOT_DEFAULT_PUBLISHING_MODE;
+}
+
+/** Stored DB value only. Missing/invalid is not invented as `full`. */
+export function readStoredPublishingMode(raw: unknown): AutopilotPublishingMode | null {
+  return parseAutopilotPublishingModeOrNull(raw);
+}
+
+/**
+ * Flatten edge/gateway bodies: JSON string, nested `body`, camelCase + snake_case.
+ * Does not default a missing mode to `full`.
+ */
+export function normalizeAutopilotRequestBody(raw: unknown): Record<string, unknown> {
+  let value: unknown = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const obj = value as Record<string, unknown>;
+  const nested = obj.body;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return { ...obj, ...normalizeAutopilotRequestBody(nested) };
+  }
+  if (typeof nested === 'string') {
+    return { ...obj, ...normalizeAutopilotRequestBody(nested) };
+  }
+  return obj;
+}
+
+export function extractPublishingPrefsFromBody(body: unknown): {
+  publishingMode?: AutopilotPublishingMode;
+  maxStoriesPerDay?: number;
+} {
+  const src = normalizeAutopilotRequestBody(body);
+  const publishingMode = parseAutopilotPublishingModeOrNull(
+    src.publishingMode ?? src.publishing_mode
+  );
+  const storiesRaw = src.maxStoriesPerDay ?? src.max_stories_per_day;
+  const out: { publishingMode?: AutopilotPublishingMode; maxStoriesPerDay?: number } = {};
+  if (publishingMode) out.publishingMode = publishingMode;
+  if (storiesRaw !== undefined && storiesRaw !== null && storiesRaw !== '') {
+    out.maxStoriesPerDay = clampUserStoryCount(storiesRaw, AUTOPILOT_DEFAULT_STORIES_PER_DAY);
+  }
+  return out;
+}
+
+export type PublishingPrefsPatchResult =
+  | {
+      ok: true;
+      skip: boolean;
+      patch: { publishing_mode: AutopilotPublishingMode; max_stories_per_day?: number };
+    }
+  | { ok: false; error: 'publishing_mode_required' };
+
+/**
+ * Compute the settings UPDATE for a start/resume/replan/update_settings body.
+ * A valid request mode is never coerced to `full`. Missing mode is not written as `full`.
+ */
+export function resolvePublishingPrefsPatch(input: {
+  body: unknown;
+  storedMode: unknown;
+  storedStories: unknown;
+  requireMode?: boolean;
+}): PublishingPrefsPatchResult {
+  const extracted = extractPublishingPrefsFromBody(input.body);
+  if (input.requireMode && !extracted.publishingMode) {
+    return { ok: false, error: 'publishing_mode_required' };
+  }
+  const storedMode =
+    parseAutopilotPublishingModeOrNull(input.storedMode) ?? AUTOPILOT_DEFAULT_PUBLISHING_MODE;
+  const nextMode = extracted.publishingMode ?? storedMode;
+  const patch: { publishing_mode: AutopilotPublishingMode; max_stories_per_day?: number } = {
+    publishing_mode: nextMode,
+  };
+  if (extracted.maxStoriesPerDay !== undefined) {
+    patch.max_stories_per_day = extracted.maxStoriesPerDay;
+  }
+  const sameMode = nextMode === storedMode;
+  const sameStories =
+    extracted.maxStoriesPerDay === undefined ||
+    extracted.maxStoriesPerDay === Number(input.storedStories);
+  const skip =
+    (!extracted.publishingMode && extracted.maxStoriesPerDay === undefined) ||
+    (sameMode && sameStories);
+  return { ok: true, skip, patch };
 }
 
 export function clampAutopilotStoryCount(
