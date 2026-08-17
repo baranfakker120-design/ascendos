@@ -42,14 +42,30 @@ export function KnowledgePdfPanel() {
     try {
       const result = await processPdf.mutateAsync(file);
       setSelectedId(result.documentId);
-      setMessage(
-        t('knowledge.pdfReadyHint', {
-          pages: String(result.page_count),
-          text: String(result.text_page_count),
-          vision: String(result.vision_page_count),
-          tables: String(result.table_count),
-        })
-      );
+      if (result.skipped_deep_analysis) {
+        setMessage(t('knowledge.pdfExactDuplicateHint'));
+      } else if (
+        result.fast_scan_result === 'possible_version' ||
+        result.fast_scan_result === 'conflict_review'
+      ) {
+        setMessage(
+          t('knowledge.pdfPossibleVersionHint', {
+            pages: String(result.page_count),
+            text: String(result.text_page_count),
+            vision: String(result.vision_page_count),
+            tables: String(result.table_count),
+          })
+        );
+      } else {
+        setMessage(
+          t('knowledge.pdfReadyHint', {
+            pages: String(result.page_count),
+            text: String(result.text_page_count),
+            vision: String(result.vision_page_count),
+            tables: String(result.table_count),
+          })
+        );
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('knowledge.importFailed');
       setError(msg === 'VISION_FAILED' ? t('knowledge.pdfVisionFailed') : msg);

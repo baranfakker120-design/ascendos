@@ -1112,7 +1112,9 @@
     "pdfPageLine": "Page {n}: {type} · vision {vision}",
     "pdfVisionYes": "yes",
     "pdfVisionNo": "no",
-    "pdfDebugDetails": "Debug Details"
+    "pdfDebugDetails": "Debug Details",
+    "pdfExactDuplicateHint": "Identical file already exists — deep AI analysis skipped. Opened the existing document.",
+    "pdfPossibleVersionHint": "Possible new version detected — analyzed {pages} pages ({text} text, {vision} vision, {tables} tables). Review before approving."
   },
   "firstLaunch": {
     "brandName": "AscendOS",
