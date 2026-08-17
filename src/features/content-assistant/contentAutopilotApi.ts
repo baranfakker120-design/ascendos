@@ -34,6 +34,7 @@ export interface AutopilotSlot {
 export interface AutopilotState {
   settings: AutopilotSettings | null;
   instagramConnected: boolean;
+  instagramStatus?: 'ok' | 'instagram_not_connected' | 'instagram_expired';
   eligibility: {
     ok?: boolean;
     count: number;
@@ -106,53 +107,53 @@ export function useContentAutopilot() {
     refetchInterval: 60_000,
   });
 
-  const invalidate = async () => {
-    await qc.invalidateQueries({ queryKey: ['content-autopilot'] });
+  const applyState = async (data: AutopilotState) => {
+    qc.setQueryData(['content-autopilot', orgId, membershipId], data);
     await qc.invalidateQueries({ queryKey: ['content-drafts'] });
     await qc.invalidateQueries({ queryKey: ['content-assets'] });
   };
 
   const activateMutation = useMutation({
-    mutationFn: async () => {
-      await invokeAutopilot('activate');
+    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) => {
+      await invokeAutopilot('activate', prefs);
       return invokeAutopilot('get_state');
     },
-    onSuccess: invalidate,
+    onSuccess: applyState,
   });
   const pauseMutation = useMutation({
     mutationFn: async () => {
       await invokeAutopilot('pause');
       return invokeAutopilot('get_state');
     },
-    onSuccess: invalidate,
+    onSuccess: applyState,
   });
   const resumeMutation = useMutation({
-    mutationFn: async () => {
-      await invokeAutopilot('resume');
+    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) => {
+      await invokeAutopilot('resume', prefs);
       return invokeAutopilot('get_state');
     },
-    onSuccess: invalidate,
+    onSuccess: applyState,
   });
   const deactivateMutation = useMutation({
     mutationFn: async () => {
       await invokeAutopilot('deactivate');
       return invokeAutopilot('get_state');
     },
-    onSuccess: invalidate,
+    onSuccess: applyState,
   });
   const replanMutation = useMutation({
-    mutationFn: async () => {
-      await invokeAutopilot('replan');
+    mutationFn: async (prefs?: { publishingMode?: string; maxStoriesPerDay?: number }) => {
+      await invokeAutopilot('replan', prefs);
       return invokeAutopilot('get_state');
     },
-    onSuccess: invalidate,
+    onSuccess: applyState,
   });
   const updateSettingsMutation = useMutation({
     mutationFn: async (patch: { publishingMode?: string; maxStoriesPerDay?: number }) => {
       await invokeAutopilot('update_settings', patch);
       return invokeAutopilot('get_state');
     },
-    onSuccess: invalidate,
+    onSuccess: applyState,
   });
 
   return {

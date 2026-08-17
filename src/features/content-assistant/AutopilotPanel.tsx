@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@shared/i18n';
 import { Button } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
@@ -7,13 +7,19 @@ import { useContentAutopilot, type AutopilotSlot } from './contentAutopilotApi';
 import { useContentLibrary, type ContentAsset } from './contentAssetsApi';
 import { AUTOPILOT_JOB } from './architecture/autopilotArchitecture';
 import {
-  AUTOPILOT_DEFAULT_STORIES_PER_DAY,
   AUTOPILOT_PUBLISHING_MODES,
   AUTOPILOT_STORY_COUNT_MAX,
   AUTOPILOT_STORY_COUNT_MIN,
   parseAutopilotPublishingMode,
   type AutopilotPublishingMode,
 } from './lib/autopilot/publishingMode';
+import {
+  buildAutopilotStartPayload,
+  clampUserStoryCount,
+  mapAutopilotActionError,
+  resolveStoredStoryCount,
+  showsStoryCountControl,
+} from './lib/autopilot/startFlow';
 
 function statusLabel(status: string, t: (key: string) => string): string {
   switch (status) {
@@ -101,10 +107,12 @@ export function AutopilotPanel() {
     resumeMutation,
     deactivateMutation,
     replanMutation,
-    updateSettingsMutation,
   } = useContentAutopilot();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [draftMode, setDraftMode] = useState<AutopilotPublishingMode | null>(null);
+  const [draftStories, setDraftStories] = useState<number | null>(null);
+  const [draftDirty, setDraftDirty] = useState(false);
 
   const assetMap = useMemo(
     () => new Map((assetsQuery.data ?? []).map((a) => [a.id, a])),
@@ -120,56 +128,50 @@ export function AutopilotPanel() {
   const enabled = Boolean(state?.settings?.enabled);
   const paused = Boolean(state?.settings?.paused);
   const active = enabled && !paused;
-  const publishingMode = parseAutopilotPublishingMode(
+  const serverMode = parseAutopilotPublishingMode(
     state?.settings?.publishing_mode ?? state?.eligibility?.publishingMode
   );
-  const storyCount =
-    state?.settings?.max_stories_per_day ??
-    state?.eligibility?.maxStoriesPerDay ??
-    AUTOPILOT_DEFAULT_STORIES_PER_DAY;
-  const showStoryCount =
-    publishingMode === 'stories' ||
-    publishingMode === 'marked_stories' ||
-    publishingMode === 'full';
-  const markedManual = publishingMode === 'marked_stories';
+  const serverStories = resolveStoredStoryCount(
+    state?.settings?.max_stories_per_day ?? state?.eligibility?.maxStoriesPerDay
+  );
 
-  const run = async (fn: () => Promise<unknown>, fallbackKey: string) => {
+  useEffect(() => {
+    if (!state || draftDirty) return;
+    setDraftMode(serverMode);
+    setDraftStories(serverStories);
+  }, [state, draftDirty, serverMode, serverStories]);
+
+  const publishingMode = draftMode ?? serverMode;
+  const storyCount = draftStories ?? serverStories;
+  const showStoryCount = showsStoryCountControl(publishingMode);
+  const markedManual = publishingMode === 'marked_stories';
+  const startPrefs = buildAutopilotStartPayload({
+    publishingMode,
+    maxStoriesPerDay: storyCount,
+  });
+
+  const run = async (fn: () => Promise<unknown>) => {
     setActionError(null);
     try {
       await fn();
+      setDraftDirty(false);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : fallbackKey;
-      if (msg.includes('below_min_assets'))
-        setActionError(t('contentAssistant.autopilotNeedAssets'));
-      else if (msg.includes('instagram_not_connected'))
-        setActionError(t('contentAssistant.autopilotNeedInstagram'));
-      else setActionError(t('contentAssistant.autopilotActionFailed'));
+      const msg = e instanceof Error ? e.message : '';
+      setActionError(t(mapAutopilotActionError(msg)));
     }
   };
 
   const setMode = (mode: AutopilotPublishingMode) => {
-    void run(
-      () =>
-        updateSettingsMutation.mutateAsync({
-          publishingMode: mode,
-          ...(mode === 'stories' && !state?.settings?.max_stories_per_day
-            ? { maxStoriesPerDay: AUTOPILOT_DEFAULT_STORIES_PER_DAY }
-            : {}),
-        }),
-      'update_settings_failed'
-    );
+    setDraftDirty(true);
+    setDraftMode(mode);
+    setActionError(null);
   };
 
   const bumpStories = (delta: number) => {
-    const next = Math.min(
-      AUTOPILOT_STORY_COUNT_MAX,
-      Math.max(AUTOPILOT_STORY_COUNT_MIN, storyCount + delta)
-    );
+    const next = clampUserStoryCount(storyCount + delta, storyCount);
     if (next === storyCount) return;
-    void run(
-      () => updateSettingsMutation.mutateAsync({ maxStoriesPerDay: next }),
-      'update_settings_failed'
-    );
+    setDraftDirty(true);
+    setDraftStories(next);
   };
 
   const upcoming = (state?.slots ?? []).filter((s) => s.status !== 'cancelled').slice(0, 14);
@@ -210,13 +212,13 @@ export function AutopilotPanel() {
                 <button
                   key={mode}
                   type="button"
-                  disabled={updateSettingsMutation.isPending}
                   onClick={() => setMode(mode)}
                   className={`rounded-xl border px-3 py-2.5 text-left transition ${
                     selected
                       ? 'border-accent bg-accent/10'
                       : 'border-line bg-[rgb(var(--color-bg))]/60'
                   }`}
+                  aria-pressed={selected}
                 >
                   <p className="text-sm font-semibold text-ink">{t(modeTitleKey(mode))}</p>
                   <p className="mt-0.5 text-xs text-muted">{t(modeHintKey(mode))}</p>
@@ -225,18 +227,30 @@ export function AutopilotPanel() {
             })}
           </div>
 
+          {publishingMode === 'feed' ? (
+            <p className="text-sm text-ink">{t('contentAssistant.autopilotFeedOnlyNote')}</p>
+          ) : null}
+
+          {publishingMode === 'full' ? (
+            <p className="text-sm text-muted">
+              {t('contentAssistant.autopilotFullSummary', { n: String(storyCount) })}
+            </p>
+          ) : null}
+
           {showStoryCount ? (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2">
-              <p className="text-sm text-ink">{t('contentAssistant.autopilotStoriesPerDay')}</p>
+              <p className="text-sm text-ink">
+                {markedManual
+                  ? t('contentAssistant.autopilotMarkedPrepare', { n: String(storyCount) })
+                  : t('contentAssistant.autopilotStoriesPerDay')}
+              </p>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   size="icon"
                   variant="secondary"
                   fullWidth={false}
-                  disabled={
-                    updateSettingsMutation.isPending || storyCount <= AUTOPILOT_STORY_COUNT_MIN
-                  }
+                  disabled={storyCount <= AUTOPILOT_STORY_COUNT_MIN}
                   onClick={() => bumpStories(-1)}
                   aria-label={t('contentAssistant.autopilotStoriesMinus')}
                 >
@@ -250,9 +264,7 @@ export function AutopilotPanel() {
                   size="icon"
                   variant="secondary"
                   fullWidth={false}
-                  disabled={
-                    updateSettingsMutation.isPending || storyCount >= AUTOPILOT_STORY_COUNT_MAX
-                  }
+                  disabled={storyCount >= AUTOPILOT_STORY_COUNT_MAX}
                   onClick={() => bumpStories(1)}
                   aria-label={t('contentAssistant.autopilotStoriesPlus')}
                 >
@@ -332,7 +344,11 @@ export function AutopilotPanel() {
 
       {!state?.instagramConnected ? (
         <p className="text-sm font-medium text-muted">
-          {t('contentAssistant.autopilotNeedInstagram')}
+          {t(
+            state?.instagramStatus === 'instagram_expired'
+              ? 'contentAssistant.autopilotNeedInstagramExpired'
+              : 'contentAssistant.autopilotNeedInstagram'
+          )}
         </p>
       ) : null}
 
@@ -350,9 +366,10 @@ export function AutopilotPanel() {
             fullWidth={false}
             disabled={activateMutation.isPending || resumeMutation.isPending}
             onClick={() =>
-              void run(
-                () => (paused ? resumeMutation.mutateAsync() : activateMutation.mutateAsync()),
-                'activate_failed'
+              void run(() =>
+                paused
+                  ? resumeMutation.mutateAsync(startPrefs)
+                  : activateMutation.mutateAsync(startPrefs)
               )
             }
           >
@@ -367,7 +384,7 @@ export function AutopilotPanel() {
             variant="secondary"
             fullWidth={false}
             disabled={pauseMutation.isPending}
-            onClick={() => void run(() => pauseMutation.mutateAsync(), 'pause_failed')}
+            onClick={() => void run(() => pauseMutation.mutateAsync())}
           >
             {t('contentAssistant.autopilotPause')}
           </Button>
@@ -380,7 +397,7 @@ export function AutopilotPanel() {
               variant="ghost"
               fullWidth={false}
               disabled={replanMutation.isPending}
-              onClick={() => void run(() => replanMutation.mutateAsync(), 'replan_failed')}
+              onClick={() => void run(() => replanMutation.mutateAsync(startPrefs))}
             >
               {t('contentAssistant.autopilotReplan')}
             </Button>
@@ -390,7 +407,7 @@ export function AutopilotPanel() {
               variant="ghost"
               fullWidth={false}
               disabled={deactivateMutation.isPending}
-              onClick={() => void run(() => deactivateMutation.mutateAsync(), 'deactivate_failed')}
+              onClick={() => void run(() => deactivateMutation.mutateAsync())}
             >
               {t('contentAssistant.autopilotDeactivate')}
             </Button>
