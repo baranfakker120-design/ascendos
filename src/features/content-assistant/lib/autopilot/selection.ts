@@ -6,6 +6,7 @@
  */
 
 import { isEligibleForSlotKind } from './eligibility';
+import { mediaFormatScoreDelta } from './formatAspect';
 
 export const AUTOPILOT_ASSET_COOLDOWN_DAYS = 3;
 
@@ -20,6 +21,8 @@ export interface SelectionAsset {
   keywords: string[] | null;
   suggested_formats: string[] | null;
   aspect_ratio?: string | null;
+  width_px?: number | null;
+  height_px?: number | null;
   last_used_at: string | null;
   usage_count: number;
 }
@@ -178,6 +181,17 @@ export function scoreAutopilotCandidate(params: {
   const formats = asset.suggested_formats ?? [];
   if (slotKind === 'story' && formats.includes('story')) score += 8;
   if (slotKind === 'feed' && (formats.includes('feed') || formats.includes('carousel'))) score += 8;
+
+  // Metadata format intelligence (aspect / resolution / crop risk) — no Vision.
+  const media = mediaFormatScoreDelta({
+    slotKind,
+    aspectRatio: asset.aspect_ratio,
+    suggestedFormats: asset.suggested_formats,
+    widthPx: asset.width_px,
+    heightPx: asset.height_px,
+  });
+  score += media.delta;
+  reasons.push(...media.reasons);
 
   if (asset.scope === 'personal') score += 2;
 

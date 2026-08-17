@@ -7,6 +7,11 @@ import {
   type AutopilotSlotKind,
 } from './types.ts';
 import { selectAutopilotFeedBundle } from './carouselBundle.ts';
+import { countEligibleStoryAssets, isEligibleAutopilotFeedAsset } from './eligibility.ts';
+import {
+  buildAssetNotCompatibleDetail,
+  buildInsufficientStoryAssetsDetail,
+} from './formatAspect.ts';
 import { selectBestAutopilotAsset } from './selection.ts';
 import {
   berlinUtcOffsetHours,
@@ -30,6 +35,8 @@ export interface PlannedSlotDraft {
   selectionReason: string;
   status: 'planned' | 'skipped';
   skipReason?: string;
+  /** Structured skip payload (insufficient_story_assets / asset_not_compatible). */
+  skipDetail?: Record<string, unknown>;
 }
 
 /** Autopilot V2: feed is always image feed; story is always story (image or video). Never reel. */
@@ -40,10 +47,83 @@ export function resolveAutopilotFormat(
   return slotKind === 'story' ? 'story' : 'feed';
 }
 
+function explainFeedSkip(
+  assets: readonly AutopilotEligibleAsset[],
+  reserved: ReadonlySet<string>
+): { skipReason: string; skipDetail?: Record<string, unknown>; selectionReason: string } {
+  const leftover = assets.filter((a) => !reserved.has(a.id));
+  const incompatible = leftover.find((a) => !isEligibleAutopilotFeedAsset(a) && a.media_kind === 'image');
+  if (incompatible) {
+    const detail = buildAssetNotCompatibleDetail({
+      slotKind: 'feed',
+      aspectRatio: incompatible.aspect_ratio,
+      suggestedFormats: incompatible.suggested_formats,
+      widthPx: incompatible.width_px,
+      heightPx: incompatible.height_px,
+    });
+    return {
+      skipReason: 'asset_not_compatible',
+      skipDetail: detail,
+      selectionReason: `asset_not_compatible: ${detail.reason} (source=${detail.source_ratio ?? 'unknown'} → ${detail.target_ratio})`,
+    };
+  }
+  return {
+    skipReason: 'no_suitable_asset',
+    selectionReason: 'Kein ausreichend neuer und geeigneter Feed-Content verfügbar.',
+  };
+}
+
+function explainStorySkip(params: {
+  assets: readonly AutopilotEligibleAsset[];
+  reserved: ReadonlySet<string>;
+  requestedStoriesPerDay: number;
+  eligibleStoryTotal: number;
+}): { skipReason: string; skipDetail?: Record<string, unknown>; selectionReason: string } {
+  const remainingEligible = params.assets.filter(
+    (a) => !params.reserved.has(a.id) && countEligibleStoryAssets([a]) === 1
+  ).length;
+
+  if (
+    params.eligibleStoryTotal < params.requestedStoriesPerDay ||
+    remainingEligible === 0
+  ) {
+    const detail = buildInsufficientStoryAssetsDetail({
+      requested: params.requestedStoriesPerDay,
+      eligible: params.eligibleStoryTotal,
+    });
+    return {
+      skipReason: 'insufficient_story_assets',
+      skipDetail: detail,
+      selectionReason: `insufficient_story_assets: requested=${detail.requested} eligible=${detail.eligible} target=${detail.target}`,
+    };
+  }
+
+  const leftover = params.assets.find((a) => !params.reserved.has(a.id));
+  if (leftover) {
+    const detail = buildAssetNotCompatibleDetail({
+      slotKind: 'story',
+      aspectRatio: leftover.aspect_ratio,
+      suggestedFormats: leftover.suggested_formats,
+      widthPx: leftover.width_px,
+      heightPx: leftover.height_px,
+    });
+    return {
+      skipReason: 'asset_not_compatible',
+      skipDetail: detail,
+      selectionReason: `asset_not_compatible: ${detail.reason} (source=${detail.source_ratio ?? 'unknown'} → ${detail.target_ratio})`,
+    };
+  }
+
+  return {
+    skipReason: 'no_suitable_asset',
+    selectionReason: 'Kein ausreichend neuer und geeigneter Story-Content verfügbar.',
+  };
+}
+
 /**
  * Build a week of slots.
  * Feed: ALWAYS exactly 1 image (never carousel). Never reel.
- * Stories: image or video story.
+ * Stories: image or video story — only Safe-Reject-compatible assets.
  * Caps come from publishing mode (stories/feed/full/marked_stories).
  */
 export function buildAutopilotWeekPlan(params: {
@@ -67,6 +147,7 @@ export function buildAutopilotWeekPlan(params: {
   const reserved = new Set<string>();
   const history = [...params.history];
   const slots: PlannedSlotDraft[] = [];
+  const eligibleStoryTotal = countEligibleStoryAssets(params.assets);
 
   for (const dateYmd of enumerateDatesInclusive(params.periodStart, params.periodEnd)) {
     const offset = berlinUtcOffsetHours(dateYmd);
@@ -99,6 +180,7 @@ export function buildAutopilotWeekPlan(params: {
         });
 
         if (!bundle) {
+          const explained = explainFeedSkip(params.assets, reserved);
           slots.push({
             plannedFor,
             slotKind: kind,
@@ -107,9 +189,10 @@ export function buildAutopilotWeekPlan(params: {
             carouselAssetIds: [],
             theme: null,
             category: 'none',
-            selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
+            selectionReason: explained.selectionReason,
             status: 'skipped',
-            skipReason: 'no_suitable_asset',
+            skipReason: explained.skipReason,
+            skipDetail: explained.skipDetail,
           });
           continue;
         }
@@ -140,7 +223,7 @@ export function buildAutopilotWeekPlan(params: {
         continue;
       }
 
-      // Story — image or video story (never reel)
+      // Story — image or video story (never reel); never force unsafe crops.
       const best = selectBestAutopilotAsset({
         assets: params.assets,
         slotKind: kind,
@@ -152,6 +235,12 @@ export function buildAutopilotWeekPlan(params: {
       });
 
       if (!best) {
+        const explained = explainStorySkip({
+          assets: params.assets,
+          reserved,
+          requestedStoriesPerDay: maxStories,
+          eligibleStoryTotal,
+        });
         slots.push({
           plannedFor,
           slotKind: kind,
@@ -160,9 +249,10 @@ export function buildAutopilotWeekPlan(params: {
           carouselAssetIds: [],
           theme: null,
           category: 'none',
-          selectionReason: 'Kein ausreichend neuer und geeigneter Content verfügbar.',
+          selectionReason: explained.selectionReason,
           status: 'skipped',
-          skipReason: 'no_suitable_asset',
+          skipReason: explained.skipReason,
+          skipDetail: explained.skipDetail,
         });
         continue;
       }

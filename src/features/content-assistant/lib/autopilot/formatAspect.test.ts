@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   aspectFitsAutopilotSlot,
+  assessMediaCompatibility,
   canvasForAutopilotSlot,
   AUTOPILOT_STORY_ASPECT,
 } from './formatAspect';
@@ -16,6 +17,7 @@ describe('autopilot formatAspect hard gates', () => {
     expect(aspectFitsAutopilotSlot('feed', '1:1', null)).toBe(true);
     expect(aspectFitsAutopilotSlot('feed', '4:5', null)).toBe(true);
     expect(aspectFitsAutopilotSlot('feed', '9:16', ['feed'])).toBe(false);
+    expect(aspectFitsAutopilotSlot('feed', '16:9', ['feed'])).toBe(false);
   });
 
   it('soft-allows unknown aspect via suggested_formats', () => {
@@ -24,6 +26,18 @@ describe('autopilot formatAspect hard gates', () => {
     expect(aspectFitsAutopilotSlot('feed', null, ['feed'])).toBe(true);
     expect(aspectFitsAutopilotSlot('feed', null, ['story'])).toBe(false);
     expect(aspectFitsAutopilotSlot('story', null, [])).toBe(true);
+  });
+
+  it('safe-rejects landscape dims for story even with story suggestion', () => {
+    const fit = assessMediaCompatibility({
+      slotKind: 'story',
+      aspectRatio: null,
+      suggestedFormats: ['story'],
+      widthPx: 1920,
+      heightPx: 1080,
+    });
+    expect(fit.compatible).toBe(false);
+    expect(aspectFitsAutopilotSlot('story', null, ['story'], 1920, 1080)).toBe(false);
   });
 
   it('returns story/feed canvas targets', () => {

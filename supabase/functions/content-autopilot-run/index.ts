@@ -22,6 +22,7 @@ import {
   type MediaKind,
 } from '../_shared/instagram-publish/index.ts';
 import {
+  AUTOPILOT_ELIGIBLE_ASSET_SELECT,
   AUTOPILOT_MIN_ELIGIBLE_ASSETS,
   buildAndInsertAutopilotPlan,
   canActivateAutopilot,
@@ -566,9 +567,7 @@ async function loadEligibleAssets(
 ): Promise<AutopilotEligibleAsset[]> {
   const { data, error } = await admin
     .from('content_assets')
-    .select(
-      'id, scope, media_kind, mime_type, storage_path, theme, keywords, suggested_formats, analysis_status, last_used_at, usage_count, created_at, owner_membership_id'
-    )
+    .select(AUTOPILOT_ELIGIBLE_ASSET_SELECT)
     .eq('org_id', orgId)
     .or(`owner_membership_id.eq.${membershipId},scope.eq.central`);
   if (error) throw error;

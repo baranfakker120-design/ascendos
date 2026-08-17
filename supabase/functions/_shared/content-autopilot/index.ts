@@ -12,6 +12,7 @@ export {
   parseAutopilotPublishingMode,
   resolveAutopilotSlotCaps,
 } from './publishingMode.ts';
+export * from './formatAspect.ts';
 export * from './eligibility.ts';
 export * from './signals.ts';
 export * from './timing.ts';
