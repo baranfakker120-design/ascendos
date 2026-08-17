@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/api/supabase';
 import { useI18n } from '@shared/i18n';
 import { Select } from '@shared/ui/Select';
@@ -7,10 +7,12 @@ import { useAuth } from './AuthProvider';
 /**
  * Active organization selector — only when multiple memberships exist.
  * Sets x-ascendos-org via AuthProvider → supabase client.
+ * Clears React Query cache on switch so Org A data never paints for Org B.
  */
 export function OrgSwitcher() {
   const { t } = useI18n();
   const { memberships, membership, setActiveOrganization, needsOrgSelection } = useAuth();
+  const queryClient = useQueryClient();
   const orgIds = memberships.map((m) => m.org_id);
 
   const { data: orgs } = useQuery({
@@ -45,7 +47,10 @@ export function OrgSwitcher() {
       aria-label={t('org.active')}
       value={membership?.org_id ?? ''}
       onChange={(e) => {
-        if (e.target.value) setActiveOrganization(e.target.value);
+        if (!e.target.value) return;
+        setActiveOrganization(e.target.value);
+        // Drop all cached tenant queries; orgId is part of many keys but not all.
+        void queryClient.clear();
       }}
       className={needsOrgSelection ? 'border-accent-deep' : ''}
     >

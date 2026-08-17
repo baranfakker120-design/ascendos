@@ -19,6 +19,7 @@ import {
   chat,
   type ChatMessage,
 } from '../_shared/ai-providers/index.ts';
+import { recordAiUsageEvent } from '../_shared/aiUsage.ts';
 import {
   CORE_RULES,
   ROUTER_PROMPT,
@@ -917,6 +918,17 @@ Deno.serve(async (req) => {
       user_id: userId, org_id: activeOrgId, event_type: 'coach_message_sent',
       metadata: { agent_key: agentKey, had_knowledge: hadKnowledge },
     }).then(() => {}, () => {}); // Tracking bricht nie den Coach
+
+    await recordAiUsageEvent(db, {
+      org_id: activeOrgId,
+      user_id: userId,
+      feature: 'coach-chat',
+      provider: chatResult.provider,
+      model: chatResult.model,
+      input_tokens: chatResult.usage?.inputTokens ?? 0,
+      output_tokens: chatResult.usage?.outputTokens ?? 0,
+      metadata: { agent_key: agentKey, had_knowledge: hadKnowledge },
+    });
 
     mark('total_ms', t0);
     // Strukturierte Metriken in die Function-Logs (ohne Inhalte, ADR-019).

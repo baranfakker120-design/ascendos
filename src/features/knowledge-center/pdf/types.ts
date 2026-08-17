@@ -3,6 +3,8 @@ import type { KnowledgePdfPageType } from './pageClassify';
 import type { KnowledgePdfStatus } from './pipelineStatus';
 import type { KnowledgePdfTableData, VisionConfidence } from './visionSchema';
 
+import type { FastScanResult } from './fastScan';
+
 export type KnowledgePdfDocument = {
   id: string;
   org_id: string;
@@ -19,6 +21,10 @@ export type KnowledgePdfDocument = {
   article_id: string | null;
   rag_doc_id: string | null;
   coach_rag_enabled: boolean;
+  content_sha256: string | null;
+  byte_size: number | null;
+  fast_scan_result: FastScanResult | null;
+  duplicate_of_id: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
