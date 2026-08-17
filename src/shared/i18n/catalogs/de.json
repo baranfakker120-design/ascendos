@@ -1394,7 +1394,20 @@
     "uploadPartialFail": "{failed} konnten nicht hochgeladen werden.",
     "uploadRemainingSlots": "Du kannst noch {count} Assets hinzufügen.",
     "uploadLibraryFullNow": "{ok} von {selected} Bildern hinzugefügt. Deine Asset-Bibliothek ist jetzt voll ({limit}/{limit}).",
-    "uploadBatchCapped": "Maximal {max} Dateien pro Auswahl."
+    "uploadBatchCapped": "Maximal {max} Dateien pro Auswahl.",
+    "autopilotPublishingMode": "Publishing-Modus",
+    "autopilotModeStories": "Nur Stories",
+    "autopilotModeStoriesHint": "Nur Story-Content · Standard 4/Tag",
+    "autopilotModeFeed": "Nur Feed",
+    "autopilotModeFeedHint": "Feed automatisch · genau 1 Bild",
+    "autopilotModeFull": "Full",
+    "autopilotModeFullHint": "Alle unterstützten Formate",
+    "autopilotModeMarked": "Marked Stories",
+    "autopilotModeMarkedHint": "Zielgruppe / Markierung · manueller Schritt möglich",
+    "autopilotStoriesPerDay": "Stories pro Tag",
+    "autopilotStoriesMinus": "Weniger Stories",
+    "autopilotStoriesPlus": "Mehr Stories",
+    "autopilotMarkedManual": "Manueller Schritt erforderlich: Instagram erlaubt die gewünschte Zielgruppensteuerung derzeit nicht über den offiziellen Publishing-Weg. Content wird vorbereitet."
   },
   "orgGuide": {
     "loadError": "Guide konnte nicht geladen werden.",

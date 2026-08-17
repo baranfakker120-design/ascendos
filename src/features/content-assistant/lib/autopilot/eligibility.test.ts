@@ -107,8 +107,8 @@ describe('autopilot eligibility V2 — gate vs feed vs story pools', () => {
     expect(countByScope(assets)).toEqual({ personal: 1, central: 1, total: 2 });
   });
 
-  it('caps daily feed/stories at 3', () => {
+  it('caps daily feed at 3 and stories at 10', () => {
     expect(AUTOPILOT_MAX_FEED_PER_DAY).toBe(3);
-    expect(AUTOPILOT_MAX_STORIES_PER_DAY).toBe(3);
+    expect(AUTOPILOT_MAX_STORIES_PER_DAY).toBe(10);
   });
 });

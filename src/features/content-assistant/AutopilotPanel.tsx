@@ -6,6 +6,14 @@ import { ContentAssetThumb } from './ContentAssetThumb';
 import { useContentAutopilot, type AutopilotSlot } from './contentAutopilotApi';
 import { useContentLibrary, type ContentAsset } from './contentAssetsApi';
 import { AUTOPILOT_JOB } from './architecture/autopilotArchitecture';
+import {
+  AUTOPILOT_DEFAULT_STORIES_PER_DAY,
+  AUTOPILOT_PUBLISHING_MODES,
+  AUTOPILOT_STORY_COUNT_MAX,
+  AUTOPILOT_STORY_COUNT_MIN,
+  parseAutopilotPublishingMode,
+  type AutopilotPublishingMode,
+} from './lib/autopilot/publishingMode';
 
 function statusLabel(status: string, t: (key: string) => string): string {
   switch (status) {
@@ -42,6 +50,44 @@ function formatWhen(iso: string, locale: string): string {
   }
 }
 
+function modeTitleKey(
+  mode: AutopilotPublishingMode
+):
+  | 'contentAssistant.autopilotModeStories'
+  | 'contentAssistant.autopilotModeFeed'
+  | 'contentAssistant.autopilotModeFull'
+  | 'contentAssistant.autopilotModeMarked' {
+  switch (mode) {
+    case 'stories':
+      return 'contentAssistant.autopilotModeStories';
+    case 'feed':
+      return 'contentAssistant.autopilotModeFeed';
+    case 'full':
+      return 'contentAssistant.autopilotModeFull';
+    case 'marked_stories':
+      return 'contentAssistant.autopilotModeMarked';
+  }
+}
+
+function modeHintKey(
+  mode: AutopilotPublishingMode
+):
+  | 'contentAssistant.autopilotModeStoriesHint'
+  | 'contentAssistant.autopilotModeFeedHint'
+  | 'contentAssistant.autopilotModeFullHint'
+  | 'contentAssistant.autopilotModeMarkedHint' {
+  switch (mode) {
+    case 'stories':
+      return 'contentAssistant.autopilotModeStoriesHint';
+    case 'feed':
+      return 'contentAssistant.autopilotModeFeedHint';
+    case 'full':
+      return 'contentAssistant.autopilotModeFullHint';
+    case 'marked_stories':
+      return 'contentAssistant.autopilotModeMarkedHint';
+  }
+}
+
 /**
  * Additive Autopilot card — Instagram only. No Facebook. No layout redesign.
  */
@@ -55,6 +101,7 @@ export function AutopilotPanel() {
     resumeMutation,
     deactivateMutation,
     replanMutation,
+    updateSettingsMutation,
   } = useContentAutopilot();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -73,6 +120,18 @@ export function AutopilotPanel() {
   const enabled = Boolean(state?.settings?.enabled);
   const paused = Boolean(state?.settings?.paused);
   const active = enabled && !paused;
+  const publishingMode = parseAutopilotPublishingMode(
+    state?.settings?.publishing_mode ?? state?.eligibility?.publishingMode
+  );
+  const storyCount =
+    state?.settings?.max_stories_per_day ??
+    state?.eligibility?.maxStoriesPerDay ??
+    AUTOPILOT_DEFAULT_STORIES_PER_DAY;
+  const showStoryCount =
+    publishingMode === 'stories' ||
+    publishingMode === 'marked_stories' ||
+    publishingMode === 'full';
+  const markedManual = publishingMode === 'marked_stories';
 
   const run = async (fn: () => Promise<unknown>, fallbackKey: string) => {
     setActionError(null);
@@ -86,6 +145,31 @@ export function AutopilotPanel() {
         setActionError(t('contentAssistant.autopilotNeedInstagram'));
       else setActionError(t('contentAssistant.autopilotActionFailed'));
     }
+  };
+
+  const setMode = (mode: AutopilotPublishingMode) => {
+    void run(
+      () =>
+        updateSettingsMutation.mutateAsync({
+          publishingMode: mode,
+          ...(mode === 'stories' && !state?.settings?.max_stories_per_day
+            ? { maxStoriesPerDay: AUTOPILOT_DEFAULT_STORIES_PER_DAY }
+            : {}),
+        }),
+      'update_settings_failed'
+    );
+  };
+
+  const bumpStories = (delta: number) => {
+    const next = Math.min(
+      AUTOPILOT_STORY_COUNT_MAX,
+      Math.max(AUTOPILOT_STORY_COUNT_MIN, storyCount + delta)
+    );
+    if (next === storyCount) return;
+    void run(
+      () => updateSettingsMutation.mutateAsync({ maxStoriesPerDay: next }),
+      'update_settings_failed'
+    );
   };
 
   const upcoming = (state?.slots ?? []).filter((s) => s.status !== 'cancelled').slice(0, 14);
@@ -112,6 +196,78 @@ export function AutopilotPanel() {
 
       {stateQuery.isLoading ? (
         <p className="text-sm text-muted">{t('contentAssistant.loading')}</p>
+      ) : null}
+
+      {state ? (
+        <div className="space-y-2 border-b border-line pb-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            {t('contentAssistant.autopilotPublishingMode')}
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {AUTOPILOT_PUBLISHING_MODES.map((mode) => {
+              const selected = publishingMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  disabled={updateSettingsMutation.isPending}
+                  onClick={() => setMode(mode)}
+                  className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                    selected
+                      ? 'border-accent bg-accent/10'
+                      : 'border-line bg-[rgb(var(--color-bg))]/60'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-ink">{t(modeTitleKey(mode))}</p>
+                  <p className="mt-0.5 text-xs text-muted">{t(modeHintKey(mode))}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {showStoryCount ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2">
+              <p className="text-sm text-ink">{t('contentAssistant.autopilotStoriesPerDay')}</p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  fullWidth={false}
+                  disabled={
+                    updateSettingsMutation.isPending || storyCount <= AUTOPILOT_STORY_COUNT_MIN
+                  }
+                  onClick={() => bumpStories(-1)}
+                  aria-label={t('contentAssistant.autopilotStoriesMinus')}
+                >
+                  −
+                </Button>
+                <span className="min-w-[1.5rem] text-center text-sm font-semibold text-ink">
+                  {storyCount}
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  fullWidth={false}
+                  disabled={
+                    updateSettingsMutation.isPending || storyCount >= AUTOPILOT_STORY_COUNT_MAX
+                  }
+                  onClick={() => bumpStories(1)}
+                  aria-label={t('contentAssistant.autopilotStoriesPlus')}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {markedManual ? (
+            <p className="text-sm font-medium text-muted">
+              {t('contentAssistant.autopilotMarkedManual')}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {state ? (

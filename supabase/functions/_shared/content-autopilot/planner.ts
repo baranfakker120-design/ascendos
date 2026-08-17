@@ -10,10 +10,10 @@ import { selectAutopilotFeedBundle } from './carouselBundle.ts';
 import { selectBestAutopilotAsset } from './selection.ts';
 import {
   berlinUtcOffsetHours,
-  DEFAULT_FEED_TIMES,
-  DEFAULT_STORY_TIMES,
   enumerateDatesInclusive,
+  feedTimesForCount,
   parseHm,
+  storyTimesForCount,
   wallTimeToIso,
   weekdayIndexFromYmd,
 } from './timing.ts';
@@ -41,10 +41,10 @@ export function resolveAutopilotFormat(
 }
 
 /**
- * Build a week of slots (max 3 feed + 3 stories / day).
- * Feed: ALWAYS exactly 1 image (never carousel).
+ * Build a week of slots.
+ * Feed: ALWAYS exactly 1 image (never carousel). Never reel.
  * Stories: image or video story.
- * Never plans reel / video feed / image carousel / video carousel.
+ * Caps come from publishing mode (stories/feed/full/marked_stories).
  */
 export function buildAutopilotWeekPlan(params: {
   periodStart: string;
@@ -58,11 +58,11 @@ export function buildAutopilotWeekPlan(params: {
   const nowIso = params.nowIso ?? new Date().toISOString();
   const maxFeed = Math.min(
     AUTOPILOT_MAX_FEED_PER_DAY,
-    params.maxFeedPerDay ?? AUTOPILOT_MAX_FEED_PER_DAY
+    Math.max(0, params.maxFeedPerDay ?? AUTOPILOT_MAX_FEED_PER_DAY)
   );
   const maxStories = Math.min(
     AUTOPILOT_MAX_STORIES_PER_DAY,
-    params.maxStoriesPerDay ?? AUTOPILOT_MAX_STORIES_PER_DAY
+    Math.max(0, params.maxStoriesPerDay ?? 0)
   );
   const reserved = new Set<string>();
   const history = [...params.history];
@@ -72,8 +72,8 @@ export function buildAutopilotWeekPlan(params: {
     const offset = berlinUtcOffsetHours(dateYmd);
     const weekday = weekdayIndexFromYmd(dateYmd);
 
-    const feedTimes = DEFAULT_FEED_TIMES.slice(0, maxFeed);
-    const storyTimes = DEFAULT_STORY_TIMES.slice(0, maxStories);
+    const feedTimes = feedTimesForCount(maxFeed);
+    const storyTimes = storyTimesForCount(maxStories);
 
     const daySlots: Array<{ kind: AutopilotSlotKind; hm: string }> = [
       ...storyTimes.map((hm) => ({ kind: 'story' as const, hm })),

@@ -739,12 +739,128 @@ export type ProviderErrorDetails = {
   body_preview?: string | null;
 };
 
+// ---- inline: _shared/content-autopilot/publishingMode.ts ----
+/**
+ * Autopilot publishing modes — generation + publish caps.
+ * Instagram Content Publishing API only. No Close Friends / audience / story @mentions.
+ */
+
+export const AUTOPILOT_PUBLISHING_MODES = [
+  'stories',
+  'feed',
+  'full',
+  'marked_stories',
+] as const;
+
+export type AutopilotPublishingMode = (typeof AUTOPILOT_PUBLISHING_MODES)[number];
+
+/** Existing plans without a mode keep feed+stories (current V1 behavior). */
+export const AUTOPILOT_DEFAULT_PUBLISHING_MODE: AutopilotPublishingMode = 'full';
+
+/** Default for NEW settings rows / Nur-Stories UX — never rewrite stored counts. */
+export const AUTOPILOT_DEFAULT_STORIES_PER_DAY = 4;
+
+/** Absolute cap (Instagram Graph daily volume is far higher; keep product-bounded). */
+export const AUTOPILOT_STORY_COUNT_MAX = 10;
+export const AUTOPILOT_STORY_COUNT_MIN = 1;
+
+export const AUTOPILOT_MAX_FEED_PER_DAY = 3;
+
+/**
+ * Official Instagram Login Content Publishing API (graph.instagram.com):
+ * Stories containers accept image_url / video_url + media_type=STORIES only.
+ * Close Friends, story audience targeting, and story @mentions / user_tags
+ * are NOT available on this path. No private API / scraping fallback.
+ */
+export const MARKED_STORIES_API = {
+  autoPublishSupported: false,
+  closeFriends: false,
+  audienceTargeting: false,
+  storyMentions: false,
+  behavior: 'manual_fallback',
+} as const;
+
+export function parseAutopilotPublishingMode(raw: unknown): AutopilotPublishingMode {
+  if (
+    raw === 'stories' ||
+    raw === 'feed' ||
+    raw === 'full' ||
+    raw === 'marked_stories'
+  ) {
+    return raw;
+  }
+  return AUTOPILOT_DEFAULT_PUBLISHING_MODE;
+}
+
+export function clampAutopilotStoryCount(
+  value: unknown,
+  fallback = AUTOPILOT_DEFAULT_STORIES_PER_DAY
+): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(AUTOPILOT_STORY_COUNT_MAX, Math.max(0, Math.round(n)));
+}
+
+export function clampAutopilotFeedCount(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return AUTOPILOT_MAX_FEED_PER_DAY;
+  return Math.min(AUTOPILOT_MAX_FEED_PER_DAY, Math.max(0, Math.round(n)));
+}
+
+export type AutopilotSlotCaps = {
+  maxFeedPerDay: number;
+  maxStoriesPerDay: number;
+  generateFeed: boolean;
+  generateStories: boolean;
+  /** False → prepare story drafts/slots but never Graph-publish. */
+  autoPublish: boolean;
+};
+
+export function resolveAutopilotSlotCaps(params: {
+  publishingMode: unknown;
+  maxFeedPerDay: unknown;
+  maxStoriesPerDay: unknown;
+}): AutopilotSlotCaps {
+  const mode = parseAutopilotPublishingMode(params.publishingMode);
+  const stories = clampAutopilotStoryCount(params.maxStoriesPerDay);
+  const feed = clampAutopilotFeedCount(params.maxFeedPerDay);
+
+  if (mode === 'stories' || mode === 'marked_stories') {
+    return {
+      maxFeedPerDay: 0,
+      maxStoriesPerDay: stories,
+      generateFeed: false,
+      generateStories: true,
+      autoPublish: mode === 'stories',
+    };
+  }
+  if (mode === 'feed') {
+    return {
+      maxFeedPerDay: feed,
+      maxStoriesPerDay: 0,
+      generateFeed: true,
+      generateStories: false,
+      autoPublish: true,
+    };
+  }
+  return {
+    maxFeedPerDay: feed,
+    maxStoriesPerDay: stories,
+    generateFeed: true,
+    generateStories: true,
+    autoPublish: true,
+  };
+}
+
+export function isMarkedStoriesManualFallback(mode: unknown): boolean {
+  return parseAutopilotPublishingMode(mode) === 'marked_stories';
+}
+
 // ---- inline: _shared/content-autopilot/types.ts ----
 /** Instagram Content Autopilot V1 — shared contracts (no Facebook). */
 
+
 export const AUTOPILOT_MIN_ELIGIBLE_ASSETS = 10;
-export const AUTOPILOT_MAX_FEED_PER_DAY = 3;
-export const AUTOPILOT_MAX_STORIES_PER_DAY = 3;
 export const AUTOPILOT_DEFAULT_MAX_RETRIES = 3;
 export const AUTOPILOT_ASSET_COOLDOWN_DAYS = 3;
 
@@ -877,11 +993,28 @@ export function countEligibleFeedAssets(assets: readonly AutopilotEligibleAsset[
   return assets.filter(isEligibleAutopilotFeedAsset).length;
 }
 
+export function countEligibleStoryAssets(assets: readonly AutopilotEligibleAsset[]): number {
+  return assets.filter(isEligibleAutopilotStoryAsset).length;
+}
+
 export function canActivateAutopilot(
   assets: readonly AutopilotEligibleAsset[],
   minRequired = AUTOPILOT_MIN_ELIGIBLE_ASSETS
 ): { ok: true; count: number } | { ok: false; count: number; reason: 'below_min_assets' } {
   const count = countEligibleAssets(assets);
+  if (count < minRequired) return { ok: false, count, reason: 'below_min_assets' };
+  return { ok: true, count };
+}
+
+/** Mode-aware gate: only the pool that will actually be generated. */
+export function canActivateAutopilotForMode(
+  assets: readonly AutopilotEligibleAsset[],
+  mode: 'stories' | 'feed' | 'full' | 'marked_stories' | string,
+  minRequired = AUTOPILOT_MIN_ELIGIBLE_ASSETS
+): { ok: true; count: number } | { ok: false; count: number; reason: 'below_min_assets' } {
+  let count = countEligibleAssets(assets);
+  if (mode === 'feed') count = countEligibleFeedAssets(assets);
+  else if (mode === 'stories' || mode === 'marked_stories') count = countEligibleStoryAssets(assets);
   if (count < minRequired) return { ok: false, count, reason: 'below_min_assets' };
   return { ok: true, count };
 }
@@ -979,7 +1112,29 @@ export function inferCategoryFromAsset(params: {
  */
 
 export const DEFAULT_FEED_TIMES = ['09:30', '13:00', '19:00'] as const;
-export const DEFAULT_STORY_TIMES = ['08:15', '12:30', '17:45'] as const;
+/** First four = default Nur-Stories spread; extras fill up to 10, then sorted. */
+export const DEFAULT_STORY_TIMES = [
+  '08:15',
+  '12:30',
+  '17:45',
+  '20:30',
+  '10:00',
+  '14:45',
+  '16:15',
+  '07:00',
+  '18:30',
+  '21:15',
+] as const;
+
+export function storyTimesForCount(count: number): string[] {
+  const n = Math.max(0, Math.min(DEFAULT_STORY_TIMES.length, Math.round(count)));
+  return [...DEFAULT_STORY_TIMES].slice(0, n).sort();
+}
+
+export function feedTimesForCount(count: number): string[] {
+  const n = Math.max(0, Math.min(DEFAULT_FEED_TIMES.length, Math.round(count)));
+  return [...DEFAULT_FEED_TIMES].slice(0, n);
+}
 
 export function parseHm(hm: string): { hour: number; minute: number } {
   const [h, m] = hm.split(':').map((x) => Number(x));
@@ -2165,10 +2320,10 @@ export function resolveAutopilotFormat(
 }
 
 /**
- * Build a week of slots (max 3 feed + 3 stories / day).
- * Feed: ALWAYS exactly 1 image (never carousel).
+ * Build a week of slots.
+ * Feed: ALWAYS exactly 1 image (never carousel). Never reel.
  * Stories: image or video story.
- * Never plans reel / video feed / image carousel / video carousel.
+ * Caps come from publishing mode (stories/feed/full/marked_stories).
  */
 export function buildAutopilotWeekPlan(params: {
   periodStart: string;
@@ -2182,11 +2337,11 @@ export function buildAutopilotWeekPlan(params: {
   const nowIso = params.nowIso ?? new Date().toISOString();
   const maxFeed = Math.min(
     AUTOPILOT_MAX_FEED_PER_DAY,
-    params.maxFeedPerDay ?? AUTOPILOT_MAX_FEED_PER_DAY
+    Math.max(0, params.maxFeedPerDay ?? AUTOPILOT_MAX_FEED_PER_DAY)
   );
   const maxStories = Math.min(
     AUTOPILOT_MAX_STORIES_PER_DAY,
-    params.maxStoriesPerDay ?? AUTOPILOT_MAX_STORIES_PER_DAY
+    Math.max(0, params.maxStoriesPerDay ?? 0)
   );
   const reserved = new Set<string>();
   const history = [...params.history];
@@ -2196,8 +2351,8 @@ export function buildAutopilotWeekPlan(params: {
     const offset = berlinUtcOffsetHours(dateYmd);
     const weekday = weekdayIndexFromYmd(dateYmd);
 
-    const feedTimes = DEFAULT_FEED_TIMES.slice(0, maxFeed);
-    const storyTimes = DEFAULT_STORY_TIMES.slice(0, maxStories);
+    const feedTimes = feedTimesForCount(maxFeed);
+    const storyTimes = storyTimesForCount(maxStories);
 
     const daySlots: Array<{ kind: AutopilotSlotKind; hm: string }> = [
       ...storyTimes.map((hm) => ({ kind: 'story' as const, hm })),
@@ -2459,13 +2614,26 @@ export async function buildAndInsertAutopilotPlan(
   assets: readonly AutopilotEligibleAsset[],
   history: readonly AutopilotHistoryItem[]
 ): Promise<{ planId: string; slotCount: number; skipped: number }> {
+  const { data: settingsRow } = await db
+    .from('content_autopilot_settings')
+    .select('publishing_mode, max_feed_per_day, max_stories_per_day')
+    .eq('org_id', membership.org_id)
+    .eq('membership_id', membership.id)
+    .maybeSingle();
+
+  const caps = resolveAutopilotSlotCaps({
+    publishingMode: settingsRow?.publishing_mode,
+    maxFeedPerDay: settingsRow?.max_feed_per_day ?? AUTOPILOT_MAX_FEED_PER_DAY,
+    maxStoriesPerDay: settingsRow?.max_stories_per_day,
+  });
+
   const planned = buildAutopilotWeekPlan({
     periodStart,
     periodEnd,
     assets,
     history,
-    maxFeedPerDay: AUTOPILOT_MAX_FEED_PER_DAY,
-    maxStoriesPerDay: AUTOPILOT_MAX_STORIES_PER_DAY,
+    maxFeedPerDay: caps.maxFeedPerDay,
+    maxStoriesPerDay: caps.maxStoriesPerDay,
   });
 
   const { data: activePlans } = await db
@@ -2496,6 +2664,11 @@ export async function buildAndInsertAutopilotPlan(
     .single();
   if (planErr) throw planErr;
 
+  const slotPerformance = {
+    publishing_mode: parseAutopilotPublishingMode(settingsRow?.publishing_mode),
+    manual_publish_required: !caps.autoPublish,
+  };
+
   let slotCount = 0;
   let skipped = 0;
   for (const s of planned) {
@@ -2515,6 +2688,7 @@ export async function buildAndInsertAutopilotPlan(
         selection_reason: s.selectionReason,
         status: 'skipped',
         error_message: s.skipReason ?? 'no_suitable_asset',
+        performance_json: slotPerformance,
       });
       continue;
     }
@@ -2544,6 +2718,7 @@ export async function buildAndInsertAutopilotPlan(
         selection_reason: s.selectionReason,
         status: 'skipped',
         error_message: 'draft_create_failed',
+        performance_json: slotPerformance,
       });
       continue;
     }
@@ -2562,6 +2737,7 @@ export async function buildAndInsertAutopilotPlan(
       category: s.category,
       selection_reason: s.selectionReason,
       status: 'ready',
+      performance_json: slotPerformance,
     });
     if (slotErr) {
       skipped += 1;
@@ -4621,11 +4797,20 @@ Deno.serve(async (req) => {
 
       const { data: settings } = await admin
         .from('content_autopilot_settings')
-        .select('enabled, paused')
+        .select('enabled, paused, publishing_mode')
         .eq('membership_id', slot.membership_id)
         .maybeSingle();
       if (!settings?.enabled || settings.paused) {
         results.push({ slotId: slot.id, status: 'skipped', reason: 'autopilot_paused_or_off' });
+        continue;
+      }
+
+      if (settings.publishing_mode === 'marked_stories') {
+        results.push({
+          slotId: slot.id,
+          status: 'manual_required',
+          reason: 'marked_stories_manual_fallback',
+        });
         continue;
       }
 

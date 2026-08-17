@@ -12,9 +12,12 @@ import {
   AUTOPILOT_MAX_STORIES_PER_DAY,
   AUTOPILOT_MIN_ELIGIBLE_ASSETS,
   buildAndInsertAutopilotPlan,
-  canActivateAutopilot,
+  canActivateAutopilotForMode,
+  clampAutopilotStoryCount,
   countByScope,
   enumerateDatesInclusive,
+  parseAutopilotPublishingMode,
+  resolveAutopilotSlotCaps,
   type AutopilotEligibleAsset,
   type AutopilotHistoryItem,
 } from '../_shared/content-autopilot/index.ts';
@@ -170,13 +173,25 @@ Deno.serve(async (req) => {
       action?: string;
       periodStart?: string;
       periodEnd?: string;
+      publishingMode?: string;
+      maxStoriesPerDay?: number;
     };
     const action = String(body.action ?? 'get_state');
 
     const settings = await ensureSettings(db, membership);
     const assets = await loadEligibleAssets(db, membership.org_id, membership.id);
     const scopeCounts = countByScope(assets);
-    const gate = canActivateAutopilot(assets, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+    const publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
+    const caps = resolveAutopilotSlotCaps({
+      publishingMode,
+      maxFeedPerDay: settings.max_feed_per_day,
+      maxStoriesPerDay: settings.max_stories_per_day,
+    });
+    const gate = canActivateAutopilotForMode(
+      assets,
+      publishingMode,
+      AUTOPILOT_MIN_ELIGIBLE_ASSETS
+    );
     const connected = await igConnected(db, membership);
 
     if (action === 'get_state') {
@@ -247,8 +262,10 @@ Deno.serve(async (req) => {
           ...gate,
           ...scopeCounts,
           minRequired: AUTOPILOT_MIN_ELIGIBLE_ASSETS,
-          maxFeedPerDay: AUTOPILOT_MAX_FEED_PER_DAY,
-          maxStoriesPerDay: AUTOPILOT_MAX_STORIES_PER_DAY,
+          maxFeedPerDay: caps.maxFeedPerDay,
+          maxStoriesPerDay: caps.maxStoriesPerDay,
+          publishingMode,
+          markedStoriesManual: publishingMode === 'marked_stories',
         },
         plan: plan ?? null,
         slots,
@@ -258,6 +275,28 @@ Deno.serve(async (req) => {
           ? enumerateDatesInclusive(String(plan.period_start), String(plan.period_end))
           : [],
       });
+    }
+
+    if (action === 'update_settings') {
+      const nextMode = parseAutopilotPublishingMode(
+        body.publishingMode ?? settings.publishing_mode
+      );
+      const patch: Record<string, unknown> = { publishing_mode: nextMode };
+      if (body.maxStoriesPerDay !== undefined) {
+        patch.max_stories_per_day = clampAutopilotStoryCount(
+          body.maxStoriesPerDay,
+          Number(settings.max_stories_per_day) || 4
+        );
+      }
+      const { data, error } = await db
+        .from('content_autopilot_settings')
+        .update(patch)
+        .eq('org_id', membership.org_id)
+        .eq('membership_id', membership.id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return json({ ok: true, settings: data });
     }
 
     if (action === 'activate') {

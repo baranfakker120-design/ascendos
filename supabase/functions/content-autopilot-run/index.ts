@@ -799,11 +799,20 @@ Deno.serve(async (req) => {
 
       const { data: settings } = await admin
         .from('content_autopilot_settings')
-        .select('enabled, paused')
+        .select('enabled, paused, publishing_mode')
         .eq('membership_id', slot.membership_id)
         .maybeSingle();
       if (!settings?.enabled || settings.paused) {
         results.push({ slotId: slot.id, status: 'skipped', reason: 'autopilot_paused_or_off' });
+        continue;
+      }
+
+      if (settings.publishing_mode === 'marked_stories') {
+        results.push({
+          slotId: slot.id,
+          status: 'manual_required',
+          reason: 'marked_stories_manual_fallback',
+        });
         continue;
       }
 

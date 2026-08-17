@@ -1394,7 +1394,20 @@
     "uploadPartialFail": "{failed} could not be uploaded.",
     "uploadRemainingSlots": "You can still add {count} assets.",
     "uploadLibraryFullNow": "{ok} of {selected} images added. Your asset library is now full ({limit}/{limit}).",
-    "uploadBatchCapped": "Maximum {max} files per selection."
+    "uploadBatchCapped": "Maximum {max} files per selection.",
+    "autopilotPublishingMode": "Publishing mode",
+    "autopilotModeStories": "Stories only",
+    "autopilotModeStoriesHint": "Story content only · default 4/day",
+    "autopilotModeFeed": "Feed only",
+    "autopilotModeFeedHint": "Feed automatically · exactly 1 image",
+    "autopilotModeFull": "Full",
+    "autopilotModeFullHint": "All supported formats",
+    "autopilotModeMarked": "Marked Stories",
+    "autopilotModeMarkedHint": "Audience / tagging · manual step may be required",
+    "autopilotStoriesPerDay": "Stories per day",
+    "autopilotStoriesMinus": "Fewer stories",
+    "autopilotStoriesPlus": "More stories",
+    "autopilotMarkedManual": "Manual step required: Instagram does not allow the requested audience targeting on the official publishing path. Content is prepared for you."
   },
   "orgGuide": {
     "loadError": "Nie udało się wczytać przewodnika.",

@@ -1,8 +1,11 @@
 /** Client mirror of autopilot eligibility / constants (unit-tested). */
 
 export const AUTOPILOT_MIN_ELIGIBLE_ASSETS = 10;
-export const AUTOPILOT_MAX_FEED_PER_DAY = 3;
-export const AUTOPILOT_MAX_STORIES_PER_DAY = 3;
+export {
+  AUTOPILOT_MAX_FEED_PER_DAY,
+  AUTOPILOT_DEFAULT_STORIES_PER_DAY,
+  AUTOPILOT_STORY_COUNT_MAX as AUTOPILOT_MAX_STORIES_PER_DAY,
+} from './publishingMode';
 
 import { aspectFitsAutopilotSlot } from './formatAspect';
 
@@ -55,11 +58,29 @@ export function countEligibleFeedAssets(assets: readonly AutopilotEligibleAsset[
   return assets.filter(isEligibleAutopilotFeedAsset).length;
 }
 
+export function countEligibleStoryAssets(assets: readonly AutopilotEligibleAsset[]): number {
+  return assets.filter(isEligibleAutopilotStoryAsset).length;
+}
+
 export function canActivateAutopilot(
   assets: readonly AutopilotEligibleAsset[],
   minRequired = AUTOPILOT_MIN_ELIGIBLE_ASSETS
 ): { ok: true; count: number } | { ok: false; count: number; reason: 'below_min_assets' } {
   const count = countEligibleAssets(assets);
+  if (count < minRequired) return { ok: false, count, reason: 'below_min_assets' };
+  return { ok: true, count };
+}
+
+export function canActivateAutopilotForMode(
+  assets: readonly AutopilotEligibleAsset[],
+  mode: string,
+  minRequired = AUTOPILOT_MIN_ELIGIBLE_ASSETS
+): { ok: true; count: number } | { ok: false; count: number; reason: 'below_min_assets' } {
+  let count = countEligibleAssets(assets);
+  if (mode === 'feed') count = countEligibleFeedAssets(assets);
+  else if (mode === 'stories' || mode === 'marked_stories') {
+    count = countEligibleStoryAssets(assets);
+  }
   if (count < minRequired) return { ok: false, count, reason: 'below_min_assets' };
   return { ok: true, count };
 }
