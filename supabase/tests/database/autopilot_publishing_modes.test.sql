@@ -14,7 +14,7 @@ select col_default_is(
   'public',
   'content_autopilot_settings',
   'publishing_mode',
-  '''full''::text',
+  '''full''',
   'publishing_mode defaults to full for backward compatibility'
 );
 
