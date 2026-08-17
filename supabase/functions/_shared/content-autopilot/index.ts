@@ -8,6 +8,7 @@ export {
   MARKED_STORIES_API,
   clampAutopilotFeedCount,
   clampAutopilotStoryCount,
+  clampUserStoryCount,
   isMarkedStoriesManualFallback,
   parseAutopilotPublishingMode,
   resolveAutopilotSlotCaps,

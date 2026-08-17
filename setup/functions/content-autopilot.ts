@@ -801,6 +801,16 @@ export function clampAutopilotStoryCount(
   return Math.min(AUTOPILOT_STORY_COUNT_MAX, Math.max(0, Math.round(n)));
 }
 
+/** User-facing story slots: 1–10. Does not rewrite stored 0 used as feed-mode cap. */
+export function clampUserStoryCount(
+  value: unknown,
+  fallback = AUTOPILOT_DEFAULT_STORIES_PER_DAY
+): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(AUTOPILOT_STORY_COUNT_MAX, Math.max(AUTOPILOT_STORY_COUNT_MIN, Math.round(n)));
+}
+
 export function clampAutopilotFeedCount(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return AUTOPILOT_MAX_FEED_PER_DAY;
@@ -3733,16 +3743,59 @@ async function ensureSettings(
   return data as Record<string, unknown>;
 }
 
-async function igConnected(db: SupabaseClient, membership: AutopilotMembershipRow): Promise<boolean> {
+async function classifyIgConnection(
+  db: SupabaseClient,
+  membership: AutopilotMembershipRow
+): Promise<'ok' | 'instagram_not_connected' | 'instagram_expired'> {
   const { data } = await db
     .from('content_instagram_connections')
-    .select('status, ig_user_id, token_ref, scopes')
+    .select('status, ig_user_id, token_ref, scopes, last_error')
     .eq('org_id', membership.org_id)
     .eq('membership_id', membership.id)
     .maybeSingle();
-  if (!data || data.status !== 'connected' || !data.ig_user_id || !data.token_ref) return false;
+  const last = String(data?.last_error ?? '').toLowerCase();
+  const expiredHint =
+    last.includes('expired') ||
+    last.includes('session has been invalidated') ||
+    last.includes('code 190') ||
+    last.includes('oauthexception');
+  if (data?.status === 'error' && expiredHint) return 'instagram_expired';
+  if (!data || data.status !== 'connected' || !data.ig_user_id || !data.token_ref) {
+    return 'instagram_not_connected';
+  }
   const scopes = (data.scopes as string[] | null) ?? [];
-  return scopes.includes('instagram_business_content_publish');
+  if (!scopes.includes('instagram_business_content_publish')) return 'instagram_not_connected';
+  return 'ok';
+}
+
+async function applyPublishingPrefs(
+  db: SupabaseClient,
+  membership: AutopilotMembershipRow,
+  settings: Record<string, unknown>,
+  body: { publishingMode?: string; maxStoriesPerDay?: number }
+): Promise<Record<string, unknown>> {
+  const nextMode = parseAutopilotPublishingMode(body.publishingMode ?? settings.publishing_mode);
+  const patch: Record<string, unknown> = { publishing_mode: nextMode };
+  if (body.maxStoriesPerDay !== undefined) {
+    patch.max_stories_per_day = clampUserStoryCount(
+      body.maxStoriesPerDay,
+      Number(settings.max_stories_per_day) || 4
+    );
+  }
+  const sameMode = nextMode === parseAutopilotPublishingMode(settings.publishing_mode);
+  const sameStories =
+    body.maxStoriesPerDay === undefined ||
+    Number(patch.max_stories_per_day) === Number(settings.max_stories_per_day);
+  if (sameMode && sameStories) return settings;
+  const { data, error } = await db
+    .from('content_autopilot_settings')
+    .update(patch)
+    .eq('org_id', membership.org_id)
+    .eq('membership_id', membership.id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -3767,18 +3820,19 @@ Deno.serve(async (req) => {
     const settings = await ensureSettings(db, membership);
     const assets = await loadEligibleAssets(db, membership.org_id, membership.id);
     const scopeCounts = countByScope(assets);
-    const publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
-    const caps = resolveAutopilotSlotCaps({
+    let publishingMode = parseAutopilotPublishingMode(settings.publishing_mode);
+    let caps = resolveAutopilotSlotCaps({
       publishingMode,
       maxFeedPerDay: settings.max_feed_per_day,
       maxStoriesPerDay: settings.max_stories_per_day,
     });
-    const gate = canActivateAutopilotForMode(
+    let gate = canActivateAutopilotForMode(
       assets,
       publishingMode,
       AUTOPILOT_MIN_ELIGIBLE_ASSETS
     );
-    const connected = await igConnected(db, membership);
+    const igStatus = await classifyIgConnection(db, membership);
+    const connected = igStatus === 'ok';
 
     if (action === 'get_state') {
       const { data: plan } = await db
@@ -3844,6 +3898,7 @@ Deno.serve(async (req) => {
         ok: true,
         settings,
         instagramConnected: connected,
+        instagramStatus: igStatus,
         eligibility: {
           ...gate,
           ...scopeCounts,
@@ -3864,30 +3919,21 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'update_settings') {
-      const nextMode = parseAutopilotPublishingMode(
-        body.publishingMode ?? settings.publishing_mode
-      );
-      const patch: Record<string, unknown> = { publishing_mode: nextMode };
-      if (body.maxStoriesPerDay !== undefined) {
-        patch.max_stories_per_day = clampAutopilotStoryCount(
-          body.maxStoriesPerDay,
-          Number(settings.max_stories_per_day) || 4
-        );
-      }
-      const { data, error } = await db
-        .from('content_autopilot_settings')
-        .update(patch)
-        .eq('org_id', membership.org_id)
-        .eq('membership_id', membership.id)
-        .select('*')
-        .single();
-      if (error) throw error;
+      const data = await applyPublishingPrefs(db, membership, settings, body);
       return json({ ok: true, settings: data });
     }
 
     if (action === 'activate') {
-      if (!connected) {
-        return json({ ok: false, error: 'instagram_not_connected' }, 400);
+      const nextSettings = await applyPublishingPrefs(db, membership, settings, body);
+      publishingMode = parseAutopilotPublishingMode(nextSettings.publishing_mode);
+      caps = resolveAutopilotSlotCaps({
+        publishingMode,
+        maxFeedPerDay: nextSettings.max_feed_per_day,
+        maxStoriesPerDay: nextSettings.max_stories_per_day,
+      });
+      gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+      if (igStatus !== 'ok') {
+        return json({ ok: false, error: igStatus }, 400);
       }
       if (!gate.ok) {
         return json(
@@ -3948,7 +3994,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'resume') {
-      if (!connected) return json({ ok: false, error: 'instagram_not_connected' }, 400);
+      const nextSettings = await applyPublishingPrefs(db, membership, settings, body);
+      publishingMode = parseAutopilotPublishingMode(nextSettings.publishing_mode);
+      gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+      if (igStatus !== 'ok') return json({ ok: false, error: igStatus }, 400);
       if (!gate.ok) return json({ ok: false, error: 'below_min_assets', count: gate.count }, 400);
       const { data, error } = await db
         .from('content_autopilot_settings')
@@ -3985,7 +4034,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'replan') {
-      if (!connected) return json({ ok: false, error: 'instagram_not_connected' }, 400);
+      const nextSettings = await applyPublishingPrefs(db, membership, settings, body);
+      publishingMode = parseAutopilotPublishingMode(nextSettings.publishing_mode);
+      gate = canActivateAutopilotForMode(assets, publishingMode, AUTOPILOT_MIN_ELIGIBLE_ASSETS);
+      if (igStatus !== 'ok') return json({ ok: false, error: igStatus }, 400);
       if (!gate.ok) return json({ ok: false, error: 'below_min_assets', count: gate.count }, 400);
       const period = defaultPeriod();
       const periodStart = String(body.periodStart ?? period.start).slice(0, 10);

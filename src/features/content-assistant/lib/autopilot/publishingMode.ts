@@ -49,6 +49,16 @@ export function clampAutopilotStoryCount(
   return Math.min(AUTOPILOT_STORY_COUNT_MAX, Math.max(0, Math.round(n)));
 }
 
+/** User-facing story slots: 1–10. Does not rewrite stored 0 used as feed-mode cap. */
+export function clampUserStoryCount(
+  value: unknown,
+  fallback = AUTOPILOT_DEFAULT_STORIES_PER_DAY
+): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(AUTOPILOT_STORY_COUNT_MAX, Math.max(AUTOPILOT_STORY_COUNT_MIN, Math.round(n)));
+}
+
 export function clampAutopilotFeedCount(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return AUTOPILOT_MAX_FEED_PER_DAY;
