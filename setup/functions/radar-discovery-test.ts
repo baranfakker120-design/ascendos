@@ -34,7 +34,7 @@ export function json(body: unknown, status = 200): Response {
 
 export const TEAM_SEYDA_ORG_ID = '00000000-0000-0000-0000-000000000001';
 
-export type RadarSource = 'chogan' | 'essence_tribe';
+export type RadarSource = 'chogan' | 'essence_tribe' | 'chogan_beauty';
 export type RadarContentType = 'POST' | 'REEL';
 
 export interface RadarNormalizedItem {
@@ -89,8 +89,16 @@ export function resolveRadarWriteOrgId(clientOrgId: unknown): string | null {
 export function mapUsernameToSource(username: string): RadarSource | null {
   if (username === 'chogangroupofficial') return 'chogan';
   if (username === 'essencetribe.network') return 'essence_tribe';
+  if (username === 'choganbeautyofficial') return 'chogan_beauty';
   return null;
 }
+
+/** Canonical Business Discovery targets — same list the hourly edge function iterates. */
+export const RADAR_DISCOVERY_TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
+  { username: 'chogangroupofficial', source: 'chogan' },
+  { username: 'essencetribe.network', source: 'essence_tribe' },
+  { username: 'choganbeautyofficial', source: 'chogan_beauty' },
+];
 
 export function mapMediaToContentType(
   mediaType: string | undefined,
@@ -196,6 +204,31 @@ export function errorKindFromFetchFailure(opts: {
   return classifyMetaHttpStatus(opts.httpStatus);
 }
 
+/** Dead token: skip later targets. Per-target 403/empty/5xx must not abort the others. */
+export function shouldSkipRemainingRadarTargets(kind: MetaErrorKind): boolean {
+  return kind === 'meta_auth_error';
+}
+
+/**
+ * After a named target fails, which usernames were already attempted vs skipped.
+ * Production TARGETS keep existing accounts first so a beauty-only failure cannot
+ * skip chogangroupofficial / essencetribe.network.
+ */
+export function radarTargetsAfterFailure(
+  allUsernames: readonly string[],
+  failedUsername: string,
+  failKind: MetaErrorKind
+): { attempted: string[]; skipped: string[] } {
+  const idx = allUsernames.indexOf(failedUsername);
+  if (idx < 0) return { attempted: [], skipped: [...allUsernames] };
+  const attempted = allUsernames.slice(0, idx + 1);
+  const rest = allUsernames.slice(idx + 1);
+  if (shouldSkipRemainingRadarTargets(failKind)) {
+    return { attempted: [...attempted], skipped: [...rest] };
+  }
+  return { attempted: [...allUsernames], skipped: [] };
+}
+
 // ---- inline: _shared/radar/index.ts ----
 
 
@@ -223,10 +256,7 @@ const GRAPH_VERSION = 'v21.0';
 const GRAPH_HOST = 'https://graph.facebook.com';
 const META_FETCH_TIMEOUT_MS = 25_000;
 
-const TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
-  { username: 'chogangroupofficial', source: 'chogan' },
-  { username: 'essencetribe.network', source: 'essence_tribe' },
-];
+const TARGETS = RADAR_DISCOVERY_TARGETS;
 
 interface MetaMedia {
   id?: string;
@@ -577,7 +607,7 @@ Deno.serve(async (req) => {
 
       const discovered = await fetchDiscoveryMedia(token, target.username);
       if (!discovered.ok) {
-        if (discovered.kind === 'meta_auth_error') authHardFail = true;
+        if (shouldSkipRemainingRadarTargets(discovered.kind)) authHardFail = true;
         console.error(
           'radar_discovery_target_fail',
           JSON.stringify({

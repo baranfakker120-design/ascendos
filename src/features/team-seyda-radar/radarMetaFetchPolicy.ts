@@ -83,3 +83,28 @@ export function errorKindFromFetchFailure(opts: {
   if (opts.emptyDiscovery) return 'business_discovery_empty';
   return classifyMetaHttpStatus(opts.httpStatus);
 }
+
+/** Dead token: skip later targets. Per-target 403/empty/5xx must not abort the others. */
+export function shouldSkipRemainingRadarTargets(kind: MetaErrorKind): boolean {
+  return kind === 'meta_auth_error';
+}
+
+/**
+ * After a named target fails, which usernames were already attempted vs skipped.
+ * Production TARGETS keep existing accounts first so a beauty-only failure cannot
+ * skip chogangroupofficial / essencetribe.network.
+ */
+export function radarTargetsAfterFailure(
+  allUsernames: readonly string[],
+  failedUsername: string,
+  failKind: MetaErrorKind
+): { attempted: string[]; skipped: string[] } {
+  const idx = allUsernames.indexOf(failedUsername);
+  if (idx < 0) return { attempted: [], skipped: [...allUsernames] };
+  const attempted = allUsernames.slice(0, idx + 1);
+  const rest = allUsernames.slice(idx + 1);
+  if (shouldSkipRemainingRadarTargets(failKind)) {
+    return { attempted: [...attempted], skipped: [...rest] };
+  }
+  return { attempted: [...allUsernames], skipped: [] };
+}

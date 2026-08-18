@@ -110,16 +110,17 @@
     "contentOpenIgHint": "Dostępne później — bez automatycznej publikacji.",
     "backToToday": "Wróć do Dzisiaj",
     "radar": "Radar",
-    "radarSub": "Chogan i Essence Tribe"
+    "radarSub": "Chogan, Chogan Beauty i Essence Tribe"
   },
   "radar": {
     "slotTitle": "Radar",
-    "subtitle": "Nowe posty Chogan i Essence Tribe",
+    "subtitle": "Nowe posty Chogan, Chogan Beauty i Essence Tribe",
     "empty": "Brak otwartych postów.",
     "storiesHint": "Relacje tu nie pojawiają się. Instagram nie udostępnia ich dla obcych kont.",
     "openIg": "Otwórz w Instagramie",
     "seen": "Widziane",
     "sourceChogan": "Chogan",
+    "sourceChoganBeauty": "Chogan Beauty",
     "sourceEssence": "Essence Tribe",
     "typePost": "Post",
     "typeReel": "Reel",

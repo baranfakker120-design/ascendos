@@ -5,7 +5,7 @@
 
 export const TEAM_SEYDA_ORG_ID = '00000000-0000-0000-0000-000000000001';
 
-export type RadarSource = 'chogan' | 'essence_tribe';
+export type RadarSource = 'chogan' | 'essence_tribe' | 'chogan_beauty';
 export type RadarContentType = 'POST' | 'REEL';
 
 export interface RadarNormalizedItem {
@@ -60,8 +60,16 @@ export function resolveRadarWriteOrgId(clientOrgId: unknown): string | null {
 export function mapUsernameToSource(username: string): RadarSource | null {
   if (username === 'chogangroupofficial') return 'chogan';
   if (username === 'essencetribe.network') return 'essence_tribe';
+  if (username === 'choganbeautyofficial') return 'chogan_beauty';
   return null;
 }
+
+/** Canonical Business Discovery targets — same list the hourly edge function iterates. */
+export const RADAR_DISCOVERY_TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
+  { username: 'chogangroupofficial', source: 'chogan' },
+  { username: 'essencetribe.network', source: 'essence_tribe' },
+  { username: 'choganbeautyofficial', source: 'chogan_beauty' },
+];
 
 export function mapMediaToContentType(
   mediaType: string | undefined,

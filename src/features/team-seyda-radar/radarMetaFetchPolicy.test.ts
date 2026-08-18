@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RADAR_DISCOVERY_TARGETS } from './radarInsertGate';
 import {
   META_MAX_RETRIES,
   META_RATE_LIMIT_BACKOFF_MS,
@@ -7,6 +8,8 @@ import {
   decideMetaRetry,
   errorKindFromFetchFailure,
   metaBackoffMs,
+  radarTargetsAfterFailure,
+  shouldSkipRemainingRadarTargets,
   withJitter,
 } from './radarMetaFetchPolicy';
 
@@ -51,5 +54,49 @@ describe('RADAR Meta error classification', () => {
     expect(withJitter(1000, 0)).toBe(750);
     expect(withJitter(1000, 1)).toBe(1250);
     expect(withJitter(1000, 0.5)).toBe(1000);
+  });
+});
+
+describe('RADAR per-target continue-on-failure', () => {
+  const usernames = RADAR_DISCOVERY_TARGETS.map((t) => t.username);
+
+  it('does not skip remaining targets on choganbeautyofficial 403/empty', () => {
+    expect(shouldSkipRemainingRadarTargets('meta_forbidden')).toBe(false);
+    expect(shouldSkipRemainingRadarTargets('business_discovery_empty')).toBe(false);
+    const afterBeauty = radarTargetsAfterFailure(
+      usernames,
+      'choganbeautyofficial',
+      'meta_forbidden'
+    );
+    expect(afterBeauty.attempted).toEqual(usernames);
+    expect(afterBeauty.skipped).toEqual([]);
+    expect(afterBeauty.attempted).toContain('chogangroupofficial');
+    expect(afterBeauty.attempted).toContain('essencetribe.network');
+  });
+
+  it('keeps chogangroupofficial and essencetribe.network when beauty is last and fails', () => {
+    expect(usernames.slice(0, 2)).toEqual(['chogangroupofficial', 'essencetribe.network']);
+    expect(usernames[2]).toBe('choganbeautyofficial');
+    const afterEmpty = radarTargetsAfterFailure(
+      usernames,
+      'choganbeautyofficial',
+      'business_discovery_empty'
+    );
+    expect(afterEmpty.skipped).toEqual([]);
+    expect(afterEmpty.attempted.slice(0, 2)).toEqual([
+      'chogangroupofficial',
+      'essencetribe.network',
+    ]);
+  });
+
+  it('skips only later targets on dead-token auth failure', () => {
+    expect(shouldSkipRemainingRadarTargets('meta_auth_error')).toBe(true);
+    const afterFirst = radarTargetsAfterFailure(
+      usernames,
+      'chogangroupofficial',
+      'meta_auth_error'
+    );
+    expect(afterFirst.attempted).toEqual(['chogangroupofficial']);
+    expect(afterFirst.skipped).toEqual(['essencetribe.network', 'choganbeautyofficial']);
   });
 });

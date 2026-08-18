@@ -8,7 +8,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(24);
 
 -- ---------- Fixtures ----------
 set local session_replication_role = replica;
@@ -185,6 +185,50 @@ select lives_ok(
     )
   $$,
   'new post after start can be recorded'
+);
+
+select lives_ok(
+  $$
+    insert into public.team_radar_items
+      (org_id, user_id, source, external_id, content_type, published_at)
+    values (
+      '00000000-0000-0000-0000-000000000001',
+      'aa570000-0000-0000-0000-0000000000a1',
+      'chogan_beauty', 'beauty-post-1', 'POST',
+      '2026-08-15T14:34:00.000Z'::timestamptz
+    )
+  $$,
+  'chogan_beauty source can be recorded for Org #1'
+);
+
+select lives_ok(
+  $$
+    insert into public.team_radar_items
+      (org_id, user_id, source, external_id, content_type, published_at)
+    values (
+      '00000000-0000-0000-0000-000000000001',
+      'aa570000-0000-0000-0000-0000000000a1',
+      'chogan_beauty', 'new-post-1', 'POST',
+      '2026-08-15T14:35:00.000Z'::timestamptz
+    )
+  $$,
+  'same external_id on a different source is not a duplicate'
+);
+
+select throws_ok(
+  $$
+    insert into public.team_radar_items
+      (org_id, user_id, source, external_id, content_type, published_at)
+    values (
+      '00000000-0000-0000-0000-000000000001',
+      'aa570000-0000-0000-0000-0000000000a1',
+      'unknown_brand', 'bad-source-1', 'POST',
+      '2026-08-15T14:36:00.000Z'::timestamptz
+    )
+  $$,
+  '23514',
+  null,
+  'invalid radar source is rejected'
 );
 
 -- 6) User A cannot read/manipulate User B startpoint

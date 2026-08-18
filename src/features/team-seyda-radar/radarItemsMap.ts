@@ -12,7 +12,7 @@ export interface TeamRadarItem {
 }
 
 function isRadarSource(value: string): value is RadarSource {
-  return value === 'chogan' || value === 'essence_tribe';
+  return value === 'chogan' || value === 'essence_tribe' || value === 'chogan_beauty';
 }
 
 function isRadarContentType(value: string): value is RadarContentType {

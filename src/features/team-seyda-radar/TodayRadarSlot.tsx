@@ -97,7 +97,11 @@ function RadarHitRow({
   const kind = radarWhenKind(item.published_at);
   const time = radarBerlinTime(item.published_at, locale);
   const source =
-    item.source === 'essence_tribe' ? t('radar.sourceEssence') : t('radar.sourceChogan');
+    item.source === 'essence_tribe'
+      ? t('radar.sourceEssence')
+      : item.source === 'chogan_beauty'
+        ? t('radar.sourceChoganBeauty')
+        : t('radar.sourceChogan');
   const type = item.content_type === 'REEL' ? t('radar.typeReel') : t('radar.typePost');
   const when =
     kind === 'today'
