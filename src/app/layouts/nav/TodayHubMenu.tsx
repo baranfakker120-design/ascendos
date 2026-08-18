@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { isTeamSeydaRadarOrg } from '@features/team-seyda-radar';
+import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { Button } from '@shared/ui/Button';
@@ -13,7 +15,7 @@ export interface TodayHubMenuProps {
   onBurst: () => void;
 }
 
-type HubItemId = 'plan' | 'priorities' | 'content' | 'tasks' | 'stats';
+type HubItemId = 'plan' | 'priorities' | 'content' | 'radar' | 'tasks' | 'stats';
 
 type HubItem = {
   id: HubItemId;
@@ -64,6 +66,8 @@ function HubIcon({ children }: { children: ReactNode }) {
  */
 export function TodayHubMenu({ burst, burstKey, onBurst }: TodayHubMenuProps) {
   const { t } = useI18n();
+  const { membership } = useAuth();
+  const showRadar = isTeamSeydaRadarOrg(membership?.org_id);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [expanded, setExpanded] = useState(false);
@@ -182,6 +186,30 @@ export function TodayHubMenu({ burst, burstKey, onBurst }: TodayHubMenuProps) {
       featured: true,
       icon: <InstagramMark className="h-7 w-7" />,
     },
+    ...(showRadar
+      ? ([
+          {
+            id: 'radar',
+            titleKey: 'todayHub.radar',
+            subKey: 'todayHub.radarSub',
+            icon: (
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              >
+                <circle cx="12" cy="12" r="2.2" />
+                <circle cx="12" cy="12" r="5.4" />
+                <circle cx="12" cy="12" r="8.6" />
+                <path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4" strokeLinecap="round" />
+              </svg>
+            ),
+          },
+        ] satisfies HubItem[])
+      : []),
     {
       id: 'tasks',
       titleKey: 'todayHub.tasks',
@@ -239,6 +267,9 @@ export function TodayHubMenu({ burst, burstKey, onBurst }: TodayHubMenuProps) {
         break;
       case 'content':
         goRoute('/heute/content');
+        break;
+      case 'radar':
+        goSection('#heute-radar');
         break;
     }
   };
