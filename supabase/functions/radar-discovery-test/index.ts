@@ -17,6 +17,7 @@
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 import {
+  RADAR_DISCOVERY_TARGETS,
   decideMetaRetry,
   errorKindFromFetchFailure,
   filterItemsByRadarStartpoint,
@@ -24,6 +25,7 @@ import {
   metaBackoffMs,
   partitionNewVsDuplicate,
   resolveRadarWriteOrgId,
+  shouldSkipRemainingRadarTargets,
   withJitter,
   type MetaErrorKind,
   type RadarContentType,
@@ -37,10 +39,7 @@ const GRAPH_VERSION = 'v21.0';
 const GRAPH_HOST = 'https://graph.facebook.com';
 const META_FETCH_TIMEOUT_MS = 25_000;
 
-const TARGETS: ReadonlyArray<{ username: string; source: RadarSource }> = [
-  { username: 'chogangroupofficial', source: 'chogan' },
-  { username: 'essencetribe.network', source: 'essence_tribe' },
-];
+const TARGETS = RADAR_DISCOVERY_TARGETS;
 
 interface MetaMedia {
   id?: string;
@@ -391,7 +390,7 @@ Deno.serve(async (req) => {
 
       const discovered = await fetchDiscoveryMedia(token, target.username);
       if (!discovered.ok) {
-        if (discovered.kind === 'meta_auth_error') authHardFail = true;
+        if (shouldSkipRemainingRadarTargets(discovered.kind)) authHardFail = true;
         console.error(
           'radar_discovery_target_fail',
           JSON.stringify({

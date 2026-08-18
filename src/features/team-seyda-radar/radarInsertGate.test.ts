@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  RADAR_DISCOVERY_TARGETS,
   TEAM_SEYDA_ORG_ID,
   filterItemsByRadarStartpoint,
   isOnOrAfterRadarStartpoint,
@@ -23,6 +24,25 @@ describe('RADAR startpoint gate (server-side)', () => {
       start
     );
     expect(kept.map((i) => i.external_id)).toEqual(['new']);
+  });
+
+  it('applies the same startpoint rule to chogan_beauty items', () => {
+    const kept = filterItemsByRadarStartpoint(
+      [
+        {
+          source: 'chogan_beauty' as const,
+          external_id: 'beauty-old',
+          published_at: '2026-08-01T00:00:00.000Z',
+        },
+        {
+          source: 'chogan_beauty' as const,
+          external_id: 'beauty-new',
+          published_at: '2026-08-16T00:00:00.000Z',
+        },
+      ],
+      start
+    );
+    expect(kept.map((i) => i.external_id)).toEqual(['beauty-new']);
   });
 
   it('TEST 2: content newer than (or equal to) radar_started_at is eligible', () => {
@@ -49,6 +69,15 @@ describe('RADAR deduplication partition', () => {
     );
     expect(fresh).toHaveLength(0);
     expect(duplicates).toHaveLength(3);
+  });
+
+  it('dedupes chogan_beauty independently of other sources', () => {
+    const { fresh, duplicates } = partitionNewVsDuplicate(
+      [{ external_id: 'shared-ig-id' }],
+      new Set(['shared-ig-id'])
+    );
+    expect(fresh).toHaveLength(0);
+    expect(duplicates).toHaveLength(1);
   });
 });
 
@@ -82,9 +111,27 @@ describe('RADAR source / content mapping', () => {
   it('maps verified discovery usernames and media types', () => {
     expect(mapUsernameToSource('chogangroupofficial')).toBe('chogan');
     expect(mapUsernameToSource('essencetribe.network')).toBe('essence_tribe');
+    expect(mapUsernameToSource('choganbeautyofficial')).toBe('chogan_beauty');
     expect(mapUsernameToSource('random')).toBeNull();
     expect(mapMediaToContentType('IMAGE', 'https://www.instagram.com/p/x/')).toBe('POST');
     expect(mapMediaToContentType('VIDEO', 'https://www.instagram.com/reel/x/')).toBe('REEL');
+  });
+
+  it('hands all three Business Discovery targets to the existing pipeline', () => {
+    expect(RADAR_DISCOVERY_TARGETS).toHaveLength(3);
+    expect(RADAR_DISCOVERY_TARGETS.map((t) => t.username)).toEqual([
+      'chogangroupofficial',
+      'essencetribe.network',
+      'choganbeautyofficial',
+    ]);
+    expect(RADAR_DISCOVERY_TARGETS.map((t) => t.source)).toEqual([
+      'chogan',
+      'essence_tribe',
+      'chogan_beauty',
+    ]);
+    expect(RADAR_DISCOVERY_TARGETS.every((t) => mapUsernameToSource(t.username) === t.source)).toBe(
+      true
+    );
   });
 });
 

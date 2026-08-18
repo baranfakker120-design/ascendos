@@ -110,16 +110,17 @@
     "contentOpenIgHint": "Daha sonra kullanılabilir — otomatik yayın yok.",
     "backToToday": "Bugün’e dön",
     "radar": "Radar",
-    "radarSub": "Chogan ve Essence Tribe"
+    "radarSub": "Chogan, Chogan Beauty ve Essence Tribe"
   },
   "radar": {
     "slotTitle": "Radar",
-    "subtitle": "Chogan ve Essence Tribe’dan yeni gönderiler",
+    "subtitle": "Chogan, Chogan Beauty ve Essence Tribe’dan yeni gönderiler",
     "empty": "Açık gönderi yok.",
     "storiesHint": "Hikâyeler burada görünmez. Instagram bunları başka hesaplar için vermez.",
     "openIg": "Instagram’da aç",
     "seen": "Görüldü",
     "sourceChogan": "Chogan",
+    "sourceChoganBeauty": "Chogan Beauty",
     "sourceEssence": "Essence Tribe",
     "typePost": "Gönderi",
     "typeReel": "Reel",

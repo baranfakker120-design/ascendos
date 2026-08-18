@@ -19,7 +19,7 @@ export const RADAR_DISCOVERY_JOB = {
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
   ] as const,
-  targets: ['chogangroupofficial', 'essencetribe.network'] as const,
+  targets: ['chogangroupofficial', 'essencetribe.network', 'choganbeautyofficial'] as const,
   queryIdentity: 'bybarfum',
   tokenExpiryKnown: '2026-10-15',
   surface: 'TodayRadarSlot',
