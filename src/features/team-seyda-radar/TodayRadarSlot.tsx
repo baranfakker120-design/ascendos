@@ -2,7 +2,7 @@ import { useI18n } from '@shared/i18n';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { Button, buttonClassName } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
-import { isTeamSeydaRadarOrg } from './teamSeydaRadar';
+import { resolveRadarUiOrgId } from './teamSeydaRadar';
 import { sanitizeRadarCanonicalUrl } from './radarInsertGate';
 import { useRadarItems, useResolveRadarItem } from './radarItemsApi';
 import type { TeamRadarItem } from './radarItemsMap';
@@ -16,9 +16,9 @@ import './radar.css';
  */
 export function TodayRadarSlot() {
   const { t, locale } = useI18n();
-  const { membership } = useAuth();
-  const orgId = membership?.org_id ?? null;
-  const visible = isTeamSeydaRadarOrg(orgId);
+  const { membership, profile } = useAuth();
+  const orgId = resolveRadarUiOrgId(membership?.org_id, profile?.org_id);
+  const visible = Boolean(orgId);
   const { data: items = [], isPending, isError, refetch } = useRadarItems();
   const resolve = useResolveRadarItem();
 

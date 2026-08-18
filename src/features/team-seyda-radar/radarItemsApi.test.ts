@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mapRadarItemRow } from './radarItemsMap';
 import { RADAR_DISCOVERY_JOB } from './radarDiscoveryArchitecture';
-import { isTeamSeydaRadarOrg, TEAM_SEYDA_ORG_ID } from './teamSeydaRadar';
+import { isTeamSeydaRadarOrg, resolveRadarUiOrgId, TEAM_SEYDA_ORG_ID } from './teamSeydaRadar';
 
 describe('Radar item row mapping', () => {
   it('keeps Chogan/Essence Tribe feed and reel rows', () => {
@@ -35,6 +35,10 @@ describe('Radar product gates', () => {
   it('shows the Today slot only for Org #1', () => {
     expect(isTeamSeydaRadarOrg(TEAM_SEYDA_ORG_ID)).toBe(true);
     expect(isTeamSeydaRadarOrg('00000000-0000-0000-0000-000000000002')).toBe(false);
+    expect(resolveRadarUiOrgId(TEAM_SEYDA_ORG_ID, null)).toBe(TEAM_SEYDA_ORG_ID);
+    expect(
+      resolveRadarUiOrgId('00000000-0000-0000-0000-000000000002', TEAM_SEYDA_ORG_ID)
+    ).toBeNull();
   });
 
   it('does not claim Stories ingestion', () => {

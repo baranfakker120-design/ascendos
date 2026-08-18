@@ -2,6 +2,7 @@ export {
   TEAM_SEYDA_ORG_ID,
   getTeamSeydaRadarConfig,
   isTeamSeydaRadarOrg,
+  resolveRadarUiOrgId,
   teamSeydaRadarQueryKey,
   type TeamSeydaRadarConfig,
   type TeamSeydaRadarIdea,

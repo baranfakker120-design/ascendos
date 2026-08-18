@@ -39,6 +39,22 @@ export function isTeamSeydaRadarOrg(orgId: string | null | undefined): boolean {
 }
 
 /**
+ * Visibility/query org for Radar.
+ * Active membership wins. An explicit other-org membership hides Radar.
+ * If membership is not resolved yet, Org-#1 profile mirror may show it.
+ * Never use a Team Seyda profile to override a non-#1 membership.
+ */
+export function resolveRadarUiOrgId(
+  membershipOrgId: string | null | undefined,
+  profileOrgId: string | null | undefined
+): string | null {
+  if (isTeamSeydaRadarOrg(membershipOrgId)) return TEAM_SEYDA_ORG_ID;
+  if (membershipOrgId) return null;
+  if (isTeamSeydaRadarOrg(profileOrgId)) return TEAM_SEYDA_ORG_ID;
+  return null;
+}
+
+/**
  * Returns radar config only for Org #1. Other orgs always get null (no leak).
  * No persistence / no network — conceptual service for FE/admin wiring.
  */

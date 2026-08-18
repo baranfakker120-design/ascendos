@@ -20,7 +20,7 @@ import '@features/coach/executive/executive.css';
 
 /**
  * Daily Command Center — Sprint 5 home stack:
- * Stories → Live Coaching → Radar (Org #1) → sync → Day Memory / Mission → CEO Briefing → Coach surface.
+ * Stories → Radar (Org #1) → Live Coaching → sync → Day Memory / Mission → CEO Briefing → Coach surface.
  */
 export function TodayPage() {
   const { t } = useI18n();
@@ -48,8 +48,8 @@ export function TodayPage() {
   return (
     <div className="space-y-4">
       <TodayStoriesSlot />
-      <TodayLiveCoachingSlot />
       <TodayRadarSlot />
+      <TodayLiveCoachingSlot />
       <div className="exec-home-sync">
         <SyncStatusIndicator variant="home" />
       </div>
