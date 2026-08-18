@@ -1,4 +1,5 @@
-.closing-loop__eyebrow {
+.closing-loop__eyebrow,
+.closing-loop__label {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -6,20 +7,198 @@
   color: rgb(var(--color-muted));
 }
 
+.closing-loop__title {
+  margin-top: 0.35rem;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.closing-loop__lede {
+  margin-top: 0.55rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgb(var(--color-muted));
+  max-width: 28rem;
+}
+
+.closing-loop__steps {
+  margin-top: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: rgb(var(--color-muted));
+}
+
 .closing-loop__hero {
   animation: closing-loop-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.closing-loop__truth {
-  animation: closing-loop-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+.closing-loop__panel {
+  border: 1px solid rgb(var(--color-line));
+  border-radius: 1rem;
+  background: linear-gradient(165deg, rgb(255 255 255 / 0.96), rgb(250 248 244 / 0.9));
+  padding: 1rem 1.05rem 1.1rem;
+  animation: closing-loop-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 50ms both;
 }
 
-.closing-loop__actions {
-  animation: closing-loop-in 520ms cubic-bezier(0.22, 1, 0.36, 1) 110ms both;
+.closing-loop__priority {
+  margin-top: 0.45rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
-.closing-loop--closed .closing-loop__hero {
-  animation-duration: 360ms;
+.closing-loop__question {
+  margin-top: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.closing-loop__choices,
+.closing-loop__nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.closing-loop__choice,
+.closing-loop__radio,
+.closing-loop__chip {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(255 255 255 / 0.75);
+  color: inherit;
+}
+
+.closing-loop__choice {
+  min-height: 2.75rem;
+  border-radius: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.closing-loop__choice.is-on,
+.closing-loop__radio.is-on,
+.closing-loop__chip.is-on {
+  border-color: rgb(196 165 116 / 0.55);
+  background: rgb(196 165 116 / 0.12);
+}
+
+.closing-loop__radios {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.closing-loop__radio {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.85rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.85rem;
+  text-align: left;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.closing-loop__radio.is-disabled {
+  opacity: 0.55;
+}
+
+.closing-loop__radio-mark {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  border: 1.5px solid rgb(var(--color-muted));
+  flex-shrink: 0;
+}
+
+.closing-loop__radio.is-on .closing-loop__radio-mark {
+  border-color: rgb(196 165 116);
+  background: rgb(196 165 116);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255);
+}
+
+.closing-loop__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.closing-loop__chip {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.closing-loop__field {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.closing-loop__textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 5rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(255 255 255 / 0.9);
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: inherit;
+}
+
+.closing-loop__textarea:focus {
+  outline: 2px solid rgb(196 165 116 / 0.45);
+  outline-offset: 1px;
+}
+
+.closing-loop__warn {
+  margin-top: 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(140 70 50);
+}
+
+.closing-loop__hint {
+  margin-top: 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgb(var(--color-muted));
+}
+
+.closing-loop__reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  border: 1px solid rgb(var(--color-line));
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.88);
+  padding: 0.85rem 0.95rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @keyframes closing-loop-in {
@@ -35,8 +214,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .closing-loop__hero,
-  .closing-loop__truth,
-  .closing-loop__actions {
+  .closing-loop__panel {
     animation: none;
   }
 }

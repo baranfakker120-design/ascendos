@@ -11,11 +11,11 @@ import {
   writeDayClose,
   writeDayOpen,
 } from './dayMemoryStore';
-import type { DayCloseRecord, DayCloseSource, DayOpenRecord } from './types';
+import type { DayCloseJournal, DayCloseRecord, DayCloseSource, DayOpenRecord } from './types';
 
 /**
- * Day Memory hook — Closing Loop + Decision Diff persistence for Today.
- * IDB is source of truth for close state; usage_events insert is best-effort.
+ * Day Memory hook — Closing Loop persistence for Today.
+ * IDB is source of truth; usage_events insert is best-effort analytics only.
  */
 export function useDayMemory() {
   const { profile, membership } = useAuth();
@@ -69,7 +69,7 @@ export function useDayMemory() {
   );
 
   const closeDay = useCallback(
-    async (items: DailyPlanItem[], source: DayCloseSource) => {
+    async (items: DailyPlanItem[], source: DayCloseSource, journal: DayCloseJournal) => {
       if (!userId) return null;
       const existing = await readDayClose(userId, planDate);
       if (existing) {
@@ -83,6 +83,7 @@ export function useDayMemory() {
         items,
         source,
         open: openRec,
+        journal,
       });
       await writeDayClose(record);
       setClose(record);
@@ -101,6 +102,8 @@ export function useDayMemory() {
               source: record.source,
               missions_done: record.missionsDone,
               missions_total: record.missionsTotal,
+              evidence_count: record.evidence.length,
+              has_tomorrow_note: Boolean(record.tomorrowNote),
             },
           })
           .then(

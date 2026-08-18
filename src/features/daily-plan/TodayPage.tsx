@@ -8,11 +8,11 @@ import { useCoachOrgIntelligence } from '@features/coach/intelligence';
 import { useContacts } from '@features/contacts/contactsApi';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
-import { ClosedDay, ClosingLoop } from './components/ClosingLoop';
+import { ClosedDay, ClosingLoop, EveningCloseReminder } from './components/ClosingLoop';
 import { DecisionDiff } from './components/DecisionDiff';
 import { FocusMode } from './components/FocusMode';
 import { MorningCommit } from './components/MorningCommit';
-import { buildDecisionDiff, useDayMemory } from './dayMemory';
+import { buildDecisionDiff, isEveningCloseWindow, useDayMemory } from './dayMemory';
 import { useDailyPlan, useDailyPlanMutations } from './dailyPlanApi';
 import { missionProgress, orderMissions, pinPriority } from './missionOrder';
 import '@features/coach/executive/executive.css';
@@ -76,7 +76,11 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
   const { intelligence } = useCoachOrgIntelligence(true);
   const contacts = useContacts({ limit: 100 });
   const [manualClose, setManualClose] = useState(false);
+  const [closeSource, setCloseSource] = useState<'manual_close' | 'evening_reminder'>(
+    'manual_close'
+  );
   const [closingBusy, setClosingBusy] = useState(false);
+  const evening = isEveningCloseWindow();
 
   const lastEventByContactId = useMemo(() => {
     const map = new Map<string, string | null>();
@@ -122,14 +126,7 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
   const progress = missionProgress(data.items);
 
   if (memory.close) {
-    return (
-      <ClosedDay
-        outcome={memory.close.outcome}
-        missionsDone={memory.close.missionsDone}
-        missionsTotal={memory.close.missionsTotal}
-        tomorrowSeed={memory.close.tomorrowSeed}
-      />
-    );
+    return <ClosedDay record={memory.close} />;
   }
 
   if (!data.plan.committed_at) {
@@ -169,16 +166,24 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
     return (
       <ClosingLoop
         items={data.items}
+        openRecord={memory.open}
         busy={closingBusy}
-        sourceHint={manualClose && !dayComplete ? 'manual_close' : 'missions_complete'}
-        onKeepWorking={manualClose && !dayComplete ? () => setManualClose(false) : undefined}
-        onClose={() => {
+        sourceHint={dayComplete ? 'missions_complete' : closeSource}
+        onKeepWorking={
+          !dayComplete
+            ? () => {
+                setManualClose(false);
+              }
+            : undefined
+        }
+        onSave={(journal) => {
           void (async () => {
             setClosingBusy(true);
             try {
               await memory.closeDay(
                 data.items,
-                manualClose && !dayComplete ? 'manual_close' : 'missions_complete'
+                dayComplete ? 'missions_complete' : closeSource,
+                journal
               );
             } finally {
               setClosingBusy(false);
@@ -190,15 +195,28 @@ function TodayDailyPlan({ memory }: { memory: ReturnType<typeof useDayMemory> })
   }
 
   return (
-    <FocusMode
-      ordered={ordered}
-      progress={progress}
-      busy={setMissionStatus.isPending}
-      lastEventByContactId={lastEventByContactId}
-      onStatus={(itemId, status, reason) =>
-        void setMissionStatus.mutateAsync({ itemId, status, reason })
-      }
-      onEndDay={() => setManualClose(true)}
-    />
+    <div className="space-y-4">
+      {evening ? (
+        <EveningCloseReminder
+          onEndDay={() => {
+            setCloseSource('evening_reminder');
+            setManualClose(true);
+          }}
+        />
+      ) : null}
+      <FocusMode
+        ordered={ordered}
+        progress={progress}
+        busy={setMissionStatus.isPending}
+        lastEventByContactId={lastEventByContactId}
+        onStatus={(itemId, status, reason) =>
+          void setMissionStatus.mutateAsync({ itemId, status, reason })
+        }
+        onEndDay={() => {
+          setCloseSource('manual_close');
+          setManualClose(true);
+        }}
+      />
+    </div>
   );
 }
