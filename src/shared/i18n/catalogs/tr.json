@@ -108,7 +108,26 @@
     "contentComingSoon": "Yakında",
     "contentOpenIg": "Instagram’da aç",
     "contentOpenIgHint": "Daha sonra kullanılabilir — otomatik yayın yok.",
-    "backToToday": "Bugün’e dön"
+    "backToToday": "Bugün’e dön",
+    "radar": "Radar",
+    "radarSub": "Chogan ve Essence Tribe"
+  },
+  "radar": {
+    "slotTitle": "Radar",
+    "subtitle": "Chogan ve Essence Tribe’dan yeni gönderiler",
+    "empty": "Açık gönderi yok.",
+    "storiesHint": "Hikâyeler burada görünmez. Instagram bunları başka hesaplar için vermez.",
+    "openIg": "Instagram’da aç",
+    "seen": "Görüldü",
+    "sourceChogan": "Chogan",
+    "sourceEssence": "Essence Tribe",
+    "typePost": "Gönderi",
+    "typeReel": "Reel",
+    "whenToday": "Bugün · {time}",
+    "whenYesterday": "Dün · {time}",
+    "whenDate": "{date} · {time}",
+    "loadError": "Radar yüklenemedi.",
+    "count": "{n} yeni"
   },
   "org": {
     "active": "Aktif organizasyon",

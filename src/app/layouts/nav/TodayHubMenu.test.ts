@@ -17,6 +17,8 @@ const HUB_KEYS: MessageKey[] = [
   'todayHub.tasksSub',
   'todayHub.stats',
   'todayHub.statsSub',
+  'todayHub.radar',
+  'todayHub.radarSub',
   'todayHub.contentPageBody',
   'todayHub.backToToday',
 ];

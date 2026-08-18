@@ -76,3 +76,28 @@ export function mapMediaToContentType(
   if ((mediaType ?? '').toUpperCase() === 'VIDEO') return 'REEL';
   return 'POST';
 }
+
+/**
+ * Link-out only. Rejects non-https, non-Instagram, and anything that is not
+ * a feed/reel permalink so the UI never opens a poisoned href.
+ */
+export function sanitizeRadarCanonicalUrl(raw: string | null | undefined): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:') return null;
+  const host = url.hostname.toLowerCase();
+  if (host !== 'www.instagram.com' && host !== 'instagram.com') return null;
+  if (!/^\/(p|reel|reels)\//i.test(url.pathname)) return null;
+  url.hash = '';
+  url.search = '';
+  url.username = '';
+  url.password = '';
+  return url.toString();
+}

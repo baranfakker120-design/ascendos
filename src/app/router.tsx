@@ -13,6 +13,7 @@ import { LiveCoachingAdminPage } from '@features/live-coaching/LiveCoachingAdmin
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
 import { StoriesAdminPage } from '@features/stories/StoriesAdminPage';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
+import { TodayRadarSlot } from '@features/team-seyda-radar';
 import { AiContentAssistantPage } from '@features/content-assistant/AiContentAssistantPage';
 import { TodayPage } from '@features/daily-plan/TodayPage';
 import { MorePage } from '@features/more/MorePage';
@@ -111,6 +112,7 @@ function TodayRoute() {
       <div className="space-y-4">
         <TodayStoriesSlot />
         <TodayLiveCoachingSlot />
+        <TodayRadarSlot />
         <div className="exec-home-sync">
           <SyncStatusIndicator variant="home" />
         </div>

@@ -7,3 +7,5 @@ export {
   type TeamSeydaRadarIdea,
   type TeamSeydaRadarSource,
 } from './teamSeydaRadar';
+export { TodayRadarSlot } from './TodayRadarSlot';
+export { sanitizeRadarCanonicalUrl } from './radarInsertGate';

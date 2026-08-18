@@ -22,4 +22,8 @@ export const RADAR_DISCOVERY_JOB = {
   targets: ['chogangroupofficial', 'essencetribe.network'] as const,
   queryIdentity: 'bybarfum',
   tokenExpiryKnown: '2026-10-15',
+  surface: 'TodayRadarSlot',
+  mediaCopy: false,
+  /** Official Graph Business Discovery `media` — Stories are not included. */
+  includesStories: false,
 } as const;

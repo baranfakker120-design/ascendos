@@ -1,0 +1,16 @@
+.radar-slot__count {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--color-line));
+  background: rgb(var(--color-bg));
+  padding: 0.18rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgb(var(--color-ink));
+}
+
+.radar-slot__row:first-child {
+  padding-top: 0.35rem;
+}

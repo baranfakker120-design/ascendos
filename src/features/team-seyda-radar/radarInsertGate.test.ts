@@ -7,6 +7,7 @@ import {
   mapUsernameToSource,
   partitionNewVsDuplicate,
   resolveRadarWriteOrgId,
+  sanitizeRadarCanonicalUrl,
 } from './radarInsertGate';
 
 describe('RADAR startpoint gate (server-side)', () => {
@@ -84,5 +85,25 @@ describe('RADAR source / content mapping', () => {
     expect(mapUsernameToSource('random')).toBeNull();
     expect(mapMediaToContentType('IMAGE', 'https://www.instagram.com/p/x/')).toBe('POST');
     expect(mapMediaToContentType('VIDEO', 'https://www.instagram.com/reel/x/')).toBe('REEL');
+  });
+});
+
+describe('RADAR canonical URL sanitizer', () => {
+  it('allows official Instagram feed and reel permalinks only', () => {
+    expect(sanitizeRadarCanonicalUrl('https://www.instagram.com/p/DcJf4g0DFcp/')).toBe(
+      'https://www.instagram.com/p/DcJf4g0DFcp/'
+    );
+    expect(sanitizeRadarCanonicalUrl('https://instagram.com/reel/DcG8CzaMbUC/')).toBe(
+      'https://instagram.com/reel/DcG8CzaMbUC/'
+    );
+  });
+
+  it('rejects non-https, non-Instagram, stories, and poisoned hrefs', () => {
+    expect(sanitizeRadarCanonicalUrl('http://www.instagram.com/p/x/')).toBeNull();
+    expect(sanitizeRadarCanonicalUrl('https://evil.example/p/x/')).toBeNull();
+    expect(sanitizeRadarCanonicalUrl('javascript:alert(1)')).toBeNull();
+    expect(sanitizeRadarCanonicalUrl('https://www.instagram.com/stories/x/1/')).toBeNull();
+    expect(sanitizeRadarCanonicalUrl('https://www.instagram.com/essencetribe.network/')).toBeNull();
+    expect(sanitizeRadarCanonicalUrl(null)).toBeNull();
   });
 });

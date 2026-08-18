@@ -108,7 +108,26 @@
     "contentComingSoon": "Coming soon",
     "contentOpenIg": "Open in Instagram",
     "contentOpenIgHint": "Available later — no automatic publishing.",
-    "backToToday": "Back to Today"
+    "backToToday": "Back to Today",
+    "radar": "Radar",
+    "radarSub": "Chogan and Essence Tribe"
+  },
+  "radar": {
+    "slotTitle": "Radar",
+    "subtitle": "New posts from Chogan and Essence Tribe",
+    "empty": "No open posts.",
+    "storiesHint": "Stories do not appear here. Instagram does not provide them for other accounts.",
+    "openIg": "Open in Instagram",
+    "seen": "Seen",
+    "sourceChogan": "Chogan",
+    "sourceEssence": "Essence Tribe",
+    "typePost": "Post",
+    "typeReel": "Reel",
+    "whenToday": "Today · {time}",
+    "whenYesterday": "Yesterday · {time}",
+    "whenDate": "{date} · {time}",
+    "loadError": "Radar could not be loaded.",
+    "count": "{n} new"
   },
   "org": {
     "active": "Active organization",

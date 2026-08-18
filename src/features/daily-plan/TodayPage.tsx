@@ -7,6 +7,7 @@ import { TodayCeoBriefingSlot, TodayCoachOsSlot } from '@features/coach/executiv
 import { useCoachOrgIntelligence } from '@features/coach/intelligence';
 import { useContacts } from '@features/contacts/contactsApi';
 import { TodayLiveCoachingSlot } from '@features/live-coaching/TodayLiveCoachingSlot';
+import { TodayRadarSlot } from '@features/team-seyda-radar';
 import { TodayStoriesSlot } from '@features/stories/TodayStoriesSlot';
 import { ClosedDay, ClosingLoop } from './components/ClosingLoop';
 import { DecisionDiff } from './components/DecisionDiff';
@@ -19,7 +20,7 @@ import '@features/coach/executive/executive.css';
 
 /**
  * Daily Command Center — Sprint 5 home stack:
- * Stories → Live Coaching → sync → Day Memory / Mission → CEO Briefing → Coach surface.
+ * Stories → Live Coaching → Radar (Org #1) → sync → Day Memory / Mission → CEO Briefing → Coach surface.
  */
 export function TodayPage() {
   const { t } = useI18n();
@@ -48,6 +49,7 @@ export function TodayPage() {
     <div className="space-y-4">
       <TodayStoriesSlot />
       <TodayLiveCoachingSlot />
+      <TodayRadarSlot />
       <div className="exec-home-sync">
         <SyncStatusIndicator variant="home" />
       </div>
