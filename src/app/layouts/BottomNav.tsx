@@ -1,36 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion, type Transition } from 'motion/react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useI18n, type MessageKey } from '@shared/i18n';
+import { useI18n } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
 import { LiquidChampagne } from '@shared/ui/LiquidChampagne';
+import { BOTTOM_NAV_TABS, type NavTab, type NavTabId } from './bottomNavTabs';
 import { AscendLogo, ContactsIcon, TeamIcon, TodayIcon } from './nav/NavIcons';
 import { ProfileStack } from './nav/ProfileStack';
 import { TodayHubMenu } from './nav/TodayHubMenu';
 
-export type NavTabId = 'heute' | 'kontakte' | 'coach' | 'team' | 'profil';
-
-interface NavTab {
-  id: NavTabId;
-  to: string;
-  labelKey: MessageKey;
-  ariaKey: MessageKey;
-  end?: boolean;
-  externalInApp?: boolean;
-}
-
-export const BOTTOM_NAV_TABS: readonly NavTab[] = [
-  { id: 'heute', to: '/', labelKey: 'nav.today', ariaKey: 'nav.today', end: true },
-  { id: 'kontakte', to: '/kontakte', labelKey: 'nav.contacts', ariaKey: 'nav.contacts' },
-  { id: 'coach', to: '/coach', labelKey: 'nav.coach', ariaKey: 'nav.coachAria' },
-  {
-    id: 'team',
-    to: '/team',
-    labelKey: 'nav.team',
-    ariaKey: 'nav.teamAria',
-  },
-  { id: 'profil', to: '/profil', labelKey: 'nav.profile', ariaKey: 'nav.profile' },
-] as const;
+export { BOTTOM_NAV_TABS, type NavTab, type NavTabId } from './bottomNavTabs';
 
 function isTabActive(tab: NavTab, pathname: string): boolean {
   if (tab.id === 'profil') {

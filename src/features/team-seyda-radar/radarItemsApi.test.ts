@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapRadarItemRow } from './radarItemsApi';
+import { mapRadarItemRow } from './radarItemsMap';
 import { RADAR_DISCOVERY_JOB } from './radarDiscoveryArchitecture';
 import { isTeamSeydaRadarOrg, TEAM_SEYDA_ORG_ID } from './teamSeydaRadar';
 

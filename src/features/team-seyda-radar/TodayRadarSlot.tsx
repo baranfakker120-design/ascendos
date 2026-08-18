@@ -4,7 +4,8 @@ import { Button, buttonClassName } from '@shared/ui/Button';
 import { Card } from '@shared/ui/Card';
 import { isTeamSeydaRadarOrg } from './teamSeydaRadar';
 import { sanitizeRadarCanonicalUrl } from './radarInsertGate';
-import { useRadarItems, useResolveRadarItem, type TeamRadarItem } from './radarItemsApi';
+import { useRadarItems, useResolveRadarItem } from './radarItemsApi';
+import type { TeamRadarItem } from './radarItemsMap';
 import { radarBerlinDate, radarBerlinTime, radarWhenKind } from './radarWhen';
 import './radar.css';
 

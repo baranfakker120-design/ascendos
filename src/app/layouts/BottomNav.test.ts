@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTranslator } from '@shared/i18n/translate';
 import { APP_LOCALES } from '@shared/lib/locale';
-import { BOTTOM_NAV_TABS } from './BottomNav';
+import { BOTTOM_NAV_TABS } from './bottomNavTabs';
 
 describe('BottomNav tab contract', () => {
   it('keeps the required five-tab order and ids', () => {
