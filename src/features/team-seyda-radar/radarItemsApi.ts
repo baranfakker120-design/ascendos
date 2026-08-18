@@ -1,18 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { supabase } from '@shared/api/supabase';
-import { isTeamSeydaRadarOrg, teamSeydaRadarQueryKey } from './teamSeydaRadar';
+import { resolveRadarUiOrgId, teamSeydaRadarQueryKey } from './teamSeydaRadar';
 import { mapRadarItemRow, RADAR_UNRESOLVED_LIMIT, type TeamRadarItem } from './radarItemsMap';
 
 export { RADAR_UNRESOLVED_LIMIT, mapRadarItemRow, type TeamRadarItem } from './radarItemsMap';
 
 export function useRadarItems() {
-  const { membership } = useAuth();
-  const orgId = membership?.org_id ?? null;
-  const enabled = isTeamSeydaRadarOrg(orgId);
+  const { membership, profile } = useAuth();
+  const orgId = resolveRadarUiOrgId(membership?.org_id, profile?.org_id);
+  const enabled = Boolean(orgId);
   return useQuery({
     queryKey: [...teamSeydaRadarQueryKey(orgId), 'unresolved'],
     enabled,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<TeamRadarItem[]> => {
       const { data, error } = await supabase
         .from('team_radar_items')
@@ -25,14 +27,13 @@ export function useRadarItems() {
         .map((row) => mapRadarItemRow(row))
         .filter((row): row is TeamRadarItem => row != null);
     },
-    staleTime: 60_000,
   });
 }
 
 export function useResolveRadarItem() {
   const qc = useQueryClient();
-  const { membership } = useAuth();
-  const orgId = membership?.org_id ?? null;
+  const { membership, profile } = useAuth();
+  const orgId = resolveRadarUiOrgId(membership?.org_id, profile?.org_id);
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase

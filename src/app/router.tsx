@@ -111,8 +111,8 @@ function TodayRoute() {
     return (
       <div className="space-y-4">
         <TodayStoriesSlot />
-        <TodayLiveCoachingSlot />
         <TodayRadarSlot />
+        <TodayLiveCoachingSlot />
         <div className="exec-home-sync">
           <SyncStatusIndicator variant="home" />
         </div>

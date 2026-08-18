@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { isTeamSeydaRadarOrg } from '@features/team-seyda-radar';
+import { resolveRadarUiOrgId } from '@features/team-seyda-radar';
 import { useAuth } from '@shared/auth/AuthProvider';
 import { useI18n, type MessageKey } from '@shared/i18n';
 import { triggerNavHaptic } from '@shared/lib/haptics';
@@ -66,8 +66,8 @@ function HubIcon({ children }: { children: ReactNode }) {
  */
 export function TodayHubMenu({ burst, burstKey, onBurst }: TodayHubMenuProps) {
   const { t } = useI18n();
-  const { membership } = useAuth();
-  const showRadar = isTeamSeydaRadarOrg(membership?.org_id);
+  const { membership, profile } = useAuth();
+  const showRadar = Boolean(resolveRadarUiOrgId(membership?.org_id, profile?.org_id));
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [expanded, setExpanded] = useState(false);
